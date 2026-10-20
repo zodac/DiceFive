@@ -11,10 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -107,6 +105,7 @@ import net.zodac.dicefive.resources.setup_unlucky_odds_value
 import net.zodac.dicefive.resources.setup_unlucky_title
 import net.zodac.dicefive.ui.common.ChoicePicker
 import net.zodac.dicefive.ui.common.FittedSegmentedChoiceRow
+import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.MIN_READABLE_FONT_SIZE
 import net.zodac.dicefive.ui.common.ModifierCustomValue
 import net.zodac.dicefive.ui.common.ModifierNumberField
@@ -114,6 +113,7 @@ import net.zodac.dicefive.ui.common.ModifierPicker
 import net.zodac.dicefive.ui.common.ModifierSetting
 import net.zodac.dicefive.ui.common.ModifierStepper
 import net.zodac.dicefive.ui.common.ScreenScaffold
+import net.zodac.dicefive.ui.common.ScrollingColumn
 import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.localised
@@ -155,58 +155,84 @@ fun GameSetupScreen(
     val duplicateNameSlots = duplicateHumanNameSlots(activeSlots, defaultName)
     val namesMustBeUnique = stringResource(Res.string.setup_names_unique)
 
-    ScreenScaffold(title = stringResource(Res.string.setup_title), onBack = onBack, modifier = modifier) {
+    ScreenScaffold(title = stringResource(Res.string.setup_title), onBack = onBack, modifier = modifier, wide = true) {
         // Nothing but the title bar until the saved choices are back: drawing the form any sooner
         // shows the defaults (Standard mode, 2 players) for a few frames before they switch to
         // the last game's - and a Start Game tapped in that window would play the defaults.
         if (!setupRestored) return@ScreenScaffold
 
+        val playerCards = @Composable {
+            PlayerCards(setup = setup, activeSlots = activeSlots, duplicateNameSlots = duplicateNameSlots, namesMustBeUnique = namesMustBeUnique, defaultName = defaultName, viewModel = viewModel)
+        }
+        val actions = @Composable {
+            if (duplicateNameSlots.isNotEmpty()) {
+                Text(
+                    text = namesMustBeUnique,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            // Offered, never required, and only until a first game is finished.
+            if (!setup.modesUnlocked) {
+                OutlinedButton(
+                    onClick = {
+                        focusManager.clearFocus()
+                        onTutorial()
+                    },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                ) {
+                    Text(text = stringResource(Res.string.setup_tutorial_prompt), textAlign = TextAlign.Center)
+                }
+            }
+
+            Button(
+                onClick = {
+                    // A name field still focused would keep blinking its cursor on the fading-out page, and the
+                    // keyboard up, for the frames the next screen takes to arrive.
+                    focusManager.clearFocus()
+                    viewModel.startGame(defaultName)
+                    onStartGame()
+                },
+                enabled = duplicateNameSlots.isEmpty(),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            ) {
+                Text(text = stringResource(Res.string.setup_start), style = MaterialTheme.typography.titleMedium)
+            }
+        }
+
+        if (LocalLandscapePage.current) {
+            // Side by side: the players, then the game and the way in. Each side scrolls on its own, its scrollbar in the gap
+            // or margin beside it, the button held under the second as it is under the whole form in portrait.
+            Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                ScrollingColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) { playerCards() }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    ScrollingColumn(
+                        modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) { GameCards(setup = setup, viewModel = viewModel) }
+                    actions()
+                }
+            }
+            return@ScreenScaffold
+        }
+
         // The form scrolls on its own, and the Start Game button sits directly after it rather than
         // pinned to the foot of the screen, where an achievement banner can cover it. weight(1f,
         // fill = false) gives the form at most the height left over once the button is placed, and
         // lets it shrink to its own height when it needs less. A short form keeps the button right
-        // underneath it; a form too tall for the screen scrolls, with the button held at the bottom.
-        Column(
-            modifier = Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()),
+        // underneath it; a form too tall for the screen scrolls (its scrollbar in the margin), with the button held at the bottom.
+        ScrollingColumn(
+            modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            SetupForm(setup = setup, activeSlots = activeSlots, duplicateNameSlots = duplicateNameSlots, namesMustBeUnique = namesMustBeUnique, defaultName = defaultName, viewModel = viewModel)
+            playerCards()
+            GameCards(setup = setup, viewModel = viewModel)
         }
-
-        if (duplicateNameSlots.isNotEmpty()) {
-            Text(
-                text = namesMustBeUnique,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.error,
-            )
-        }
-
-        // Offered, never required, and only until a first game is finished.
-        if (!setup.modesUnlocked) {
-            OutlinedButton(
-                onClick = {
-                    focusManager.clearFocus()
-                    onTutorial()
-                },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            ) {
-                Text(text = stringResource(Res.string.setup_tutorial_prompt), textAlign = TextAlign.Center)
-            }
-        }
-
-        Button(
-            onClick = {
-                // A name field still focused would keep blinking its cursor on the fading-out page, and the
-                // keyboard up, for the frames the next screen takes to arrive.
-                focusManager.clearFocus()
-                viewModel.startGame(defaultName)
-                onStartGame()
-            },
-            enabled = duplicateNameSlots.isEmpty(),
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-        ) {
-            Text(text = stringResource(Res.string.setup_start), style = MaterialTheme.typography.titleMedium)
-        }
+        actions()
     }
 }
 
@@ -225,8 +251,9 @@ private fun duplicateHumanNameSlots(slots: List<PlayerSetupSlot>, defaultName: (
         .flatten()
         .mapTo(mutableSetOf()) { it.slot }
 
+/** The form's first half: how many players, and each one's colour, name and type. */
 @Composable
-private fun SetupForm(
+private fun PlayerCards(
     setup: GameSetupState,
     activeSlots: List<PlayerSetupSlot>,
     duplicateNameSlots: Set<Int>,
@@ -262,7 +289,11 @@ private fun SetupForm(
             )
         }
     }
+}
 
+/** The form's second half: the game mode and the modifiers. */
+@Composable
+private fun GameCards(setup: GameSetupState, viewModel: GameViewModel) {
     // Until a first game is finished each card holds a note in place of its picker, and the form plays Standard with no
     // modifiers.
     if (!setup.modesUnlocked) {
@@ -290,6 +321,9 @@ private fun SetupForm(
     }
 }
 
+/** The most space between a [SetupCard]'s rows on a landscape page. */
+private val LANDSCAPE_ROW_SPACING = 2.dp
+
 /**
  * One section of the form - a card is M3's grouping surface for exactly this.
  *
@@ -297,6 +331,7 @@ private fun SetupForm(
  * need a heading repeating it. [rowSpacing] is tightened further still for the player list, where
  * up to four rows (plus their dividers) need to fit on screen at once alongside every other card.
  * With [enabled] false the card is darker and its title takes Material's disabled text colour.
+ * Tighter on a landscape page, where the form has height to spare for nothing.
  */
 @Composable
 private fun SetupCard(
@@ -313,9 +348,10 @@ private fun SetupCard(
         colors = if (enabled) colours else colours.copy(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         modifier = modifier.fillMaxWidth(),
     ) {
+        val landscape = LocalLandscapePage.current
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(rowSpacing),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = if (landscape) 4.dp else 8.dp),
+            verticalArrangement = Arrangement.spacedBy(if (landscape) minOf(rowSpacing, LANDSCAPE_ROW_SPACING) else rowSpacing),
         ) {
             if (title != null) {
                 Text(

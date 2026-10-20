@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -93,6 +94,8 @@ internal fun scoreRiseMillis(pointsGained: Int): Int =
  * Tabs are only tappable when [enabled] - an AI's turn plays out on its own with nobody to ask it
  * to pause, so switching away from the live board mid-turn would just hide it running rather than
  * let anyone actually study another scorecard.
+ *
+ * [singleLine] puts each tab's dot, name, score and place in one row, for a landscape screen's height.
  */
 @Composable
 fun PlayerHeaderBar(
@@ -102,6 +105,7 @@ fun PlayerHeaderBar(
     enabled: Boolean,
     onPlayerTap: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    singleLine: Boolean = false,
 ) {
     // Three or four tabs leave roughly a quarter of the screen each, which a name at labelLarge
     // can outgrow even at the setup screen's length cap - so the name (not the score) steps down
@@ -122,6 +126,7 @@ fun PlayerHeaderBar(
                 standing = places?.get(index),
                 enabled = enabled,
                 onClick = { onPlayerTap(index) },
+                singleLine = singleLine,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -140,6 +145,7 @@ private fun PlayerTab(
     standing: Standing?,
     enabled: Boolean,
     onClick: () -> Unit,
+    singleLine: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(10.dp)
@@ -151,31 +157,28 @@ private fun PlayerTab(
     val viewScorecardLabel = stringResource(Res.string.game_tab_view_action)
     // Larger text fills more of the tab, so a frame's sides and corners need more room to stay off it.
     val sidePadding = (BASE_SIDE_PADDING_DP + (LocalDensity.current.fontScale - 1f).coerceAtLeast(0f) * SIDE_PADDING_DP_PER_FONT_SCALE).coerceAtMost(MAX_SIDE_PADDING_DP).dp
-    Column(
-        modifier = modifier
-            .padding(horizontal = 3.dp)
-            // Every tab sits on its own panel rather than straight on the page; the frame draws over it.
-            // Tinted a touch with the player's colour - any more and Purple's name drops below 4.5:1.
-            .background(color.copy(alpha = PANEL_TINT).compositeOver(MaterialTheme.colorScheme.surfaceContainer), shape)
-            // Whose turn it is: the player's chosen frame, behind the name and score. Ahead of the clip,
-            // so a frame's glow or ornaments can spread a little past the tab, into the gap beside it.
-            .then(if (active) Modifier.drawBehind { with(frame) { drawFrame(color) } } else Modifier)
-            .clip(shape)
-            .then(if (viewed) Modifier.dashedBorder(1.5.dp, color.copy(alpha = 0.85f), 10.dp) else Modifier)
-            .clickable(enabled = enabled, role = Role.Tab, onClickLabel = viewScorecardLabel, onClick = onClick)
-            // Selected is the scorecard on view; the border's other meaning - whose turn it is - is said
-            // instead, with the player's place (the visible "=2nd" is cleared below: read as "equals").
-            .semantics {
-                selected = viewed
-                if (spokenState.isNotEmpty()) stateDescription = spokenState
-            }
-            .padding(vertical = 6.dp, horizontal = sidePadding),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        val nameStyle = if (compactName) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge
+    val tabModifier = modifier
+        .padding(horizontal = 3.dp)
+        // Every tab sits on its own panel rather than straight on the page; the frame draws over it.
+        // Tinted a touch with the player's colour - any more and Purple's name drops below 4.5:1.
+        .background(color.copy(alpha = PANEL_TINT).compositeOver(MaterialTheme.colorScheme.surfaceContainer), shape)
+        // Whose turn it is: the player's chosen frame, behind the name and score. Ahead of the clip,
+        // so a frame's glow or ornaments can spread a little past the tab, into the gap beside it.
+        .then(if (active) Modifier.drawBehind { with(frame) { drawFrame(color) } } else Modifier)
+        .clip(shape)
+        .then(if (viewed) Modifier.dashedBorder(1.5.dp, color.copy(alpha = 0.85f), 10.dp) else Modifier)
+        .clickable(enabled = enabled, role = Role.Tab, onClickLabel = viewScorecardLabel, onClick = onClick)
+        // Selected is the scorecard on view; the border's other meaning - whose turn it is - is said
+        // instead, with the player's place (the visible "=2nd" is cleared below: read as "equals").
+        .semantics {
+            selected = viewed
+            if (spokenState.isNotEmpty()) stateDescription = spokenState
+        }
+        .padding(vertical = 6.dp, horizontal = sidePadding)
+    val nameStyle = if (compactName) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge
+    val nameRow = @Composable { nameModifier: Modifier ->
         Row(
-            // Dropped a little below the tab's top, out of the way of the corner ornaments most frames draw there.
-            modifier = Modifier.padding(top = NAME_TOP_DROP),
+            modifier = nameModifier,
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
         ) {
@@ -195,13 +198,53 @@ private fun PlayerTab(
                 fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
             )
         }
+    }
+    val scoreText = @Composable { style: TextStyle ->
         Text(
             text = risingScore(score).localised(),
             color = color,
             fontFamily = SoraFontFamily,
             fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.headlineSmall,
+            style = style,
         )
+    }
+    val dot = @Composable {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(if (active) color else Color.Transparent),
+        )
+    }
+    val place = @Composable {
+        if (standing != null) {
+            Text(
+                text = standing.label(),
+                color = color,
+                fontWeight = FontWeight.Medium,
+                style = if (compactName) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+        }
+    }
+    if (singleLine) {
+        Row(
+            modifier = tabModifier,
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+        ) {
+            dot()
+            nameRow(Modifier.weight(1f, fill = false))
+            scoreText(MaterialTheme.typography.titleLarge)
+            place()
+        }
+        return
+    }
+    Column(modifier = tabModifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        // Dropped a little below the tab's top, out of the way of the corner ornaments most frames draw there.
+        nameRow(Modifier.padding(top = NAME_TOP_DROP))
+        scoreText(MaterialTheme.typography.headlineSmall)
         // Whose turn it is (the dot) and the player's place. Its height is always kept (also solo, so a border clears the dot), so
         // the tabs don't grow the moment the first score puts someone ahead.
         Row(
@@ -209,21 +252,9 @@ private fun PlayerTab(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .clip(CircleShape)
-                    .background(if (active) color else Color.Transparent),
-            )
+            dot()
             if (standing != null) {
-                Text(
-                    text = standing.label(),
-                    color = color,
-                    fontWeight = FontWeight.Medium,
-                    style = if (compactName) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium,
-                    maxLines = 1,
-                    modifier = Modifier.clearAndSetSemantics {},
-                )
+                place()
                 // Balances the dot, so the place sits centred under the score.
                 Box(modifier = Modifier.size(6.dp))
             }

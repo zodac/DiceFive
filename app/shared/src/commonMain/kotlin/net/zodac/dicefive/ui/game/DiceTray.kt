@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -125,7 +126,16 @@ private val SCATTERED_DIE_SIZE = 44.dp
 private val MAX_SLOT_DIE_SIZE = 52.dp
 // How far a held die sits inside its slot's edge.
 private val HELD_DIE_INSET = 3.dp
-private val SCATTER_AREA_HEIGHT = 96.dp
+internal val SCATTER_AREA_HEIGHT = 96.dp
+
+/** The shallowest the mat is made ([LocalScatterHeight]): a die and a little of its scattered offset. */
+internal val MIN_SCATTER_HEIGHT = 56.dp
+
+/**
+ * How tall the mat the dice land on is: [SCATTER_AREA_HEIGHT], or shallower where the screen is short of room for
+ * the game (see `gameLayout`). Each die's resting place within it is scaled down to match.
+ */
+internal val LocalScatterHeight = compositionLocalOf { SCATTER_AREA_HEIGHT }
 // Round the tray's contents, inside its rounded edge - which clips anything past it.
 private val TRAY_PADDING = 16.dp
 private val DICE_COLUMN_GAP = 14.dp
@@ -554,7 +564,7 @@ private fun SlottedDice(
                             die = die,
                             show = showDice,
                             rolling = rolling,
-                            scatter = SCATTER_OFFSETS[index % SCATTER_OFFSETS.size],
+                            baseScatter = SCATTER_OFFSETS[index % SCATTER_OFFSETS.size],
                             seed = index,
                             diceStyles = diceStyles,
                             columnGap = SLOTTED_MAT_COLUMN_GAP,
@@ -675,10 +685,11 @@ private fun DiceColumnContent(
 private val SLOT_TO_MAT_GAP = 18.dp
 
 /** How tall the usual tray is, [width] wide: its padding, the row of hold slots (each a column wide) and the mat. */
-internal fun diceTrayHeight(width: Dp): Dp {
-    val slot = (width - TRAY_PADDING * 2 - DICE_COLUMN_GAP * (DICE_COUNT - 1)) / DICE_COUNT
-    return TRAY_PADDING * 2 + slot + SLOT_TO_MAT_GAP + SCATTER_AREA_HEIGHT
-}
+internal fun diceTrayHeight(width: Dp, scatterHeight: Dp = SCATTER_AREA_HEIGHT): Dp =
+    TRAY_PADDING * 2 + diceTraySlot(width) + SLOT_TO_MAT_GAP + scatterHeight
+
+/** How wide a hold slot, and so a die, is in the usual tray [width] wide. */
+internal fun diceTraySlot(width: Dp): Dp = (width - TRAY_PADDING * 2 - DICE_COLUMN_GAP * (DICE_COUNT - 1)) / DICE_COUNT
 
 private const val DICE_COUNT = 5
 
@@ -766,7 +777,7 @@ private fun ScatterArea(
     die: Die,
     show: Boolean,
     rolling: Boolean,
-    scatter: ScatterOffset,
+    baseScatter: ScatterOffset,
     seed: Int,
     diceStyles: TrayDiceStyles,
     columnGap: Dp,
@@ -802,13 +813,16 @@ private fun ScatterArea(
     // picked up, since by the time the roll lands the die already holds its new value.
     val cupFace = remember { intArrayOf(0) }
 
-    BoxWithConstraints(modifier = modifier.fillMaxWidth().height(SCATTER_AREA_HEIGHT)) {
+    val areaHeight = LocalScatterHeight.current
+    // Each die's resting place, nearer the slots on a shallower mat.
+    val scatter = if (areaHeight == SCATTER_AREA_HEIGHT) baseScatter else baseScatter.copy(yOffset = baseScatter.yOffset * (areaHeight / SCATTER_AREA_HEIGHT))
+    BoxWithConstraints(modifier = modifier.fillMaxWidth().height(areaHeight)) {
         val style = diceStyles.forDie(die)
         val dieSize = matDieSize(style, maxWidth, fitToColumn)
         // Past the tray's near edge, the whole die clipped off by it: off the mat entirely - a third
         // of a die further than its own height, since a die lying at an angle pokes its corners up
         // past its square outline.
-        val startY = (SCATTER_AREA_HEIGHT + TRAY_PADDING + dieSize / 3).value
+        val startY = (areaHeight + TRAY_PADDING + dieSize / 3).value
         val restY = scatter.yOffset.value
         val size = dieSize.value
         if (rolling && !(show && !die.isHeld)) cupFace[0] = 0

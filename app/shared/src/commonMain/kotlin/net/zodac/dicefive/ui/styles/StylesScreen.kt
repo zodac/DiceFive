@@ -1,5 +1,7 @@
 package net.zodac.dicefive.ui.styles
 
+import net.zodac.dicefive.ui.common.LocalLandscapePage
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -303,6 +305,7 @@ private fun StylesScaffold(
         modifier = modifier,
         scrollable = false,
         driftingDice = driftingDice,
+        wide = true,
     ) {
         // Nothing until the saved picks have loaded, so each row can open scrolled to its real pick.
         // They're normally in already (AppContainer.savedStyles), so the page has them from its first frame.
@@ -329,6 +332,7 @@ private fun ColumnScope.StylesPage(
         // Sized to fit one screen, but free to scroll when it can't - a small phone, a large font,
         // an open gallery - rather than cutting the last category off out of reach.
         val pageScroll = rememberScrollState()
+        val columns = if (LocalLandscapePage.current) LANDSCAPE_COLUMNS else 1
         val density = LocalDensity.current
         val fitKey = PageFitKey(LocalWindowInfo.current.containerSize, density.density, density.fontScale)
         // Read once: the size the page opens at is the size it keeps, even if a warm-up finishes meanwhile.
@@ -350,8 +354,17 @@ private fun ColumnScope.StylesPage(
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
             CompositionLocalProvider(LocalDensity provides cardsDensity) {
                 Column(modifier = Modifier.verticalScroll(pageScroll), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    for (category in StyleCategory.entries) {
-                        StyleCategorySection(category = category, picks = picks, onSelect = onSelect(category), focus = focus)
+                    // Two categories to a row in landscape, one otherwise; a row's last place left empty so its card keeps the
+                    // others' width.
+                    for (row in StyleCategory.entries.chunked(columns)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            for (category in row) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    StyleCategorySection(category = category, picks = picks, onSelect = onSelect(category), focus = focus)
+                                }
+                            }
+                            repeat(columns - row.size) { Spacer(modifier = Modifier.weight(1f)) }
+                        }
                     }
                 }
             }
@@ -364,6 +377,9 @@ private fun ColumnScope.StylesPage(
         }
     }
 }
+
+/** Categories to a row in landscape. */
+private const val LANDSCAPE_COLUMNS = 2
 
 /** What a page measured: its cards' whole height and the room it has for them, in px. */
 private class PageMeasure(val content: Int, val viewport: Int)

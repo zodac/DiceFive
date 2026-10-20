@@ -51,7 +51,7 @@ internal class InMemoryPreferences : DataStore<Preferences> {
 /**
  * Each on/off setting is one toggle the width of its row - its label and switch a single target, for
  * a tap and for a screen reader - rather than a lone switch beside an unconnected label; the Animations
- * level is a segmented row of its four levels.
+ * level is a segmented row of its four levels, and the Orientation one of its three.
  */
 @RunWith(AndroidJUnit4::class)
 @Config(qualifiers = "w360dp-h800dp")
@@ -61,7 +61,7 @@ class SettingsRowsTest {
     val compose = createComposeRule()
 
     @Test
-    fun `every setting is named - an on-off one a single toggle - Animations four levels - each reset a button row confirming what it will do`() {
+    fun `every setting is named - an on-off one a single toggle - Animations four levels - Orientation three - each reset a button row confirming what it will do`() {
         val viewModel = settingsViewModel()
         compose.setContent {
             // Only for the version line at the foot of the page.
@@ -73,7 +73,7 @@ class SettingsRowsTest {
             }
         }
         // The page names every switch - and its version and two links.
-        listOf("Settings", "Sound effects", "Vibration", "Animations", "Confirm leaving game", "About", "Licences").forEach { compose.onNodeWithText(it).assertExists() }
+        listOf("Settings", "Sound effects", "Vibration", "Animations", "Orientation", "Confirm leaving game", "About", "Licences").forEach { compose.onNodeWithText(it).assertExists() }
         compose.onNode(hasText("Version ", substring = true)).assertExists()
 
         // Tapping a setting's label flips it - label and switch are one toggle.
@@ -89,6 +89,14 @@ class SettingsRowsTest {
         level("Low").performClick()
         level("Low").assertIsSelected()
         level("High").assertIsNotSelected()
+
+        // Orientation is a row of three, turning with the device until another is picked - shown selected once it's saved.
+        val orientation = { name: String -> compose.onNode(hasText(name) and isSelectable()) }
+        orientation("Device").performScrollTo().assertIsSelected()
+        listOf("Portrait", "Landscape").forEach { orientation(it).assertIsNotSelected() }
+        orientation("Landscape").performClick()
+        orientation("Landscape").assertIsSelected()
+        orientation("Device").assertIsNotSelected()
 
         // Each reset is one button row - one node carrying the name and what it does, a single TalkBack stop - below the
         // fold on the test's small screen.

@@ -71,6 +71,9 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameService
     // choice caps it: the system's reduced motion stops the motion, not the frames.
     val savedLevel by container.settingsRepository.animationLevel.collectAsStateWithLifecycle(initialValue = AnimationLevel.default)
     LaunchedEffect(platform, savedLevel) { platform.capFrameRate(savedLevel.maxFramesPerSecond) }
+    // Null until read, so a saved lock isn't first undone for a frame by the default.
+    val orientation by container.settingsRepository.screenOrientation.collectAsStateWithLifecycle(initialValue = null)
+    LaunchedEffect(platform, orientation) { orientation?.let(platform::lockOrientation) }
     val animationLevel = if (systemReduceMotion) AnimationLevel.OFF else savedLevel
     val reduceMotion = !animationLevel.gameplayMotion
     val leaveConfirmation = remember { LeaveGameConfirmation() }

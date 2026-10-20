@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.menu
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -18,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
@@ -36,6 +38,7 @@ import net.zodac.dicefive.resources.menu_statistics
 import net.zodac.dicefive.resources.menu_styles
 import net.zodac.dicefive.ui.common.AppLogo
 import net.zodac.dicefive.ui.common.BrandBackdrop
+import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.PageColumn
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
@@ -76,25 +79,21 @@ fun MenuScreen(
 ) {
     // The menu alone has its backdrop's dice drifting about; every other screen keeps them still.
     BrandBackdrop(modifier = modifier, driftingDice = true) {
-        PageColumn(horizontalPadding = 28.dp) {
-            // Weighted spacers rather than fixed padding: the logo sits in the lit upper third and
-            // the button stack just below the middle, on a tall phone and a short one alike.
-            Spacer(modifier = Modifier.weight(0.22f))
-
+        PageColumn(horizontalPadding = 28.dp, wide = true) {
             // Drawn in the player's own dice and cup. Held invisible (still taking its space, so
             // nothing below moves) until their picks have loaded, rather than flashing the defaults.
-            AppLogo(
-                modifier = Modifier.alpha(if (logoStyles == null) 0f else 1f),
-                diceStyle = logoStyles?.dice ?: DiceStyles.default,
-                cupStyle = logoStyles?.cup ?: DiceCupStyles.default,
-                // Googly eyes only: the one screen whose dice follow the phone's own tilt and shake.
-                pupilsFollowDevice = true,
-                // Tapping the cup itself shakes it, as in a game.
-                shakeCupOnTap = true,
-                onDiceTap = onDiceTap,
-            )
-
-            Spacer(modifier = Modifier.height(48.dp))
+            val logo = @Composable {
+                AppLogo(
+                    modifier = Modifier.alpha(if (logoStyles == null) 0f else 1f),
+                    diceStyle = logoStyles?.dice ?: DiceStyles.default,
+                    cupStyle = logoStyles?.cup ?: DiceCupStyles.default,
+                    // Googly eyes only: the one screen whose dice follow the phone's own tilt and shake.
+                    pupilsFollowDevice = true,
+                    // Tapping the cup itself shakes it, as in a game.
+                    shakeCupOnTap = true,
+                    onDiceTap = onDiceTap,
+                )
+            }
 
             // Held invisible (still taking its space) until the saved-game check has answered, so the
             // buttons arrive together rather than Play flashing before it splits, or a gap popping in.
@@ -104,27 +103,63 @@ fun MenuScreen(
                 animationSpec = tween(durationMillis = 200),
                 label = "menuButtonsAlpha", // i18n: not translated - an animation label, not shown
             )
-            Column(
-                modifier = Modifier.fillMaxWidth()
-                    .alpha(stackAlpha)
-                    .then(if (ready) Modifier else Modifier.pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } } }),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                // One filled button for the primary action and tonal buttons for the rest: M3's
-                // emphasis hierarchy, which also stops five identical slabs competing for the eye.
-                PlayButton(hasInProgressGame = hasInProgressGame == true, onContinue = onContinue, onNewGame = onNewGame)
-                MenuDestinationButton(label = stringResource(Res.string.menu_achievements), onClick = onAchievements)
-                MenuDestinationButton(label = stringResource(Res.string.menu_styles), onClick = onStyles)
-                MenuDestinationButton(label = stringResource(Res.string.menu_leaderboard), onClick = onScores)
-                MenuDestinationButton(label = stringResource(Res.string.menu_statistics), onClick = onStatistics)
-                MenuDestinationButton(label = stringResource(Res.string.menu_rules), onClick = onRules)
-                MenuDestinationButton(label = stringResource(Res.string.menu_settings), onClick = onSettings)
+            val destinations = listOf(
+                stringResource(Res.string.menu_achievements) to onAchievements,
+                stringResource(Res.string.menu_styles) to onStyles,
+                stringResource(Res.string.menu_leaderboard) to onScores,
+                stringResource(Res.string.menu_statistics) to onStatistics,
+                stringResource(Res.string.menu_rules) to onRules,
+                stringResource(Res.string.menu_settings) to onSettings,
+            )
+            // [perRow] destinations a row: one, under each other, or two side by side in landscape, where seven in a column
+            // don't fit the height.
+            val buttons = @Composable { perRow: Int ->
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                        .alpha(stackAlpha)
+                        .then(if (ready) Modifier else Modifier.pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } } }),
+                    verticalArrangement = Arrangement.spacedBy(MENU_BUTTON_GAP),
+                ) {
+                    // One filled button for the primary action and tonal buttons for the rest: M3's
+                    // emphasis hierarchy, which also stops five identical slabs competing for the eye.
+                    PlayButton(hasInProgressGame = hasInProgressGame == true, onContinue = onContinue, onNewGame = onNewGame)
+                    for (row in destinations.chunked(perRow)) {
+                        // Height set by the taller button, so a label that wraps at a large font doesn't leave its neighbour short.
+                        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(MENU_BUTTON_GAP)) {
+                            for ((label, onClick) in row) {
+                                MenuDestinationButton(label = label, onClick = onClick, modifier = Modifier.weight(1f).fillMaxHeight())
+                            }
+                        }
+                    }
+                }
             }
 
+            if (LocalLandscapePage.current) {
+                // Side by side: the logo, then the buttons, each centred in its half of the height.
+                Row(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                ) {
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) { logo() }
+                    Box(modifier = Modifier.weight(1f)) { buttons(2) }
+                }
+                return@PageColumn
+            }
+
+            // Weighted spacers rather than fixed padding: the logo sits in the lit upper third and
+            // the button stack just below the middle, on a tall phone and a short one alike.
+            Spacer(modifier = Modifier.weight(0.22f))
+            logo()
+            Spacer(modifier = Modifier.height(48.dp))
+            buttons(1)
             Spacer(modifier = Modifier.weight(0.38f))
         }
     }
 }
+
+/** The gap between the menu's buttons. */
+private val MENU_BUTTON_GAP = 12.dp
 
 /**
  * The menu's primary action. With no saved game it's a single Play button; with one it's split down
@@ -169,12 +204,12 @@ fun PlayButton(hasInProgressGame: Boolean, onContinue: () -> Unit, onNewGame: ()
 }
 
 @Composable
-private fun MenuDestinationButton(label: String, onClick: () -> Unit) {
+private fun MenuDestinationButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     FilledTonalButton(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().heightIn(min = MENU_BUTTON_HEIGHT),
+        modifier = modifier.fillMaxWidth().heightIn(min = MENU_BUTTON_HEIGHT),
     ) {
-        Text(text = label, style = MaterialTheme.typography.titleMedium)
+        Text(text = label, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
     }
 }
 

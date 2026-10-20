@@ -755,6 +755,10 @@
     <string name="settings_animations_medium_short">م</string>
     <string name="settings_animations_low_short">خ</string>
     <string name="settings_animations_off">متوقفة</string>
+    <string name="settings_orientation">اتجاه الشاشة</string>
+    <string name="settings_orientation_device">الجهاز</string>
+    <string name="settings_orientation_portrait">عمودي</string>
+    <string name="settings_orientation_landscape">أفقي</string>
     <string name="settings_confirm_leaving">تأكيد مغادرة اللعبة</string>
     <string name="settings_online_achievements">عرض في %1$s</string>
     <string name="settings_online_achievements_description">اطّلع على إنجازاتك هناك</string>

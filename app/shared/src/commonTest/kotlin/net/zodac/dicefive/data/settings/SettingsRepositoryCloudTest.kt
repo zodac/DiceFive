@@ -32,7 +32,7 @@ class SettingsRepositoryCloudTest {
     private val repository = SettingsRepository(CloudSettingsPreferences(), now = { clock })
 
     @Test
-    fun `settings are stamped when they change - the Animations level and page fit aren't in the save`() = runTest {
+    fun `settings are stamped when they change - the Animations level - Orientation and page fit aren't in the save`() = runTest {
         repository.setDiceStyleId("ocean")
         repository.setPlayerName(slot = 2, name = "Bob")
         clock = 200L
@@ -41,6 +41,7 @@ class SettingsRepositoryCloudTest {
         repository.setGameMode(GameMode.QUICKFIRE)
         repository.setSoundEnabled(false)
         repository.setAnimationLevel(AnimationLevel.OFF)
+        repository.setScreenOrientation(ScreenOrientation.LANDSCAPE)
         repository.setConfirmBeforeLeavingGame(false)
         repository.setStylesPageFit("fit")
         assertEquals(
@@ -107,10 +108,11 @@ class SettingsRepositoryCloudTest {
     }
 
     @Test
-    fun `wiping forgets every synced setting - and keeps the Animations level and page fit`() = runTest {
+    fun `wiping forgets every synced setting - and keeps the Animations level - Orientation and page fit`() = runTest {
         repository.setDiceStyleId("ocean")
         repository.setSoundEnabled(false)
         repository.setAnimationLevel(AnimationLevel.OFF)
+        repository.setScreenOrientation(ScreenOrientation.PORTRAIT)
         repository.setStylesPageFit("fit")
         repository.wipeSynced()
         assertEquals(emptyMap(), repository.cloudSettings())
@@ -118,6 +120,7 @@ class SettingsRepositoryCloudTest {
         assertEquals(true, repository.soundEnabled.first())
         assertEquals("fit", repository.stylesPageFit.first())
         assertEquals(AnimationLevel.OFF, repository.animationLevel.first())
+        assertEquals(ScreenOrientation.PORTRAIT, repository.screenOrientation.first())
     }
 
     @Test
@@ -130,12 +133,13 @@ class SettingsRepositoryCloudTest {
     }
 
     @Test
-    fun `a change to a synced setting is announced - the Animations level's and page fit's aren't`() = runTest {
+    fun `a change to a synced setting is announced - the Animations level's - Orientation's and page fit's aren't`() = runTest {
         var changes = 0
         backgroundScope.launch { repository.syncedChanges.collect { changes++ } }
         runCurrent()
         repository.setStylesPageFit("fit")
         repository.setAnimationLevel(AnimationLevel.OFF)
+        repository.setScreenOrientation(ScreenOrientation.LANDSCAPE)
         runCurrent()
         assertEquals(0, changes)
         repository.setDiceMatId("felt")

@@ -148,8 +148,6 @@ fun DiceCupPanel(
     onScoreCategory: (ScoreCategory) -> Unit,
     cup: CupPanelState?,
     modifier: Modifier = Modifier,
-    // False where the cup is drawn beside the board instead (see DiceCup): its space here stays, empty.
-    showCup: Boolean = true,
 ) {
     val layout = boardLayout(categories)
     val rows = layout.rowCount
@@ -227,10 +225,10 @@ fun DiceCupPanel(
             )
         }
         // Laid over the rows it sits in rather than in them, since it spans both: the rows' own height,
-        // and the gap between them. Kept even with no cup to draw (cup == null, or drawn beside the board)
+        // and the gap between them. Kept even with no cup to draw (cup == null)
         // so the rows around it stay as they are - only its own content disappears.
         DiceCup(
-            cup = cup.takeIf { showCup },
+            cup = cup,
             dice = dice,
             modifier = Modifier
                 .offset(y = (rowHeight + GRID_ROW_SPACING) * cupFirstRow)
@@ -301,7 +299,7 @@ internal fun PanelButtons(layout: BoardLayout, player: PlayerState?, cup: CupPan
 
 /**
  * The (tappable) dice cup with its remaining-rolls count - in [DiceCupPanel] on a phone, or beside the
- * board, over the dice tray, where the game is laid out side by side (see `gameLayout`). Draws nothing
+ * dice tray where the game is laid out for landscape (see `gameLayout`). Draws nothing
  * when [cup] is null - a read-only look at someone else's scorecard - while still taking its space.
  */
 @Composable
@@ -309,7 +307,7 @@ internal fun DiceCup(
     cup: CupPanelState?,
     dice: List<Die>,
     modifier: Modifier = Modifier,
-    // The count on the cup's left instead, the cup at the right-hand edge - beside the board, where
+    // The count on the cup's left instead, the cup at the right-hand edge - beside the tray, where
     // that puts it nearest a right thumb.
     countFirst: Boolean = false,
 ) {

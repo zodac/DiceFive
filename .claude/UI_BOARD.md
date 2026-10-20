@@ -165,23 +165,36 @@ sound and haptics, then `GameViewModel.rollDice`.
 ## Tablets and landscape
 
 **The game screen scales as one object** (`gameLayout`).
-- It's laid out at 411dp (`REFERENCE_WIDTH`), then drawn larger through a scaled `LocalDensity` with the font scale
-  kept.
-- The scale is never below 1 (a short screen scrolls rather than shrinking tiles), and is capped at `MAX_GAME_SCALE`
-  (2x).
-- Width is capped at `STACKED_MAX_WIDTH` (480dp), so squarish screens centre the board.
+- It's laid out at a reference width, then drawn larger through a scaled `LocalDensity` with the font scale kept, capped
+  at `MAX_GAME_SCALE` (2x). The whole width scrolls it (the empty sides too), with a `VerticalScrollbar` in the right margin
+  while it doesn't fit.
+- **Portrait** (width <= height): header, board, tray, laid out at 411dp (`REFERENCE_WIDTH`), never below 1x, and at most
+  `STACKED_MAX_WIDTH` (480dp) wide, so squarish screens centre it.
+- **Landscape** (any width > height, phones included): laid out at `LANDSCAPE_WIDTH` (720dp).
+  - The header's tabs are one line each (`PlayerHeaderBar(singleLine)`: dot, name, score, place).
+  - The board is drawn `LANDSCAPE_BOARD_SCALE` (1.35x) larger than the tray (`GameBoard(landscape)`, `LandscapeBoard`),
+    and under it the tray takes two thirds of the row and the cup (`GameCup`, count on its left) the last third, as large as
+    that third allows.
+  - It may be drawn below 1x on a short screen, down to tiles and dice of a 48dp touch target (`MIN_TOUCH_TARGET`); past
+    that it scrolls. On an 891x411 phone Standard just about fits; four- and five-row cards scroll a little.
+- **The landscape board** (`landscapeLayout`): six columns. Each section is its own row(s) in card order, but for a group
+  that fits whole in the row before it (Extended Scores' Evens and Odds, or Two Pair, grouped as `EXTENDED_SIDE_ROWS`). The
+  last row has the featured box (5x, the Alibi) as a wide tile across columns 3-4 and Totals and Undo across 5-6; a last
+  row of up to three boxes moves in before it (with three, the featured box is a normal tile in column 4).
+  - Standard: upper row, lower row, then 5x. Tricolour: the colours get a row. Tricolour + Extended: colours with Evens and
+    Odds, then Two Pair beside 5x. Standard + Extended: Evens, Odds, Two Pair, 5x (narrow) and the buttons in one row.
+  - D20 (no featured box): each half in two rows (1-6; 7-10 and the 1-10 wildcard; and so on), with Totals in the spare
+    cell of the 1-10 row and Undo in the 11-20 row's.
+- The Orientation setting (`DESIGN.md`, "Settings") can hold either layout whatever way the device is turned.
+- **A header other than the player tabs** (the tutorial's coach card, `coachHeaderHeight`) is measured at the width
+  the game is laid out at and passed to `gameLayout`, so the game is sized for it. Where even the smallest game leaves
+  it short in portrait, the tray's mat is made shallower first (`LocalScatterHeight`, down to `MIN_SCATTER_HEIGHT`
+  56dp, each die's resting place scaled to match), then the card is held to `GameLayout.headerRoom` (at least
+  `MIN_COACH_HEIGHT`) and its words scroll. A 360x776 phone shows the whole card.
+- `gameLayout` keeps `ROUNDING_SLACK` (4dp) of the height spare, as pieces round to whole pixels when scaled.
+- Tests: `GameLayoutTest`.
 
-Whichever arrangement draws larger wins:
-- **Stacked**: header, board, tray. A 411dp phone is 1x.
-- **Side by side** (landscape): the header on top, the board on the left with its cup column empty
-  (`showCup = false`), and the cup over the tray on the right. This is the maintainer's layout.
-  - The cup is `SIDE_CUP_SCALE` (1.5x) at the right edge, with its count on its left (`countFirst`).
-  - On a phone on its side it's enlarged only as far as keeps level with the board (`GameLayout.cupScale`, ~1.2x).
-  - While another player's card is up, the cup's space stays empty so the tray doesn't move.
-
-The game screen pads for `safeDrawing` top and sides. Other pages cap at `CONTENT_MAX_WIDTH` and scroll.
-
-Renders cover 411x891, 891x411, 600x960, 960x600, 800x1280 and 1280x800, in Standard, Tricolour and Stud.
+Renders cover 1280x800, 960x600, 891x411 and 800x360 in every mode, and 360x640 portrait.
 
 ## Player names and the header
 

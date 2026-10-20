@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
@@ -18,6 +19,9 @@ import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MotionPhotosOff
 import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.ScreenRotation
+import androidx.compose.material.icons.filled.StayCurrentLandscape
+import androidx.compose.material.icons.filled.StayCurrentPortrait
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -45,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.flowOf
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.data.settings.AnimationLevel
+import net.zodac.dicefive.data.settings.ScreenOrientation
 import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.online.LocalOnlineSyncStatus
@@ -63,6 +68,10 @@ import net.zodac.dicefive.resources.settings_animations_medium_short
 import net.zodac.dicefive.resources.settings_animations_off
 import net.zodac.dicefive.resources.settings_confirm_leaving
 import net.zodac.dicefive.resources.settings_online_achievements
+import net.zodac.dicefive.resources.settings_orientation
+import net.zodac.dicefive.resources.settings_orientation_device
+import net.zodac.dicefive.resources.settings_orientation_landscape
+import net.zodac.dicefive.resources.settings_orientation_portrait
 import net.zodac.dicefive.resources.settings_online_achievements_action
 import net.zodac.dicefive.resources.settings_online_achievements_description
 import net.zodac.dicefive.resources.settings_reset_achievements
@@ -85,8 +94,10 @@ import net.zodac.dicefive.resources.settings_vibration
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.FittedSegmentedChoiceRow
 import net.zodac.dicefive.ui.common.FooterPill
+import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
+import net.zodac.dicefive.ui.common.TwoPanes
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
 
@@ -207,6 +218,22 @@ private fun animationLevelLabel(level: AnimationLevel): String = stringResource(
     },
 )
 
+@Composable
+private fun orientationLabel(orientation: ScreenOrientation): String = stringResource(
+    when (orientation) {
+        ScreenOrientation.DEVICE -> Res.string.settings_orientation_device
+        ScreenOrientation.PORTRAIT -> Res.string.settings_orientation_portrait
+        ScreenOrientation.LANDSCAPE -> Res.string.settings_orientation_landscape
+    },
+)
+
+/** Each orientation as a phone turned that way (or turning), for a narrow screen: an initial would mean nothing. */
+private fun orientationGlyph(orientation: ScreenOrientation): ImageVector = when (orientation) {
+    ScreenOrientation.DEVICE -> Icons.Filled.ScreenRotation
+    ScreenOrientation.PORTRAIT -> Icons.Filled.StayCurrentPortrait
+    ScreenOrientation.LANDSCAPE -> Icons.Filled.StayCurrentLandscape
+}
+
 /** The level's initial for a narrow screen - its own string, as a translation's initials can collide. Off is a glyph. */
 @Composable
 private fun animationLevelShortLabel(level: AnimationLevel): String = when (level) {
@@ -242,14 +269,7 @@ fun SettingsScreen(
         onBack = onBack,
         modifier = modifier,
         scrollable = true,
-        footer = {
-            FooterPill(
-                stringResource(Res.string.settings_version, LocalAppContainer.current.buildInfo.versionName),
-                // Raw taps, not clickable, and no ripple: the "Are You A Developer?" easter egg. A clickable would give
-                // TalkBack a "double tap to activate" on a label that does nothing anyone could use - as AppLogo's dice.
-                modifier = Modifier.pointerInput(Unit) { detectTapGestures { viewModel.onVersionTapped() } },
-            )
-        },
+        wide = true,
     ) {
         // Nothing but the title bar until the saved switches are back, rather than drawing them in
         // their default positions and then flipping the ones the player has changed.
@@ -262,75 +282,85 @@ fun SettingsScreen(
         val syncProgress by syncStatus.progress.collectAsStateWithLifecycle()
         val unreachable by syncStatus.unreachable.collectAsStateWithLifecycle()
         val signInSynced = syncStatus.signInSynced?.collectAsStateWithLifecycle()?.value.let { synced -> syncStatus.signInSynced == null || synced == accountKey }
-        OnlineAccountCard(
-            services = services,
-            lastSavedEpochMillis = lastSaved,
-            syncProgress = syncProgress,
-            unreachable = unreachable,
-            signInSynced = signInSynced,
-        )
-        Card(modifier = Modifier.fillMaxWidth()) {
-            SwitchSetting(Icons.AutoMirrored.Filled.VolumeUp, stringResource(Res.string.settings_sound), toggles.soundEnabled, viewModel::setSoundEnabled)
-            SwitchSetting(Icons.Filled.Vibration, stringResource(Res.string.settings_vibration), toggles.vibrationEnabled, viewModel::setVibrationEnabled)
-            SwitchSetting(
-                Icons.Filled.CheckCircle,
-                stringResource(Res.string.settings_confirm_leaving),
-                toggles.confirmBeforeLeavingGame,
-                viewModel::setConfirmBeforeLeavingGame,
+        val onlineCard = @Composable {
+            OnlineAccountCard(
+                services = services,
+                lastSavedEpochMillis = lastSaved,
+                syncProgress = syncProgress,
+                unreachable = unreachable,
+                signInSynced = signInSynced,
             )
         }
-
-        // A card of its own: a row of choices under its label isn't the same shape as the switch rows above.
-        Card(modifier = Modifier.fillMaxWidth()) {
-            SegmentedSetting(
-                icon = Icons.Filled.Animation,
-                label = stringResource(Res.string.settings_animations),
-                // Least to most, Off first: from the start edge, so left to right here and mirrored in a right-to-left language.
-                options = AnimationLevel.entries.reversed(),
-                selected = toggles.animationLevel,
-                onSelect = viewModel::setAnimationLevel,
-                optionLabel = { animationLevelLabel(it) },
-                compactLabel = { animationLevelShortLabel(it) },
-                // "Off" as a symbol when there's no room for words: an initial would be "O", or a translation's own.
-                compactGlyph = { if (it == AnimationLevel.OFF) Icons.Filled.MotionPhotosOff else null },
-            )
-        }
-
-        Card(modifier = Modifier.fillMaxWidth()) {
-            val gameServices = LocalGameServices.current
-            val signedIn = gameServices.state.collectAsStateWithLifecycle().value is GameServicesState.SignedIn
-            if (signedIn && gameServices.canShowAchievementsUi) {
-                OnlineAchievementsSetting(gameServices.serviceName, onClick = gameServices::showAchievementsUi)
-            } else {
-                ResetSetting(
-                    icon = Icons.Filled.RestartAlt,
-                    label = stringResource(Res.string.settings_reset_achievements),
-                    description = stringResource(Res.string.settings_reset_achievements_description),
-                    onClick = { showResetAchievementsConfirmation = true },
+        val switchesCard = @Composable {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                SwitchSetting(Icons.AutoMirrored.Filled.VolumeUp, stringResource(Res.string.settings_sound), toggles.soundEnabled, viewModel::setSoundEnabled)
+                SwitchSetting(Icons.Filled.Vibration, stringResource(Res.string.settings_vibration), toggles.vibrationEnabled, viewModel::setVibrationEnabled)
+                SwitchSetting(
+                    Icons.Filled.CheckCircle,
+                    stringResource(Res.string.settings_confirm_leaving),
+                    toggles.confirmBeforeLeavingGame,
+                    viewModel::setConfirmBeforeLeavingGame,
                 )
             }
-            ResetSetting(
-                icon = Icons.Filled.DeleteSweep,
-                label = stringResource(Res.string.settings_reset_leaderboard),
-                description = stringResource(Res.string.settings_reset_leaderboard_description),
-                onClick = { showResetLeaderboardConfirmation = true },
-            )
         }
-
+        // A card of their own: a row of choices under its label isn't the same shape as the switch rows.
+        val choicesCard = @Composable {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                SegmentedSetting(
+                    icon = Icons.Filled.Animation,
+                    label = stringResource(Res.string.settings_animations),
+                    // Least to most, Off first: from the start edge, so left to right here and mirrored in a right-to-left language.
+                    options = AnimationLevel.entries.reversed(),
+                    selected = toggles.animationLevel,
+                    onSelect = viewModel::setAnimationLevel,
+                    optionLabel = { animationLevelLabel(it) },
+                    compactLabel = { animationLevelShortLabel(it) },
+                    // "Off" as a symbol when there's no room for words: an initial would be "O", or a translation's own.
+                    compactGlyph = { if (it == AnimationLevel.OFF) Icons.Filled.MotionPhotosOff else null },
+                )
+                SegmentedSetting(
+                    icon = Icons.Filled.ScreenRotation,
+                    label = stringResource(Res.string.settings_orientation),
+                    options = ScreenOrientation.entries,
+                    selected = toggles.screenOrientation,
+                    onSelect = viewModel::setScreenOrientation,
+                    optionLabel = { orientationLabel(it) },
+                    compactLabel = { orientationLabel(it) },
+                    compactGlyph = ::orientationGlyph,
+                )
+            }
+        }
+        val resetsCard = @Composable {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                val gameServices = LocalGameServices.current
+                val signedIn = gameServices.state.collectAsStateWithLifecycle().value is GameServicesState.SignedIn
+                if (signedIn && gameServices.canShowAchievementsUi) {
+                    OnlineAchievementsSetting(gameServices.serviceName, onClick = gameServices::showAchievementsUi)
+                } else {
+                    ResetSetting(
+                        icon = Icons.Filled.RestartAlt,
+                        label = stringResource(Res.string.settings_reset_achievements),
+                        description = stringResource(Res.string.settings_reset_achievements_description),
+                        onClick = { showResetAchievementsConfirmation = true },
+                    )
+                }
+                ResetSetting(
+                    icon = Icons.Filled.DeleteSweep,
+                    label = stringResource(Res.string.settings_reset_leaderboard),
+                    description = stringResource(Res.string.settings_reset_leaderboard_description),
+                    onClick = { showResetLeaderboardConfirmation = true },
+                )
+            }
+        }
         // Quiet links, not a Card section: these aren't settings, just where the standalone About
         // screen's content moved once it was folded in here. The version is the scaffold's footer.
-        // Side by side, each taking half the width, so a label that wraps at a large font stays inside its half.
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        val aboutLink = @Composable { linkModifier: Modifier ->
             TextButton(
                 onClick = {
                     showAbout = true
                     viewModel.onAboutViewed()
                 },
-                modifier = Modifier.weight(1f),
+                modifier = linkModifier,
             ) {
                 Icon(
                     imageVector = Icons.Filled.Info,
@@ -339,7 +369,9 @@ fun SettingsScreen(
                 )
                 Text(stringResource(Res.string.about_title))
             }
-            TextButton(onClick = { showLicenses = true }, modifier = Modifier.weight(1f)) {
+        }
+        val licencesLink = @Composable { linkModifier: Modifier ->
+            TextButton(onClick = { showLicenses = true }, modifier = linkModifier) {
                 Icon(
                     imageVector = Icons.Filled.Gavel,
                     contentDescription = null,
@@ -348,6 +380,45 @@ fun SettingsScreen(
                 Text(stringResource(Res.string.licences_title))
             }
         }
+
+        if (LocalLandscapePage.current) {
+            // Side by side: the account, the switches, the resets and About; then the pick-one settings and Licences.
+            TwoPanes(
+                start = {
+                    onlineCard()
+                    switchesCard()
+                    resetsCard()
+                    aboutLink(Modifier.fillMaxWidth())
+                },
+                end = {
+                    choicesCard()
+                    licencesLink(Modifier.fillMaxWidth())
+                },
+            )
+        } else {
+            onlineCard()
+            switchesCard()
+            choicesCard()
+            resetsCard()
+            // Side by side, each taking half the width, so a label that wraps at a large font stays inside its half.
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                aboutLink(Modifier.weight(1f))
+                licencesLink(Modifier.weight(1f))
+            }
+        }
+
+        // The version, last on the page: at its foot when everything fits, after the rest when it scrolls.
+        Spacer(modifier = Modifier.weight(1f))
+        FooterPill(
+            stringResource(Res.string.settings_version, LocalAppContainer.current.buildInfo.versionName),
+            // Raw taps, not clickable, and no ripple: the "Are You A Developer?" easter egg. A clickable would give
+            // TalkBack a "double tap to activate" on a label that does nothing anyone could use - as AppLogo's dice.
+            modifier = Modifier.pointerInput(Unit) { detectTapGestures { viewModel.onVersionTapped() } },
+        )
     }
 
     if (showLicenses) {

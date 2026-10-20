@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import net.zodac.dicefive.data.settings.AnimationLevel
+import net.zodac.dicefive.data.settings.ScreenOrientation
 
 /**
  * Pins every [StoredId]: these strings are in players' settings and saved games, so each one is permanent once
@@ -21,6 +22,7 @@ class StoredIdTest {
         assertEquals(listOf("RED", "YELLOW", "BLUE"), ids(DieColour.entries))
         assertEquals(listOf("AWAITING_ROLL", "ROLLED"), ids(TurnPhase.entries))
         assertEquals(listOf("HIGH", "MEDIUM", "LOW", "OFF"), ids(AnimationLevel.entries))
+        assertEquals(listOf("DEVICE", "PORTRAIT", "LANDSCAPE"), ids(ScreenOrientation.entries))
         assertEquals(listOf("GAMES_PLAYED", "GAMES_WON", "WIN_STREAK", "SCORED_5X", "DICE_ROLLED", "FIVE_X_NUMBERS"), ids(AchievementCounter.entries))
         assertEquals(
             listOf(

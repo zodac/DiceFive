@@ -2,11 +2,19 @@ package net.zodac.dicefive.ui.common
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -36,6 +44,17 @@ private val SCROLLBAR_THICKNESS = 4.dp
 private const val MIN_THUMB_FRACTION = 0.08f
 
 /** Everything [LazyListScrollbar] needs to remember between draws, for one [LazyListState]. */
+/**
+ * The item a list's scroll is measured from, of its [visible] items: the second, in list order, where there's more than one.
+ * Not the first - that can be a sticky header, drawn pinned at the top (or pushed up by the next) rather than where it lies in
+ * the list, and measured from, it made the thumb stall and then jump each time a header pinned. Every other visible item is
+ * drawn where it lies.
+ */
+internal fun anchorItem(visible: List<LazyListItemInfo>): LazyListItemInfo {
+    val inOrder = visible.sortedBy { it.index }
+    return inOrder.getOrElse(1) { inOrder.first() }
+}
+
 private class ScrollbarMemory {
     /** -1 so the very first draw always looks like a "shape change" and seeds these fresh. */
     var totalItemsAtLastCheck = -1
@@ -49,11 +68,8 @@ private class ScrollbarMemory {
  * Statistics), so the affordance looks and behaves the same everywhere rather than being
  * reinvented per screen.
  *
- * Achievements used this too, and is why several of the design notes below talk about a
- * "mixed-height list" - it's what exposed the bugs these decisions fix. The scrollbar was later
- * dropped from that screen specifically (its locked/unlocked split was also replaced by one themed
- * list with unlocked items highlighted in place), but the fixes below stay relevant to whatever
- * heterogeneous list this is next used on.
+ * Achievements uses it too, and is why several of the design notes below talk about a
+ * "mixed-height list" - it's what exposed the bugs these decisions fix - and about sticky headers.
  *
  * Call from inside the `Box` that also holds the `LazyColumn`, with the same [listState], so the
  * bar overlays as a sibling pinned to the viewport edge instead of scrolling away with the list's
@@ -123,9 +139,19 @@ private class ScrollbarMemory {
  * Compose says there's genuinely nothing more to scroll in a direction, that overrides the pixel
  * math and snaps the thumb the rest of the way to that edge. The estimate still governs everything
  * in between; only the two true endpoints are pinned.
+ *
+ * [contentTypeOf], where given, says what kind of item is at each index, for a list of items of a few very different heights
+ * (Achievements' cards, and the short headers between them): an unseen item is then estimated at the average of its own
+ * kind, and the thumb keeps a steady size and pace instead of correcting itself as each kind scrolls past. [sizeOf] gives the
+ * size in px of any item the caller already knows, seen or not (a spacer the list ends with), used in place of an estimate.
  */
 @Composable
-fun BoxScope.LazyListScrollbar(listState: LazyListState, modifier: Modifier = Modifier) {
+fun BoxScope.LazyListScrollbar(
+    listState: LazyListState,
+    modifier: Modifier = Modifier,
+    contentTypeOf: ((Int) -> Any?)? = null,
+    sizeOf: ((Int) -> Int?)? = null,
+) {
     val showScrollbar by remember(listState) { derivedStateOf { listState.canScrollForward || listState.canScrollBackward } }
     if (!showScrollbar) return
 
@@ -161,13 +187,19 @@ fun BoxScope.LazyListScrollbar(listState: LazyListState, modifier: Modifier = Mo
 
         val knownTotalSize = memory.knownItemSizes.values.sum()
         // Unseen items (below the fold, never yet scrolled to) are estimated at the average of
-        // what's actually been measured so far.
+        // what's actually been measured so far - of items of their own kind, where [contentTypeOf] says
+        // what kind each is (a list of cards with short headers between them, whose sizes an average of
+        // both would get wrong).
         val averageItemSize = knownTotalSize.toFloat() / memory.knownItemSizes.size
-        val unseenItems = totalItems - memory.knownItemSizes.size
+        val averageByType = contentTypeOf?.let { typeOf ->
+            memory.knownItemSizes.entries.groupBy({ typeOf(it.key) }, { it.value }).mapValues { (_, sizes) -> sizes.average().toFloat() }
+        }
+        val estimatedSize = { index: Int -> sizeOf?.invoke(index)?.toFloat() ?: averageByType?.get(contentTypeOf(index)) ?: averageItemSize }
+        val unseenSize = (0 until totalItems).sumOf { index -> if (index in memory.knownItemSizes) 0.0 else estimatedSize(index).toDouble() }.toFloat()
         // The list's gaps between items (its spacedBy) are content too - left out, a widely spaced list's
         // thumb comes out longer than what's actually on screen.
         val itemSpacing = layoutInfo.mainAxisItemSpacing.toFloat()
-        val liveContentSize = knownTotalSize + averageItemSize * unseenItems + itemSpacing * (totalItems - 1)
+        val liveContentSize = knownTotalSize + unseenSize + itemSpacing * (totalItems - 1)
         val viewportSize = layoutInfo.viewportSize.height.toFloat()
 
         val estimatedContentSize = memory.frozenContentSize ?: liveContentSize.also { memory.frozenContentSize = it }
@@ -175,25 +207,30 @@ fun BoxScope.LazyListScrollbar(listState: LazyListState, modifier: Modifier = Mo
         val thumbFraction = (viewportSize / estimatedContentSize).coerceIn(MIN_THUMB_FRACTION, 1f)
         val thumbHeight = size.height * thumbFraction
 
-        val firstVisible = visibleItems.first()
-        // How far the list has scrolled, in pixels: every earlier item's known (or, if not yet
-        // seen, estimated) size, plus however far into the first still-visible one - `offset` is
-        // negative once its top has scrolled above the viewport.
+        val anchor = anchorItem(visibleItems)
+        // How far the list has scrolled, in pixels: every item before the anchor's known (or, if not yet
+        // seen, estimated) size, less where the anchor is - `offset` is negative once its top has
+        // scrolled above the viewport.
         var scrolledPastSize = 0f
-        for (index in 0 until firstVisible.index) {
-            scrolledPastSize += (memory.knownItemSizes[index]?.toFloat() ?: averageItemSize) + itemSpacing
+        for (index in 0 until anchor.index) {
+            scrolledPastSize += (memory.knownItemSizes[index]?.toFloat() ?: estimatedSize(index)) + itemSpacing
         }
-        scrolledPastSize -= firstVisible.offset
+        scrolledPastSize -= anchor.offset
 
-        val scrollableSize = (estimatedContentSize - viewportSize).coerceAtLeast(1f)
-        // The pixel math is an estimate and can overshoot the list's true size, which would
-        // otherwise leave this short of 1 (or above 0) even once the list has genuinely hit an
-        // end - canScrollForward/Backward are exact, so they override the estimate right at the
-        // two edges rather than leaving the thumb visibly short of the track's edge.
+        // How far is left to scroll: everything from the anchor on (measured where seen, estimated where not), less what's
+        // already scrolled into it and the viewport. The thumb's place is what's been scrolled out of that plus what's left,
+        // so a wrong estimate only changes its pace a little as the unseen items come into view - and it meets the end of the
+        // track exactly as the list meets its end, rather than jumping there.
+        var belowTopSize = 0f
+        for (index in anchor.index until totalItems) {
+            belowTopSize += (memory.knownItemSizes[index]?.toFloat() ?: estimatedSize(index)) + itemSpacing
+        }
+        val remainingSize = (belowTopSize - itemSpacing + anchor.offset - viewportSize).coerceAtLeast(0f)
+        // canScrollForward/Backward are exact, so they settle the two ends whatever the estimate says.
         val scrollFraction = when {
             !listState.canScrollForward -> 1f
             !listState.canScrollBackward -> 0f
-            else -> (scrolledPastSize / scrollableSize).coerceIn(0f, 1f)
+            else -> (scrolledPastSize / (scrolledPastSize + remainingSize).coerceAtLeast(1f)).coerceIn(0f, 1f)
         }
         val thumbOffsetY = (size.height - thumbHeight) * scrollFraction
 
@@ -403,5 +440,30 @@ fun VerticalScrollbar(
             size = Size(thickness, thumbHeight),
             cornerRadius = CornerRadius(thickness / 2),
         )
+    }
+}
+
+/** [ScrollingColumn]'s gutter, unless it's given another: a page's side margin. */
+private val SCROLLING_COLUMN_GUTTER = 20.dp
+
+/**
+ * A column that scrolls when its content is taller than the room [modifier] gives it, with a [VerticalScrollbar] in the
+ * [gutter] just past its end edge (the page's margin, or the gap beside it) while it does - so a page that can't show
+ * everything says so.
+ */
+@Composable
+fun ScrollingColumn(
+    modifier: Modifier = Modifier,
+    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    gutter: Dp = SCROLLING_COLUMN_GUTTER,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val scroll = rememberScrollState()
+    Box(modifier = modifier) {
+        Column(modifier = Modifier.fillMaxWidth().verticalScroll(scroll), verticalArrangement = verticalArrangement, content = content)
+        // As tall as the column's viewport, not the room it was offered.
+        Box(modifier = Modifier.matchParentSize(), contentAlignment = Alignment.TopEnd) {
+            VerticalScrollbar(scroll, width = gutter, modifier = Modifier.offset(x = gutter))
+        }
     }
 }

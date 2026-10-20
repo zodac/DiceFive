@@ -82,10 +82,10 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
 | File                                    | What it is                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 |-----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `BrandBackdrop.kt`                      | The app's one scenery, built from colour roles: a surface gradient, a `primary` spotlight and a faint dice watermark. `showDice = false` drops the dice (the game screen).                                                                                                                                                                                                                                                                             |
-| `ScreenScaffold.kt`                     | The frame for every non-menu page: backdrop plus a transparent M3 top app bar with a back arrow and a bold `primary` title. Its content fades in over `PAGE_CONTENT_FADE_IN_MILLIS` (100ms), so late-arriving content eases in. Takes an optional `footer` (`FooterPill`), floated with the content padded by its height, and `horizontalPadding` (24dp default; the scorecard review uses 16). `PageTopBar` is its bar on its own (the results page). |
+| `ScreenScaffold.kt`                     | The frame for every non-menu page: backdrop plus a transparent M3 top app bar with a back arrow and a bold `primary` title. Its content fades in over `PAGE_CONTENT_FADE_IN_MILLIS` (100ms), so late-arriving content eases in. Takes `horizontalPadding` (24dp default; the scorecard review uses 16), `wide` (see "Landscape pages") and app bar `actions`. `PageTopBar` is its bar on its own (the results page), 48dp tall in landscape. |
 | `DiceFiveDialog.kt`                     | The one dialog shape. Its title is Sora, bold, `primary`, `headlineSmall`, as are `PickerDialog`, About and Licences. New dialogs match.                                                                                                                                                                                                                                                                                                               |
 | `AppLogo.kt`                            | The wordmark under a fan of dice and a cup, drawn live in the player's picks.                                                                                                                                                                                                                                                                                                                                                                          |
-| `FooterPill.kt`                         | The gold pill over a page's bottom (Rules' "2 of 6", Settings' version). Spoken forms and live regions go on its `modifier`.                                                                                                                                                                                                                                                                                                                           |
+| `FooterPill.kt`                         | The gold pill: over Rules' pages ("2 of 6"), and the last thing on the Settings page (its version). Spoken forms and live regions go on its `modifier`.                                                                                                                                                                                                                                                                                                                           |
 | `Scrollbar.kt`                          | `LazyListScrollbar` (over a `LazyColumn`), `VerticalScrollbar` (a draggable bar in a page margin) and `HorizontalScrollbar` (under a `Row` or `LazyRow`). See "Scrollbars".                                                                                                                                                                                                                                                                            |
 | `SegmentedChoiceRow.kt`                 | The one segmented row, generic over the option type. No checkmark icon (`icon = {}`; it crowded labels out). Takes `enabled` and optional per-option glyphs (the timer's "None" is a crossed-out timer, spoken "No timer").                                                                                                                                                                                                                            |
 | `ChoicePicker.kt`                       | `ChoicePicker` and `ModifierPicker`. All styling lives in `PickerField`, `PickerDialog` and `PickerRowText`.                                                                                                                                                                                                                                                                                                                                           |
@@ -328,8 +328,30 @@ Examples:
   `AI_RELEASE_TO_HOLD_GAP_MS`; holds then land together via `changeHolds`).
 - The Game Over fanfare and hold ticks follow their own settings.
 
+## Landscape pages
+
+- **`LocalLandscapePage`** says a page is wider than it's tall: `ScreenScaffold` provides it for the whole page (app bar
+  included), `PageColumn` for its content, `LandscapePage` for anything else (the results page).
+- **Opt-in width.** A `wide` page's content may take `WIDE_CONTENT_MAX_WIDTH` (two 460dp panes) in landscape; any other
+  keeps `CONTENT_MAX_WIDTH`, a readable line. Portrait is never changed.
+- **`TwoPanes`** lays two groups side by side in landscape and stacks them in portrait, in the same reading order.
+- What each page does in landscape:
+  - Menu: the logo beside the buttons, Play then the rest two to a row.
+  - New Game: players on the left, mode, modifiers and Start on the right, each side scrolling; its cards are tighter.
+  - Settings: switches, resets and About on the left; Animations and Orientation, then Licences, on the right. The
+    version is the last thing on the page in either orientation, at its foot (not pinned).
+  - Achievements: two cards to a row (a tooltip row's card sized by the `Box` around it), the count and Locked only in
+    the app bar. Positions count rows of two (`flatIndexOf`, `indexOfKey`), and the scroll position is remembered by key.
+  - Leaderboard: the view switch and Combined's page controls share a row over a 640dp table; mode cards two to a row.
+  - Statistics and Styles: two cards to a row. Rules: the group and page tabs share a row, text at most 640dp wide.
+  - Game Over: the results beside the buttons.
+
 ## Scrollbars
 
+- **Anything that can't show all its content shows a scrollbar**, only while there's more to see: `PageColumn` pages
+  in their right margin, `ScrollingColumn` (a column with its bar in the gutter beside it) for New Game's form, the
+  game screen at its edge, Achievements' list in the page margin, and the missing-numbers list in an achievement's
+  details. The tiny score stacks in Third Wind's tiles are the exception: they fade at the edge instead.
 - **Every scrolling thing uses the app's own bars**, never a styled platform scrollbar.
   - Plain scrolling pages (Styles, each Rules page) and the About dialog put a `VerticalScrollbar` in the right margin. The Rules pages share
     one beside the pager.
@@ -342,7 +364,13 @@ Examples:
     Prefetching breaks that comparison.
   - Size and position are pixel-based (each visible item's `size`/`offset`), not counts of items.
   - Item sizes are remembered per index in a map that only grows, never re-averaged each frame.
-  - The size estimate is frozen at the very first layout; the position uses exact remembered sizes.
+  - The size estimate is frozen at the very first layout, for the thumb's size.
+  - The position is measured from the second visible item in list order (`anchorItem`): the first can be a sticky
+    header drawn pinned rather than where it lies (`ScrollbarTopItemTest`).
+  - The position is what's scrolled past against that plus what's left below (known sizes, then estimates), so a wrong
+    estimate only changes the pace a little and the thumb meets the end with the list instead of jumping.
+  - `contentTypeOf` lets a list of very different items (Achievements' cards and headers) estimate unseen ones by
+    kind, and `sizeOf` gives sizes known in advance (its tail spacer).
   - Remembered state resets when `totalItemsCount` changes. This is checked in the `Canvas` draw phase
     (`ScrollbarMemory.totalItemsAtLastCheck`), not by keying a `remember`.
   - The endpoints are pinned to `canScrollForward`/`canScrollBackward`, which are exact.

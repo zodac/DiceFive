@@ -17,6 +17,8 @@ import kotlinx.coroutines.launch
 import net.zodac.dicefive.device.AndroidAppContainer
 import net.zodac.dicefive.device.AndroidPlatformServices
 import net.zodac.dicefive.device.CappedFrameClock
+import net.zodac.dicefive.device.OrientationLock
+import net.zodac.dicefive.device.activityOrientation
 import net.zodac.dicefive.device.preferRefreshRateFor
 import net.zodac.dicefive.online.PlayGamesServices
 import net.zodac.dicefive.ui.DiceFiveApp
@@ -56,6 +58,10 @@ class MainActivity : ComponentActivity() {
         // And a capped level asks the screen for 60Hz where it can drop to it, rather than only skipping its refreshes.
         lifecycleScope.launch {
             CappedFrameClock.maxFramesPerSecondChanges.collect { window.preferRefreshRateFor(it) }
+        }
+        // The player's "Orientation" setting.
+        lifecycleScope.launch {
+            OrientationLock.changes.collect { requestedOrientation = it.activityOrientation }
         }
         setContent {
             DiceFiveApp(container = container, platform = platform, gameServices = gameServices)

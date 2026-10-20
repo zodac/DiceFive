@@ -294,6 +294,15 @@ class SettingsRepository(
         edit { it[ANIMATION_LEVEL_KEY] = level.id }
     }
 
+    /** The player's "Orientation" - see [ScreenOrientation]. */
+    val screenOrientation: Flow<ScreenOrientation> = read { prefs ->
+        prefs[SCREEN_ORIENTATION_KEY]?.let { storedIdOf<ScreenOrientation>(it) } ?: ScreenOrientation.default
+    }
+
+    suspend fun setScreenOrientation(orientation: ScreenOrientation) {
+        edit { it[SCREEN_ORIENTATION_KEY] = orientation.id }
+    }
+
     // Style ids, not the ui.game.style types themselves - this is the data layer, and resolving an
     // id to a concrete DiceStyle/DiceCupStyle/TableBackground is the Styles screen's job (via its
     // catalog). The defaults are DefaultStyleIds, which the default styles themselves are given.
@@ -341,6 +350,7 @@ class SettingsRepository(
         val SOUND_ENABLED_KEY = booleanPreferencesKey("sound_enabled")
         val VIBRATION_ENABLED_KEY = booleanPreferencesKey("vibration_enabled")
         val ANIMATION_LEVEL_KEY = stringPreferencesKey("animation_level")
+        val SCREEN_ORIENTATION_KEY = stringPreferencesKey("screen_orientation")
         val PLAYER_COUNT_KEY = intPreferencesKey("player_count")
         val TURN_TIMER_KEY = stringPreferencesKey("turn_timer")
         val TURN_TIMER_LENGTH_KEY = stringPreferencesKey("turn_timer_length")
@@ -383,7 +393,8 @@ class SettingsRepository(
 
         /**
          * What the cloud save carries: everything but the Animations level ([ANIMATION_LEVEL_KEY]), chosen for what this
-         * device can draw, and the Styles page fit ([STYLES_PAGE_FIT_KEY]), a measurement of its screen.
+         * device can draw, the Orientation ([SCREEN_ORIENTATION_KEY]), chosen for how it's held, and the Styles page fit
+         * ([STYLES_PAGE_FIT_KEY]), a measurement of its screen.
          */
         val SYNCED_KEYS: List<Preferences.Key<*>> = SYNCED_STRING_KEYS + SYNCED_INT_KEYS + SYNCED_BOOLEAN_KEYS
         private val SYNCED_KEYS_BY_NAME = SYNCED_KEYS.associateBy { it.name }

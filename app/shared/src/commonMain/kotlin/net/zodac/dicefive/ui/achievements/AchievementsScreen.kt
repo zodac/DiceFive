@@ -1,5 +1,9 @@
 package net.zodac.dicefive.ui.achievements
 
+import net.zodac.dicefive.ui.common.LocalLandscapePage
+import androidx.compose.runtime.SideEffect
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -38,6 +42,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -114,10 +119,12 @@ import net.zodac.dicefive.resources.achievements_locked_only
 import net.zodac.dicefive.resources.achievements_category_count
 import net.zodac.dicefive.resources.achievements_unlocked_count
 import net.zodac.dicefive.ui.common.accessibleCombinedClickable
+import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.AppTooltipState
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.ScreenScaffold
+import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.timestamp
@@ -140,18 +147,41 @@ private const val TAIL_CONTENT_TYPE = "tail"
 private const val ROW_FLASH_HOLD_MILLIS = 900L
 private const val ROW_FLASH_TRANSITION_MILLIS = 400
 
+/** Achievements to a row on a landscape page. */
+private const val LANDSCAPE_COLUMNS = 2
+
+/** How many list items a group's [count] achievements take, [columns] to a row. */
+private fun rowCount(count: Int, columns: Int): Int = (count + columns - 1) / columns
+
+/** The list's key for a header - see [indexOfKey]. */
+private fun headerKey(category: AchievementCategory): String = "group-${category.name}"
+
 /** The flat `LazyColumn` index of the achievement with [achievementId], mirroring exactly how the
- * list itself is built below - one header item per group, then its rows - or null if it isn't in
+ * list itself is built below - one header item per group, then its rows of [columns] - or null if it isn't in
  * [groups] at all (a still-locked secret achievement, say - see the class doc above). */
-private fun flatIndexOf(groups: List<AchievementGroup>, achievementId: String): Int? {
+private fun flatIndexOf(groups: List<AchievementGroup>, achievementId: String, columns: Int): Int? {
     var index = 0
     for (group in groups) {
         index++ // the group's own sticky header
         val itemIndex = group.items.indexOfFirst { it.achievement.id == achievementId }
-        if (itemIndex != -1) return index + itemIndex
-        index += group.items.size
+        if (itemIndex != -1) return index + itemIndex / columns
+        index += rowCount(group.items.size, columns)
     }
     return null
+}
+
+/**
+ * The flat index of the list item with [key] - a header's ([headerKey]), or a row's, which is its first achievement's id - in
+ * the list laid out [columns] to a row, or the row holding that achievement where it's laid out with another number. Null if
+ * it isn't in [groups].
+ */
+private fun indexOfKey(groups: List<AchievementGroup>, key: Any?, columns: Int): Int? {
+    var index = 0
+    for (group in groups) {
+        if (key == headerKey(group.category)) return index
+        index += 1 + rowCount(group.items.size, columns)
+    }
+    return (key as? String)?.let { flatIndexOf(groups, it, columns) }
 }
 
 /** A rough stand-in for an achievement row's real height, close enough to centre a long press's
@@ -164,6 +194,12 @@ private fun flatIndexOf(groups: List<AchievementGroup>, achievementId: String): 
  * undermines "smooth". Sized for a typical unlocked row (icon, title, description, "Unlocked at");
  * a locked row with a progress bar instead is a little taller, but not by enough to matter here. */
 private val ESTIMATED_ROW_HEIGHT_DP = 88.dp
+
+/** How far into the page's margin the list's scrollbar sits, past the cards' edge. */
+private val LIST_SCROLLBAR_OFFSET = 12.dp
+
+/** The missing-numbers list's scrollbar, at its end edge; the list keeps as much clear at each side. */
+private val MISSING_SCROLLBAR_WIDTH = 8.dp
 
 /** The pinned category header's height (48dp arrows plus card padding), until it's measured. */
 private val ESTIMATED_HEADER_HEIGHT_DP = 56.dp
@@ -186,7 +222,9 @@ private fun LazyListState.centeredScrollOffset(estimatedItemHeightPx: Int): Int 
  * navigating away and back for as long as the app process does, not an app restart.
  */
 private object AchievementsScrollMemory {
-    var firstVisibleItemIndex = 0
+    // By the key of the first item showing, not its index: the list has two achievements to a row in landscape, so the same
+    // place has another index after a turn of the device.
+    var firstVisibleItemKey: Any? = null
     var firstVisibleItemScrollOffset = 0
     var onlyLocked = false
 }
@@ -239,6 +277,8 @@ fun AchievementsScreen(
     // request (see below) is already waiting - that's about to move the list somewhere specific,
     // and restoring the old position first would just be a flash of the wrong place before it did.
     val listState = rememberLazyListState()
+    // Achievements to a row: LANDSCAPE_COLUMNS on a landscape page, one otherwise. Set by the page below, which knows its shape.
+    var columns by remember { mutableIntStateOf(1) }
     var onlyLocked by remember { mutableStateOf(AchievementsScrollMemory.onlyLocked) }
     val groups = remember(state.groups, onlyLocked) {
         if (!onlyLocked) {
@@ -255,10 +295,9 @@ fun AchievementsScreen(
     LaunchedEffect(listLoaded) {
         if (listLoaded && !restoredScroll) {
             if (AchievementScrollRequests.pending() == null) {
-                listState.scrollToItem(
-                    AchievementsScrollMemory.firstVisibleItemIndex,
-                    AchievementsScrollMemory.firstVisibleItemScrollOffset,
-                )
+                indexOfKey(groups, AchievementsScrollMemory.firstVisibleItemKey, columns)?.let { index ->
+                    listState.scrollToItem(index, AchievementsScrollMemory.firstVisibleItemScrollOffset)
+                }
             }
             restoredScroll = true
         }
@@ -275,7 +314,7 @@ fun AchievementsScreen(
         AchievementScrollRequests.requests.collect { request ->
             snapshotFlow { state }.first { it.isLoaded }
             // The filtered groups are what its index is counted in; an unlocked row isn't in them while only the locked are shown.
-            val flatIndex = flatIndexOf(currentGroups, request.achievementId)
+            val flatIndex = flatIndexOf(currentGroups, request.achievementId, columns)
             if (flatIndex != null) {
                 // On a fresh navigation, the list hasn't necessarily had its first layout pass
                 // yet by the time its data has loaded - centredScrollOffset needs a real
@@ -299,7 +338,7 @@ fun AchievementsScreen(
     DisposableEffect(listState) {
         onDispose {
             if (restoredScroll) {
-                AchievementsScrollMemory.firstVisibleItemIndex = listState.firstVisibleItemIndex
+                AchievementsScrollMemory.firstVisibleItemKey = listState.layoutInfo.visibleItemsInfo.firstOrNull()?.key
                 AchievementsScrollMemory.firstVisibleItemScrollOffset = listState.firstVisibleItemScrollOffset
             }
         }
@@ -322,11 +361,9 @@ fun AchievementsScreen(
         }
     }
 
-    ScreenScaffold(title = stringResource(Res.string.achievements_title), onBack = onBack, modifier = modifier) {
-        // Nothing but the title bar until the unlocks and scores are read: drawn any sooner, the
-        // page says "0 of 0 unlocked" and "Everything's unlocked" before the real list arrives.
-        if (!state.isLoaded) return@ScreenScaffold
-
+    // The unlocked count, and the switch to show only what's still locked: a row of their own over the list, or [compact] in the
+    // app bar's end on a landscape page, where the list wants the height.
+    val unlockedCount = @Composable { countModifier: Modifier, compact: Boolean ->
         // No ripple, and no other visual change on tap or long press: this is the hidden entry
         // point into superuser mode (see the class doc above), and a ripple here would be an open
         // invitation to find out what tapping it does - the same reasoning AppLogo's onDiceTap
@@ -334,11 +371,10 @@ fun AchievementsScreen(
         // it's armed, a long press unlocks every remaining achievement, and the long press after
         // that relocks everything - see onBannerLongPress's doc comment. No haptic feedback on long
         // press either: a buzz would tip off that something's there.
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Card(
             // Raw gestures, not combinedClickable: that would tell TalkBack this is a button with a
             // long-press action, announcing a control that (to anyone not in on it) does nothing.
-            modifier = Modifier.weight(1f).pointerInput(Unit) {
+            modifier = countModifier.pointerInput(Unit) {
                 detectTapGestures(
                     onTap = { viewModel.onUnlockedCountTapped() },
                     onLongPress = { viewModel.onBannerLongPress() },
@@ -347,11 +383,13 @@ fun AchievementsScreen(
         ) {
             Text(
                 text = stringResource(Res.string.achievements_unlocked_count, state.unlockedCount, state.totalCount),
-                style = MaterialTheme.typography.titleMedium,
+                style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = if (compact) 4.dp else 12.dp).then(if (compact) Modifier else Modifier.fillMaxWidth()),
             )
         }
+    }
+    val lockedOnlySwitch = @Composable {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -375,60 +413,121 @@ fun AchievementsScreen(
             )
             Switch(checked = onlyLocked, onCheckedChange = null)
         }
-        }
+    }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            state = listState,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            if (groups.isEmpty()) {
-                item(key = "empty") {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = stringResource(Res.string.achievements_all_unlocked),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth().padding(24.dp),
-                        )
-                    }
-                }
-            } else {
-                // Where each category's header sits in the list: one header item, then its rows.
-                val headerIndices = groups.runningFold(0) { index, group -> index + 1 + group.items.size }.dropLast(1)
-                groups.forEachIndexed { groupIndex, group ->
-                    stickyHeader(key = "group-${group.category.name}", contentType = HEADER_CONTENT_TYPE) {
-                        GroupHeader(
-                            text = stringResource(group.category.label),
-                            // The full category, not the "locked only" filtered rows; Easter Eggs stay uncounted so their total isn't spoiled.
-                            counts = if (group.category == AchievementCategory.EASTER_EGGS) {
-                                null
-                            } else {
-                                fullGroups.first { it.category == group.category }.items.let { all -> all.count { it.unlockedAt != null } to all.size }
-                            },
-                            onPrevious = headerIndices.getOrNull(groupIndex - 1)?.let { target ->
-                                { scope.launch { listState.animateScrollToItem(target) } }
-                            },
-                            onNext = headerIndices.getOrNull(groupIndex + 1)?.let { target ->
-                                { scope.launch { listState.animateScrollToItem(target) } }
-                            },
-                        )
-                    }
-                    items(group.items, key = { it.achievement.id }, contentType = { ROW_CONTENT_TYPE }) {
-                        AchievementRow(
-                            item = it,
-                            superuserModeActive = superuserModeActive,
-                            onSuperuserLongPressTick = viewModel::onSuperuserLongPressTick,
-                            highlighted = it.achievement.id == highlightedAchievementId,
-                            modifier = Modifier.hiddenUnderPinnedHeader(listState, it.achievement.id),
-                        )
-                    }
-                }
-                item(key = "tail-space", contentType = TAIL_CONTENT_TYPE) {
-                    Spacer(Modifier.height(with(LocalDensity.current) { tailSpacePx.toDp() }))
+    ScreenScaffold(
+        title = stringResource(Res.string.achievements_title),
+        onBack = onBack,
+        modifier = modifier,
+        wide = true,
+        actions = {
+            if (LocalLandscapePage.current && state.isLoaded) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(end = 8.dp)) {
+                    unlockedCount(Modifier, true)
+                    lockedOnlySwitch()
                 }
             }
+        },
+    ) {
+        // Nothing but the title bar until the unlocks and scores are read: drawn any sooner, the
+        // page says "0 of 0 unlocked" and "Everything's unlocked" before the real list arrives.
+        if (!state.isLoaded) return@ScreenScaffold
+        val pageColumns = if (LocalLandscapePage.current) LANDSCAPE_COLUMNS else 1
+        SideEffect { columns = pageColumns }
+
+        if (!LocalLandscapePage.current) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                unlockedCount(Modifier.weight(1f), false)
+                lockedOnlySwitch()
+            }
+        }
+
+        // The list fills the page's width; its scrollbar sits in the page's margin beside it, not over the cards.
+        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = listState,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (groups.isEmpty()) {
+                    item(key = "empty") {
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = stringResource(Res.string.achievements_all_unlocked),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                            )
+                        }
+                    }
+                } else {
+                    // Where each category's header sits in the list: one header item, then its rows.
+                    val headerIndices = groups.runningFold(0) { index, group -> index + 1 + rowCount(group.items.size, pageColumns) }.dropLast(1)
+                    groups.forEachIndexed { groupIndex, group ->
+                        stickyHeader(key = headerKey(group.category), contentType = HEADER_CONTENT_TYPE) {
+                            GroupHeader(
+                                text = stringResource(group.category.label),
+                                // The full category, not the "locked only" filtered rows; Easter Eggs stay uncounted so their total isn't spoiled.
+                                counts = if (group.category == AchievementCategory.EASTER_EGGS) {
+                                    null
+                                } else {
+                                    fullGroups.first { it.category == group.category }.items.let { all -> all.count { it.unlockedAt != null } to all.size }
+                                },
+                                onPrevious = headerIndices.getOrNull(groupIndex - 1)?.let { target ->
+                                    { scope.launch { listState.animateScrollToItem(target) } }
+                                },
+                                onNext = headerIndices.getOrNull(groupIndex + 1)?.let { target ->
+                                    { scope.launch { listState.animateScrollToItem(target) } }
+                                },
+                            )
+                        }
+                        // [pageColumns] to a row, each row keyed by its first achievement - one to a row in portrait, keyed as before.
+                        items(group.items.chunked(pageColumns), key = { it.first().achievement.id }, contentType = { ROW_CONTENT_TYPE }) { row ->
+                            val rowKey = row.first().achievement.id
+                            Row(
+                                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min).hiddenUnderPinnedHeader(listState, rowKey),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                for (item in row) {
+                                    // Its share of the row is this box's: a row with a tooltip has the tooltip's box around its card.
+                                    Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                                        AchievementRow(
+                                            item = item,
+                                            superuserModeActive = superuserModeActive,
+                                            onSuperuserLongPressTick = viewModel::onSuperuserLongPressTick,
+                                            highlighted = item.achievement.id == highlightedAchievementId,
+                                            modifier = Modifier.fillMaxHeight(),
+                                        )
+                                    }
+                                }
+                                // A row's last place left empty, so the card in it stays the width of the others.
+                                repeat(pageColumns - row.size) { Spacer(modifier = Modifier.weight(1f)) }
+                            }
+                        }
+                    }
+                    item(key = "tail-space", contentType = TAIL_CONTENT_TYPE) {
+                        Spacer(Modifier.height(with(LocalDensity.current) { tailSpacePx.toDp() }))
+                    }
+                }
+            }
+            // Told which items are headers, which rows and which the tail, so its estimate of the rows not yet seen - and so the
+            // thumb's size and speed - holds steady as the list scrolls past each kind.
+            val headerItems = remember(groups, pageColumns) { groups.runningFold(0) { index, group -> index + 1 + rowCount(group.items.size, pageColumns) }.dropLast(1).toSet() }
+            val tailItem = remember(groups, pageColumns) { groups.sumOf { 1 + rowCount(it.items.size, pageColumns) } }
+            LazyListScrollbar(
+                listState = listState,
+                modifier = Modifier.offset(x = LIST_SCROLLBAR_OFFSET),
+                contentTypeOf = { index ->
+                    when (index) {
+                        in headerItems -> HEADER_CONTENT_TYPE
+                        tailItem -> TAIL_CONTENT_TYPE
+                        else -> ROW_CONTENT_TYPE
+                    }
+                },
+                // The tail's height is the screen's own sum, before it's ever scrolled to.
+                sizeOf = { index -> tailSpacePx.takeIf { index == tailItem } },
+            )
         }
     }
 }
@@ -711,33 +810,40 @@ private fun MissingDialog(item: AchievementItem, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
     ) {
         val scroll = rememberScrollState()
-        FlowRow(
-            modifier = Modifier.padding(top = 12.dp).heightIn(max = 240.dp).verticalScroll(scroll),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            maxItemsInEachRow = if (achievement.isEveryMode) 1 else Int.MAX_VALUE,
-        ) {
-            // Every entry, the collected ones struck through and faded; TalkBack gets the same as words.
-            achievement.checklist?.forEach { entry ->
-                val collected = entry in item.collected
-                val text = when {
-                    isScores -> entry.grouped()
-                    achievement.isEveryMode -> stringResource(GameMode.entries[entry].displayName)
-                    else -> stringResource(Res.string.achievements_number_label, entry.localised())
+        // A long list scrolls, with a scrollbar at its edge to say so.
+        Box(modifier = Modifier.padding(top = 12.dp).heightIn(max = 240.dp)) {
+            FlowRow(
+                // Kept clear of the scrollbar at either side, so the centred entries stay centred.
+                modifier = Modifier.fillMaxWidth().verticalScroll(scroll).padding(horizontal = MISSING_SCROLLBAR_WIDTH),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                maxItemsInEachRow = if (achievement.isEveryMode) 1 else Int.MAX_VALUE,
+            ) {
+                // Every entry, the collected ones struck through and faded; TalkBack gets the same as words.
+                achievement.checklist?.forEach { entry ->
+                    val collected = entry in item.collected
+                    val text = when {
+                        isScores -> entry.grouped()
+                        achievement.isEveryMode -> stringResource(GameMode.entries[entry].displayName)
+                        else -> stringResource(Res.string.achievements_number_label, entry.localised())
+                    }
+                    val spoken = when {
+                        !collected -> text
+                        isScores -> stringResource(Res.string.achievements_score_recorded, text)
+                        achievement.isEveryMode -> stringResource(Res.string.achievements_mode_finished, text)
+                        else -> stringResource(Res.string.achievements_number_scored, text)
+                    }
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (collected) 0.38f else 1f),
+                        textDecoration = if (collected) TextDecoration.LineThrough else null,
+                        modifier = Modifier.semantics { contentDescription = spoken },
+                    )
                 }
-                val spoken = when {
-                    !collected -> text
-                    isScores -> stringResource(Res.string.achievements_score_recorded, text)
-                    achievement.isEveryMode -> stringResource(Res.string.achievements_mode_finished, text)
-                    else -> stringResource(Res.string.achievements_number_scored, text)
-                }
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (collected) 0.38f else 1f),
-                    textDecoration = if (collected) TextDecoration.LineThrough else null,
-                    modifier = Modifier.semantics { contentDescription = spoken },
-                )
+            }
+            Box(modifier = Modifier.matchParentSize(), contentAlignment = Alignment.TopEnd) {
+                VerticalScrollbar(scroll, width = MISSING_SCROLLBAR_WIDTH)
             }
         }
     }

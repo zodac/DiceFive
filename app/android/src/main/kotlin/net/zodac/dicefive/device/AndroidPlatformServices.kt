@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.withContext
 import net.zodac.dicefive.R
+import net.zodac.dicefive.data.settings.ScreenOrientation
 import net.zodac.dicefive.platform.Accelerometer
 import net.zodac.dicefive.platform.HapticsPlayer
 import net.zodac.dicefive.platform.LicenceReports
@@ -60,6 +61,11 @@ class AndroidPlatformServices(context: Context) : PlatformServices {
     /** Caps the frame clock `MainActivity` gives its window's recomposer, which also asks the screen for 60Hz - see [CappedFrameClock]. */
     override fun capFrameRate(maxFramesPerSecond: Int?) {
         CappedFrameClock.maxFramesPerSecond = maxFramesPerSecond
+    }
+
+    /** Asks `MainActivity` to lock its window to [orientation] - see [OrientationLock]. */
+    override fun lockOrientation(orientation: ScreenOrientation) {
+        OrientationLock.requested.value = orientation
     }
 
     private var transientMessage: Toast? = null

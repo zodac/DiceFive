@@ -1,5 +1,8 @@
 package net.zodac.dicefive.ui.rules
 
+import net.zodac.dicefive.ui.common.LocalLandscapePage
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -845,14 +848,29 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier, onStartTutori
     // whose selection changes, the page row's indicator, the scrollbar and the footer), not the whole screen.
     val currentGroup by remember { derivedStateOf { groupOf(pagerState.currentPage) } }
 
-    ScreenScaffold(title = stringResource(Res.string.rules_title), onBack = onBack, modifier = modifier) {
-        GroupTabRow(
-            currentGroup = currentGroup,
-            // To the group's first page - its overview, for the modes and the modifiers. A tap on the group already
-            // showing leaves the page where it is.
-            onSelect = { group -> if (group != currentGroup) coroutineScope.launch { pagerState.scrollToPage(GROUP_STARTS[group]) } },
-        )
-        PageTabRow(pagerState = pagerState, group = currentGroup, onSelect = { page -> coroutineScope.launch { pagerState.scrollToPage(page) } })
+    ScreenScaffold(title = stringResource(Res.string.rules_title), onBack = onBack, modifier = modifier, wide = true) {
+        val groupTabs = @Composable {
+            GroupTabRow(
+                currentGroup = currentGroup,
+                // To the group's first page - its overview, for the modes and the modifiers. A tap on the group already
+                // showing leaves the page where it is.
+                onSelect = { group -> if (group != currentGroup) coroutineScope.launch { pagerState.scrollToPage(GROUP_STARTS[group]) } },
+            )
+        }
+        val pageTabs = @Composable {
+            PageTabRow(pagerState = pagerState, group = currentGroup, onSelect = { page -> coroutineScope.launch { pagerState.scrollToPage(page) } })
+        }
+        val landscape = LocalLandscapePage.current
+        if (landscape) {
+            // One row in landscape, the groups then their pages, leaving the height to the page.
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Bottom) {
+                Box(modifier = Modifier.weight(LANDSCAPE_GROUP_TABS_WEIGHT)) { groupTabs() }
+                Box(modifier = Modifier.weight(1f)) { pageTabs() }
+            }
+        } else {
+            groupTabs()
+            pageTabs()
+        }
 
         // The footer floats over the pages rather than taking a row of its own: pinned to the bottom,
         // with the page text scrolling behind it, and each page padded by the footer's measured height
@@ -869,7 +887,15 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier, onStartTutori
             HorizontalPager(state = pagerState, pageSpacing = PAGE_SPACING, modifier = Modifier.fillMaxSize()) { page ->
                 val rulesPage = RULES_PAGES[page]
                 val shownBlocks = rememberShownBlocks(rulesPage.blocks.size)
-                Column(modifier = Modifier.fillMaxSize().verticalScroll(pageScrollStates[page]).padding(bottom = pageBottomPadding)) {
+                // A readable line however wide the page: the text keeps to READABLE_PAGE_WIDTH, centred, in landscape.
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(pageScrollStates[page])
+                        .wrapContentWidth()
+                        .widthIn(max = if (landscape) READABLE_PAGE_WIDTH else Dp.Infinity)
+                        .padding(bottom = pageBottomPadding),
+                ) {
                     Text(
                         text = stringResource(rulesPage.title, stringResource(Res.string.app_name)),
                         style = MaterialTheme.typography.headlineSmall,
@@ -896,6 +922,12 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier, onStartTutori
         }
     }
 }
+
+/** In landscape, the group tabs' share of the row they share with the page tabs, against the page tabs' 1. */
+private const val LANDSCAPE_GROUP_TABS_WEIGHT = 0.6f
+
+/** Widest a page's text is laid out in landscape: a comfortable line, rather than the whole width. */
+private val READABLE_PAGE_WIDTH = 640.dp
 
 /** The top row: a tab per one of [RULES_GROUPS], [currentGroup] selected; [onSelect] is handed a tapped tab's group. */
 @OptIn(ExperimentalMaterial3Api::class)

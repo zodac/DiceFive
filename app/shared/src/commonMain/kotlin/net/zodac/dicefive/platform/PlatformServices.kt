@@ -5,6 +5,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import net.zodac.dicefive.data.settings.ScreenOrientation
 
 /**
  * What the shared game and UI need from the device underneath them - sound, vibration, the
@@ -37,6 +38,9 @@ interface PlatformServices {
      * "Animations" level (`AnimationLevel.maxFramesPerSecond`). A platform that can't cap them ignores this.
      */
     fun capFrameRate(maxFramesPerSecond: Int?) {}
+
+    /** Turns the app with the device, or keeps it in one orientation - the player's "Orientation" setting. A platform that can't lock it ignores this. */
+    fun lockOrientation(orientation: ScreenOrientation) {}
 
     /** A short message that shows for a moment and needs no response - each platform's own (a toast, on Android). */
     fun showTransientMessage(message: String)

@@ -1,5 +1,7 @@
 package net.zodac.dicefive.ui.statistics
 
+import net.zodac.dicefive.ui.common.LocalLandscapePage
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -116,6 +118,9 @@ import net.zodac.dicefive.ui.common.timestamp
 import net.zodac.dicefive.ui.theme.color
 import org.jetbrains.compose.resources.StringResource
 
+/** Player cards to a row in landscape. */
+private const val LANDSCAPE_COLUMNS = 2
+
 @Composable
 fun StatisticsScreen(
     viewModel: StatisticsViewModel,
@@ -125,7 +130,7 @@ fun StatisticsScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pendingDeleteName by rememberSaveable { mutableStateOf<String?>(null) }
 
-    ScreenScaffold(title = stringResource(Res.string.stats_title), onBack = onBack, modifier = modifier) {
+    ScreenScaffold(title = stringResource(Res.string.stats_title), onBack = onBack, modifier = modifier, wide = true) {
         // Nothing but the title bar until the stats are read, so "No stats yet" never flashes up
         // before the player cards.
         if (!state.isLoaded) return@ScreenScaffold
@@ -141,6 +146,8 @@ fun StatisticsScreen(
             }
         } else {
             val listState = rememberLazyListState()
+            // Two cards to a row in landscape, each opening on its own (the other keeps its height); one otherwise.
+            val columns = if (LocalLandscapePage.current) LANDSCAPE_COLUMNS else 1
 
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 LazyColumn(
@@ -150,8 +157,16 @@ fun StatisticsScreen(
                     contentPadding = PaddingValues(end = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    items(state.players, key = { it.playerName }) { player ->
-                        PlayerStatsCard(player, onDelete = { pendingDeleteName = player.playerName })
+                    items(state.players.chunked(columns), key = { row -> row.first().playerName }) { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            for (player in row) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    PlayerStatsCard(player, onDelete = { pendingDeleteName = player.playerName })
+                                }
+                            }
+                            // A row's last place left empty, so its card keeps the others' width.
+                            repeat(columns - row.size) { Spacer(modifier = Modifier.weight(1f)) }
+                        }
                     }
                 }
                 LazyListScrollbar(listState = listState)

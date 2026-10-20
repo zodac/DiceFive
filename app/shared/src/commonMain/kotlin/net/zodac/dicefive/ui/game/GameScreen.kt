@@ -76,6 +76,7 @@ import net.zodac.dicefive.resources.game_tutorial_coach_name
 import net.zodac.dicefive.resources.game_tutorial_turn
 import net.zodac.dicefive.ui.common.BackHandler
 import net.zodac.dicefive.ui.common.BrandBackdrop
+import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.LocalAnimationLevel
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
@@ -240,57 +241,74 @@ fun GameScreen(
                     .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)),
                 contentAlignment = Alignment.TopCenter,
             ) {
-                val layout = gameLayout(maxWidth, maxHeight, currentState.categories)
+                // The tutorial's coach card stands in for the player tabs, and is taller: the game is sized for the header it has.
+                val coachHeight = tutorialStep?.let { coachHeaderHeight(viewModel.tutorialSteps, maxWidth, landscape = maxWidth > maxHeight) }
+                val layout = gameLayout(maxWidth, maxHeight, currentState.categories, headerHeight = coachHeight)
                 val density = LocalDensity.current
+                // Scrolled from the whole width, the empty sides too, not just the game centred in it.
+                val scroll = rememberScrollState()
                 // The board is a drawn object, so on a bigger screen all of it is drawn bigger - art, text and
                 // touch targets together - rather than its pieces spreading apart. The player's font scale is kept.
                 CompositionLocalProvider(LocalDensity provides Density(density.density * layout.scale, density.fontScale)) {
                     Column(
                         modifier = Modifier
-                            .widthIn(max = layout.maxWidth)
                             .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(GAME_PADDING),
-                        verticalArrangement = Arrangement.spacedBy(SECTION_GAP),
+                            .verticalScroll(scroll),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        InProgressGame(
-                            state = currentState,
-                            sideBySide = layout.sideBySide,
-                            cupScale = layout.cupScale,
-                            canUndo = canUndo,
-                            superuserModeActive = superuserModeActive,
-                            aiRolling = aiRolling,
-                            tapRolling = tapRolling,
-                            turnSecondsRemaining = { turnSecondsRemaining.value },
-                            onBack = leaveGame,
-                            onUndo = viewModel::undo,
-                            onRoll = viewModel::shakeAndRoll,
-                            onToggleHold = viewModel::toggleHold,
-                            onCycleValue = viewModel::cycleHeldDieValue,
-                            onScoreCategory = viewModel::commitScore,
-                            claimFiveOfAKindFlash = viewModel::claimFiveOfAKindFlash,
-                            onTapCupWithNoRollsLeft = viewModel::tapCupWithNoRollsLeft,
-                            onShakeRollDetected = viewModel::onShakeRollDetected,
-                            cupShakeMillis = cupShakeMillis,
-                            coach = tutorialStep?.let { step ->
-                                { cardModifier ->
-                                    BoxWithConstraints(modifier = cardModifier) {
-                                        val height = coachCardHeight(viewModel.tutorialSteps, maxWidth)
-                                        val turn = stringResource(Res.string.game_tutorial_turn, tutorialTurn, viewModel.tutorialTurns)
-                                        CoachCard(
-                                            step = step,
-                                            coachName = coachName,
-                                            turn = turn,
-                                            onBack = { viewModel.jumpToTutorialTurn(-1) }.takeIf { viewModel.canJumpBack },
-                                            onForward = { viewModel.jumpToTutorialTurn(1) }.takeIf { viewModel.canJumpForward },
-                                            modifier = Modifier.height(height),
-                                        )
-                                    }
-                                }
-                            },
-                        )
+                        // The tray's mat as deep as gameLayout leaves room for.
+                        CompositionLocalProvider(LocalScatterHeight provides layout.scatterHeight) {
+                            Column(
+                                modifier = Modifier
+                                    .widthIn(max = layout.maxWidth)
+                                    .fillMaxWidth()
+                                    .padding(GAME_PADDING),
+                                verticalArrangement = Arrangement.spacedBy(SECTION_GAP),
+                            ) {
+                                InProgressGame(
+                                    state = currentState,
+                                    landscape = layout.landscape,
+                                    cupScale = layout.cupScale,
+                                    canUndo = canUndo,
+                                    superuserModeActive = superuserModeActive,
+                                    aiRolling = aiRolling,
+                                    tapRolling = tapRolling,
+                                    turnSecondsRemaining = { turnSecondsRemaining.value },
+                                    onBack = leaveGame,
+                                    onUndo = viewModel::undo,
+                                    onRoll = viewModel::shakeAndRoll,
+                                    onToggleHold = viewModel::toggleHold,
+                                    onCycleValue = viewModel::cycleHeldDieValue,
+                                    onScoreCategory = viewModel::commitScore,
+                                    claimFiveOfAKindFlash = viewModel::claimFiveOfAKindFlash,
+                                    onTapCupWithNoRollsLeft = viewModel::tapCupWithNoRollsLeft,
+                                    onShakeRollDetected = viewModel::onShakeRollDetected,
+                                    cupShakeMillis = cupShakeMillis,
+                                    coach = tutorialStep?.let { step ->
+                                        { cardModifier ->
+                                            BoxWithConstraints(modifier = cardModifier) {
+                                                // As tall as its longest step's words, or as the room above the game allows (its words then
+                                                // scroll inside it), but never so short it shows too little to read.
+                                                val height = minOf(coachCardHeight(viewModel.tutorialSteps, maxWidth), maxOf(layout.headerRoom, MIN_COACH_HEIGHT))
+                                                val turn = stringResource(Res.string.game_tutorial_turn, tutorialTurn, viewModel.tutorialTurns)
+                                                CoachCard(
+                                                    step = step,
+                                                    coachName = coachName,
+                                                    turn = turn,
+                                                    onBack = { viewModel.jumpToTutorialTurn(-1) }.takeIf { viewModel.canJumpBack },
+                                                    onForward = { viewModel.jumpToTutorialTurn(1) }.takeIf { viewModel.canJumpForward },
+                                                    modifier = Modifier.height(height),
+                                                )
+                                            }
+                                        }
+                                    },
+                                )
+                            }
+                        }
                     }
                 }
+                // In the right-hand margin, beside the game rather than over it, and only while it's too tall to fit.
+                VerticalScrollbar(scroll, width = SCROLLBAR_WIDTH, modifier = Modifier.align(Alignment.TopEnd))
             }
         }
     }
@@ -299,7 +317,7 @@ fun GameScreen(
 @Composable
 private fun InProgressGame(
     state: GameState,
-    sideBySide: Boolean,
+    landscape: Boolean,
     cupScale: Float,
     canUndo: Boolean,
     superuserModeActive: Boolean,
@@ -472,6 +490,7 @@ private fun InProgressGame(
                 enabled = isHumanTurn,
                 onPlayerTap = onPlayerTap,
                 modifier = Modifier.weight(1f),
+                singleLine = landscape,
             )
         }
     }
@@ -481,7 +500,7 @@ private fun InProgressGame(
     val board = @Composable {
         val viewedIndex = viewedPlayerIndex
         if (viewedPlayer != null && viewedIndex != null) {
-            ReadOnlyScoreboard(player = viewedPlayer)
+            ReadOnlyScoreboard(player = viewedPlayer, landscape = landscape)
         } else {
             GameBoard(
                 state = state,
@@ -493,7 +512,7 @@ private fun InProgressGame(
                 claimFiveOfAKindFlash = claimFiveOfAKindFlash,
                 onCupTap = onCupTap,
                 onUndo = onUndo,
-                showCup = !sideBySide,
+                landscape = landscape,
             )
         }
     }
@@ -523,36 +542,39 @@ private fun InProgressGame(
 
     // Which dice the box under a finger would take, from the board to the tray (see LocalHandPreview).
     val handPreview = remember { mutableStateOf<ProjectedHand?>(null) }
+    // The cup beside the tray: drawn larger than in the board, as it would otherwise look small beside the dice. Its space
+    // is kept while another player's scorecard is up (no cup then), so the tray stays put.
+    val sideCup = @Composable {
+        val density = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(density.density * cupScale, density.fontScale)) {
+            val sized = Modifier.size(width = SIDE_CUP_WIDTH, height = SIDE_CUP_HEIGHT)
+            if (viewedPlayer == null) {
+                GameCup(
+                    state = state,
+                    rolling = isRolling,
+                    pouring = pouring,
+                    diceSettling = diceSettling,
+                    canUndo = canUndo,
+                    onCupTap = onCupTap,
+                    onUndo = onUndo,
+                    modifier = sized,
+                )
+            } else {
+                Spacer(modifier = sized)
+            }
+        }
+    }
+
     CompositionLocalProvider(LocalHandPreview provides handPreview) {
-        if (sideBySide) {
-            // The board on the left, and on the right the cup with the tray under it - the cup is on the
-            // right-hand side as it is in the board on a phone, and the dice pour out just below it.
+        if (landscape) {
+            // The board across the top, and under it the tray in two thirds of the width with the cup in the last third, at
+            // the right-hand side as it is in the board on a phone.
+            // The board drawn larger than the tray: its three rows are otherwise small beside the dice.
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density * LANDSCAPE_BOARD_SCALE, density.fontScale)) { board() }
             Row(horizontalArrangement = Arrangement.spacedBy(SECTION_GAP), verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.weight(1f)) { board() }
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(SECTION_GAP)) {
-                    // At the pane's right-hand edge, where it's easiest to reach, and drawn larger than in the
-                    // board - over the mat it would otherwise look small beside the dice and tiles.
-                    val density = LocalDensity.current
-                    CompositionLocalProvider(LocalDensity provides Density(density.density * cupScale, density.fontScale)) {
-                        // Its space is kept while another player's scorecard is up (no cup then), so the tray stays put.
-                        val cupModifier = Modifier.align(Alignment.End).size(width = SIDE_CUP_WIDTH, height = SIDE_CUP_HEIGHT)
-                        if (viewedPlayer == null) {
-                            GameCup(
-                                state = state,
-                                rolling = isRolling,
-                                pouring = pouring,
-                                diceSettling = diceSettling,
-                                canUndo = canUndo,
-                                onCupTap = onCupTap,
-                                onUndo = onUndo,
-                                modifier = cupModifier,
-                            )
-                        } else {
-                            Spacer(modifier = cupModifier)
-                        }
-                    }
-                    tray()
-                }
+                Box(modifier = Modifier.weight(LANDSCAPE_TRAY_WEIGHT)) { tray() }
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) { sideCup() }
             }
         } else {
             board()
@@ -560,6 +582,9 @@ private fun InProgressGame(
         }
     }
 }
+
+/** The game's scrollbar, in the screen's right-hand margin. */
+private val SCROLLBAR_WIDTH = 12.dp
 
 /** The gap between the header, the board and the tray. */
 private val SECTION_GAP = 14.dp
@@ -570,11 +595,25 @@ private val REFERENCE_WIDTH = 411.dp
 /** Roughly how tall the player tabs' row is - near enough to choose a layout by; the page scrolls if it's off. */
 private val HEADER_HEIGHT = 82.dp
 
-/** The cup and its roll count over the tray, side by side: the cup's 104dp square and room for "x10" beside it -
- * up to [SIDE_CUP_SCALE] times larger than that (see gameLayout). */
-private val SIDE_CUP_WIDTH = 170.dp
+/** The same in landscape, its tabs one line each: the back arrow's 48dp row. */
+private val LANDSCAPE_HEADER_HEIGHT = 48.dp
+
+/** The cup and its roll count beside the landscape tray: the cup's 104dp square and room for "x2" beside it, drawn as large
+ * as its third of the row allows (see gameLayout). */
+private val SIDE_CUP_WIDTH = 150.dp
 private val SIDE_CUP_HEIGHT = 120.dp
-private const val SIDE_CUP_SCALE = 1.5f
+
+/** Widest the game is laid out at (before scaling) in landscape: the board's six columns across, the tray and cup under it. */
+private val LANDSCAPE_WIDTH = 720.dp
+
+/** How much larger than the tray the landscape board is drawn. */
+private const val LANDSCAPE_BOARD_SCALE = 1.35f
+
+/** The smallest a box or die is drawn in landscape: a full touch target. */
+private val MIN_TOUCH_TARGET = 48.dp
+
+/** The tray's share of the landscape row under the board, against the cup's 1. */
+private const val LANDSCAPE_TRAY_WEIGHT = 2f
 
 /** How far the game is ever scaled up - past this, a larger screen just has more space around the board. */
 private const val MAX_GAME_SCALE = 2f
@@ -583,39 +622,85 @@ private const val MAX_GAME_SCALE = 2f
  * than stretching the board's columns apart. */
 private val STACKED_MAX_WIDTH = 480.dp
 
-/** The same, with the board and the tray side by side. */
-private val SIDE_BY_SIDE_MAX_WIDTH = STACKED_MAX_WIDTH * 2
-
-/** Whether the board and the tray sit side by side, how much the game is scaled up, and how wide it's laid out. */
-internal data class GameLayout(val sideBySide: Boolean, val scale: Float, val maxWidth: Dp, val cupScale: Float = 1f)
+/** Whether the game is laid out for landscape, how much it's scaled up, and how wide it's laid out. */
+internal data class GameLayout(
+    val landscape: Boolean,
+    val scale: Float,
+    val maxWidth: Dp,
+    val cupScale: Float = 1f,
+    val headerRoom: Dp = Dp.Infinity,
+    val scatterHeight: Dp = SCATTER_AREA_HEIGHT,
+)
 
 /**
- * How the game fits a [width] x [height] screen: the board and the tray one above the other (a phone,
- * a tablet held upright) or side by side (landscape), whichever lets them be drawn larger, and how
- * much larger than on [REFERENCE_WIDTH]'s phone - never smaller than that, as the tiles and dice would
- * fall under their minimum touch size, so a screen too short for either scrolls instead.
+ * How the game fits a [width] x [height] screen: on a landscape one, the board over the tray and cup ([GameLayout.landscape]);
+ * otherwise (a phone, a tablet held upright) the board over the tray. And how much larger than on [REFERENCE_WIDTH]'s phone it's
+ * drawn - never so small that the tiles and dice fall under their minimum touch size, so a screen too short scrolls instead.
+ * [headerHeight] is the header row's where it isn't the player tabs' (the tutorial's coach card). [GameLayout.headerRoom] is
+ * how tall the header can be at the scale chosen and the game still fit, in the dp it's laid out in - where it's drawn at the
+ * smallest it may be, for the coach card to shrink to rather than the game scrolling. On a portrait screen too short for its
+ * header at 1x (the coach card on a small phone), the tray's mat is first made shallower ([GameLayout.scatterHeight]), as far
+ * as [MIN_SCATTER_HEIGHT], to make the room.
  */
-internal fun gameLayout(width: Dp, height: Dp, categories: List<ScoreCategory>): GameLayout {
-    val board = gameBoardHeight(categories)
-    val chrome = GAME_PADDING * 2 + HEADER_HEIGHT + SECTION_GAP
+internal fun gameLayout(width: Dp, screenHeight: Dp, categories: List<ScoreCategory>, headerHeight: Dp? = null): GameLayout {
+    // A little short of the screen: drawn scaled, the pieces' sizes round to whole pixels, and a game that only just fits
+    // otherwise came out a pixel or two too tall, and scrolled.
+    val height = screenHeight - ROUNDING_SLACK
     val paneWidth = REFERENCE_WIDTH - GAME_PADDING * 2
-    val tray = diceTrayHeight(paneWidth)
-    val stacked = minOf(width / REFERENCE_WIDTH, height / (chrome + board + SECTION_GAP + tray))
-    val sideBySideWidth = GAME_PADDING * 2 + paneWidth * 2 + SECTION_GAP
-    val sideBySide = minOf(width / sideBySideWidth, height / (chrome + maxOf(board, SIDE_CUP_HEIGHT * SIDE_CUP_SCALE + SECTION_GAP + tray)))
-    // On a screen too short for the side-by-side layout even at 1x (a phone on its side), the cup is only
-    // enlarged as far as still keeps it and the tray level with the board, rather than pushing the tray off.
-    val cupScale = if (sideBySide >= 1f) {
-        SIDE_CUP_SCALE
-    } else {
-        ((board - SECTION_GAP - tray) / SIDE_CUP_HEIGHT).coerceIn(1f, SIDE_CUP_SCALE)
+    if (width > height) {
+        val landscapeChrome = GAME_PADDING * 2 + (headerHeight ?: LANDSCAPE_HEADER_HEIGHT) + SECTION_GAP
+        // Laid out at LANDSCAPE_WIDTH, the cup as large as its third of the width and the tray's height allow. Its tiles and
+        // dice are larger there than a phone's, so on a short screen (a phone on its side) it may be drawn smaller than 1x,
+        // as far as keeps both a full touch target.
+        val content = LANDSCAPE_WIDTH - GAME_PADDING * 2 - SECTION_GAP
+        val trayWidth = content * LANDSCAPE_TRAY_WEIGHT / (LANDSCAPE_TRAY_WEIGHT + 1f)
+        val tray = diceTrayHeight(trayWidth)
+        val belowHeader = landscapeBoardHeight(categories) * LANDSCAPE_BOARD_SCALE + SECTION_GAP + tray
+        val scale = minOf(width / LANDSCAPE_WIDTH, height / (landscapeChrome + belowHeader))
+        val cupScale = minOf((content - trayWidth) / SIDE_CUP_WIDTH, tray / SIDE_CUP_HEIGHT)
+        val minScale = maxOf(MIN_TOUCH_TARGET / (REGULAR_TILE_SIZE * LANDSCAPE_BOARD_SCALE), MIN_TOUCH_TARGET / diceTraySlot(trayWidth))
+        val shown = scale.coerceIn(minScale, MAX_GAME_SCALE)
+        val headerRoom = height / shown - (GAME_PADDING * 2 + SECTION_GAP + belowHeader)
+        return GameLayout(landscape = true, scale = shown, maxWidth = LANDSCAPE_WIDTH, cupScale = cupScale, headerRoom = headerRoom)
     }
-    return if (sideBySide > stacked) {
-        GameLayout(sideBySide = true, scale = sideBySide.coerceIn(1f, MAX_GAME_SCALE), maxWidth = SIDE_BY_SIDE_MAX_WIDTH, cupScale = cupScale)
-    } else {
-        GameLayout(sideBySide = false, scale = stacked.coerceIn(1f, MAX_GAME_SCALE), maxWidth = STACKED_MAX_WIDTH)
-    }
+    val chrome = GAME_PADDING * 2 + (headerHeight ?: HEADER_HEIGHT) + SECTION_GAP
+    val belowHeader = gameBoardHeight(categories) + SECTION_GAP + diceTrayHeight(paneWidth)
+    val stacked = minOf(width / REFERENCE_WIDTH, height / (chrome + belowHeader))
+    val shown = stacked.coerceIn(1f, MAX_GAME_SCALE)
+    // Measured at the width it's actually laid out at - narrower than REFERENCE_WIDTH on a small phone, where the tray is shorter.
+    val laidOutPane = minOf(width / shown, STACKED_MAX_WIDTH) - GAME_PADDING * 2
+    val room = height / shown - (GAME_PADDING * 2 + SECTION_GAP + gameBoardHeight(categories) + SECTION_GAP + diceTrayHeight(laidOutPane))
+    val shortfall = ((headerHeight ?: HEADER_HEIGHT) - room).coerceIn(0.dp, SCATTER_AREA_HEIGHT - MIN_SCATTER_HEIGHT)
+    return GameLayout(
+        landscape = false,
+        scale = shown,
+        maxWidth = STACKED_MAX_WIDTH,
+        headerRoom = room + shortfall,
+        scatterHeight = SCATTER_AREA_HEIGHT - shortfall,
+    )
 }
+
+/**
+ * The header row's height in the tutorial, its coach card's, on a [screenWidth] screen laid out for [landscape] or not: the
+ * row is the game's width, pulled out into the padding for the back arrow (see InProgressGame), and the card has it less the
+ * arrow. Measured at the width the game is laid out at before it's scaled - a phone narrower than REFERENCE_WIDTH's is laid
+ * out at its own, where the words take more lines - so it's in the same dp as the rest of [gameLayout].
+ */
+@Composable
+private fun coachHeaderHeight(steps: List<TutorialStep>, screenWidth: Dp, landscape: Boolean): Dp {
+    val layoutWidth = if (landscape) LANDSCAPE_WIDTH else minOf(screenWidth, REFERENCE_WIDTH)
+    val cardWidth = layoutWidth - GAME_PADDING * 2 + (GAME_PADDING - BACK_ARROW_INSET) - BACK_ARROW_SIZE
+    return maxOf(coachCardHeight(steps, cardWidth), BACK_ARROW_SIZE)
+}
+
+/** The shortest the tutorial's coach card is made to fit a short screen: its label and three lines of words. */
+private val MIN_COACH_HEIGHT = 96.dp
+
+/** What [gameLayout] leaves spare of the screen's height, for its pieces' sizes rounding to whole pixels. */
+private val ROUNDING_SLACK = 4.dp
+
+/** The back arrow's button: M3's 48dp icon button. */
+private val BACK_ARROW_SIZE = 48.dp
 
 private val NO_OP_TOGGLE_HOLD: (Int) -> Unit = {}
 

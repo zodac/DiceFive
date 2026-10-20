@@ -878,6 +878,11 @@
     <string name="settings_animations_medium_short">M</string>
     <string name="settings_animations_low_short">L</string>
     <string name="settings_animations_off">Off</string>
+    <!-- The "Orientation" setting: its label and each choice - turn with the device, or always portrait or landscape. -->
+    <string name="settings_orientation">Orientation</string>
+    <string name="settings_orientation_device">Device</string>
+    <string name="settings_orientation_portrait">Portrait</string>
+    <string name="settings_orientation_landscape">Landscape</string>
     <string name="settings_confirm_leaving">Confirm leaving game</string>
     <!-- In Reset achievements' place while signed in: %1$s is the online service ("Google Play Games"). -->
     <string name="settings_online_achievements">View in %1$s</string>

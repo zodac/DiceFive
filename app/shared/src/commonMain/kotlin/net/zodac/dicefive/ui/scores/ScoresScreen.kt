@@ -1,5 +1,7 @@
 package net.zodac.dicefive.ui.scores
 
+import net.zodac.dicefive.ui.common.LocalLandscapePage
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -162,22 +164,41 @@ fun ScoresScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    ScreenScaffold(title = stringResource(Res.string.scores_title), onBack = onBack, modifier = modifier, driftingDice = driftingDice) {
+    ScreenScaffold(title = stringResource(Res.string.scores_title), onBack = onBack, modifier = modifier, driftingDice = driftingDice, wide = true) {
         // Nothing but the title bar until the scores are read, so "No scores yet" never flashes up
         // before a leaderboard that has some.
         if (!state.isLoaded) return@ScreenScaffold
+        val landscape = LocalLandscapePage.current
         // The switch is always there: a board with nothing on the Combined table can still have scores on a
         // card (a mode that never counts towards it).
-        SegmentedChoiceRow(
-            options = LeaderboardView.entries,
-            selected = state.view,
-            onSelect = viewModel::selectView,
-            label = { stringResource(it.label) },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        val viewSwitch = @Composable { switchModifier: Modifier ->
+            SegmentedChoiceRow(
+                options = LeaderboardView.entries,
+                selected = state.view,
+                onSelect = viewModel::selectView,
+                label = { stringResource(it.label) },
+                modifier = switchModifier,
+            )
+        }
+        if (landscape) {
+            // In landscape the switch shares a row with the Combined table's page controls, so the table has the height
+            // under them. The table, as one, keeps to a readable width.
+            Row(
+                modifier = Modifier.widthIn(max = LANDSCAPE_TABLE_WIDTH).fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                viewSwitch(Modifier.weight(1f))
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    if (state.view == LeaderboardView.COMBINED) CombinedPagination(state.combined, viewModel)
+                }
+            }
+        } else {
+            viewSwitch(Modifier.fillMaxWidth())
+        }
         when (state.view) {
-            LeaderboardView.COMBINED -> CombinedLeaderboard(state = state, viewModel = viewModel)
-            LeaderboardView.GAME_MODE -> GameModeLeaderboard(state = state, viewModel = viewModel)
+            LeaderboardView.COMBINED -> CombinedLeaderboard(state = state, viewModel = viewModel, landscape = landscape)
+            LeaderboardView.GAME_MODE -> GameModeLeaderboard(state = state, viewModel = viewModel, columns = if (landscape) LANDSCAPE_MODE_COLUMNS else 1)
         }
     }
 }
@@ -196,8 +217,30 @@ private fun NoScoresCard() {
 }
 
 /** Every mode's scores in one table, 1st-3rd called out in gold, silver and bronze; a long press names a row's mode and date. */
+/** Widest the Combined table, and the row over it, are in landscape. */
+private val LANDSCAPE_TABLE_WIDTH = 640.dp
+
+/** Mode cards to a row in landscape. */
+private const val LANDSCAPE_MODE_COLUMNS = 2
+
+/** The Combined table's page controls, where it has more than one page. */
 @Composable
-private fun ColumnScope.CombinedLeaderboard(state: ScoresUiState, viewModel: ScoresViewModel) {
+private fun CombinedPagination(board: LeaderboardPage, viewModel: ScoresViewModel) {
+    if (board.totalPages > 1) {
+        PaginationControls(
+            pageIndex = board.pageIndex,
+            totalPages = board.totalPages,
+            hasPrevious = board.hasPreviousPage,
+            hasNext = board.hasNextPage,
+            onPrevious = viewModel::previousPage,
+            onNext = viewModel::nextPage,
+        )
+    }
+}
+
+/** In [landscape] its page controls are beside the switch over it (see ScoresScreen), not under it. */
+@Composable
+private fun ColumnScope.CombinedLeaderboard(state: ScoresUiState, viewModel: ScoresViewModel, landscape: Boolean) {
     val board = state.combined
     if (board.entries.isEmpty()) {
         NoScoresCard()
@@ -210,7 +253,7 @@ private fun ColumnScope.CombinedLeaderboard(state: ScoresUiState, viewModel: Sco
     // one that ends on a plain row, whose text has nothing painted around it. Give it a little more.
     val endsOnPodium = ranked.last().rank <= PODIUM_RANKS
     // As tall as its rows, growing with them until it has the page - then the list scrolls inside it.
-    Card(modifier = Modifier.fillMaxWidth().weight(1f, fill = false)) {
+    Card(modifier = Modifier.widthIn(max = if (landscape) LANDSCAPE_TABLE_WIDTH else Dp.Infinity).fillMaxWidth().weight(1f, fill = false)) {
         Column(modifier = Modifier.padding(start = 8.dp, top = 8.dp, end = 8.dp, bottom = if (endsOnPodium) 8.dp + PODIUM_END_EXTRA_PADDING else 8.dp)) {
             HeaderRow()
             // No divider here any more - it sat flush against the first row with no gap,
@@ -244,6 +287,7 @@ private fun ColumnScope.CombinedLeaderboard(state: ScoresUiState, viewModel: Sco
             }
         }
     }
+    if (landscape) return
     // The row's height is reserved whether or not anything fills it: the controls are only
     // worth showing when there's somewhere to page to ("Page 1 of 1" between two dead
     // buttons is furniture), but letting the table grow into the gap would mean the card
@@ -253,16 +297,7 @@ private fun ColumnScope.CombinedLeaderboard(state: ScoresUiState, viewModel: Sco
         modifier = Modifier.fillMaxWidth().heightIn(min = PAGINATION_ROW_HEIGHT * LocalDensity.current.fontScale.coerceAtLeast(1f)),
         contentAlignment = Alignment.Center,
     ) {
-        if (board.totalPages > 1) {
-            PaginationControls(
-                pageIndex = board.pageIndex,
-                totalPages = board.totalPages,
-                hasPrevious = board.hasPreviousPage,
-                hasNext = board.hasNextPage,
-                onPrevious = viewModel::previousPage,
-                onNext = viewModel::nextPage,
-            )
-        }
+        CombinedPagination(board, viewModel)
     }
 }
 
@@ -273,7 +308,7 @@ private fun ColumnScope.CombinedLeaderboard(state: ScoresUiState, viewModel: Sco
  * end of that scroll.
  */
 @Composable
-private fun ColumnScope.GameModeLeaderboard(state: ScoresUiState, viewModel: ScoresViewModel) {
+private fun ColumnScope.GameModeLeaderboard(state: ScoresUiState, viewModel: ScoresViewModel, columns: Int) {
     // Only modes with a score get a card; none at all, once every mode has been read, is an empty board.
     val boards = LEADERBOARD_MODES.mapNotNull { mode -> state.modeBoards[mode]?.takeIf { it.totalCount > 0 }?.let { mode to it } }
     if (boards.isEmpty()) {
@@ -286,14 +321,22 @@ private fun ColumnScope.GameModeLeaderboard(state: ScoresUiState, viewModel: Sco
     val pageScroll = rememberScrollState()
     Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
         Column(modifier = Modifier.verticalScroll(pageScroll), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            for ((mode, board) in boards) {
-                ModeCard(
-                    mode = mode,
-                    board = board,
-                    onPrevious = { viewModel.previousModePage(mode) },
-                    onNext = { viewModel.nextModePage(mode) },
-                    onlineServices = services.takeIf { online },
-                )
+            // [columns] cards to a row: two side by side in landscape, a row's last place left empty so its card keeps the others' width.
+            for (row in boards.chunked(columns)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    for ((mode, board) in row) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            ModeCard(
+                                mode = mode,
+                                board = board,
+                                onPrevious = { viewModel.previousModePage(mode) },
+                                onNext = { viewModel.nextModePage(mode) },
+                                onlineServices = services.takeIf { online },
+                            )
+                        }
+                    }
+                    repeat(columns - row.size) { Spacer(modifier = Modifier.weight(1f)) }
+                }
             }
         }
         VerticalScrollbar(

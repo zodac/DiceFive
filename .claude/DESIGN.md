@@ -24,7 +24,7 @@ NavHost(start = "menu")
     "play/game"    GameScreen, then GameOverScreen and the scorecard review
   "scores"  ScoresScreen (the Leaderboard)   "statistics"  "achievements"  "styles"  "rules"
   "tutorial"     GameScreen on a GameViewModel of its own, playing TutorialScript.STANDARD (Rules' How to Play page, or New Game)
-  "settings"     SettingsScreen (About and Licences open from its footer)
+  "settings"     SettingsScreen (About and Licences open from links at its foot)
 ```
 
 ## Game setup
@@ -413,9 +413,14 @@ screen) of `StyleColour`s.
 
 ## Settings
 
-- **Contents.** Switches for Sound effects, Vibration and Confirm leaving game; the Animations level; and two resets
-  behind confirmations (achievements, leaderboard).
-- **Footer.** It shows the version and opens About and **Licences**: every library, font and sound, with its licence
+- **Contents.** Switches for Sound effects, Vibration and Confirm leaving game; the Animations level; the Orientation;
+  and two resets behind confirmations (achievements, leaderboard).
+- **Orientation** (`ScreenOrientation`): Device (the default: turns as the system allows), Portrait or Landscape. Not
+  synced, as a phone and a tablet can want different ones. `DiceFiveApp` hands it to `PlatformServices.lockOrientation`;
+  on Android `MainActivity` sets `requestedOrientation` (sensor portrait or landscape, so either way up). The manifest's
+  `android:appCategory="game"` is what lets the lock hold on a large screen: Android 16+ ignores it there otherwise.
+  Tests: `ScreenOrientationSettingTest`, `OrientationLockTest`, `SettingsRowsTest`.
+- **Foot of the page.** The version pill is the last thing on the page (not pinned), after About and **Licences**: every library, font and sound, with its licence
   text, generated at build time (`app/licensing/README.md`).
 - **Licence guards.** The build fails on a copyleft or unknown licence, a missing text or copyright line, or an
   unlisted bundled asset.

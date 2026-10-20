@@ -159,7 +159,7 @@ private const val MIN_CUP_ROWS = 3
 private const val CUP_FIRST_ROW = 3
 
 /** The Extended Scores boxes under the 5x tile, by row. */
-private val EXTENDED_SIDE_ROWS = listOf(listOf(ScoreCategory.EVENS, ScoreCategory.ODDS), listOf(ScoreCategory.TWO_PAIR))
+internal val EXTENDED_SIDE_ROWS = listOf(listOf(ScoreCategory.EVENS, ScoreCategory.ODDS), listOf(ScoreCategory.TWO_PAIR))
 
 /** How a card of [categories] is laid out - see [BoardLayout]. The featured box is left out of both: it has its own tile. */
 internal fun boardLayout(categories: List<ScoreCategory>): BoardLayout {

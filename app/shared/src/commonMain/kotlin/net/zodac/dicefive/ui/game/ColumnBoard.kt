@@ -38,7 +38,6 @@ internal fun ColumnBoard(
     cup: CupPanelState?,
     pane: Dp,
     paneGap: Dp,
-    showCup: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val columns = layout.columns ?: return
@@ -84,9 +83,9 @@ internal fun ColumnBoard(
                 .semantics { isTraversalGroup = true },
             verticalArrangement = Arrangement.spacedBy(GRID_ROW_SPACING),
         ) {
-            // Kept with no cup to draw (cup == null, or drawn beside the board), so the buttons stay where they are.
+            // Kept with no cup to draw (cup == null), so the buttons stay where they are.
             DiceCup(
-                cup = cup.takeIf { showCup },
+                cup = cup,
                 dice = dice,
                 modifier = Modifier.fillMaxWidth().height(rowHeight * cupRows + GRID_ROW_SPACING * (cupRows - 1)),
             )

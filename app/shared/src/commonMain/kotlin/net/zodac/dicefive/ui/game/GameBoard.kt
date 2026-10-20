@@ -1,7 +1,13 @@
 package net.zodac.dicefive.ui.game
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.BoxWithConstraints
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.resources.common_bonus_amount
@@ -76,7 +82,7 @@ private fun ScoreBoardRow(
     onScoreCategory: (ScoreCategory) -> Unit,
     cup: CupPanelState?,
     modifier: Modifier = Modifier,
-    showCup: Boolean = true,
+    landscape: Boolean = false,
 ) {
     val visualTheme = LocalGameVisualTheme.current
     visualTheme.background.Animate()
@@ -85,12 +91,18 @@ private fun ScoreBoardRow(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
-            .height(gameBoardHeight(categories))
+            .height(if (landscape) landscapeBoardHeight(categories) else gameBoardHeight(categories))
             .clip(RoundedCornerShape(16.dp))
             .background(visualTheme.background.scoreAreaBrush)
             .drawBehind { with(visualTheme.background) { drawScoreAreaDecoration() } }
             .padding(BOARD_PADDING),
     ) {
+        if (landscape) {
+            CompositionLocalProvider(LocalBonusFontSize provides BONUS_MAX_SIZE) {
+                LandscapeBoard(categories, player, dice, canScore, showPreview, available, onScoreCategory, cup, maxWidth)
+            }
+            return@BoxWithConstraints
+        }
         // Two equal halves, not less for the grid: it splits into two columns per row, so per-category it actually has
         // HALF the width the cup panel's single-column content gets - it needs the room more, not less. A joker's bonus is
         // written as big as the tightest box on the board allows, at one size for all of them; where that's the cost of a
@@ -115,7 +127,7 @@ private fun ScoreBoardRow(
         CompositionLocalProvider(LocalBonusFontSize provides fit.fontSize) {
             // D20's card: four columns, with the cup centred under the inner two.
             if (layout.columns != null) {
-                ColumnBoard(layout, player, dice, canScore, showPreview, available, onScoreCategory, cup, pane, BOARD_PANE_GAP, showCup)
+                ColumnBoard(layout, player, dice, canScore, showPreview, available, onScoreCategory, cup, pane, BOARD_PANE_GAP)
             } else Row(modifier = Modifier.fillMaxSize()) {
                 ScoreGrid(
                     categories = categories,
@@ -141,7 +153,6 @@ private fun ScoreBoardRow(
                     available = available,
                     onScoreCategory = onScoreCategory,
                     cup = cup,
-                    showCup = showCup,
                     modifier = Modifier.width(pane - shift),
                 )
             }
@@ -151,6 +162,129 @@ private fun ScoreBoardRow(
 
 /** The gap between the score grid and the cup panel. */
 private val BOARD_PANE_GAP = 20.dp
+
+/** The landscape board's columns. */
+private const val LANDSCAPE_COLUMNS = 6
+
+/** The columns the featured box spans on the landscape board, and the buttons beside it. */
+private const val LANDSCAPE_SPAN = 2
+
+/**
+ * Where every box of a card sits on the landscape board: each section in card order, across [rows] of up to
+ * [LANDSCAPE_COLUMNS], then a last row with [beforeFeatured] at its left, the [featured] box, and Totals and Undo across the
+ * last two columns. The featured box is a wide tile across the middle two columns, or a single tile in the fourth where three
+ * boxes come before it.
+ *
+ * A card with no featured box puts the buttons at the right of its last row where there's room. Otherwise each goes in the
+ * spare last column of a row, Totals in the earlier, or failing that both in a row of their own.
+ */
+internal class LandscapeLayout(
+    val rows: List<List<ScoreCategory>>,
+    val featured: ScoreCategory?,
+    val beforeFeatured: List<ScoreCategory> = emptyList(),
+) {
+    /** Whether the featured box is a single tile, not a wide one. */
+    val featuredNarrow: Boolean
+        get() = beforeFeatured.size > LANDSCAPE_SPAN
+
+    /** The rows the buttons sit at the right of: one for both, or two - Totals in the first, Undo in the second. */
+    val buttonRows: List<Int>
+        get() {
+            if (featured != null || rows.isEmpty()) return listOf(rows.size)
+            if (rows.last().size <= LANDSCAPE_COLUMNS - LANDSCAPE_SPAN) return listOf(rows.lastIndex)
+            val spare = rows.indices.filter { rows[it].size < LANDSCAPE_COLUMNS }
+            return if (spare.size >= 2) spare.takeLast(2) else listOf(rows.size)
+        }
+
+    val rowCount: Int
+        get() = if (rows.size in buttonRows) rows.size + 1 else rows.size
+}
+
+/**
+ * How a card of [categories] is laid out on a landscape screen - see [LandscapeLayout]. Each section starts a row, but for a
+ * group of boxes that fits whole in the row before it: Extended Scores' Evens and Odds, or its Two Pair (grouped as under 5x
+ * on a phone, [EXTENDED_SIDE_ROWS]). A last row of no more than three boxes goes before the featured box.
+ */
+internal fun landscapeLayout(categories: List<ScoreCategory>): LandscapeLayout {
+    val featured = categories.firstOrNull { it.featured }
+    val groups = categories.filter { it != featured }.groupBy { it.section }.values.flatMap { section ->
+        EXTENDED_SIDE_ROWS.map { row -> row.filter { it in section } }.filter { it.isNotEmpty() }.ifEmpty { section.chunked(LANDSCAPE_COLUMNS) }
+    }
+    val rows = mutableListOf<List<ScoreCategory>>()
+    for (group in groups) {
+        val last = rows.lastOrNull()
+        if (last != null && last.size + group.size <= LANDSCAPE_COLUMNS) rows[rows.lastIndex] = last + group else rows += group
+    }
+    if (featured != null && rows.size > 1 && rows.last().size < LANDSCAPE_COLUMNS - LANDSCAPE_SPAN) {
+        return LandscapeLayout(rows.dropLast(1), featured, rows.last())
+    }
+    return LandscapeLayout(rows, featured)
+}
+
+/** How tall the landscape board is for a card of [categories]: a row of tiles per row of the layout, padding and all. */
+internal fun landscapeBoardHeight(categories: List<ScoreCategory>): Dp {
+    val rows = landscapeLayout(categories).rowCount
+    return REGULAR_TILE_SIZE * rows + GRID_ROW_SPACING * (rows - 1) + BOARD_PADDING * 2
+}
+
+/**
+ * The board laid out for a landscape screen (see [LandscapeLayout]), in six columns of [width]. No cup: it's beside the dice
+ * tray (see [GameCup]).
+ */
+@Composable
+private fun LandscapeBoard(
+    categories: List<ScoreCategory>,
+    player: PlayerState?,
+    dice: List<Die>,
+    canScore: Boolean,
+    showPreview: Boolean,
+    available: Set<ScoreCategory>,
+    onScoreCategory: (ScoreCategory) -> Unit,
+    cup: CupPanelState?,
+    width: Dp,
+) {
+    val layout = landscapeLayout(categories)
+    val column = (width - COLUMN_GAP * (LANDSCAPE_COLUMNS - 1)) / LANDSCAPE_COLUMNS
+    val span = column * LANDSCAPE_SPAN + COLUMN_GAP * (LANDSCAPE_SPAN - 1)
+    val lastColumn = Modifier.offset(x = (column + COLUMN_GAP) * (LANDSCAPE_COLUMNS - 1)).width(column).fillMaxHeight()
+    @Composable
+    fun cell(category: ScoreCategory, index: Int, wide: Boolean = false) = CategoryCell(
+        category = category,
+        player = player,
+        canScore = canScore,
+        showPreview = showPreview,
+        available = available,
+        dice = dice,
+        onScoreCategory = onScoreCategory,
+        wide = wide,
+        modifier = Modifier.offset(x = (column + COLUMN_GAP) * index).width(if (wide) span else column).fillMaxHeight(),
+    )
+    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(GRID_ROW_SPACING)) {
+        for (rowIndex in 0 until layout.rowCount) {
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                (layout.rows.getOrNull(rowIndex) ?: layout.beforeFeatured).forEachIndexed { index, category -> cell(category, index) }
+                if (rowIndex == layout.rows.size) {
+                    layout.featured?.let { featured ->
+                        if (layout.featuredNarrow) cell(featured, layout.beforeFeatured.size) else cell(featured, (LANDSCAPE_COLUMNS - LANDSCAPE_SPAN) / 2, wide = true)
+                    }
+                }
+                val buttonRows = layout.buttonRows
+                when {
+                    buttonRows.size == 1 && rowIndex == buttonRows[0] ->
+                        PanelButtons(boardLayout(categories), player, cup, REGULAR_GRID_ROWS, Modifier.align(Alignment.CenterEnd).width(span).fillMaxHeight())
+
+                    buttonRows.size > 1 && rowIndex == buttonRows[0] -> Box(modifier = lastColumn, contentAlignment = Alignment.CenterStart) {
+                        PanelButtons(boardLayout(categories), player, cup?.copy(showUndo = false), REGULAR_GRID_ROWS)
+                    }
+
+                    buttonRows.size > 1 && rowIndex == buttonRows[1] && cup?.showUndo == true -> Box(modifier = lastColumn, contentAlignment = Alignment.CenterStart) {
+                        UndoButton(enabled = cup.canUndo, onClick = cup.onUndo, minSize = REGULAR_TILE_SIZE)
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun GameBoard(
@@ -163,8 +297,8 @@ fun GameBoard(
     modifier: Modifier = Modifier,
     pouring: Boolean = false,
     diceSettling: Boolean = false,
-    // False where the game is laid out side by side: the cup is drawn over the dice tray instead (GameCup).
-    showCup: Boolean = true,
+    // The board laid out for a landscape screen (see LandscapeBoard), its cup drawn beside the dice tray.
+    landscape: Boolean = false,
     // Whether a seat's first 5x of the game is still to be flashed: true once per seat, see GameViewModel.claimFiveOfAKindFlash.
     claimFiveOfAKindFlash: (Int) -> Boolean = { false },
 ) {
@@ -221,7 +355,7 @@ fun GameBoard(
             available = available,
             onScoreCategory = onScoreCategory,
             cup = cupPanelState(state, rolling, pouring, rollInHand, canUndo, onCupTap, onUndo),
-            showCup = showCup,
+            landscape = landscape,
             modifier = modifier,
         )
     }
@@ -271,9 +405,8 @@ private fun cupPanelState(
 }
 
 /**
- * The live turn's dice cup on its own, for where the game is laid out side by side: the board on the
- * left without it ([GameBoard]'s `showCup = false`), and this over the dice tray on the right, so the
- * cup is still on the right-hand side and the dice pour out under it.
+ * The live turn's dice cup on its own, for the landscape layout: the board above without it ([GameBoard]'s
+ * `landscape`), and this beside the dice tray on the right, so the cup is still on the right-hand side.
  */
 @Composable
 fun GameCup(
@@ -305,13 +438,13 @@ fun GameCup(
  * either way rather than a second copy that can silently drift from the first.
  */
 @Composable
-fun ReadOnlyScoreboard(player: PlayerState, modifier: Modifier = Modifier) {
+fun ReadOnlyScoreboard(player: PlayerState, modifier: Modifier = Modifier, landscape: Boolean = false) {
     // The box this player's last turn went in, picked out in their colour - the scorecard on its own
     // shows what they've scored, but not which of it was their last turn (see LastScoredHighlight).
     // Their colour is the one picked at setup, through the same PlayerColour.color their tab uses, so the two always match.
     val lastScored = player.lastScoredCategory?.let { LastScoredHighlight(it, player.colour.color) }
     CompositionLocalProvider(LocalLastScoredHighlight provides lastScored) {
-        ReadOnlyScoreboardRow(player, modifier)
+        ReadOnlyScoreboardRow(player, modifier, landscape)
     }
 }
 
@@ -325,7 +458,7 @@ internal class LastScoredHighlight(val category: ScoreCategory, val color: Color
 internal val LocalLastScoredHighlight = staticCompositionLocalOf<LastScoredHighlight?> { null }
 
 @Composable
-private fun ReadOnlyScoreboardRow(player: PlayerState, modifier: Modifier) {
+private fun ReadOnlyScoreboardRow(player: PlayerState, modifier: Modifier, landscape: Boolean) {
     ScoreBoardRow(
         categories = player.categories,
         player = player,
@@ -336,5 +469,6 @@ private fun ReadOnlyScoreboardRow(player: PlayerState, modifier: Modifier) {
         onScoreCategory = {},
         cup = null,
         modifier = modifier,
+        landscape = landscape,
     )
 }

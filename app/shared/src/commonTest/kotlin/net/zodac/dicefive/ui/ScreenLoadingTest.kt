@@ -32,6 +32,7 @@ import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.AnimationLevel
+import net.zodac.dicefive.data.settings.ScreenOrientation
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
@@ -106,6 +107,7 @@ class ScreenLoadingTest {
         val repository = SettingsRepository(LoadingPreferencesStore())
         repository.setSoundEnabled(false)
         repository.setAnimationLevel(AnimationLevel.LOW)
+        repository.setScreenOrientation(ScreenOrientation.LANDSCAPE)
         val viewModel = settingsViewModel(settings = repository)
         assertNull(viewModel.toggles.value)
 
@@ -117,7 +119,13 @@ class ScreenLoadingTest {
         // advanceUntilIdle stops once only background work is left - the collector above included.
         runCurrent()
 
-        val expected = SettingsToggles(soundEnabled = false, vibrationEnabled = true, animationLevel = AnimationLevel.LOW, confirmBeforeLeavingGame = true)
+        val expected = SettingsToggles(
+            soundEnabled = false,
+            vibrationEnabled = true,
+            animationLevel = AnimationLevel.LOW,
+            confirmBeforeLeavingGame = true,
+            screenOrientation = ScreenOrientation.LANDSCAPE,
+        )
         assertEquals(listOf(expected), shown)
     }
 

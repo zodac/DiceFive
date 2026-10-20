@@ -20,6 +20,7 @@ import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.AnimationLevel
+import net.zodac.dicefive.data.settings.ScreenOrientation
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
@@ -28,12 +29,13 @@ import net.zodac.dicefive.online.OnlineSyncRequests
 import net.zodac.dicefive.ui.achievements.AchievementUnlocker
 import net.zodac.dicefive.ui.game.style.StyleCategory
 
-/** The Settings screen's switches and its animation level, as saved. */
+/** The Settings screen's switches, its animation level and its orientation, as saved. */
 data class SettingsToggles(
     val soundEnabled: Boolean = true,
     val vibrationEnabled: Boolean = true,
     val animationLevel: AnimationLevel = AnimationLevel.default,
     val confirmBeforeLeavingGame: Boolean = true,
+    val screenOrientation: ScreenOrientation = ScreenOrientation.default,
 )
 
 class SettingsViewModel(
@@ -45,7 +47,7 @@ class SettingsViewModel(
 ) : ViewModel() {
 
     /**
-     * Null until every setting's saved value has loaded - all four together, so the screen never
+     * Null until every setting's saved value has loaded - all of them together, so the screen never
      * draws a setting in its default position for a frame before flipping it to the player's own.
      */
     val toggles: StateFlow<SettingsToggles?> = combine(
@@ -53,6 +55,7 @@ class SettingsViewModel(
         settingsRepository.vibrationEnabled,
         settingsRepository.animationLevel,
         settingsRepository.confirmBeforeLeavingGame,
+        settingsRepository.screenOrientation,
         ::SettingsToggles,
     ).stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
@@ -70,6 +73,10 @@ class SettingsViewModel(
 
     fun setAnimationLevel(level: AnimationLevel) {
         viewModelScope.launch { settingsRepository.setAnimationLevel(level) }
+    }
+
+    fun setScreenOrientation(orientation: ScreenOrientation) {
+        viewModelScope.launch { settingsRepository.setScreenOrientation(orientation) }
     }
 
     private val achievementUnlocker = AchievementUnlocker(achievementsRepository)
