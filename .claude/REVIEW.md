@@ -8,11 +8,6 @@ From the from-scratch source review of 2026-10-14. What was done is in the git h
 Looked at and left: `ScoreGrid.overflowFade` and `Rules.fadeOffscreenEdges` are different effects (a vertical edge
 fade vs a horizontal mask with a clear zone and easing), so one helper would only add switches.
 
-## GameViewModel
-
-- The setup form (setup state, its restore in `init`, `persistGameConfig`, `persistHumanNames`) could be its own
-  ViewModel; it doesn't need the game loop.
-
 ## Layers and platform separation (iOS, Steam/desktop)
 
 - **The data layer reaches into UI concerns:** `AchievementEvents` / `UnlockedStyle` carry Compose
