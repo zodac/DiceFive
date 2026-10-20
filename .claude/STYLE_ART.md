@@ -106,6 +106,8 @@ once, in a function every category calls, rather than copying it. Already shared
   - Start it only when needed: the first shake, or already open. Never for a Styles preview that's merely shown.
   - **Wrap it in `runCatching`** and keep the stand-in on failure. An uncaught failure in `produceState` crashes the
     screen.
+- **A game's art is pre-painted on the setup screen** (`GameWarmUp`): background, mat, cup and every die face, at the
+  game's sizes. A cached surface needs no work of its own to be covered, provided its key is stable for a given face.
 - **Live per frame**: only what moves (a lid, a burst, a dozen top pieces). Say the count.
 - **Measure** against an existing style in the same run, and measure first appearance separately.
 

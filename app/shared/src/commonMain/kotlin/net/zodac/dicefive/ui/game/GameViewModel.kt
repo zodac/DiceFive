@@ -652,6 +652,25 @@ class GameViewModel(
         }
     }
 
+    /**
+     * The game [startGame] would start from the form now, its players unnamed - for [GameWarmUp] to draw. Starts,
+     * saves and unlocks nothing.
+     */
+    fun previewGame(): GameState {
+        val setupState = _setup.value
+        val players = setupState.playerSlots.take(setupState.playerCount).map { slot ->
+            PlayerConfig(slot = slot.slot, type = slot.type, name = "", difficulty = slot.difficulty, colour = slot.colour)
+        }
+        return GameEngine.newGame(
+            players,
+            setupState.gameMode,
+            setupState.turnTimer,
+            setupState.rollModifiers,
+            setupState.extendedScores,
+            setupState.activeUnluckyDice,
+        )
+    }
+
     /** Loads a previously in-progress game, if any. Returns whether one was found and resumed. */
     suspend fun resumeGame(): Boolean {
         val loaded = inProgressGameRepository.load() ?: return false

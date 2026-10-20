@@ -45,6 +45,7 @@ import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.GameScreen
 import net.zodac.dicefive.ui.game.GameViewModel
+import net.zodac.dicefive.ui.game.GameWarmUp
 import net.zodac.dicefive.ui.menu.MenuScreen
 import net.zodac.dicefive.ui.menu.MenuViewModel
 import net.zodac.dicefive.ui.rules.RulesScreen
@@ -130,12 +131,17 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                 val viewModel = viewModel<GameViewModel>(playGraphEntry, factory = GameViewModel.factory(container))
                 val resume = backStackEntry.arguments?.read { getBooleanOrNull("resume") } ?: false
                 val setup = @Composable {
-                    GameSetupScreen(
-                        viewModel = viewModel,
-                        onStartGame = { navController.navigate(Screen.PLAY_GAME) },
-                        onTutorial = { navController.navigate(Screen.TUTORIAL) },
-                        onBack = { navController.navigateUp() },
-                    )
+                    Box {
+                        // Under the form, which is opaque: draws the game's art once while the form is filled in, so the
+                        // game's first frame isn't also its art's first paint - see GameWarmUp.
+                        GameWarmUp(viewModel)
+                        GameSetupScreen(
+                            viewModel = viewModel,
+                            onStartGame = { navController.navigate(Screen.PLAY_GAME) },
+                            onTutorial = { navController.navigate(Screen.TUTORIAL) },
+                            onBack = { navController.navigateUp() },
+                        )
+                    }
                 }
 
                 if (!resume) {

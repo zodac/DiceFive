@@ -43,6 +43,13 @@ Each of these fixed a reported stutter. New work must keep them.
   - Settings, achievements and the saved-game flag emit only when their own value changes (`distinctUntilChanged`).
 - **Load ahead of the first use.** The sound clips load a second after launch, off the main thread, not on a game's
   first roll.
+- **Paint a game's art before it opens.** `GameWarmUp` (`GameScreen.kt`), under the setup form, draws the board,
+  cup, mat and every face of every die in the player's art, once, 600ms after the form settles. It lays them out with
+  the game's own `GamePage` and `GameTable`, so each surface is cached at the exact size the game uses.
+  - A die has its own face per value (`naturalPatternSeed`): five dice need 30 faces, so the values are rotated a
+    pass at a time.
+  - `GameWarmUpTest` holds the sizes to the game's: no surface is painted on opening or on the first roll. A
+    change to the game's layout that the warm-up doesn't share fails it.
 - **The Styles page.**
   - Each tile's preview is drawn in its own offscreen layer.
   - Rows are plain `Row`s built deterministically: the tiles on screen at open, then one every `TILE_BUILD_FRAMES`
@@ -69,6 +76,11 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
 - **Cups, backgrounds, mats** (board plus tray): 2-4 a frame in idle, shake and toss for every one, within ~20% of each
   other. A cup alone is 0.8-1.7.
   - A patterned mat's or background's first frame is 17-55. Stone stamps three textured flags to stay there.
+  - First paint, whole-screen harness (411x891dp xxhdpi, ~25 floor): the Leather and Granite backgrounds add ~50,
+    Black Marble, Meadow and the Honeycomb one 30-38; Honeycomb and Stone mats ~24; Leather and Stone dice ~22.
+  - The game's opening frame, heavy art (Granite background and mat, Leather dice; or Oxblood, Black Marble, White
+    Marble) against Classic, three runs: 128-157 cold, 73-95 after `GameWarmUp`, Classic 71-78. The warm-up's own
+    worst frame on the setup screen is 55-91 (Classic 26-36), the board pass, which paints the background.
   - The Stone, Meadow and Circuit backgrounds are painted once and sit within ~3.5ms of the plain Classic one (whole
     screen, captured: 25-26ms against 22), level with Pinstripe and Starry. Neon is ~29ms, level with
     Honeycomb and under Glitter and Glitch (32-34ms).

@@ -134,6 +134,7 @@ internal fun DrawScope.cachedSurface(key: Any, paint: DrawScope.() -> Unit): Ima
     val sized = SizedSurface(key, width, height)
     val image = surfaceImages.remove(sized) ?: ImageBitmap(width, height).also { image ->
         CanvasDrawScope().draw(this, layoutDirection, Canvas(image), Size(width.toFloat(), height.toFloat()), paint)
+        surfacesPainted++
     }
     // Re-added on every use, so the map runs least recently used first.
     surfaceImages[sized] = image
@@ -145,6 +146,12 @@ internal fun DrawScope.cachedSurface(key: Any, paint: DrawScope.() -> Unit): Ima
 private val surfaceImages = LinkedHashMap<SizedSurface, ImageBitmap>()
 
 private data class SizedSurface(val key: Any, val width: Int, val height: Int)
+
+// How many surfaces have been painted, not stamped from surfaceImages, since the process started.
+private var surfacesPainted = 0
+
+/** For tests only: how many surfaces [drawCachedSurface] has painted so far, rather than stamped from its cache. */
+fun surfacesPaintedForTest(): Int = surfacesPainted
 
 // Every face of five dice in a couple of patterned styles, with room for another size (a held die, the
 // Styles previews) - about 90KB apiece at a phone's usual die size.

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -41,11 +43,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -54,6 +59,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -61,6 +68,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.game.ProjectedHand
 import net.zodac.dicefive.game.TutorialStep
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
@@ -83,6 +91,7 @@ import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.style.ChickenDiceCupStyle
+import net.zodac.dicefive.ui.style.GameVisualTheme
 import net.zodac.dicefive.ui.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.style.LocalOnRabbitSeen
@@ -230,89 +239,204 @@ fun GameScreen(
 
         // The same colours as the menu and every page off it, but with no dice: the table's own art sits on top.
         BrandBackdrop(modifier = modifier, showDice = false) {
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxSize()
-                    // Without this, the player header row rendered flush against the very top of the
-                    // screen and sat under the status bar's clock/icons on some devices - a fixed
-                    // padding amount can't account for how tall that area actually is per device, so
-                    // ask the system for its real inset instead. The sides too: in landscape a camera
-                    // cutout or the navigation buttons sit there.
-                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)),
-                contentAlignment = Alignment.TopCenter,
-            ) {
-                // The tutorial's coach card stands in for the player tabs, and is taller: the game is sized for the header it has.
-                val coachHeight = tutorialStep?.let { coachHeaderHeight(viewModel.tutorialSteps, maxWidth, landscape = maxWidth > maxHeight) }
-                val layout = gameLayout(maxWidth, maxHeight, currentState.categories, headerHeight = coachHeight)
-                val density = LocalDensity.current
-                // Scrolled from the whole width, the empty sides too, not just the game centred in it.
-                val scroll = rememberScrollState()
-                // The board is a drawn object, so on a bigger screen all of it is drawn bigger - art, text and
-                // touch targets together - rather than its pieces spreading apart. The player's font scale is kept.
-                CompositionLocalProvider(LocalDensity provides Density(density.density * layout.scale, density.fontScale)) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(scroll),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        // The tray's mat as deep as gameLayout leaves room for.
-                        CompositionLocalProvider(LocalScatterHeight provides layout.scatterHeight) {
-                            Column(
-                                modifier = Modifier
-                                    .widthIn(max = layout.maxWidth)
-                                    .fillMaxWidth()
-                                    .padding(GAME_PADDING),
-                                verticalArrangement = Arrangement.spacedBy(SECTION_GAP),
-                            ) {
-                                InProgressGame(
-                                    state = currentState,
-                                    landscape = layout.landscape,
-                                    cupScale = layout.cupScale,
-                                    canUndo = canUndo,
-                                    superuserModeActive = superuserModeActive,
-                                    aiRolling = aiRolling,
-                                    tapRolling = tapRolling,
-                                    turnSecondsRemaining = { turnSecondsRemaining.value },
-                                    onBack = leaveGame,
-                                    onUndo = viewModel::undo,
-                                    onRoll = viewModel::shakeAndRoll,
-                                    onToggleHold = viewModel::toggleHold,
-                                    onCycleValue = viewModel::cycleHeldDieValue,
-                                    onScoreCategory = viewModel::commitScore,
-                                    claimFiveOfAKindFlash = viewModel::claimFiveOfAKindFlash,
-                                    onTapCupWithNoRollsLeft = viewModel::tapCupWithNoRollsLeft,
-                                    onShakeRollDetected = viewModel::onShakeRollDetected,
-                                    cupShakeMillis = cupShakeMillis,
-                                    coach = tutorialStep?.let { step ->
-                                        { cardModifier ->
-                                            BoxWithConstraints(modifier = cardModifier) {
-                                                // As tall as its longest step's words, or as the room above the game allows (its words then
-                                                // scroll inside it), but never so short it shows too little to read.
-                                                val height = minOf(coachCardHeight(viewModel.tutorialSteps, maxWidth), maxOf(layout.headerRoom, MIN_COACH_HEIGHT))
-                                                val turn = stringResource(Res.string.game_tutorial_turn, tutorialTurn, viewModel.tutorialTurns)
-                                                CoachCard(
-                                                    step = step,
-                                                    coachName = coachName,
-                                                    turn = turn,
-                                                    onBack = { viewModel.jumpToTutorialTurn(-1) }.takeIf { viewModel.canJumpBack },
-                                                    onForward = { viewModel.jumpToTutorialTurn(1) }.takeIf { viewModel.canJumpForward },
-                                                    modifier = Modifier.height(height),
-                                                )
-                                            }
-                                        }
-                                    },
+            // The tutorial's coach card stands in for the player tabs, and is taller: the game is sized for the header it has.
+            val coachHeight: @Composable (Dp, Boolean) -> Dp? = { width, landscape -> tutorialStep?.let { coachHeaderHeight(viewModel.tutorialSteps, width, landscape) } }
+            GamePage(categories = currentState.categories, headerHeight = coachHeight) { layout ->
+                InProgressGame(
+                    state = currentState,
+                    landscape = layout.landscape,
+                    cupScale = layout.cupScale,
+                    canUndo = canUndo,
+                    superuserModeActive = superuserModeActive,
+                    aiRolling = aiRolling,
+                    tapRolling = tapRolling,
+                    turnSecondsRemaining = { turnSecondsRemaining.value },
+                    onBack = leaveGame,
+                    onUndo = viewModel::undo,
+                    onRoll = viewModel::shakeAndRoll,
+                    onToggleHold = viewModel::toggleHold,
+                    onCycleValue = viewModel::cycleHeldDieValue,
+                    onScoreCategory = viewModel::commitScore,
+                    claimFiveOfAKindFlash = viewModel::claimFiveOfAKindFlash,
+                    onTapCupWithNoRollsLeft = viewModel::tapCupWithNoRollsLeft,
+                    onShakeRollDetected = viewModel::onShakeRollDetected,
+                    cupShakeMillis = cupShakeMillis,
+                    coach = tutorialStep?.let { step ->
+                        { cardModifier ->
+                            BoxWithConstraints(modifier = cardModifier) {
+                                // As tall as its longest step's words, or as the room above the game allows (its words then
+                                // scroll inside it), but never so short it shows too little to read.
+                                val height = minOf(coachCardHeight(viewModel.tutorialSteps, maxWidth), maxOf(layout.headerRoom, MIN_COACH_HEIGHT))
+                                val turn = stringResource(Res.string.game_tutorial_turn, tutorialTurn, viewModel.tutorialTurns)
+                                CoachCard(
+                                    step = step,
+                                    coachName = coachName,
+                                    turn = turn,
+                                    onBack = { viewModel.jumpToTutorialTurn(-1) }.takeIf { viewModel.canJumpBack },
+                                    onForward = { viewModel.jumpToTutorialTurn(1) }.takeIf { viewModel.canJumpForward },
+                                    modifier = Modifier.height(height),
                                 )
                             }
                         }
-                    }
-                }
-                // In the right-hand margin, beside the game rather than over it, and only while it's too tall to fit.
-                VerticalScrollbar(scroll, width = SCROLLBAR_WIDTH, modifier = Modifier.align(Alignment.TopEnd))
+                    },
+                )
             }
         }
     }
 }
+
+/**
+ * The game's page, as [GameScreen] lays it out on this screen: the board and tray scaled up from [REFERENCE_WIDTH]
+ * ([gameLayout]), centred, scrolling if too tall. [content] is the game, given the layout; [headerHeight] is the
+ * header row's height on a screen that wide, laid out for landscape or not, where it isn't the player tabs' (null).
+ */
+@Composable
+private fun GamePage(
+    categories: List<ScoreCategory>,
+    headerHeight: @Composable (width: Dp, landscape: Boolean) -> Dp?,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.(GameLayout) -> Unit,
+) {
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxSize()
+            // Without this, the player header row rendered flush against the very top of the
+            // screen and sat under the status bar's clock/icons on some devices - a fixed
+            // padding amount can't account for how tall that area actually is per device, so
+            // ask the system for its real inset instead. The sides too: in landscape a camera
+            // cutout or the navigation buttons sit there.
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        val layout = gameLayout(maxWidth, maxHeight, categories, headerHeight = headerHeight(maxWidth, maxWidth > maxHeight))
+        val density = LocalDensity.current
+        // Scrolled from the whole width, the empty sides too, not just the game centred in it.
+        val scroll = rememberScrollState()
+        // The board is a drawn object, so on a bigger screen all of it is drawn bigger - art, text and
+        // touch targets together - rather than its pieces spreading apart. The player's font scale is kept.
+        CompositionLocalProvider(LocalDensity provides Density(density.density * layout.scale, density.fontScale)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scroll),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                // The tray's mat as deep as gameLayout leaves room for.
+                CompositionLocalProvider(LocalScatterHeight provides layout.scatterHeight) {
+                    Column(
+                        modifier = Modifier
+                            .widthIn(max = layout.maxWidth)
+                            .fillMaxWidth()
+                            .padding(GAME_PADDING),
+                        verticalArrangement = Arrangement.spacedBy(SECTION_GAP),
+                    ) {
+                        content(layout)
+                    }
+                }
+            }
+        }
+        // In the right-hand margin, beside the game rather than over it, and only while it's too tall to fit.
+        VerticalScrollbar(scroll, width = SCROLLBAR_WIDTH, modifier = Modifier.align(Alignment.TopEnd))
+    }
+}
+
+/**
+ * Draws the game the setup form would start - its board and cup, its tray's mat and every face of its dice - once, out of
+ * sight, in the player's table art and laid out as the game will be on this screen, so the game's first frame isn't also
+ * the first paint of its art. A background, mat or die face is painted once at its size and then stamped
+ * ([net.zodac.dicefive.ui.style.drawCachedSurface]), and the heaviest (Leather, Stone) took several frames to paint, all
+ * on the frame the game opened. Placed on the setup screen, under its opaque backdrop, in a 1dp clipped box: it waits for
+ * the screen to settle, then draws one piece a pass and drops it again. Done again when the art, the mode or the screen
+ * changes, and not otherwise: the art is still painted from last time.
+ */
+@Composable
+fun GameWarmUp(viewModel: GameViewModel, modifier: Modifier = Modifier) {
+    val table by viewModel.tableSettings.collectAsStateWithLifecycle()
+    val setup by viewModel.setup.collectAsStateWithLifecycle()
+    val setupRestored by viewModel.setupRestored.collectAsStateWithLifecycle()
+    val theme = table?.visualTheme
+    if (theme == null || !setupRestored) return
+    val game = remember(setup) { viewModel.previewGame() }
+    val window = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
+    val key = GameWarmUpKey(theme, game.gameMode, game.categories, window, density.density, density.fontScale)
+    if (key == gameWarmedUp) return
+    var current by remember { mutableStateOf<GameWarmUpPass?>(null) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(key) {
+        current = null
+        // Restarted by each change to the form, so a few quick taps through the modes draw only the last.
+        lifecycle.delayWhileResumed(GAME_WARM_UP_DELAY_MILLIS)
+        // Each die has a face of its own for each value (naturalPatternSeed): turned round a value a pass, every die shows every one.
+        val values = game.gameMode.dieValues.toList()
+        val faces = values.indices.map { turn -> GameWarmUpPass.Dice(game.dice.indices.map { values[(it + turn) % values.size] }) }
+        for (pass in listOf(GameWarmUpPass.Board, GameWarmUpPass.Mat) + faces) {
+            current = pass
+            // A frame to compose and draw it, then on to the next.
+            withFrameNanos { }
+            withFrameNanos { }
+        }
+        gameWarmedUp = key
+        current = null
+    }
+    val pass = current ?: return
+    Box(modifier = modifier.size(1.dp).clipToBounds().clearAndSetSemantics { }) {
+        // As big as the game's page, so it lays out as it would there.
+        val page = with(density) { DpSize(window.width.toDp(), window.height.toDp()) }
+        CompositionLocalProvider(LocalGameVisualTheme provides theme) {
+            GamePage(categories = game.categories, headerHeight = { _, _ -> null }, modifier = Modifier.requiredSize(page)) { layout ->
+                val board = @Composable {
+                    if (pass == GameWarmUpPass.Board) {
+                        GameBoard(state = game, rolling = false, canUndo = false, onScoreCategory = {}, onCupTap = {}, onUndo = {}, landscape = layout.landscape)
+                    }
+                }
+                val tray = @Composable {
+                    if (pass != GameWarmUpPass.Board) {
+                        val values = (pass as? GameWarmUpPass.Dice)?.values
+                        DiceTray(
+                            dice = game.dice.mapIndexed { index, die -> die.copy(value = values?.get(index) ?: die.value) },
+                            gameMode = game.gameMode,
+                            enabled = false,
+                            showDice = pass is GameWarmUpPass.Dice,
+                            rolling = false,
+                            onToggleHold = {},
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+                val sideCup = @Composable {
+                    if (pass == GameWarmUpPass.Board) {
+                        SideCup(layout.cupScale) { sized -> GameCup(state = game, rolling = false, canUndo = false, onCupTap = {}, onUndo = {}, modifier = sized) }
+                    }
+                }
+                GameTable(layout.landscape, board, tray, sideCup)
+            }
+        }
+    }
+}
+
+/** One step of [GameWarmUp]: the board and its cup, the tray's empty mat, or its dice showing these [Dice.values], one a die. */
+private sealed interface GameWarmUpPass {
+    data object Board : GameWarmUpPass
+    data object Mat : GameWarmUpPass
+    data class Dice(val values: List<Int>) : GameWarmUpPass
+}
+
+/** What [GameWarmUp] drew for: the art, the game's mode and scorecard, and the screen. */
+private data class GameWarmUpKey(
+    val theme: GameVisualTheme,
+    val mode: GameMode,
+    val categories: List<ScoreCategory>,
+    val window: IntSize,
+    val density: Float,
+    val fontScale: Float,
+)
+
+// What GameWarmUp last drew for, for the life of the process. Main thread only.
+private var gameWarmedUp: GameWarmUpKey? = null
+
+// Long enough for the setup screen's own entrance (the page cross-fade) to be over.
+private const val GAME_WARM_UP_DELAY_MILLIS = 600L
 
 @Composable
 private fun InProgressGame(
@@ -542,12 +666,10 @@ private fun InProgressGame(
 
     // Which dice the box under a finger would take, from the board to the tray (see LocalHandPreview).
     val handPreview = remember { mutableStateOf<ProjectedHand?>(null) }
-    // The cup beside the tray: drawn larger than in the board, as it would otherwise look small beside the dice. Its space
-    // is kept while another player's scorecard is up (no cup then), so the tray stays put.
+    // The cup beside the landscape tray. Its space is kept while another player's scorecard is up (no cup then), so the
+    // tray stays put.
     val sideCup = @Composable {
-        val density = LocalDensity.current
-        CompositionLocalProvider(LocalDensity provides Density(density.density * cupScale, density.fontScale)) {
-            val sized = Modifier.size(width = SIDE_CUP_WIDTH, height = SIDE_CUP_HEIGHT)
+        SideCup(cupScale) { sized ->
             if (viewedPlayer == null) {
                 GameCup(
                     state = state,
@@ -565,21 +687,35 @@ private fun InProgressGame(
         }
     }
 
-    CompositionLocalProvider(LocalHandPreview provides handPreview) {
-        if (landscape) {
-            // The board across the top, and under it the tray in two thirds of the width with the cup in the last third, at
-            // the right-hand side as it is in the board on a phone.
-            // The board drawn larger than the tray: its three rows are otherwise small beside the dice.
-            val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density * LANDSCAPE_BOARD_SCALE, density.fontScale)) { board() }
-            Row(horizontalArrangement = Arrangement.spacedBy(SECTION_GAP), verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.weight(LANDSCAPE_TRAY_WEIGHT)) { tray() }
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) { sideCup() }
-            }
-        } else {
-            board()
-            tray()
+    CompositionLocalProvider(LocalHandPreview provides handPreview) { GameTable(landscape, board, tray, sideCup) }
+}
+
+/**
+ * The board over the tray - or, in [landscape], the board across the top and under it the tray in two thirds of the
+ * width with [sideCup] in the last third, at the right-hand side as it is in the board on a phone.
+ */
+@Composable
+private fun GameTable(landscape: Boolean, board: @Composable () -> Unit, tray: @Composable () -> Unit, sideCup: @Composable () -> Unit) {
+    if (landscape) {
+        // The board drawn larger than the tray: its three rows are otherwise small beside the dice.
+        val density = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(density.density * LANDSCAPE_BOARD_SCALE, density.fontScale)) { board() }
+        Row(horizontalArrangement = Arrangement.spacedBy(SECTION_GAP), verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.weight(LANDSCAPE_TRAY_WEIGHT)) { tray() }
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) { sideCup() }
         }
+    } else {
+        board()
+        tray()
+    }
+}
+
+/** The cup beside the landscape tray: drawn [cupScale] times larger than in the board, as it would otherwise look small beside the dice. */
+@Composable
+private fun SideCup(cupScale: Float, cup: @Composable (Modifier) -> Unit) {
+    val density = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(density.density * cupScale, density.fontScale)) {
+        cup(Modifier.size(width = SIDE_CUP_WIDTH, height = SIDE_CUP_HEIGHT))
     }
 }
 
