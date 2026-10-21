@@ -4,34 +4,17 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- appCategory "game": on a large screen Android 16+ ignores an app's orientation lock (the Orientation setting),
-         except in a game. -->
+         except in a game. appLabel is the launcher's name: app_name, or "DiceFive Debug" in a debug build
+         (build.gradle.kts). -->
     <application
         android:name=".DiceFiveApplication"
         android:allowBackup="true"
         android:appCategory="game"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:label="${appLabel}"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.DiceFive">
-
-        <meta-data
-            android:name="com.google.android.gms.games.APP_ID"
-            android:value="@string/game_services_project_id" />
-
-        <!-- Play Games Sidekick's tab position and snooze; read by Play only for a bundle installed from Play. -->
-        <meta-data
-            android:name="com.google.android.finsky.deku.OVERLAY_CONFIG"
-            android:resource="@xml/sidekick_config" />
-
-        <!-- The Play Games SDK starts itself (and so signs in) at every launch through this provider. It's started by
-             PlayGamesServices instead, only once the player has signed in from Settings. Disabled rather than removed:
-             a removal warns in every merge without the SDK's manifest (the unit tests'), and this way the tests see it. -->
-        <provider
-            android:name="com.google.android.gms.games.provider.PlayGamesInitProvider"
-            android:authorities="${applicationId}.playgamesinitprovider"
-            android:enabled="false"
-            android:exported="false" />
 
         <activity
             android:name=".MainActivity"

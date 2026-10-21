@@ -8,7 +8,7 @@ description: Render any screen, art or animation to PNG with Robolectric (no dev
 Robolectric draws real pixels: every unit test runs with native graphics on SDK 36
 (`app/android/src/test/resources/robolectric.properties`). The workflow is a throwaway test in
 `app/android/src/test/kotlin/net/zodac/dicefive/`, which is **deleted before committing**. Run it with
-`./gradlew -q :app:android:testDebugUnitTest --tests '*Scratch*' --rerun` and write the PNGs to the scratchpad.
+`./gradlew -q :app:android:testPlayDebugUnitTest --tests '*Scratch*' --rerun` and write the PNGs to the scratchpad.
 
 ```kotlin
 @RunWith(AndroidJUnit4::class)

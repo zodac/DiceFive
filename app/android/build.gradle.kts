@@ -66,7 +66,7 @@ android {
     // to the newest stable NDK that extracts the symbols.
     ndkVersion = "30.0.16248370"
 
-    // Output APK names: DiceFive-debug.apk / DiceFive-release.apk instead of the app-*.apk default.
+    // Output names start DiceFive- instead of app- (the APKs' are set in full below).
     base {
         archivesName = "DiceFive"
     }
@@ -86,6 +86,23 @@ android {
         versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // The launcher's name (the manifest's android:label): the translated app_name, but see the debug build type.
+        manifestPlaceholders["appLabel"] = "@string/app_name"
+    }
+
+    // Two apps from one source, one per way the app reaches players (.claude/DESIGN.md, "Distribution"):
+    // - play: the App Bundle for Google Play, with Google Play Games (src/play);
+    // - github: the APK on GitHub releases, a separate app (its own applicationId, so no data of its own can reach the
+    //   play app's) with no Play Games SDK at all.
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("play") {
+            dimension = "distribution"
+        }
+        create("github") {
+            dimension = "distribution"
+            applicationIdSuffix = ".github"
+        }
     }
 
     signingConfigs {
@@ -116,6 +133,11 @@ android {
     }
 
     buildTypes {
+        // "DiceFive Debug" on the launcher, in every language, so a tester's debug build is never taken for a release.
+        // Only the label: the GitHub APK and the Play bundle (release builds) keep app_name.
+        debug {
+            manifestPlaceholders["appLabel"] = "DiceFive Debug"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -274,6 +296,17 @@ tasks.withType<Test>().configureEach {
     maxParallelForks = if (generating) 1 else 2
 }
 
+// Both flavours' debug checks under the names they had before there were flavours, so `./gradlew testDebugUnitTest
+// lintDebug compileDebugAndroidTestKotlin` from the root (CI, the update script, the test skill's gate) still covers the
+// whole app rather than quietly matching nothing here. One flavour's own task takes --tests: testPlayDebugUnitTest.
+for (check in listOf("test%sDebugUnitTest", "lint%sDebug", "compile%sDebugAndroidTestKotlin")) {
+    tasks.register(check.format("")) {
+        group = "verification"
+        description = "Runs ${check.format("<Flavour>")} for every flavour."
+        dependsOn(check.format("Play"), check.format("Github"))
+    }
+}
+
 // ── Audio loudness normalisation ──────────────────────────────────────────────
 // The sound effects' sources are app/audio/*.ogg, shared with the iOS app. scripts/normalize-audio.sh brings every
 // clip to the same peak level (its header says why) and writes the copies this module packages into a build/ dir,
@@ -323,7 +356,7 @@ androidComponents {
 
 // Bake the version into the output filename too, so a debug APK handed to a tester is
 // self-describing (which build they're on) without needing to open Settings > App info:
-// DiceFive-<version>-<buildType>[-unsigned].apk. The public variant API has no setter for the file
+// DiceFive-<version>-<flavour>-<buildType>[-unsigned].apk. The public variant API has no setter for the file
 // name, so this goes through its implementation class, VariantOutputImpl (an internal AGP class, not a
 // deprecated one - it replaces the deprecated android.applicationVariants API this used to use). If an
 // AGP upgrade moves it, this is the line that stops compiling.
@@ -332,7 +365,7 @@ androidComponents {
         val releaseName = appVersionName
         val versionLabel = if (variant.buildType == "debug") debugVersionName else providers.provider { releaseName }
         val unsignedSuffix = if (variant.buildType == "release" && !hasReleaseSigningConfig) "-unsigned" else ""
-        val suffix = "-${variant.buildType}$unsignedSuffix.apk"
+        val suffix = "-${variant.flavorName}-${variant.buildType}$unsignedSuffix.apk"
         variant.outputs.filterIsInstance<VariantOutputImpl>().forEach { output ->
             output.outputFileName.set(versionLabel.map { "DiceFive-$it$suffix" })
         }
@@ -687,10 +720,11 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.datastore.preferences.core)
     // Google Play Games Services v2: sign-in, achievements, leaderboards and saved games (online/PlayGamesServices).
-    implementation(libs.play.services.games.v2)
+    // The play flavour's alone: the github APK has none of it.
+    "playImplementation"(libs.play.services.games.v2)
     constraints {
         // play-services-base asks for androidx.fragment 1.1.0, which Play Console flags as an outdated SDK.
-        implementation(libs.androidx.fragment)
+        "playImplementation"(libs.androidx.fragment)
     }
 
     testImplementation(libs.junit)

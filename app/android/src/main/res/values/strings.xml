@@ -1,3 +1,5 @@
-<resources>
-    <string name="app_name">DiceFive</string>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- The launcher's name in a release build (the manifest's appLabel). A debug build's is "DiceFive Debug", so lint
+         sees this unused there. -->
+    <string name="app_name" tools:ignore="UnusedResources">DiceFive</string>
 </resources>

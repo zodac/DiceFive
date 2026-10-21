@@ -25,7 +25,7 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 | | |
 |---|---|
 | Repo | `github.com/zodac/DiceFive`, default branch `main`. Every push to `main` that changes what an app ships cuts a GitHub release for that app (`v*` Android, `ios-v*` iOS; `DESIGN.md`, "Release pipeline") |
-| Package | `net.zodac.dicefive` (Android `applicationId`, Kotlin root package) |
+| Package | `net.zodac.dicefive` (Kotlin root package; the play app's `applicationId`; the github APK is `net.zodac.dicefive.github`) |
 | Version | One per app: `app/android/VERSION` (released from 1.0.0) and `app/ios/VERSION` (pre-releases below 1.0.0). Never hand-edit for a debug install |
 | Platforms | Android minSdk 26, targetSdk/compileSdk 37 (`app/android/build.gradle.kts`); iOS compiles but no app yet |
 | Stack | Kotlin Multiplatform, Compose Multiplatform, Material 3 (dark only), Navigation Compose, MVVM (`ViewModel` + `StateFlow`), Room (scores), DataStore (everything else) |
@@ -39,7 +39,9 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 - **Layout.**
   - `app/shared` holds the game, UI and persistence. It must compile for iOS: no Android or JVM APIs, resources
     through `Res.*`, devices through `platform/PlatformServices`.
-  - `app/android` is the APK shell and Android's platform code (`device/`).
+  - `app/android` is the APK shell and Android's platform code (`device/`). Two flavours (`DESIGN.md`,
+    "Distribution"): `play` (Google Play, Play Games in `src/play`) and `github` (the GitHub APK, no Play Games,
+    `src/github`).
   - `app/baselineprofile` is the profile journey; `app/licensing` holds the licence records.
   - The package map is in `README.md`.
 - **Warnings are errors** throughout: Kotlin `allWarningsAsErrors`, lint `warningsAsErrors`, deprecations included.
@@ -107,7 +109,7 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 
 | Doc | Read when |
 |---|---|
-| `.claude/DESIGN.md` | Rules of play, modes and modifiers in brief, the CPU, persistence, Leaderboard/Statistics, achievements, table art, sound, settings, release pipeline |
+| `.claude/DESIGN.md` | Rules of play, modes and modifiers in brief, the CPU, persistence, Leaderboard/Statistics, achievements, table art, sound, settings, the play and github apps, release pipeline |
 | `.claude/UI.md` | Any visual change: colour, the brand font, shared chrome, insets, component rules, **the accessibility checklist**, motion and reduced motion, scrollbars, player colours, gotchas |
 | `.claude/UI_BOARD.md` | The game screen: scorecard grid per mode, tiles, tray, cup, totals and undo, tablets and landscape, name caps |
 | `.claude/UI_SCREENS.md` | Achievements list and banners, Styles screen and locks, Leaderboard views, menu logo and backdrop |

@@ -89,7 +89,7 @@
     "copyright": "Copyright 2026 zodac.net",
     "license": "LicenseRef-DiceFive-AllRightsReserved"
   },
-  "app/android/src/main/res/xml/sidekick_config.xml": {
+  "app/android/src/play/res/xml/sidekick_config.xml": {
     "description": "Play Games Sidekick config: the tab's default position and the first-session snooze",
     "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01B2fBbenxLkeAc4xpD93yyf",
     "copyright": "Copyright 2026 zodac.net",

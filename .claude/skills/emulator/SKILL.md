@@ -29,8 +29,8 @@ sandbox/emulator.sh stop                # ALWAYS stop when done: it holds ~4GB R
 
 ```sh
 sandbox/emulator.sh start
-./gradlew -q assembleDebug -PdevStamp && adb install -r "$(ls -t app/android/build/outputs/apk/debug/*.apk | head -1)"
-adb shell monkey -p net.zodac.dicefive -c android.intent.category.LAUNCHER 1
+./gradlew -q assembleGithubDebug -PdevStamp && adb install -r "$(ls -t app/android/build/outputs/apk/github/debug/*.apk | head -1)"
+adb shell monkey -p net.zodac.dicefive.github -c android.intent.category.LAUNCHER 1
 sandbox/emulator.sh screenshot <scratchpad>/screen.png
 ```
 
@@ -39,7 +39,7 @@ sandbox/emulator.sh screenshot <scratchpad>/screen.png
 ```sh
 sandbox/emulator.sh start
 adb uninstall net.zodac.dicefive 2>/dev/null   # a debug build's higher versionCode makes the benchmark install a no-op
-./gradlew :app:android:generateBaselineProfile -Pandroid.testInstrumentationRunnerArguments.journeyLaps=1
+./gradlew :app:android:generatePlayReleaseBaselineProfile -Pandroid.testInstrumentationRunnerArguments.journeyLaps=1
 sandbox/emulator.sh stop
 ```
 
@@ -51,9 +51,9 @@ sandbox/emulator.sh stop
   `app/baselineprofile/build/reports/androidTests/connected/nonMinifiedRelease/index.html`. The screen and UI hierarchy
   as it failed are saved as `journey-failure-lap<N>.png`/`.xml` under
   `app/baselineprofile/build/outputs/connected_android_test_additional_output/`. Fix `Journeys.kt`, and rerun.
-- The four benchmark tests show as skipped during `generateBaselineProfile`. That's expected.
-- The generated profile (`app/android/src/release/generated/baselineProfiles/`) is gitignored, because CI generates
-  its own.
+- The four benchmark tests show as skipped during `generatePlayReleaseBaselineProfile`. That's expected.
+- The generated profile (`app/android/src/playRelease/generated/baselineProfiles/`, the play app's; CI copies it to the
+  github app's) is gitignored, because CI generates its own.
 
 **Write journey steps for a slow device.** A hosted runner takes 2-4s per UiAutomator lookup.
 - Wait for things rather than checking once: `hasText` only after an `await`.

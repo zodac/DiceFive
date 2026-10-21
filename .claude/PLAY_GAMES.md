@@ -29,8 +29,8 @@ app/shared/.../online/   GameServices (interface, GameServicesState, OnlineAccou
                          OnlineSync (reconciler), CloudSave + CloudSaveMerge (pure), CloudSaveCodec, CloudSaveStore,
                          OnlineSettingsRepository  - nothing here names Google or Apple
 app/shared/.../ui/settings/OnlineAccountCard.kt   labelled by GameServices.serviceName
-app/android/.../online/  PlayGamesServices, PlayGamesIds, PlayGamesAchievements, res/values/games-ids.xml
-                         - the only gms.games imports
+app/android/src/play/.../online/  PlayGamesServices, PlayGamesIds, PlayGamesAchievements, res/values/games-ids.xml
+                         - the only gms.games imports, in the play flavour alone
 ```
 
 - **Local storage is the source of truth.** The game never waits on or reads from the network; a signed-out, offline
@@ -39,8 +39,13 @@ app/android/.../online/  PlayGamesServices, PlayGamesIds, PlayGamesAchievements,
   the difference, so a failed send is retried next time. Triggers: sign-in, app start, after a game, leaving a game
   part-way, 5s after a synced-setting change, `ON_STOP` and `ON_START`. No polling.
 - **The engine and `GameMode` never learn the network exists.** Per-mode data is a field (`onlineLeaderboardKey`).
-- **Play-only.** A release build uses Play Games only when installed by Play (`com.android.vending`), a debug build
-  always, and neither without Play services (`PlayGamesServices.usesPlayGames`). Otherwise: `NoGameServices`, no card.
+- **The play app only.** Play Games is the `play` flavour's (`DESIGN.md`, "Distribution"): the SDK, the manifest's
+  `APP_ID`, Sidekick and the disabled init provider are all in `src/play`. The github APK (`net.zodac.dicefive.github`)
+  has none of it, so a Play Games credential, which is per package, can't sign it in either.
+- **Play-only installs.** A play release build uses Play Games only when installed by Play (`com.android.vending`) on a
+  phone with Play services; a debug build never does, as its public key has no credential ("Play Console")
+  (`PlayGamesServices.usesPlayGames`). Otherwise: `NoGameServices`, no card, as in the github APK. The SDK is still
+  compiled into a play debug build, for its tests.
 - `PlayGamesServices` needs an `Activity`, so it's built in `MainActivity` and re-attached across config changes.
 - **Superuser mode** stops the whole sync (achievements, scores, save) on that install; a test pins it.
 
@@ -141,11 +146,13 @@ Play's overlay: an edge tab that slides out achievements, streaks, offers and re
 ## Play Console
 
 - **Project**: APP_ID `308613893005`; Saved Games on. Android credentials, one per signing key (SHA-1):
-  - debug key `76:7A:8F:8E:BF:D9:A9:58:4E:4C:21:D4:0B:9D:6E:51:1B:EB:21:A0` (debug APKs);
   - Play's app signing key `B3:92:54:2F:11:F1:67:02:F4:84:FF:CE:67:53:B1:DA:5E:78:D2:FB` (every install from a Play
     track: players get only this);
   - the upload key `FD:64:0E:6D:55:7E:13:7C:77:2E:BD:0A:02:C9:03:00:9D:45:80:A9` (the `RELEASE_KEY*` secrets; only
-    builds signed by hand).
+    builds signed by hand). It also signs the github APK, but that's another package, which no credential names.
+  - **Never the debug key** (`76:7A:8F:8E:BF:D9:A9:58:4E:4C:21:D4:0B:9D:6E:51:1B:EB:21:A0`): it's committed to the
+    public repo (`app/android/debug.keystore`), so with a credential anyone could build the app from changed source
+    and post any score or unlock to the published boards. Its credential was deleted on 2026-10-22; never add it back.
   A build whose key has no credential fails sign-in with Google's `DEVELOPER_ERROR`, which only logcat shows (its
   `PlayGamesServices[SignInAuthenticator]` lines print the build's SHA-1); the app sees only "not authenticated".
 - **Sheets**: `scripts/export-play-console.sh` writes the gitignored `assets/play-console/`:
@@ -170,8 +177,12 @@ The code is done. The rest is the maintainer's, in Play Console:
 
 ## Testing
 
-- **Debug APKs test almost everything**: package `net.zodac.dicefive`, the repo's debug keystore. The phone needs Play
-  services and an account on the **PGS testers** list; anyone else fails sign-in in a way that looks like a bug.
+- **Sign-in is tested on a Play-signed build**: the bundle on an internal testing track, installed from Play. The phone
+  needs Play services and, until publishing, an account on the **PGS testers** list; anyone else fails sign-in in a
+  way that looks like a bug.
+- **Debug APKs have no Play Games**: no card, no sign-in (their key has no credential, above). The debug APK handed to
+  testers is the github app's (`debug-apk` skill); the play flavour's debug variant only runs its unit tests and lint.
+  The card, the sync and the cloud save are tested against fakes (`OnlineAccountCardTest`, `OnlineSyncTest`, ...).
 - **Only the Play release flow** shows Sidekick, the Play-signed build's own sign-in, and Sidekick's locked
   achievements (100+ players).
 - **The sandbox emulator** has no Play: use a real phone.

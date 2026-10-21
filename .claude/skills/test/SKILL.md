@@ -12,14 +12,18 @@ failure stops what follows.
 ## The full gate (before a commit)
 
 ```sh
-./gradlew testDebugUnitTest lint assembleDebug compileDebugAndroidTestKotlin :app:android:assembleRelease --console=plain 2>&1 \
-  | grep -v -E '^> Task|^$'
+./gradlew testDebugUnitTest :app:shared:lint lintDebug assembleDebug compileDebugAndroidTestKotlin :app:android:assembleRelease \
+  --console=plain 2>&1 | grep -v -E '^> Task|^$'
 ```
 
 - The root `testDebugUnitTest` runs both test suites and compiles `app/shared` for iOS (both targets plus the iOS
   test code). It is the only task that catches Kotlin/Native-only failures, such as a `commonTest` name with a comma.
-- `:app:android:assembleRelease` is the release job's build: R8, and the release lint (`lintVitalRelease`), which
-  `lint` doesn't run. Without the signing secrets it builds unsigned, which is fine here.
+- `app/android` has two flavours, `play` and `github` (`.claude/DESIGN.md`, "Distribution"). Its `testDebugUnitTest`,
+  `lintDebug` and `compileDebugAndroidTestKotlin` run both (`testPlayDebugUnitTest`, `testGithubDebugUnitTest`, ...),
+  so `src/test` runs twice, once in each app, with `src/testPlay` and `src/testGithub` once in their own.
+- `:app:android:assembleRelease` is the release job's build for both apps: R8, and the release lint
+  (`lintVitalPlayRelease`, `lintVitalGithubRelease`), which `lintDebug` doesn't run. Without the signing secrets it
+  builds unsigned, which is fine here.
 - No `-q`, so Gradle's warnings show. Read what's left after the task lines. Known and left (third-party, already
   on their newest versions): AGP's `Configuration.setVisible` deprecation, and the AboutLibraries plugin's
   "resolved during configuration time" lines. Anything else is new: fix it.
@@ -28,14 +32,15 @@ failure stops what follows.
 
 | What | Command |
 |---|---|
-| One Robolectric class (`app/android/src/test`) | `./gradlew -q :app:android:testDebugUnitTest --tests '*BoardSemanticsTest'` |
+| One Robolectric class (`app/android/src/test`, or `src/testPlay`) | `./gradlew -q :app:android:testPlayDebugUnitTest --tests '*BoardSemanticsTest'` |
+| One in the github app (`src/testGithub`, or `src/test` as the github app runs it) | `./gradlew -q :app:android:testGithubDebugUnitTest --tests '*GithubFlavourTest'` |
 | One shared test (`commonTest`, `androidHostTest`) on the JVM | `./gradlew -q :app:shared:testAndroidHostTest --tests '*GameEngineTest'` |
 | One test method | `--tests '*BoardSemanticsTest.on a phone*'` |
 | iOS compile only | `./gradlew -q :app:shared:compileKotlinIosSimulatorArm64 :app:shared:compileTestKotlinIosSimulatorArm64` |
-| Lint per module | `./gradlew -q :app:shared:lint :app:android:lintDebug` |
+| Lint per module | `./gradlew -q :app:shared:lint :app:android:lintPlayDebug :app:android:lintGithubDebug` |
 | Regenerate Hard AI's perfect-play table (after any change to how Standard scores; about 20s) | `./gradlew :app:shared:testAndroidHostTest --tests '*StandardPerfectPlayTableTest*' -PregeneratePerfectPlayTable` |
 
-Failures and `println` output are in `app/android/build/test-results/testDebugUnitTest/TEST-*.xml` and
+Failures and `println` output are in `app/android/build/test-results/test{Play,Github}DebugUnitTest/TEST-*.xml` and
 `app/shared/build/test-results/testAndroidHostTest/TEST-*.xml`. Grep for `<failure`; output is under `system-out`.
 Add `--rerun` to re-run a test Gradle thinks is up to date. Otherwise it serves the old result - from the build cache too
 (`FROM-CACHE`), even for source you put back as it was - and a scratch render keeps the old PNG, so check its timestamp.
@@ -49,7 +54,8 @@ can't count on the classes before it in the same JVM. The configuration cache is
 - Pure logic and view models go in `app/shared/src/commonTest`: JVM now, compiled for iOS.
 - JVM-only tests that read resource files from disk go in `app/shared/src/androidHostTest`.
 - Anything that needs Android, a resolved string or a rendered screen goes in `app/android/src/test`, under Robolectric
-  (SDK 36, native graphics, set in `robolectric.properties`).
+  (SDK 36, native graphics, set in `robolectric.properties`). What only one app has goes in `src/testPlay` (Play Games,
+  Sidekick, the Play Console sheets) or `src/testGithub` (the github app).
 - `Res` is internal to `:app:shared`. An `:app:android` test therefore reaches strings through a public composable,
   or reads English from disk (`englishText()`).
 

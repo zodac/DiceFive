@@ -94,7 +94,7 @@ fi
 
 if ${RENDER}; then
     echo "==> Rendering ${PARTS} from the app (Robolectric)"
-    ./gradlew --quiet :app:android:testDebugUnitTest --tests 'net.zodac.dicefive.store.*' \
+    ./gradlew --quiet :app:android:testPlayDebugUnitTest --tests 'net.zodac.dicefive.store.*' \
         -PgenerateStoreAssets -PstoreAssetParts="${PARTS}" -PstoreAssetsDir="${RAW}"
 fi
 

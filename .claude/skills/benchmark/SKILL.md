@@ -8,7 +8,7 @@ description: Measure animation frame cost without a device (Robolectric frame-lo
 Read `.claude/BENCHMARKS.md` first: it holds the patterns to keep and today's costs to compare against. Benchmarks are
 throwaway Robolectric tests in `app/android/src/test/kotlin/net/zodac/dicefive/`. They are never committed, because
 they take minutes and prove nothing on their own. Run with
-`./gradlew :app:android:testDebugUnitTest --tests '*SomethingScratch*' --rerun` and `println` to the JUnit XML's
+`./gradlew :app:android:testPlayDebugUnitTest --tests '*SomethingScratch*' --rerun` and `println` to the JUnit XML's
 `system-out` (`app/android/build/test-results/testDebugUnitTest/TEST-*.xml`).
 
 ## The frame loop

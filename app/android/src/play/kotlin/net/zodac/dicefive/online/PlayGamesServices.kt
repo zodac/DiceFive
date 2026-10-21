@@ -390,8 +390,8 @@ class PlayGamesServices private constructor(private val application: Application
         private var instance: PlayGamesServices? = null
 
         /**
-         * Sets up the service where Play Games is used: a device with Google Play services, running a debug build or one
-         * installed from Google Play. A sideloaded release build gets no service at all.
+         * Sets up the service where Play Games is used: a device with Google Play services, running a release build
+         * installed from Google Play. A sideloaded release build or any debug build gets no service at all.
          */
         fun initialize(application: Application) {
             if (!isEnabled(application)) return
@@ -407,9 +407,12 @@ class PlayGamesServices private constructor(private val application: Application
             installer = installerPackage(context),
         )
 
-        /** Play Games needs Google Play services, and is only for debug builds and installs from Google Play. */
+        /**
+         * Play Games needs Google Play services, and is only for release builds installed from Google Play. Never a debug
+         * build: its key is public (the repo's debug.keystore), so it has no Play Games credential and could only fail.
+         */
         internal fun usesPlayGames(playServicesAvailable: Boolean, isDebugBuild: Boolean, installer: String?): Boolean =
-            playServicesAvailable && (isDebugBuild || installer == PLAY_STORE_PACKAGE)
+            playServicesAvailable && !isDebugBuild && installer == PLAY_STORE_PACKAGE
 
         private fun installerPackage(context: Context): String? = runCatching {
             val packageManager = context.packageManager

@@ -25,9 +25,10 @@ import org.robolectric.Robolectric
 class PlayGamesServicesTest {
 
     @Test
-    fun `a debug build uses Play Games however it was installed`() {
-        assertTrue(PlayGamesServices.usesPlayGames(playServicesAvailable = true, isDebugBuild = true, installer = null))
-        assertTrue(PlayGamesServices.usesPlayGames(playServicesAvailable = true, isDebugBuild = true, installer = "com.example.files"))
+    fun `a debug build never uses Play Games - however it was installed`() {
+        assertFalse(PlayGamesServices.usesPlayGames(playServicesAvailable = true, isDebugBuild = true, installer = null))
+        assertFalse(PlayGamesServices.usesPlayGames(playServicesAvailable = true, isDebugBuild = true, installer = "com.example.files"))
+        assertFalse(PlayGamesServices.usesPlayGames(playServicesAvailable = true, isDebugBuild = true, installer = "com.android.vending"))
     }
 
     @Test

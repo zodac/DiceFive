@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The play flavour's own entries: Google Play Games and Sidekick, which the github flavour has none of. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+
+        <meta-data
+            android:name="com.google.android.gms.games.APP_ID"
+            android:value="@string/game_services_project_id" />
+
+        <!-- Play Games Sidekick's tab position and snooze; read by Play only for a bundle installed from Play. -->
+        <meta-data
+            android:name="com.google.android.finsky.deku.OVERLAY_CONFIG"
+            android:resource="@xml/sidekick_config" />
+
+        <!-- The Play Games SDK starts itself (and so signs in) at every launch through this provider. It's started by
+             PlayGamesServices instead, only once the player has signed in from Settings. Disabled rather than removed:
+             a removal warns in every merge without the SDK's manifest (the unit tests'), and this way the tests see it. -->
+        <provider
+            android:name="com.google.android.gms.games.provider.PlayGamesInitProvider"
+            android:authorities="${applicationId}.playgamesinitprovider"
+            android:enabled="false"
+            android:exported="false" />
+    </application>
+
+</manifest>

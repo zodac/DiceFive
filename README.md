@@ -81,7 +81,8 @@ Unlock over 90 styles as you earn achievements, most in several colours:
 DiceFive is for Android 8.0 and up, available on [Google Play Store](https://play.google.com/store/apps/details?id=net.zodac.dicefive).
 
 Alternatively, you can check the [Releases](https://github.com/zodac/DiceFive/releases) page of this repo to get the `.apk` file directly.
-This will not integrate with Google Play Game Services, so all activity will be stored locally on your device only. 
+This is a separate app from the Google Play one, and installs beside it rather than over it. It doesn't integrate with
+Google Play Games Services, so all activity is stored locally on your device only.
 
 ---
 

@@ -21,6 +21,9 @@ android {
         minSdk = 28 // Baseline Profile generation needs API 28+
         targetSdk = 37
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // The journey runs the play flavour (Journeys.PACKAGE); the release workflow gives its profile to the github
+        // APK too, whose code is the same less Play Games.
+        missingDimensionStrategy("distribution", "play")
     }
 
     compileOptions {

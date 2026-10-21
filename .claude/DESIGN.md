@@ -476,6 +476,24 @@ screen) of `StyleColour`s.
 - **Accuracy.** The text is kept in step with the engine: `ScoreCategory` values, the joker rule, the tie-break order.
 - **New mode or modifier.** It gets its own page; see `GAME_MODES.md`.
 
+## Distribution
+
+Two apps from one source, one per way the app reaches players: product flavours of `app/android` (dimension
+`distribution`), each with its own source set (`src/play`, `src/github`) and one seam, `Distribution`, which
+`MainActivity` and `DiceFiveApplication` call.
+
+| | `play` | `github` |
+|---|---|---|
+| Ships as | The App Bundle, uploaded to Google Play by hand | The APK on each GitHub release |
+| `applicationId` | `net.zodac.dicefive` | `net.zodac.dicefive.github` |
+| Google Play Games | Yes (`PLAY_GAMES.md`): the SDK, its manifest entries, Sidekick | None: no SDK, no manifest entries, `NoGameServices` |
+
+- **Kept apart.** The github app's data can't reach the play app's: they're separate packages (data, backups and
+  installs are per package), signed by different keys (Play re-signs the bundle). Pinned by `GithubFlavourTest` and
+  `PlayFlavourTest`.
+- **The github app is a different app.** It installs beside the play app, not over it; a GitHub install from before
+  the split (`net.zodac.dicefive`, 1.0.0) doesn't update to it.
+
 ## Release pipeline
 
 - **Version.** Each app has its own: `app/android/VERSION` and `app/ios/VERSION` (`IOS_SUPPORT.md`).
@@ -484,15 +502,17 @@ screen) of `StyleColour`s.
   - `scripts/set-version.sh <android|ios> X.Y.Z` writes one, and `scripts/bump-patch-version.sh <android|ios>`
     bumps its patch.
   - Debug builds are signed with the repo's `app/android/debug.keystore`, so every debug APK shares one SHA-1 (which
-    Play Games testing registers). Built with `-PdevStamp`, one also takes the minute it was built as its `versionCode`
-    (`<version>-dev<minute>`), so each installs over the last. Without it, a debug build keeps `VERSION`'s, so test
+    has no Play Games credential, as the key is public: `PLAY_GAMES.md`, "Play Console"). Built with `-PdevStamp`,
+    one also takes the minute it was built as its `versionCode` (`<version>-dev<minute>`), so each installs over the
+    last. Without it, a debug build keeps `VERSION`'s, so test
     and lint runs stay up to date. The minute is read through a `ValueSource` when the build runs, never while the
     script is evaluated, or the configuration cache would hand every build the same one.
 - **On every push to `main` that changes what Android ships**, `.github/workflows/android-release.yml` runs:
-  - parallel jobs: Android tests, shared tests with the iOS compile, lint, the Baseline Profile (generated fresh on an
-    emulator; see `EMULATOR.md`), and the APK plus App Bundle;
+  - parallel jobs: Android tests (a runner per flavour), shared tests with the iOS compile, lint, the Baseline Profile
+    (generated fresh on an emulator from the play app, and given to both; see `EMULATOR.md`), and the github APK plus
+    the play App Bundle;
   - then a `release` job that publishes GitHub release `v<version>` once every check has passed, with
-    `DiceFive-<version>.apk`, `.aab` and `-mapping.txt` (one R8 run, one mapping);
+    `DiceFive-<version>.apk` (github), `.aab` (play), `-mapping.txt` (the APK's) and `-play-mapping.txt` (the bundle's);
   - then a commit that bumps the patch and empties `RELEASE_NOTES.md`'s Shared and Android sections (`[Release] Bump
     Android version to X [skip ci]`);
   - then `readme-assets.yml`, which renders the README's feature graphic and screenshots from the released commit
@@ -508,7 +528,7 @@ screen) of `StyleColour`s.
     tested by `scripts/tests/release-notes-test.sh`).
   - The changelog is per app: commits since that app's previous tag, leaving out the other app's own code.
 - **Signing.** Four `ANDROID_RELEASE_*` env vars (repo secrets in CI); without them the build is unsigned. The keystore
-  (alias `upload`) is the Play upload key.
+  (alias `upload`) is the Play upload key, and signs both the bundle and the github APK.
 - **R8** shrinks and obfuscates release builds (`app/android/r8-rules.pro`). Release dex is stored uncompressed.
   - It lays the dex out from the startup profile (`dexLayoutOptimization`): the code a cold start runs to the menu
     (`StartupProfileGenerator`) goes first. The release workflow fails if it generates no `startup-prof.txt`.
@@ -516,7 +536,7 @@ screen) of `StyleColour`s.
   commits `[Dependencies] Update dependency versions` and starts a release. It never moves targetSdk.
 - **Warnings are errors**: deprecated APIs, build-script warnings, and lint's `Deprecated`/`ObsoleteSdkInt`.
 - **Two known plugin warnings** can't be silenced. Revisit each on a plugin upgrade.
-  - AboutLibraries resolves configurations during configuration time ("`debugCompileClasspath` was resolved during
+  - AboutLibraries resolves configurations during configuration time ("`playDebugCompileClasspath` was resolved during
     configuration time").
   - AGP calls the deprecated `Configuration.setVisible`. It must be gone before Gradle 11.
 

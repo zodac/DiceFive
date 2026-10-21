@@ -11,6 +11,6 @@ set -euo pipefail
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root_dir"
 
-./gradlew -q :app:android:testDebugUnitTest --tests '*PlayConsoleExportTest' --tests '*PlayConsoleLeaderboardsExportTest' -PexportPlayConsole
+./gradlew -q :app:android:testPlayDebugUnitTest --tests '*PlayConsoleExportTest' --tests '*PlayConsoleLeaderboardsExportTest' -PexportPlayConsole
 
 echo "Written to $root_dir/assets/play-console/"

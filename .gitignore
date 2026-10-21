@@ -39,5 +39,5 @@ keystore.properties
 
 # The generated Baseline Profile: the release workflow generates a fresh one for every APK (android-release.yml's
 # baseline-profile job), so a copy here would only go stale. See .claude/DESIGN.md Phase 19.
-/app/android/src/release/generated/
+/app/android/src/*[rR]elease/generated/
 

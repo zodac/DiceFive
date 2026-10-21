@@ -29,7 +29,8 @@ app/
 │       └── iosMain/.../         MainViewController.kt (entry point); device/ (IosPlatformServices, IosAppContainer,
 │                                IosStorage, TransientMessageHost); actuals
 ├── android/     :app:android - the APK: MainActivity.kt; device/ (AndroidPlatformServices: SoundPool, Vibrator,
-│                SensorManager, Toast, licence JSON; AndroidAppContainer; TextViewLicenceDocument)
+│                SensorManager, Toast, licence JSON; AndroidAppContainer; TextViewLicenceDocument); the play and
+│                github flavours (src/play: Play Games)
 ├── licensing/   licence records for everything either platform ships (see its README)
 └── ios/         the XcodeGen spec (project.yml), the Swift shell hosting MainViewController(), the icon
 ```
