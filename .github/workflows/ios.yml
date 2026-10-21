@@ -1,0 +1,79 @@
+name: iOS
+
+# Builds the iOS app on a macOS runner and uploads it unsigned, as DiceFive-<version>-<configuration>.ipa, for
+# Sideloadly to sign with an Apple ID and install. The dSYMs ride along for reading crash reports. See
+# .claude/IOS_SUPPORT.md.
+#
+# The Xcode project is generated here from app/ios/project.yml (XcodeGen); its build phase builds the Kotlin framework
+# through Gradle. Debug matches the debug APK (debug-only features on, Kotlin unoptimised); Release is what a store
+# build runs.
+#
+# On demand only (Actions tab, or `gh workflow run ios.yml -f configuration=Release`): it releases nothing.
+on:
+  workflow_dispatch:
+    inputs:
+      configuration:
+        description: "Xcode build configuration"
+        type: choice
+        options: [Debug, Release]
+        default: Debug
+
+permissions:
+  contents: read
+
+jobs:
+  ipa:
+    runs-on: macos-latest
+    env:
+      CONFIGURATION: ${{ inputs.configuration }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the build
+        uses: ./.github/actions/build-setup
+        with:
+          kotlin-native: "true"
+
+      - name: Show Xcode
+        run: xcodebuild -version
+
+      - name: Generate the Xcode project
+        run: |
+          brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+          xcodegen generate --spec app/ios/project.yml
+
+      - name: Build the app (unsigned)
+        run: |
+          xcodebuild build \
+            -project app/ios/DiceFive.xcodeproj \
+            -scheme DiceFive \
+            -configuration "${CONFIGURATION}" \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath build/ios \
+            MARKETING_VERSION="$(tr -d '[:space:]' < VERSION)" \
+            CURRENT_PROJECT_VERSION="${GITHUB_RUN_NUMBER}" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      # An .ipa is a zip with the app under Payload/. Unsigned, so only a re-signing installer can use it.
+      - name: Package the IPA
+        id: ipa
+        run: |
+          name="DiceFive-$(tr -d '[:space:]' < VERSION)-${CONFIGURATION}"
+          products="build/ios/Build/Products/${CONFIGURATION}-iphoneos"
+          mkdir -p build/ipa/Payload
+          cp -R "${products}/DiceFive.app" build/ipa/Payload/
+          (cd build/ipa && zip -qry "${GITHUB_WORKSPACE}/build/${name}.ipa" Payload)
+          (cd "${products}" && zip -qry "${GITHUB_WORKSPACE}/build/${name}-dSYM.zip" DiceFive.app.dSYM)
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the IPA
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.ipa.outputs.name }}
+          path: |
+            build/${{ steps.ipa.outputs.name }}.ipa
+            build/${{ steps.ipa.outputs.name }}-dSYM.zip
+          if-no-files-found: error

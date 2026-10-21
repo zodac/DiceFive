@@ -1,0 +1,62 @@
+# The Xcode project, as an XcodeGen spec: CI runs `xcodegen` on a macOS runner to make DiceFive.xcodeproj, which is
+# never committed (.github/workflows/ios.yml). See .claude/IOS_SUPPORT.md.
+#
+# The version comes from the root VERSION file and the build number from the CI run: ios.yml passes them to xcodebuild
+# as MARKETING_VERSION and CURRENT_PROJECT_VERSION.
+name: DiceFive
+options:
+  bundleIdPrefix: net.zodac
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    MARKETING_VERSION: "0.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  DiceFive:
+    type: application
+    platform: iOS
+    sources:
+      - path: DiceFive
+    info:
+      path: DiceFive/Info.plist
+      properties:
+        CFBundleDisplayName: DiceFive
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDevelopmentRegion: en
+        # The app's languages (I18N_LANGUAGES.md), so iOS offers them in its per-app language setting.
+        CFBundleLocalizations: [en, es, ar]
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        # Dark only, as on Android: system sheets, alerts and the keyboard match, and the status bar is light.
+        UIUserInterfaceStyle: Dark
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        # Lets ProMotion phones draw above 60fps.
+        CADisableMinimumFrameDurationOnPhone: true
+        # No encryption beyond what iOS itself provides.
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_NAME: DiceFive
+        PRODUCT_BUNDLE_IDENTIFIER: net.zodac.dicefive
+        # iPhone only for now; iPad waits for its layouts to be checked.
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.0"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+        # The Kotlin framework, as embedAndSignAppleFrameworkForXcode leaves it.
+        FRAMEWORK_SEARCH_PATHS: $(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
+        OTHER_LDFLAGS: [$(inherited), -framework, Shared]
+        # The Gradle build phase reads and writes outside what Xcode's script sandbox allows.
+        ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+    preBuildScripts:
+      - name: Build the Kotlin framework
+        basedOnDependencyAnalysis: false
+        script: |
+          cd "$SRCROOT/../.."
+          ./gradlew :app:shared:embedAndSignAppleFrameworkForXcode --console=plain

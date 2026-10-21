@@ -62,8 +62,14 @@ kotlin {
 
     // Compiled on every host, so a JVM-only API slipping into commonMain fails the build here, not
     // months later on a Mac. Linking and running these needs macOS - see gradle.properties.
-    iosArm64()
-    iosSimulatorArm64()
+    listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
+        // The framework the Xcode app (app/ios) links, through embedAndSignAppleFrameworkForXcode. Static, so the
+        // app carries a single binary and nothing extra to embed or sign.
+        target.binaries.framework {
+            baseName = "Shared"
+            isStatic = true
+        }
+    }
 
     compilerOptions {
         // As in :app:android - any compiler warning fails the build rather than piling up unread.

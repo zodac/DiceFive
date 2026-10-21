@@ -48,6 +48,8 @@ on:
       - "!app/**/src/androidHostTest/**"
       - "!app/**/src/androidTest/**"
       - "!app/**/*.md"
+      # ...and the iOS app, which ios.yml builds.
+      - "!app/ios/**"
   # Lets a release for the VERSION currently on main be triggered on demand
   # (Actions tab, or `gh workflow run release.yml`) instead of only ever
   # firing from a push - useful when a push-triggered run failed partway

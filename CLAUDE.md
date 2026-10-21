@@ -119,8 +119,8 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 | `.claude/STORE_ASSETS.md` | Changing store screenshots, scenes, captions or the video, and the generator traps |
 | `.claude/PUBLISHING.md` | Play Store submission checklist, the app's licence and third-party licence scope |
 | `.claude/PLAY_GAMES.md` | Anything touching Google Play Games Services: sign-in, achievement mirror, leaderboards, cloud save, Sidekick |
-| `.claude/IOS_SUPPORT.md` | Module layout and platform seams, KMP gotchas, what the iOS app still needs |
+| `.claude/IOS_SUPPORT.md` | Module layout and platform seams, KMP gotchas, the phased iOS roadmap (Mac-less: CI builds, sideloaded) |
 
 ## Pending
 
-(None currently)
+- **The iOS app.** Follow the roadmap in `.claude/IOS_SUPPORT.md`; the phase marked **Next** is where to resume.

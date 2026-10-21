@@ -138,6 +138,9 @@ if wants icon; then
     echo "==> Icon"
     # 512x512, 32-bit PNG, at most 1MB. Full square: Play rounds the corners and adds the shadow itself.
     magick "${RAW}/icon.png" -filter Lanczos -resize 512x512 -strip PNG32:"${OUT}/icon-512.png"
+    # The iOS app's icon (committed, unlike the rest): 1024x1024 with no alpha. iOS masks the corners itself.
+    magick "${RAW}/icon.png" -filter Lanczos -resize 1024x1024 -alpha off -strip \
+        PNG24:"${ROOT}/app/ios/DiceFive/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
 fi
 
 if wants feature; then

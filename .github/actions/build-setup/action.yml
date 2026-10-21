@@ -2,7 +2,7 @@ name: Build setup
 description: >-
   Everything a Gradle job here needs before it runs: the JDK, the Android SDK packages, Gradle with its
   caches - and, when asked, ffmpeg (for app:android's audio) and the Kotlin/Native toolchain (for
-  app:shared's iOS compile). Shared by release.yml's parallel jobs; runs after actions/checkout.
+  app:shared's iOS compile). Shared by release.yml's parallel jobs and ios.yml; runs after actions/checkout.
 
 inputs:
   ffmpeg:
@@ -15,6 +15,15 @@ inputs:
 runs:
   using: composite
   steps:
+    # The scripts here use GNU grep's -P, which macOS's own grep lacks (ios.yml runs on macOS). Homebrew's GNU grep
+    # goes first on the PATH.
+    - name: Put GNU grep on the PATH (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        brew list grep >/dev/null 2>&1 || brew install grep
+        echo "$(brew --prefix)/opt/grep/libexec/gnubin" >> "$GITHUB_PATH"
+
     # The Java version is owned by the Gradle toolchain (gradle/gradle-daemon-jvm.properties), which
     # Gradle would download itself; installing the same JDK here just saves it that download. Read
     # at run time rather than pinned here, so a JDK move never has to edit this file.
