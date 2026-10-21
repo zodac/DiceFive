@@ -20,6 +20,7 @@ import net.zodac.dicefive.ui.achievements.AchievementEvent
 import net.zodac.dicefive.ui.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.device.AndroidAppContainer
 import net.zodac.dicefive.game.GameEngine
@@ -156,7 +157,7 @@ open class TextFitTest {
         content { ScoresScreen(viewModel = scores, onBack = {}) }
         check("Leaderboard")
 
-        val statistics = StatisticsViewModel(ScoreRepository(RowsDao(emptyList())))
+        val statistics = StatisticsViewModel(ScoreRepository(RowsDao(emptyList())), SettingsRepository(InMemoryPreferences()))
         content { StatisticsScreen(viewModel = statistics, onBack = {}) }
         check("Statistics")
 

@@ -32,6 +32,7 @@ import net.zodac.dicefive.model.TurnTimer
  *   modifier;
  * - the Styles picks (as ids) and the Styles page's fitted size;
  * - the Achievements page's Locked only switch and the Styles page's Unlocked only switch;
+ * - the Statistics screen's sort;
  * - sound, vibration, the Animations level and whether leaving a game in progress asks first;
  * - whether a game has ever been finished here, which unlocks the New Game form's game modes and modifiers.
  *
@@ -361,6 +362,13 @@ class SettingsRepository(
         edit { it[UNLOCKED_ONLY_STYLES_KEY] = unlockedOnly }
     }
 
+    /** The Statistics screen's sort as stored (`StatisticsSortOrder.stored`), or null until one is picked. */
+    val statisticsSort: Flow<String?> = read { prefs -> prefs[STATISTICS_SORT_KEY] }
+
+    suspend fun setStatisticsSort(sort: String) {
+        edit { it[STATISTICS_SORT_KEY] = sort }
+    }
+
     private companion object {
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
         val SOUND_ENABLED_KEY = booleanPreferencesKey("sound_enabled")
@@ -386,6 +394,7 @@ class SettingsRepository(
         val DICE_MAT_ID_KEY = stringPreferencesKey("dice_mat_id")
         val SCORE_FRAME_ID_KEY = stringPreferencesKey("score_frame_id")
         val STYLES_PAGE_FIT_KEY = stringPreferencesKey("styles_page_fit")
+        val STATISTICS_SORT_KEY = stringPreferencesKey("statistics_sort")
         val LOCKED_ONLY_ACHIEVEMENTS_KEY = booleanPreferencesKey("locked_only_achievements")
         val UNLOCKED_ONLY_STYLES_KEY = booleanPreferencesKey("unlocked_only_styles")
         fun playerNameKey(slot: Int) = stringPreferencesKey("player_name_$slot")
@@ -399,7 +408,7 @@ class SettingsRepository(
         val STYLE_KEYS = listOf(DICE_STYLE_ID_KEY, DICE_CUP_STYLE_ID_KEY, TABLE_BACKGROUND_ID_KEY, DICE_MAT_ID_KEY, SCORE_FRAME_ID_KEY)
 
         private val SYNCED_STRING_KEYS: List<Preferences.Key<String>> = STYLE_KEYS +
-            listOf(TURN_TIMER_KEY, TURN_TIMER_LENGTH_KEY, GAME_MODE_KEY) +
+            listOf(TURN_TIMER_KEY, TURN_TIMER_LENGTH_KEY, GAME_MODE_KEY, STATISTICS_SORT_KEY) +
             (1..PLAYER_SLOTS).flatMap { listOf(playerNameKey(it), playerTypeKey(it), playerColourKey(it), playerDifficultyKey(it)) }
         private val SYNCED_INT_KEYS: List<Preferences.Key<Int>> = listOf(
             PLAYER_COUNT_KEY, ROLLS_PER_TURN_KEY, ROLLS_PER_TURN_LENGTH_KEY, STORED_ROLLS_MAX_KEY, UNLUCKY_ODDS_KEY, UNLUCKY_MAX_DICE_KEY,

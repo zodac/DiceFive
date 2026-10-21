@@ -6,13 +6,17 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.scores.PlayerStatistics
 import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.data.settings.SettingsRepository
 
 data class StatisticsUiState(
     val players: List<PlayerStatistics> = emptyList(),
@@ -21,7 +25,20 @@ data class StatisticsUiState(
     val isLoaded: Boolean = false,
 )
 
-class StatisticsViewModel(private val scoreRepository: ScoreRepository) : ViewModel() {
+class StatisticsViewModel(
+    private val scoreRepository: ScoreRepository,
+    private val settingsRepository: SettingsRepository,
+    /** The app's own copy of the sort ([AppContainer.statisticsSort]); without one, it's read from [settingsRepository]. */
+    sortOrder: StateFlow<StatisticsSortOrder?>? = null,
+) : ViewModel() {
+
+    /** How the cards are ordered - null until it has loaded, when the screen shows nothing. */
+    val sortOrder: StateFlow<StatisticsSortOrder?> = sortOrder
+        ?: settingsRepository.statisticsSort.map { StatisticsSortOrder.parse(it) }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun setSortOrder(order: StatisticsSortOrder) {
+        viewModelScope.launch { settingsRepository.setStatisticsSort(order.stored) }
+    }
 
     private val _uiState = MutableStateFlow(StatisticsUiState())
     val uiState: StateFlow<StatisticsUiState> = _uiState.asStateFlow()
@@ -47,7 +64,7 @@ class StatisticsViewModel(private val scoreRepository: ScoreRepository) : ViewMo
 
     companion object {
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
-            initializer { StatisticsViewModel(container.scoreRepository) }
+            initializer { StatisticsViewModel(container.scoreRepository, container.settingsRepository, container.statisticsSort) }
         }
     }
 }

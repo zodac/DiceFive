@@ -10,6 +10,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import androidx.room.RoomDatabase
 import net.zodac.dicefive.data.PreferencesFile
@@ -26,6 +27,7 @@ import net.zodac.dicefive.data.settings.savedStylesFlow
 import net.zodac.dicefive.game.StandardPerfectPlayTable
 import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.ui.statistics.StatisticsSortOrder
 
 /**
  * The app's long-lived objects, built once per process by the platform's entry point and handed to
@@ -49,6 +51,10 @@ class AppContainer(
      */
     val savedStyles: StateFlow<SavedStyles?> =
         savedStylesFlow(settingsRepository, achievementsRepository).stateIn(scope, SharingStarted.Eagerly, null)
+
+    /** The Statistics screen's sort, loaded with the container so the screen opens already in order - null until then. */
+    val statisticsSort: StateFlow<StatisticsSortOrder?> =
+        settingsRepository.statisticsSort.map { StatisticsSortOrder.parse(it) }.stateIn(scope, SharingStarted.Eagerly, null)
 
     /** The Achievements page's Locked only switch, loaded with the container so the page opens already filtered - null until then. */
     val lockedOnlyAchievements: StateFlow<Boolean?> = settingsRepository.lockedOnlyAchievements.stateIn(scope, SharingStarted.Eagerly, null)

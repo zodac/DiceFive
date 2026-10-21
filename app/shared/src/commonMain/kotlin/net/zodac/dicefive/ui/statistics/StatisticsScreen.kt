@@ -151,9 +151,8 @@ fun StatisticsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pendingDeleteName by rememberSaveable { mutableStateOf<String?>(null) }
-    var sort by rememberSaveable { mutableStateOf(StatisticsSort.NAME) }
-    var ascending by rememberSaveable { mutableStateOf(sort.ascendingFirst) }
-    val players = remember(state.players, sort, ascending) { sort.order(state.players, ascending) }
+    val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
+    val players = remember(state.players, sortOrder) { sortOrder?.order(state.players).orEmpty() }
 
     ScreenScaffold(
         title = stringResource(Res.string.stats_title),
@@ -162,28 +161,17 @@ fun StatisticsScreen(
         wide = true,
         // At the bar's end, level with the cards' end edge in landscape.
         actions = {
-            if (state.isLoaded && state.players.isNotEmpty()) {
+            val order = sortOrder
+            if (state.isLoaded && state.players.isNotEmpty() && order != null) {
                 Box(modifier = Modifier.padding(end = if (LocalLandscapePage.current) BACK_ARROW_OUTSET else 0.dp)) {
-                    SortMenu(
-                        sort = sort,
-                        ascending = ascending,
-                        onPick = { picked ->
-                            // The current pick reverses; another starts in its own direction.
-                            if (picked == sort) {
-                                ascending = !ascending
-                            } else {
-                                sort = picked
-                                ascending = picked.ascendingFirst
-                            }
-                        },
-                    )
+                    SortMenu(sortOrder = order, onPick = { viewModel.setSortOrder(order.pick(it)) })
                 }
             }
         },
     ) {
         // Nothing but the title bar until the stats are read, so "No stats yet" never flashes up
         // before the player cards.
-        if (!state.isLoaded) return@ScreenScaffold
+        if (!state.isLoaded || sortOrder == null) return@ScreenScaffold
         if (state.players.isEmpty()) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Text(
@@ -220,6 +208,8 @@ fun StatisticsScreen(
                                     player,
                                     onDelete = { pendingDeleteName = player.playerName },
                                     initiallyExpanded = allFit == true || player in topRow,
+                                    // A new order deals the cards out afresh: the top ones open, the rest as they would at the start.
+                                    resetKey = sortOrder?.stored,
                                 )
                             }
                         }
@@ -252,7 +242,8 @@ fun StatisticsScreen(
  * (up for ascending, down for descending). Picking the current one reverses it.
  */
 @Composable
-private fun SortMenu(sort: StatisticsSort, ascending: Boolean, onPick: (StatisticsSort) -> Unit) {
+private fun SortMenu(sortOrder: StatisticsSortOrder, onPick: (StatisticsSort) -> Unit) {
+    val (sort, ascending) = sortOrder
     var open by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { open = true }) {
@@ -349,13 +340,13 @@ private fun StatsFitMeasurer(players: List<PlayerStatistics>, columns: Int, onMe
 }
 
 /**
- * One player's card, open or closed to begin with as [initiallyExpanded] says. Closed it is just their name and best score (gold, in points), with a dropdown arrow
+ * One player's card, open or closed to begin with as [initiallyExpanded] says, and again whenever [resetKey] changes. Closed it is just their name and best score (gold, in points), with a dropdown arrow
  * after the score; tapping that header opens the rest, under an Overview / By mode switch. The delete button at the
  * header's end, open or closed, is a control of its own.
  */
 @Composable
-fun PlayerStatsCard(player: PlayerStatistics, onDelete: () -> Unit, initiallyExpanded: Boolean = false) {
-    var expanded by rememberSaveable(player.playerName) { mutableStateOf(initiallyExpanded) }
+fun PlayerStatsCard(player: PlayerStatistics, onDelete: () -> Unit, initiallyExpanded: Boolean = false, resetKey: String? = null) {
+    var expanded by rememberSaveable(player.playerName, resetKey) { mutableStateOf(initiallyExpanded) }
     var view by rememberSaveable(player.playerName) { mutableStateOf(StatsView.OVERVIEW) }
     val deleteLabel = stringResource(Res.string.stats_delete_action, player.playerName)
     val spoken = stringResource(Res.string.stats_spoken_best, player.playerName, player.maxScore.grouped())

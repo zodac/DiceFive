@@ -12,6 +12,7 @@ import net.zodac.dicefive.data.scores.PlayerModeTotals
 import net.zodac.dicefive.data.scores.PlayerRecord
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.statistics.StatisticsScreen
 import net.zodac.dicefive.ui.statistics.StatisticsViewModel
@@ -37,18 +38,18 @@ class StatisticsDefaultExpansionTest {
     private val showcase = Showcase(compose)
 
     private fun showPlayers(count: Int) {
-        val records = (1..count).map { PlayerRecord("Player$it", listOf(totals("player$it")), emptyList()) }
+        val records = (1..count).map { PlayerRecord("Player$it", listOf(totals("player$it", maxScore = 100 * it)), emptyList()) }
         val dao = object : ScoreDao by RowsDao(emptyList()) {
             override suspend fun playerRecords() = records
         }
-        val viewModel = StatisticsViewModel(ScoreRepository(dao))
+        val viewModel = StatisticsViewModel(ScoreRepository(dao), SettingsRepository(InMemoryPreferences()))
         showcase.show { DiceFiveTheme { StatisticsScreen(viewModel = viewModel, onBack = {}) } }
         compose.waitForIdle()
     }
 
-    private fun totals(key: String) = PlayerModeTotals(
+    private fun totals(key: String, maxScore: Int) = PlayerModeTotals(
         playerKey = key, gameModeId = GameMode.STANDARD.id, gamesPlayed = 2, gamesWon = 1, gamesLost = 1, soloGames = 0,
-        maxScore = 200, totalScore = 300, fiveOfAKindCount = 0, firstPlayedEpochMillis = 1_000L,
+        maxScore = maxScore, totalScore = 300, fiveOfAKindCount = 0, firstPlayedEpochMillis = 1_000L,
     )
 
     @Test
@@ -63,7 +64,7 @@ class StatisticsDefaultExpansionTest {
         showPlayers(4)
         compose.onAllNodesWithText("Overview").assertCountEquals(1)
 
-        compose.onNodeWithContentDescription("Player1. Best score 200.").assertExists()
+        compose.onNodeWithContentDescription("Player1. Best score 100.").assertExists()
         compose.onNodeWithContentDescription("Player2. Best score 200.").performClick()
         compose.waitForIdle()
         compose.onAllNodesWithText("Overview").assertCountEquals(2)
@@ -121,6 +122,24 @@ class StatisticsDefaultExpansionTest {
         assertEquals(listOf("Ann", "Cleo", "bob"), names(StatisticsSort.HIGHEST_AVERAGE, false))
         assertEquals(listOf("Ann", "bob", "Cleo"), names(StatisticsSort.MOST_GAMES, false))
         assertEquals(listOf("Cleo", "Ann", "bob"), names(StatisticsSort.MOST_GAMES, true))
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h891dp")
+    fun `a new order opens its top card and closes the rest - whatever was open before`() {
+        showPlayers(4)
+        fun state(name: String, best: Int) = compose.onNodeWithContentDescription("$name. Best score $best.")
+            .fetchSemanticsNode().config[SemanticsProperties.StateDescription]
+        assertEquals("Expanded", state("Player1", 100))
+        assertEquals("Collapsed", state("Player4", 400))
+
+        compose.onNodeWithContentDescription("Sort players").performClick()
+        compose.onNodeWithContentDescription("Highest score").performClick()
+        compose.waitForIdle()
+        // Player4 now leads, so it opens; Player1, now last, closes.
+        assertEquals("Expanded", state("Player4", 400))
+        assertEquals("Collapsed", state("Player1", 100))
+        compose.onAllNodesWithText("Overview").assertCountEquals(1)
     }
 
     @Test

@@ -287,7 +287,9 @@ will map to Play Games.
   - **Sort** (`StatisticsSort`): a button at the app bar's end opens a menu of Name, First played, Highest score,
     Highest average and Most games. The one in use is marked with an arrow, up for ascending and down for descending;
     picking it reverses it, picking another starts it in its own direction (A to Z and oldest first for Name and First
-    played, highest first for the rest). Ties go by name. The choice lasts while the screen is open.
+    played, highest first for the rest). Ties go by name. A new order deals the cards out afresh: the top card of each
+    column opens, the rest as at the start. The choice is the `statistics_sort` preference (`<id>:asc` or `<id>:desc`,
+    `StatisticsSortOrder`), loaded with the app container and carried in the cloud save and the GitHub app's export.
   - **Overview**: games, win rate and average (in points), then a won/lost/solo bar with its key, then the current and best win
     streak, 5x scored, total points and first played (date and time).
   - **By mode**: a row per mode played, in mode order: games, win rate, solo games and best score, the name in the

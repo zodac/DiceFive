@@ -135,7 +135,7 @@ class ScreenLoadingTest {
         val scoresDao = GatedEmptyScoreDao()
         val scores = ScoresViewModel(ScoreRepository(scoresDao))
         val statisticsDao = GatedEmptyScoreDao()
-        val statistics = StatisticsViewModel(ScoreRepository(statisticsDao))
+        val statistics = StatisticsViewModel(ScoreRepository(statisticsDao), SettingsRepository(InMemoryPreferences()))
         // Achievements wait for the leaderboard as well as the unlocks before showing.
         val achievementsDao = GatedEmptyScoreDao()
         val achievements = AchievementsViewModel(achievementsRepository = InMemoryAchievementStore(), scoreRepository = ScoreRepository(achievementsDao), onlineSettingsRepository = OnlineSettingsRepository(InMemoryPreferences()), settingsRepository = SettingsRepository(InMemoryPreferences()))

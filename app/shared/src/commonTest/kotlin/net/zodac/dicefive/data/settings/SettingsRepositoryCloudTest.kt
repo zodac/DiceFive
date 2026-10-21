@@ -48,6 +48,18 @@ class SettingsRepositoryCloudTest {
     }
 
     @Test
+    fun `the Statistics sort travels in the save - so a restored or imported one keeps its order`() = runTest {
+        repository.setStatisticsSort("highest_score:desc")
+        val save = repository.cloudSettings()
+        assertEquals(Stamped<SettingValue?>(SettingValue.Text("highest_score:desc"), 100L), save["statistics_sort"])
+
+        val other = SettingsRepository(InMemoryPreferences(), now = { clock })
+        assertEquals(null, other.statisticsSort.first())
+        other.mergeCloud(save)
+        assertEquals("highest_score:desc", other.statisticsSort.first())
+    }
+
+    @Test
     fun `a first finished game travels in the save - so a reinstall signed in to the same account stays unlocked`() = runTest {
         repository.setFirstGameCompleted()
         val save = repository.cloudSettings()
