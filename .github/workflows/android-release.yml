@@ -40,6 +40,8 @@ on:
       - "build.gradle.kts"
       - "settings.gradle.kts"
       - "gradle.properties"
+      # The sound effects' build step (the clips themselves are in app/audio).
+      - "scripts/normalize-audio.sh"
       # ...except test code and documentation inside those.
       - "!app/**/src/test/**"
       - "!app/**/src/commonTest/**"

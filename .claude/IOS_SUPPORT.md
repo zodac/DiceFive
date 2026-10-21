@@ -192,11 +192,14 @@ Exit: everything Android does offline, iOS does, checked on the phone.
     scroll position.
 
 - [ ] **Audio.** iOS can't decode Ogg.
-  - Extend `NormalizeOggAudioTask` to write AAC `.m4a` copies, generated and never hand-made.
-  - Bundle them; `IosSoundPlayer` looks for `<clip>.m4a`.
-  - iOS's licence report must include the `freesound-*` entries. Consider moving the clips to `app/shared`.
-  - Use an ambient `AVAudioSession`, so the silent switch is respected.
-  - The shake window is timed to the clips, so check the m4a lengths match.
+  - [x] The clips moved to `app/audio/`, the one source for both apps. `scripts/normalize-audio.sh` levels them for
+    both: Ogg for Android (unchanged output), AAC `.m4a` for iOS. An Xcode build phase writes the `.m4a` copies into
+    the bundle, where `IosSoundPlayer` looks for `<clip>.m4a`.
+  - [x] Lengths match their sources within a millisecond, so the shake window holds (`normalize-audio-test.sh`).
+  - [ ] Hear them on the phone.
+  - [ ] iOS's licence report must include the `freesound-*` entries (the Licences item below).
+  - [ ] Audio session: the default (solo ambient) already obeys the silent switch, but stops the player's music.
+    `AVAudioSessionCategoryAmbient` would let music keep playing under the game.
 - [ ] **No system back.** `GameScreen` and `ScorecardReviewScreen` rely on `BackHandler`. Give them a visible way out,
   and maybe wire the edge swipe.
 - [ ] **Insets.** Re-verify safe areas, the Dynamic Island and the home indicator. `TransientMessageHost` already pads

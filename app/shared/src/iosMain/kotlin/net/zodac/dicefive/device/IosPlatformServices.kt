@@ -87,9 +87,9 @@ class IosPlatformServices : PlatformServices {
 }
 
 /**
- * One [AVAudioPlayer] per clip, from the app bundle. iOS can't decode the Android build's .ogg clips,
- * so the Xcode project has to bundle AAC copies (`cup_shake.m4a` and so on - see
- * .claude/IOS_SUPPORT.md); a clip that isn't bundled simply stays silent.
+ * One [AVAudioPlayer] per clip, from the app bundle. iOS can't decode Ogg, so the Xcode build bundles AAC copies
+ * of app/audio's clips (`cup_shake.m4a` and so on), made by scripts/normalize-audio.sh; a clip that isn't bundled
+ * simply stays silent.
  */
 @OptIn(ExperimentalForeignApi::class)
 private class IosSoundPlayer : SoundPlayer {

@@ -27,6 +27,8 @@ on:
       - "build.gradle.kts"
       - "settings.gradle.kts"
       - "gradle.properties"
+      - "app/audio/**"
+      - "scripts/normalize-audio.sh"
       # ...except test code, documentation and Android-only code inside those.
       - "!app/**/src/commonTest/**"
       - "!app/**/src/androidHostTest/**"
@@ -107,6 +109,7 @@ jobs:
         with:
           kotlin-native: "true"
           android-sdk: "false"
+          ffmpeg: "true"
 
       - name: Show Xcode
         run: xcodebuild -version
@@ -164,6 +167,7 @@ jobs:
         with:
           kotlin-native: "true"
           android-sdk: "false"
+          ffmpeg: "true"
 
       - name: Show Xcode
         run: xcodebuild -version

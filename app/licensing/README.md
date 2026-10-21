@@ -33,7 +33,7 @@ what the plugin can't discover for itself:
   draws a character the cut-down fonts lack, or if they keep a MathJax name.
 
 - `asset-sources.json` - where every bundled asset file came from: each file under any of
-  `app/android`'s source sets' `res/` (except `values*/`), `rawAudioSource/` and `assets/`, and under
+  `app/android`'s source sets' `res/` (except `values*/`) and `assets/`, the sound effects in `app/audio/`, and under
   any of `app/shared`'s `composeResources/` (the shared UI's font and icons - except `values*/`, its
   strings), keyed by its path
   relative to the repository root.

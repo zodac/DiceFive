@@ -1,6 +1,6 @@
 {
   "_comment": "Where every bundled asset file came from - see README.md. Each key is a path relative to the repository root. Every entry needs a description, a source (where it came from: a URL, or the session/commit that created it) and a license. The app's own work (LicenseRef-DiceFive-AllRightsReserved - see /LICENSE) also needs its copyright line. A third-party asset instead lists, in \"libraries\", the libraries/ entry for each source it was made from - those carry the license, copyright/credit and source URL, and are what the Licences dialog shows; \"license\" is the license of that source material. The build fails on any asset missing from here, any incomplete entry, and any entry whose file no longer exists.",
-  "app/android/src/main/rawAudioSource/celebration.ogg": {
+  "app/audio/celebration.ogg": {
     "description": "Win celebration fanfare: a remix of two fireworks recordings, modified and volume-normalised",
     "source": "https://freesound.org/s/588198/ and https://freesound.org/s/695731/",
     "license": "CC0-1.0",
@@ -9,7 +9,7 @@
       "freesound-695731"
     ]
   },
-  "app/android/src/main/rawAudioSource/chicken_egg_lay.ogg": {
+  "app/audio/chicken_egg_lay.ogg": {
     "description": "Golden egg laid: cut from a recording of a chicken clucking, modified",
     "source": "https://freesound.org/s/456803/",
     "license": "CC0-1.0",
@@ -17,7 +17,7 @@
       "freesound-456803"
     ]
   },
-  "app/android/src/main/rawAudioSource/cup_shake.ogg": {
+  "app/audio/cup_shake.ogg": {
     "description": "Dice cup shake: a modified recording of six dice shaken in a cup",
     "source": "https://freesound.org/s/185986/",
     "license": "CC0-1.0",
@@ -25,7 +25,7 @@
       "freesound-185986"
     ]
   },
-  "app/android/src/main/rawAudioSource/cup_shake_chicken.ogg": {
+  "app/audio/cup_shake_chicken.ogg": {
     "description": "Chicken cup shake: cut from a recording of a chicken clucking, modified",
     "source": "https://freesound.org/s/456803/",
     "license": "CC0-1.0",
@@ -33,7 +33,7 @@
       "freesound-456803"
     ]
   },
-  "app/android/src/main/rawAudioSource/empty_cup_shake.ogg": {
+  "app/audio/empty_cup_shake.ogg": {
     "description": "Empty cup shake: cut from a recording of an empty lotion bottle, modified",
     "source": "https://freesound.org/s/446043/",
     "license": "CC-BY-4.0",
@@ -41,7 +41,7 @@
       "freesound-446043"
     ]
   },
-  "app/android/src/main/rawAudioSource/hold.ogg": {
+  "app/audio/hold.ogg": {
     "description": "Die hold click: cut from a mantel clock tick, modified",
     "source": "https://freesound.org/s/140147/",
     "license": "CC-BY-4.0",
@@ -49,7 +49,7 @@
       "freesound-140147"
     ]
   },
-  "app/android/src/main/rawAudioSource/mat_landing.ogg": {
+  "app/audio/mat_landing.ogg": {
     "description": "Dice landing on the mat: a modified recording of a single die",
     "source": "https://freesound.org/s/596051/",
     "license": "CC0-1.0",
@@ -57,7 +57,7 @@
       "freesound-596051"
     ]
   },
-  "app/android/src/main/rawAudioSource/unhold.ogg": {
+  "app/audio/unhold.ogg": {
     "description": "Die unhold click: cut from a mantel clock tick, modified",
     "source": "https://freesound.org/s/140147/",
     "license": "CC-BY-4.0",

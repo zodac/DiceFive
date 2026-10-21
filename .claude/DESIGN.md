@@ -420,9 +420,11 @@ screen) of `StyleColour`s.
   - A roll with every die held (What Was The Point Of That?) shakes with `empty_cup_shake` and lands with no
     `mat_landing`.
   - The choice is `shakeSound`/`landingSounds` (`ui/game/RollSounds.kt`).
-  - The sources are `app/android/src/main/rawAudioSource/*.ogg`.
-  - They're peak-normalised to -0.8 dBFS by ffmpeg at build time (`NormalizeOggAudioTask`): never `res/raw/`, never
-    hand-adjusted.
+  - The sources are `app/audio/*.ogg`, shared by both apps.
+  - They're peak-normalised to -0.8 dBFS by ffmpeg at build time (`scripts/normalize-audio.sh`): never `res/raw/`,
+    never hand-adjusted. Android packages Ogg copies (`NormalizeOggAudioTask`); iOS bundles AAC `.m4a` copies (an
+    Xcode build phase in `app/ios/project.yml`). `scripts/tests/normalize-audio-test.sh` checks both keep each
+    clip's length (the shake window is timed to them) and peak.
   - The app has one player (`rememberAppSoundEffects`, provided at `DiceFiveApp` as `LocalSoundEffects`). With sound
     on it loads its clips off the main thread a second after launch; otherwise on its first sound. It's held in the
     background and released with the app, so a sound started on one screen carries on to the next.

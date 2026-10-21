@@ -60,6 +60,16 @@ targets:
         script: |
           cd "$SRCROOT/../.."
           ./gradlew :app:shared:embedAndSignAppleFrameworkForXcode --console=plain
+    # The sound effects, as AAC (iOS can't decode Ogg): app/audio's clips, levelled the same way as Android's, written
+    # straight into the app bundle. Last, so nothing copies over them; signing (when there is any) comes after.
+    postBuildScripts:
+      - name: Bundle the sound effects
+        basedOnDependencyAnalysis: false
+        script: |
+          # Homebrew's ffmpeg, wherever Homebrew lives (Apple silicon or Intel).
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          "$SRCROOT/../../scripts/normalize-audio.sh" m4a \
+            "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH" "$SRCROOT"/../audio/*.ogg
   # The simulator screen tour (ScreenTourTests): opens each screen and saves a screenshot.
   DiceFiveUITests:
     type: bundle.ui-testing

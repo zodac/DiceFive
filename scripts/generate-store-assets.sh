@@ -326,7 +326,7 @@ def credit(description):
 sources = json.load(open(os.path.join(root, "app/licensing/asset-sources.json")))
 sound_credits = []
 for clip in clips:
-    entry = next((v for k, v in sources.items() if k.endswith(f"/rawAudioSource/{clip}.ogg")), None)
+    entry = next((v for k, v in sources.items() if k == f"app/audio/{clip}.ogg"), None)
     if entry is None or entry["license"] == "CC0-1.0":
         continue
     for library in entry.get("libraries", []):

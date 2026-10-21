@@ -1,7 +1,6 @@
 import com.android.build.api.variant.impl.VariantOutputImpl
 import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.io.ByteArrayOutputStream
 import java.util.Properties
 import java.util.zip.ZipFile
 import javax.inject.Inject
@@ -276,25 +275,10 @@ tasks.withType<Test>().configureEach {
 }
 
 // ── Audio loudness normalisation ──────────────────────────────────────────────
-// The .ogg sound effects (dice cup, hold/unhold clicks, the win fanfare) come from different
-// sources and were never mixed against each other, so they land at wildly different loudnesses -
-// e.g. hold.ogg peaks 16dB quieter than celebration.ogg, which reads as "some sounds are broken"
-// rather than "some sounds are naturally quieter." Rather than hand-normalising each file (which
-// would need re-doing by hand every time one is re-recorded or swapped), this brings every clip to
-// the same PEAK level as part of the build itself - see NormalizeOggAudioTask below - so the
-// source clips in src/main/rawAudioSource/ can keep being replaced freely and the next build just
-// levels whatever's there.
-//
-// Peak normalisation, not loudness/RMS normalisation: these are all short (150ms-3.3s) one-shot
-// clicks/fanfares, well below the multi-second window ffmpeg's own loudnorm (EBU R128) needs for a
-// stable measurement, so matching peaks is both simpler and more predictable here - and because
-// none of the peaks moved out from under their natural transient, this needs no limiter/compressor
-// to avoid clipping (the applied gain is chosen to land exactly on TARGET_PEAK_DB, never past it).
-//
-// Source files live in src/main/rawAudioSource/, NOT src/main/res/raw/ - the normalised output
-// lands in a build/ dir instead (registered as an extra generated res source set below), so
-// src/main/res/raw/ stays empty and `git status` only ever shows edits to the original clips,
-// never the machine-generated, gain-adjusted bytes actually packaged into the APK.
+// The sound effects' sources are app/audio/*.ogg, shared with the iOS app. scripts/normalize-audio.sh brings every
+// clip to the same peak level (its header says why) and writes the copies this module packages into a build/ dir,
+// registered as an extra generated res source set below. Never src/main/res/raw/: that stays empty, so `git status`
+// only ever shows edits to the original clips, never the machine-generated, gain-adjusted bytes in the APK.
 abstract class NormalizeOggAudioTask @Inject constructor(
     private val execOperations: ExecOperations,
 ) : DefaultTask() {
@@ -303,6 +287,10 @@ abstract class NormalizeOggAudioTask @Inject constructor(
     @get:PathSensitive(PathSensitivity.NAME_ONLY)
     abstract val sourceFiles: ConfigurableFileCollection
 
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val script: RegularFileProperty
+
     @get:OutputDirectory
     abstract val outputDirectory: DirectoryProperty
 
@@ -310,59 +298,20 @@ abstract class NormalizeOggAudioTask @Inject constructor(
     fun normalize() {
         val rawDir = outputDirectory.get().asFile.resolve("raw")
         rawDir.deleteRecursively()
-        rawDir.mkdirs()
-
-        for (source in sourceFiles.files) {
-            val peakDb = measurePeakDb(source)
-            val gainDb = TARGET_PEAK_DB - peakDb
-            runFfmpeg(
-                "-y", "-i", source.absolutePath,
-                "-af", "volume=${gainDb}dB,alimiter=limit=0.99",
-                "-c:a", "libvorbis", "-q:a", "6",
-                rawDir.resolve(source.name).absolutePath,
+        execOperations.exec {
+            commandLine(
+                listOf(script.get().asFile.absolutePath, "ogg", rawDir.absolutePath) +
+                    sourceFiles.files.sortedBy { it.name }.map { it.absolutePath },
             )
         }
-    }
-
-    /** Reads ffmpeg's own `volumedetect` filter output rather than hand-rolling PCM analysis -
-     * it already knows how to decode every format ffmpeg does, including this project's .ogg. */
-    private fun measurePeakDb(file: File): Double {
-        val stderr = runFfmpeg("-i", file.absolutePath, "-af", "volumedetect", "-f", "null", "-", ignoreExitValue = true)
-        return Regex("""max_volume:\s*(-?[0-9.]+) dB""").find(stderr)?.groupValues?.get(1)?.toDouble()
-            ?: throw GradleException("Could not read max_volume for ${file.name} from ffmpeg output:\n$stderr")
-    }
-
-    private fun runFfmpeg(vararg args: String, ignoreExitValue: Boolean = false): String {
-        val stderr = ByteArrayOutputStream()
-        try {
-            execOperations.exec {
-                commandLine(listOf("ffmpeg") + args)
-                standardOutput = stderr
-                errorOutput = stderr
-                isIgnoreExitValue = ignoreExitValue
-            }
-        } catch (cause: Exception) {
-            throw GradleException(
-                "ffmpeg is required to normalise the .ogg audio assets (see NormalizeOggAudioTask in " +
-                    "app/android/build.gradle.kts) but could not be run - is it installed and on PATH? " +
-                    "(the project's own sandbox/Dockerfile installs it for exactly this)",
-                cause,
-            )
-        }
-        return stderr.toString()
-    }
-
-    private companion object {
-        // Matches roughly where celebration.ogg (the loudest original clip) already peaked - every
-        // other clip is brought UP to this, never down, so nothing gets quieter than it shipped.
-        const val TARGET_PEAK_DB = -0.8
     }
 }
 
 val normalizeOggAudio = tasks.register<NormalizeOggAudioTask>("normalizeOggAudio") {
     group = "build"
-    description = "Normalises src/main/rawAudioSource/*.ogg to a common peak level into a generated res/raw/."
-    sourceFiles.from(fileTree("src/main/rawAudioSource") { include("*.ogg") })
+    description = "Normalises app/audio/*.ogg to a common peak level into a generated res/raw/."
+    sourceFiles.from(rootProject.fileTree("app/audio") { include("*.ogg") })
+    script.set(rootProject.layout.projectDirectory.file("scripts/normalize-audio.sh"))
     outputDirectory.set(layout.buildDirectory.dir("generated/normalizedAudioRes"))
 }
 
@@ -559,8 +508,8 @@ abstract class CollectThirdPartyNoticesTask : DefaultTask() {
  * The asset half of the report: a font, a sound or an image isn't a Gradle dependency, so nothing can
  * discover its license - someone has to write down where it came from. This makes that impossible to
  * skip: every file under any of this module's source sets' res/ (bar values*, which is text and
- * config, not creative work), rawAudioSource/ and assets/, and under :app:shared's composeResources/ (the
- * shared UI's font and icons), must have a complete entry in app/licensing/asset-sources.json -
+ * config, not creative work) and assets/, the sound effects' sources in app/audio/, and under :app:shared's
+ * composeResources/ (the shared UI's font and icons), must have a complete entry in app/licensing/asset-sources.json -
  * what it is, where it came from and its license. That applies to the app's own
  * artwork too (license LicenseRef-DiceFive-AllRightsReserved): "we made it" is a claim that still
  * needs its session or commit behind it, and its own copyright line. A third-party asset instead
@@ -675,9 +624,11 @@ val verifyAssetSources = tasks.register<VerifyAssetSourcesTask>("verifyAssetSour
     group = "verification"
     description = "Checks every bundled asset has a recorded source and license."
     assetFiles.from(fileTree("src") {
-        include("*/res/**", "*/rawAudioSource/**", "*/assets/**")
+        include("*/res/**", "*/assets/**")
         exclude("*/res/values*/**")
     })
+    // The sound effects, shared with the iOS app.
+    assetFiles.from(rootProject.fileTree("app/audio") { include("*.ogg") })
     // values*/ holds the shared UI's strings - the app's own text, as with res/values*/ above, not a
     // bundled asset with a source to record.
     assetFiles.from(project(":app:shared").fileTree("src") {

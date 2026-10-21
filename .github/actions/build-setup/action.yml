@@ -1,13 +1,13 @@
 name: Build setup
 description: >-
   Everything a Gradle job here needs before it runs: the JDK, the Android SDK packages (unless turned
-  off), Gradle with its caches - and, when asked, ffmpeg (for app:android's audio) and the Kotlin/Native
+  off), Gradle with its caches - and, when asked, ffmpeg (for the apps' sound effects) and the Kotlin/Native
   toolchain (for app:shared's iOS compile). Shared by android-release.yml's parallel jobs and the iOS workflows;
   runs after actions/checkout.
 
 inputs:
   ffmpeg:
-    description: "Install ffmpeg - normalizeOggAudio needs it for anything that merges app:android's resources"
+    description: "Install ffmpeg - scripts/normalize-audio.sh needs it: app:android's resources, and the iOS app"
     default: "false"
   kotlin-native:
     description: "Restore and save the Kotlin/Native toolchain - only app:shared's iOS tasks use it"
@@ -55,18 +55,24 @@ runs:
           "$SDKMANAGER" "${packages[@]}"
         fi
 
-    # The normalizeOggAudio task shells out to ffmpeg to peak-normalise the .ogg clips in
-    # app/android/src/main/rawAudioSource/, and ubuntu-latest runners don't ship it. The runner's own
-    # package lists are tried first - refreshing them is most of this step's time - and only refreshed
-    # if they can't find it.
+    # scripts/normalize-audio.sh shells out to ffmpeg to peak-normalise the clips in app/audio/ (for
+    # Android's normalizeOggAudio task and the iOS app's build phase), and ubuntu-latest runners don't
+    # ship it. The runner's own package lists are tried first - refreshing them is most of this step's
+    # time - and only refreshed if they can't find it.
     - name: Install ffmpeg
-      if: inputs.ffmpeg == 'true'
+      if: inputs.ffmpeg == 'true' && runner.os == 'Linux'
       shell: bash
       run: |
         sudo apt-get install -y --no-install-recommends ffmpeg || {
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ffmpeg
         }
+
+    # The same on macOS, from Homebrew, unless the runner image already has it.
+    - name: Install ffmpeg (macOS)
+      if: inputs.ffmpeg == 'true' && runner.os == 'macOS'
+      shell: bash
+      run: command -v ffmpeg > /dev/null || brew install ffmpeg
 
     - name: Set up Gradle
       uses: gradle/actions/setup-gradle@v6
