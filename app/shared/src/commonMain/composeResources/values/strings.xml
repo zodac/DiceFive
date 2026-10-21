@@ -1284,7 +1284,7 @@
     <string name="stats_win_rate">Win rate</string>
     <!-- A win rate: %1$d is a whole percentage of the games against someone that were won. -->
     <string name="stats_win_rate_value">%1$d%</string>
-    <!-- Shown for a win rate when every game was solo, so there's none. -->
+    <!-- Shown for a win rate when every game was solo, and for a win streak before a first win: there is none. -->
     <string name="stats_no_win_rate">-</string>
     <!-- The key under the won/lost/solo bar on Overview: one each, chosen by its count (%1$d). -->
     <plurals name="stats_record_won">

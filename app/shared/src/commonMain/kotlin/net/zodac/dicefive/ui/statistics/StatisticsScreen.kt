@@ -485,12 +485,12 @@ private fun Overview(player: PlayerStatistics) {
         add(stringResource(Res.string.stats_spoken_average, player.averageScore.grouped()))
     }
     val firstPlayed = timestamp(player.firstPlayedEpochMillis)
-    val details = listOf(
-        stringResource(Res.string.stats_spoken_streaks, player.currentWinStreak, player.bestWinStreak),
-        pluralStringResource(Res.plurals.stats_spoken_fives, player.fiveOfAKindCount, player.fiveOfAKindCount),
-        stringResource(Res.string.stats_spoken_total_points, player.totalScore.grouped()),
-        stringResource(Res.string.stats_spoken_first_played, firstPlayed),
-    )
+    val details = buildList {
+        if (player.bestWinStreak > 0) add(stringResource(Res.string.stats_spoken_streaks, player.currentWinStreak, player.bestWinStreak))
+        add(pluralStringResource(Res.plurals.stats_spoken_fives, player.fiveOfAKindCount, player.fiveOfAKindCount))
+        add(stringResource(Res.string.stats_spoken_total_points, player.totalScore.grouped()))
+        add(stringResource(Res.string.stats_spoken_first_played, firstPlayed))
+    }
     val numbersSpoken = joinSentences(numbers)
     val detailsSpoken = joinSentences(details)
 
@@ -527,7 +527,11 @@ private fun Overview(player: PlayerStatistics) {
     ) {
         DetailLine(
             label = stringResource(Res.string.stats_win_streak),
-            value = stringResource(Res.string.stats_win_streak_value, player.currentWinStreak, player.bestWinStreak),
+            value = if (player.bestWinStreak > 0) {
+                stringResource(Res.string.stats_win_streak_value, player.currentWinStreak, player.bestWinStreak)
+            } else {
+                stringResource(Res.string.stats_no_win_rate)
+            },
         )
         DetailLine(label = stringResource(Res.string.stats_fives_scored), value = player.fiveOfAKindCount.grouped())
         DetailLine(label = stringResource(Res.string.stats_total_points), value = player.totalScore.grouped())

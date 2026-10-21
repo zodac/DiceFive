@@ -132,12 +132,15 @@ class ScreenReaderSemanticsTest {
         assertEquals(1, deleted)
 
         // One solo game is said as game - not games - and only solo games leave no win rate.
-        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player.copy(gamesWon = 0, gamesLost = 0, soloGames = 1), onDelete = {}) } }
+        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player.copy(gamesWon = 0, gamesLost = 0, soloGames = 1, currentWinStreak = 0, bestWinStreak = 0), onDelete = {}) } }
         statsCard().performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
         compose.onNodeWithContentDescription("Played 5, won 0, lost 0. 1 solo game played. Average score 200.").assertExists()
-        // The dash in its place is drawn, not spoken.
-        compose.onNodeWithText("-", useUnmergedTree = true).assertExists()
+        // The dashes in their place - the win rate and the win streak, neither won yet - are drawn, not spoken.
+        compose.onAllNodesWithText("-", useUnmergedTree = true).assertCountEquals(2)
+        val noStreak = compose.onNodeWithContentDescription("4 5x scored", substring = true).fetchSemanticsNode()
+            .config[SemanticsProperties.ContentDescription].single()
+        assertTrue(noStreak, noStreak.startsWith("4 5x scored. Total points scored: 1,001. First played "))
     }
 
     @Test
