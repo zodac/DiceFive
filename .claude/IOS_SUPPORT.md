@@ -131,7 +131,7 @@ Each phase ends with something checkable on the iPhone or in CI. Tick items off 
   accelerometer remap are Phase 3.
 - [x] **Licences page**: keep `ComposeLicenceDocument` unless its links fail on the phone (Phase 3).
 
-### Phase 1: first IPA on the phone (Next)
+### Phase 1: first IPA on the phone (Next: needs a push and the phone)
 
 Exit: the app launches on the iPhone, a game can be played, and it survives being killed and reopened.
 
@@ -155,19 +155,26 @@ Exit: the app launches on the iPhone, a game can be played, and it survives bein
 - [ ] **Smoke on the phone**: launch, play a solo game, settings and achievements persist after a kill (Room and
   DataStore on iOS for the first time), Application Support paths are right.
 
-### Phase 2: iOS tests and screenshots in CI
+### Phase 2: iOS tests and screenshots in CI (written, not yet run)
 
 Exit: every iOS-touching change has a CI job that runs it, not just compiles it.
 
-- [ ] **`./gradlew :app:shared:iosSimulatorArm64Test`** in `ios.yml`. It's the first real check of `stripDiacritics`,
-  `OrdinalIosTest`, and Room and DataStore on iOS. Fix what fails.
-- [ ] **Simulator screenshots**: a simulator build, booted on an iPhone and an iPad, a screenshot per main screen
-  (menu, game, scorecard, achievements, settings), uploaded as artifacts.
-  - Drive it with launch arguments or a small XCUITest.
-  - Same purpose as the `render` skill: visual review before an IPA goes to the phone.
-- [ ] **Trigger**: on PRs/pushes touching `app/shared/**` or `app/ios/**`, as well as on demand.
-- [ ] **Skill**: an `ios-build` skill (or a section in `debug-apk`) for "dispatch the workflow, download the IPA,
-  send it".
+- [x] **`tests` job**: `./gradlew :app:shared:iosSimulatorArm64Test`, uploading the HTML report on failure. It's the
+  first real check of `stripDiacritics`, `OrdinalIosTest`, and Room and DataStore on iOS.
+- [x] **`screenshots` job**: `ScreenTourTests` (`app/ios/DiceFiveUITests`, a UI test target in `project.yml`) on the
+  runner's newest `iPhone NN Pro` simulator.
+  - From the menu, it opens Achievements, Styles, Leaderboard, Statistics, Rules and Settings, leaving each by its
+    Back button. Then it goes through Play and Start Game to the board.
+  - It finds everything by the labels VoiceOver reads, so it's also the first check that Compose's accessibility
+    tree reaches iOS.
+  - PNGs `NN-<screen>.png` (and `missing-*.png` when a step fails) go to the `ios-screenshots` artifact. The
+    `.xcresult` is uploaded on failure.
+  - iPad joins when the app supports it (Phase 4).
+- [x] **Trigger**: pushes to `main` and pull requests touching `app/shared/**`, `app/ios/**`, the build or the
+  workflow, and on demand.
+- [x] **Skill**: `ios-build` (find the run, download, review the screenshots, send the IPA).
+- [ ] **First green run.** Fix what the first runs turn up: failing iOS tests, labels the tour can't find, a first-run
+  dialog in the way of the board.
 
 ### Phase 3: platform parity
 

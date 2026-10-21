@@ -60,3 +60,32 @@ targets:
         script: |
           cd "$SRCROOT/../.."
           ./gradlew :app:shared:embedAndSignAppleFrameworkForXcode --console=plain
+  # The simulator screen tour (ScreenTourTests): opens each screen and saves a screenshot.
+  DiceFiveUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: DiceFiveUITests
+    dependencies:
+      - target: DiceFive
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.zodac.dicefive.uitests
+        GENERATE_INFOPLIST_FILE: "YES"
+        TEST_TARGET_NAME: DiceFive
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.0"
+schemes:
+  DiceFive:
+    build:
+      targets:
+        DiceFive: all
+        DiceFiveUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - DiceFiveUITests
+    run:
+      config: Debug
+    archive:
+      config: Release

@@ -101,6 +101,7 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 | `benchmark` | Measuring frame cost without a device |
 | `emulator` | Sandbox emulator: seeing the real app, the Baseline Profile journey |
 | `store-assets` | Generating and reviewing the Play Store graphics and video |
+| `ios-build` | The iOS app's CI results: the IPA to sideload, simulator screenshots, iOS test failures |
 
 ## Reference docs (read the one for an area before changing it)
 
