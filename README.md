@@ -78,107 +78,12 @@ Unlock over 90 styles as you earn achievements, most in several colours:
 
 ## Get it
 
-DiceFive is for Android 8.0 and up, in English, Spanish and Arabic. It's coming to Google Play, and from version 1.0
-each release's APK is also attached to this repository's [Releases](https://github.com/zodac/DiceFive/releases) page.
-It needs no account and no internet connection, and your games stay on your device unless you sign in to Google Play
-Games, which saves your progress to your account for your other devices - see the
-[privacy policy](https://zodac.github.io/DiceFive/privacy-policy).
+DiceFive is for Android 8.0 and up, available on [Google Play Store](https://play.google.com/store/apps/details?id=net.zodac.dicefive).
+
+Alternatively, you can check the [Releases](https://github.com/zodac/DiceFive/releases) page of this repo to get the `.apk` file directly.
+This will not integrate with Google Play Game Services, so all activity will be stored locally on your device only. 
 
 ---
-
-## For developers
-
-### Stack
-
-- Kotlin Multiplatform: the game, its UI and its persistence are shared Kotlin, built for Android today and compiled
-  for iOS on every build (the iOS app itself is still to come - see `.claude/IOS_SUPPORT.md`)
-- Compose Multiplatform, Material 3, Navigation Compose
-- MVVM (`ViewModel` + `StateFlow`)
-- Room (score history) + DataStore Preferences (settings, achievements, the saved game), both multiplatform
-- Gradle version catalog (`gradle/libs.versions.toml`)
-- Android: minSdk 26, targetSdk / compileSdk 37
-
-### Structure
-
-All the code is under `app/`, split by platform:
-
-```
-app/
-  shared/          platform-neutral Kotlin Multiplatform library - the game, its UI, its storage
-  android/         the Android app that packages it
-  baselineprofile/ the Baseline Profile journey and benchmarks
-  ios/             (to come) the Xcode project for the iOS app
-  licensing/       licence records for every third-party library and asset either platform ships
-```
-
-```
-app/shared/src/commonMain/kotlin/net/zodac/dicefive/    everything platform-neutral
-  model/            game domain types: GameState, PlayerState/PlayerConfig, Die/DieColour,
-                    ScoreCategory, GameMode (every per-mode rule), Achievement, modifiers
-  game/             pure rules engine: DiceScoring, ScoreCalculator (joker rule), GameEngine
-                    (roll/hold/score/turn-advance reducers), TieBreak, AchievementEngine,
-                    AiTurnPlayer (and the perfect-play table), AiNameGenerator
-  data/
-    scores/         Room: ScoreEntry, ScoreDao, AppDatabase, ScoreRepository
-    achievements/   DataStore: AchievementStore/AchievementsRepository
-    settings/       DataStore: SettingsRepository, SavedStyles
-    game/           DataStore: the in-progress game, as JSON
-  online/           the seam for an online game service (not yet connected to one)
-  app/              AppContainer, BuildInfo - what each platform's entry point builds
-  platform/         PlatformServices (sound, haptics, accelerometer, messages, licences) -
-                    the interfaces each platform implements
-  navigation/       Screen route constants + DiceFiveNavHost
-  ui/
-    DiceFiveApp.kt  the root composable every platform hosts
-    common/         shared chrome: backdrop, scaffold, dialogs, pickers, scrollbars, formatting
-    menu/           MenuScreen (Play/Achievements/Styles/Leaderboard/Statistics/Rules/Settings)
-    setup/          GameSetupScreen (players, game mode, modifiers)
-    game/           GameScreen + GameViewModel, the board, dice tray and cup, Game Over
-    scores/         ScoresScreen + ScoresViewModel (the Leaderboard)
-    statistics/     StatisticsScreen + StatisticsViewModel
-    achievements/   AchievementsScreen + AchievementsViewModel, AchievementBannerHost and the
-                    AchievementEvents it shows
-    styles/         StylesScreen (pick and preview the table art)
-    style/          the table art: every dice, cup, mat, background and frame style
-    rules/          RulesScreen
-    settings/       SettingsScreen + SettingsViewModel, About, Licences
-    theme/          Compose theme (colour)
-app/shared/src/iosMain/kotlin/net/zodac/dicefive/   iOS
-  MainViewController.kt   the iOS entry point
-  device/           iOS PlatformServices (AVAudioPlayer, UIKit haptics, CoreMotion), storage
-app/android/src/main/kotlin/net/zodac/dicefive/              the Android app
-  MainActivity.kt   hosts DiceFiveApp
-  device/           Android PlatformServices (SoundPool, Vibrator, sensors, the licence
-                    TextView) + AndroidAppContainer
-```
-
-`.claude/DESIGN.md` describes how the app works and the decisions behind it; the other files in `.claude/` cover the
-UI, game modes, table art, internationalisation and the rest.
-
-### Build
-
-```
-./gradlew assembleDebug
-./gradlew testDebugUnitTest
-```
-
-`testDebugUnitTest` also compiles the shared module for iOS, which is what keeps its common code free of Android and
-JVM APIs. Building and running the iOS app itself needs macOS.
-
-### Commits and releases
-
-Every commit's first line must be `[Category] Short description`, e.g. `[Gameplay] Add the Tricolour game mode` -
-later lines are free-form. A `commit-msg` hook enforces it; enable it once per clone:
-
-```
-./scripts/install-git-hooks.sh
-```
-
-Every push to `main` publishes a GitHub release for the version in `VERSION`. Its description is `RELEASE_NOTES.md` (a
-hand-written summary - fill it in before pushing a release you want described), followed by every commit since the
-previous release, grouped by category. Preview that list with `./scripts/release-changelog.sh`. After releasing, the
-workflow bumps `VERSION` and empties `RELEASE_NOTES.md` for the next one, and renders this page's screenshots afresh
-from the released code.
 
 ## License
 
@@ -187,6 +92,5 @@ repository is public so the source can be read; that does not grant permission t
 publish it. See [`LICENSE`](LICENSE).
 
 Third-party components are not covered by that notice and remain under their own licenses - the libraries the app is
-built with, the Sora and MathJax TeX fonts (SIL Open Font License 1.1), and the sound effects (modified Freesound
-recordings under CC0 1.0 and CC BY 4.0). Each is listed, with its license text, in the app under
-**Settings > Licences**; the records behind that list live in [`app/licensing/`](app/licensing/).
+built with, any fonts used , and the sound effects. Each is listed, with its license text, in the app under
+**Settings > Licences**; the records behind that list live in [`asset-sources.json`](app/licensing/asset-sources.json).
