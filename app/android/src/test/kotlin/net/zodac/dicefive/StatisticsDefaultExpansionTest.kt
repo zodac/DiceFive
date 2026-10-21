@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -68,6 +69,14 @@ class StatisticsDefaultExpansionTest {
         compose.onNodeWithContentDescription("Player2. Best score 200.").performClick()
         compose.waitForIdle()
         compose.onAllNodesWithText("Overview").assertCountEquals(2)
+    }
+
+    @Test
+    fun `the key under the record bar names only the outcomes there are`() {
+        showPlayers(1)
+        compose.onNodeWithText("1 won", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("1 lost", useUnmergedTree = true).assertExists()
+        compose.onAllNodesWithText("0 solo", useUnmergedTree = true).assertCountEquals(0)
     }
 
     @Test

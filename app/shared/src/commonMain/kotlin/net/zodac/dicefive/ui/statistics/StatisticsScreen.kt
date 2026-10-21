@@ -506,10 +506,17 @@ private fun Overview(player: PlayerStatistics) {
                     player.soloGames to MaterialTheme.colorScheme.outline,
                 ),
             )
+            // Only the outcomes there are, spread along the bar's width.
             KeyRow {
-                KeyItem(MaterialTheme.colorScheme.tertiary, pluralStringResource(Res.plurals.stats_record_won, player.gamesWon, player.gamesWon))
-                KeyItem(MaterialTheme.colorScheme.error, pluralStringResource(Res.plurals.stats_record_lost, player.gamesLost, player.gamesLost))
-                KeyItem(MaterialTheme.colorScheme.outline, pluralStringResource(Res.plurals.stats_record_solo, player.soloGames, player.soloGames))
+                if (player.gamesWon > 0) {
+                    KeyItem(MaterialTheme.colorScheme.tertiary, pluralStringResource(Res.plurals.stats_record_won, player.gamesWon, player.gamesWon))
+                }
+                if (player.gamesLost > 0) {
+                    KeyItem(MaterialTheme.colorScheme.error, pluralStringResource(Res.plurals.stats_record_lost, player.gamesLost, player.gamesLost))
+                }
+                if (player.soloGames > 0) {
+                    KeyItem(MaterialTheme.colorScheme.outline, pluralStringResource(Res.plurals.stats_record_solo, player.soloGames, player.soloGames))
+                }
             }
         }
     }
@@ -679,7 +686,8 @@ private fun Headline(value: AnnotatedString, label: String) {
 @Composable
 private fun KeyRow(content: @Composable FlowRowScope.() -> Unit) {
     FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalArrangement = Arrangement.spacedBy(4.dp),
         content = content,
     )
