@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.FlowRowScope
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -142,7 +141,8 @@ private const val LANDSCAPE_COLUMNS = 2
 private const val MEASURE_LIMIT = 12
 
 private val CARD_GAP = 12.dp
-private val SCROLLBAR_ROOM = 12.dp
+/** How far into the page's margin the list's scrollbar sits, past the cards' edge (as on Achievements). */
+private val SCROLLBAR_OFFSET = 12.dp
 
 @Composable
 fun StatisticsScreen(
@@ -203,8 +203,6 @@ fun StatisticsScreen(
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
-                        // Room on the right for the scrollbar so it doesn't sit on top of a card's edge.
-                        contentPadding = PaddingValues(end = SCROLLBAR_ROOM),
                         verticalArrangement = Arrangement.spacedBy(CARD_GAP),
                     ) {
                         items(players.chunked(columns), key = { row -> row.first().playerName }) { row ->
@@ -221,7 +219,7 @@ fun StatisticsScreen(
                         }
                     }
                 }
-                LazyListScrollbar(listState = listState)
+                LazyListScrollbar(listState = listState, modifier = Modifier.offset(x = SCROLLBAR_OFFSET))
             }
         }
 
@@ -331,10 +329,7 @@ private fun StatsFitMeasurer(players: List<PlayerStatistics>, columns: Int, onMe
         modifier = Modifier
             .clearAndSetSemantics {}
             .layout { measurable, constraints ->
-                val room = SCROLLBAR_ROOM.roundToPx()
-                val placeable = measurable.measure(
-                    Constraints(maxWidth = (constraints.maxWidth - room).coerceAtLeast(0), maxHeight = Constraints.Infinity),
-                )
+                val placeable = measurable.measure(Constraints(maxWidth = constraints.maxWidth, maxHeight = Constraints.Infinity))
                 onMeasured(placeable.height <= constraints.maxHeight)
                 layout(0, 0) {}
             },
