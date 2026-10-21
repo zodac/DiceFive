@@ -110,13 +110,13 @@ jobs:
           kotlin-native: "true"
           android-sdk: "false"
           ffmpeg: "true"
+          xcodegen: "true"
 
       - name: Show Xcode
         run: xcodebuild -version
 
       - name: Generate the Xcode project
         run: |
-          brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
           xcodegen generate --spec app/ios/project.yml
 
       - name: Build the app (unsigned)
@@ -168,13 +168,13 @@ jobs:
           kotlin-native: "true"
           android-sdk: "false"
           ffmpeg: "true"
+          xcodegen: "true"
 
       - name: Show Xcode
         run: xcodebuild -version
 
       - name: Generate the Xcode project
         run: |
-          brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
           xcodegen generate --spec app/ios/project.yml
 
       # The largest current non-Max iPhone the runner's newest iOS runtime has, so the shots look like a typical phone.

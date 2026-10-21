@@ -180,6 +180,8 @@ Exit: every iOS-touching change has a CI job that runs it, not just compiles it.
     linking. Most of the link was building caches of the libraries, which live in `~/.konan`.
   - Now the `~/.konan` cache is per job, since each job links a different target.
   - The Mac jobs skip the Android SDK and NDK (`android-sdk: "false"`): the iOS tasks build without them.
+  - Homebrew's downloads are cached (renewed monthly) and `brew` skips its self-update, for ffmpeg and XcodeGen
+    (`build-setup`'s `ffmpeg` and `xcodegen` inputs).
   - Check the next warm run's timings, and consider one simulator job for tests and the tour if linking still
     dominates.
 

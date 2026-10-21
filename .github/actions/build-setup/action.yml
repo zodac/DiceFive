@@ -15,6 +15,9 @@ inputs:
   android-sdk:
     description: "Install the Android SDK packages (Linux runners). app:shared's iOS tasks build without them"
     default: "true"
+  xcodegen:
+    description: "Install XcodeGen (macOS runners) - generates the iOS app's Xcode project"
+    default: "false"
 
 runs:
   using: composite
@@ -68,11 +71,39 @@ runs:
           sudo apt-get install -y --no-install-recommends ffmpeg
         }
 
-    # The same on macOS, from Homebrew, unless the runner image already has it.
+    # The same on macOS, from Homebrew, unless the runner image already has it. Homebrew's downloads are cached
+    # (renewed monthly, so the bottles don't go stale), and it neither updates itself nor tidies up first: the
+    # self-update is a fixed cost on every `brew install`, and the runner is thrown away anyway.
+    - name: Month for the Homebrew cache
+      id: month
+      if: runner.os == 'macOS' && (inputs.ffmpeg == 'true' || inputs.xcodegen == 'true')
+      shell: bash
+      run: echo "value=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Homebrew downloads
+      if: runner.os == 'macOS' && (inputs.ffmpeg == 'true' || inputs.xcodegen == 'true')
+      uses: actions/cache@v6
+      with:
+        path: ~/Library/Caches/Homebrew
+        key: brew-${{ runner.os }}-${{ runner.arch }}-${{ steps.month.outputs.value }}-ffmpeg-${{ inputs.ffmpeg }}-xcodegen-${{ inputs.xcodegen }}
+        restore-keys: |
+          brew-${{ runner.os }}-${{ runner.arch }}-${{ steps.month.outputs.value }}-
+
     - name: Install ffmpeg (macOS)
       if: inputs.ffmpeg == 'true' && runner.os == 'macOS'
       shell: bash
+      env:
+        HOMEBREW_NO_AUTO_UPDATE: "1"
+        HOMEBREW_NO_INSTALL_CLEANUP: "1"
       run: command -v ffmpeg > /dev/null || brew install ffmpeg
+
+    - name: Install XcodeGen (macOS)
+      if: inputs.xcodegen == 'true' && runner.os == 'macOS'
+      shell: bash
+      env:
+        HOMEBREW_NO_AUTO_UPDATE: "1"
+        HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      run: command -v xcodegen > /dev/null || brew install xcodegen
 
     - name: Set up Gradle
       uses: gradle/actions/setup-gradle@v6
