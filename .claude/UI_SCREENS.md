@@ -56,7 +56,7 @@ The constants are at the top of `AchievementBannerHost.kt`:
 |----------|--------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
 | Position | bottom-anchored stack; the oldest banner in front, each newer one peeking 14dp above | keeps the board clear                                                                       |
 | Fade in  | 180ms on joining the stack                                                           | every banner in a burst shows at once                                                       |
-| Hold     | 4s (5s on screen with the fades)                                                     | readable without lingering                                                                  |
+| Hold     | 4s (5s on screen with the fades), or the system's "Time to take action" if longer    | readable without lingering                                                                  |
 | Fade out | 820ms                                                                                | a snap mid-burst reads as a glitch                                                          |
 | Stagger  | 300ms                                                                                | deals like cards                                                                            |
 | Cap      | 4 on screen                                                                          | the rest **wait** (the collector suspends on `snapshotFlow { banners.size }`), none dropped |

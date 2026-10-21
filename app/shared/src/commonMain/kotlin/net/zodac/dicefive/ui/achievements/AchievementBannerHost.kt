@@ -49,6 +49,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -94,7 +95,8 @@ import net.zodac.dicefive.ui.style.unlocksStyle
 
 /**
  * How long a banner sits at full opacity before it starts to go - with the fades either side, 5s on
- * screen in all.
+ * screen in all. The player's "Time to take action" accessibility setting can ask for longer - see
+ * [recommendedHoldMillis].
  */
 private const val HOLD_MILLIS = 4_000L
 
@@ -197,6 +199,8 @@ fun AchievementBannerHost(
     val hasInProgressGame by container.inProgressGameRepository.hasInProgressGame.collectAsStateWithLifecycle(initialValue = false)
     val confirmBeforeLeavingGame by container.settingsRepository.confirmBeforeLeavingGame.collectAsStateWithLifecycle(initialValue = true)
     val leaveConfirmation = LocalLeaveGameConfirmation.current
+    // Read here, not in the banners: their Dialog window provides its own platform locals.
+    val holdMillis = recommendedHoldMillis()
 
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     // Under reduced motion a burst isn't dealt out one at a time: every banner that fits is there at once.
@@ -262,6 +266,7 @@ fun AchievementBannerHost(
                                 BannerSlot(
                                     item = item,
                                     interactive = depthFromFront == 0,
+                                    holdMillis = holdMillis,
                                     paused = leaveConfirmation.isShowing,
                                     onDismissed = { banners.remove(item) },
                                     onLongPress = {
@@ -322,7 +327,7 @@ fun AchievementBannerHost(
  *
  * The hold countdown only runs while [interactive] is true - a banner peeking out behind the
  * front one doesn't start timing out until it's actually promoted to the front, so a burst of
- * several banners each get their own full [HOLD_MILLIS] once it's their turn rather than all
+ * several banners each get their own full [holdMillis] once it's their turn rather than all
  * ticking down together and clearing within moments of each other. It's also held off while a
  * finger is on the banner, restarting in full once it lifts. [paused] holds it off further
  * on top of that, while [AchievementBannerHost]'s leave-game confirmation is up - a banner
@@ -340,6 +345,7 @@ fun AchievementBannerHost(
 private fun BannerSlot(
     item: BannerItem,
     interactive: Boolean,
+    holdMillis: Long,
     paused: Boolean,
     onDismissed: () -> Unit,
     onLongPress: () -> Unit,
@@ -363,7 +369,7 @@ private fun BannerSlot(
     val resumeLabel = stringResource(Res.string.achievements_banner_resume_action)
     val pausedText = stringResource(Res.string.achievements_banner_paused_spoken)
     val resumedText = stringResource(Res.string.achievements_banner_resumed_spoken)
-    var holdRemainingMillis by remember { mutableLongStateOf(HOLD_MILLIS) }
+    var holdRemainingMillis by remember { mutableLongStateOf(holdMillis) }
     val indicatorAlpha = remember { Animatable(0f) }
     var indicatorShowsPause by remember { mutableStateOf(true) }
     var indicatorTick by remember { mutableIntStateOf(0) }
@@ -485,7 +491,7 @@ private fun BannerSlot(
                                 indicatorTick++
                             } else {
                                 // Swiped or long-pressed: the usual fresh hold.
-                                holdRemainingMillis = HOLD_MILLIS
+                                holdRemainingMillis = holdMillis
                                 held = false
                             }
                             if (dragging) {
@@ -526,6 +532,21 @@ private fun BannerSlot(
         }
     }
 }
+
+/**
+ * A banner's hold: [HOLD_MILLIS], or longer if the player's "Time to take action" accessibility setting asks for it
+ * (Android 10+). A banner is reported as text and icons, not controls: its tap and long press are extras, TalkBack can
+ * pause it with its action, and a banner with controls never times out under TalkBack on Android 9 and older - every
+ * banner would stay up until swiped away, holding the queue behind it.
+ */
+@Composable
+private fun recommendedHoldMillis(): Long =
+    LocalAccessibilityManager.current?.calculateRecommendedTimeoutMillis(
+        HOLD_MILLIS,
+        containsIcons = true,
+        containsText = true,
+        containsControls = false,
+    ) ?: HOLD_MILLIS
 
 /**
  * The smallest a banner title is shrunk to, below the app-wide [net.zodac.dicefive.ui.common.MIN_READABLE_FONT_SIZE]
