@@ -535,7 +535,7 @@
     <string name="game_tutorial_turn">Turno %1$d de %2$d</string>
     <string name="game_tutorial_previous_turn_cd">Turno anterior</string>
     <string name="game_tutorial_next_turn_cd">Turno siguiente</string>
-    <string name="game_tutorial_welcome">¡Bienvenido! Tira los cinco dados hasta **3** veces por turno y anótalos en una casilla de tu tarjeta. Tras **13** turnos todas las casillas están llenas, y su suma es tu puntuación. Toca el cubilete para empezar.</string>
+    <string name="game_tutorial_welcome">¡Bienvenido a %1$s! Tira los cinco dados hasta **3** veces por turno y anótalos en una casilla de tu tarjeta. Tras **13** turnos todas las casillas están llenas, y su suma es tu puntuación. Toca el cubilete para empezar.</string>
     <string name="game_tutorial_hold_sixes">¡Tres 6! Toca cada 6 para conservarlo. Los dados conservados no se mueven al volver a tirar.</string>
     <string name="game_tutorial_roll_again">Ahora toca el cubilete para tirar los otros dos dados.</string>
     <string name="game_tutorial_hold_fourth_six">¡Otro 6! Consérvalo también.</string>

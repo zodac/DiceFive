@@ -67,6 +67,7 @@ import net.zodac.dicefive.resources.game_tutorial_hold_twos
 import net.zodac.dicefive.resources.game_tutorial_next_turn_cd
 import net.zodac.dicefive.resources.game_tutorial_open_totals
 import net.zodac.dicefive.resources.game_tutorial_open_totals_bonus
+import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.resources.game_tutorial_previous_turn_cd
 import net.zodac.dicefive.resources.game_tutorial_roll_again
 import net.zodac.dicefive.resources.game_tutorial_roll_for_five
@@ -117,7 +118,7 @@ internal fun CoachCard(
     onForward: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    val text = stringResource(step.message.resource)
+    val text = tutorialText(step.message)
     val gold = MaterialTheme.colorScheme.primary
     val styled = remember(text, gold) { parseInlineMarkup(text, codeStyle = SpanStyle(color = gold, fontWeight = FontWeight.Bold)) }
     val scroll = rememberScrollState()
@@ -209,7 +210,7 @@ internal fun coachCardHeight(steps: List<TutorialStep>, width: Dp): Dp {
     val density = Density(LocalDensity.current.density, fontScale = 1f)
     val body = MaterialTheme.typography.bodyMedium
     val label = MaterialTheme.typography.labelLarge.copy(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold)
-    val texts = steps.map { stringResource(it.message.resource) }
+    val texts = steps.map { tutorialText(it.message) }
     return remember(texts, width, density, body, label) {
         with(density) {
             val textWidth = (width - ARROW_WIDTH * 2).coerceAtLeast(1.dp).roundToPx()
@@ -231,6 +232,10 @@ private const val DISABLED_ARROW_ALPHA = 0.3f
 private val CARD_BORDER = 1.dp
 // The scrollbar beside the words, when they scroll.
 private val SCROLLBAR_WIDTH = 10.dp
+
+/** [message]'s words, given the app's name to use where it's written (the welcome). */
+@Composable
+private fun tutorialText(message: TutorialMessage): String = stringResource(message.resource, stringResource(Res.string.app_name))
 
 /** The string each [TutorialMessage] is written in: `game_tutorial_` and its name. */
 private val TutorialMessage.resource: StringResource

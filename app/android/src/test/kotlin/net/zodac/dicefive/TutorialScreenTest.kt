@@ -117,7 +117,7 @@ class TutorialScreenTest {
         showTutorial()
         val card = compose.onNode(hasText("Coach") and hasText("Roll the five dice", substring = true)).fetchSemanticsNode().config
         assertEquals(
-            listOf("Coach", "Welcome! Roll the five dice up to 3 times a turn, then score them in one box of your scorecard. After 13 turns every box is filled, and their total is your score. Tap the cup to start."),
+            listOf("Coach", "Welcome to DiceFive! Roll the five dice up to 3 times a turn, then score them in one box of your scorecard. A game lasts 13 turns. Tap the cup to start."),
             card[SemanticsProperties.Text].map { it.text },
         )
         assertEquals(LiveRegionMode.Polite, card[SemanticsProperties.LiveRegion])

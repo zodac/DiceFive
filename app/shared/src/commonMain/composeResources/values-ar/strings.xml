@@ -620,7 +620,7 @@
     <string name="game_tutorial_turn">الدور %1$d من %2$d</string>
     <string name="game_tutorial_previous_turn_cd">الدور السابق</string>
     <string name="game_tutorial_next_turn_cd">الدور التالي</string>
-    <string name="game_tutorial_welcome">أهلًا بك! ارمِ أحجار النرد الخمسة حتى **٣** مرات في الدور، ثم سجّلها في خانة واحدة من بطاقة النتائج. بعد **١٣** دورًا تمتلئ كل الخانات، ومجموعها هو نتيجتك. انقر على الكأس للبدء.</string>
+    <string name="game_tutorial_welcome">أهلًا بك في %1$s! ارمِ أحجار النرد الخمسة حتى **٣** مرات في الدور، ثم سجّلها في خانة واحدة من بطاقة النتائج. بعد **١٣** دورًا تمتلئ كل الخانات، ومجموعها هو نتيجتك. انقر على الكأس للبدء.</string>
     <string name="game_tutorial_hold_sixes">ثلاثة أحجار ٦! انقر على كل ٦ لتثبيته. الأحجار المثبّتة تبقى مكانها عند الرمي من جديد.</string>
     <string name="game_tutorial_roll_again">الآن انقر على الكأس لرمي الحجرين الآخرين.</string>
     <string name="game_tutorial_hold_fourth_six">٦ آخر! ثبّته أيضًا.</string>
