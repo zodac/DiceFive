@@ -55,7 +55,7 @@ can't count on the classes before it in the same JVM. The configuration cache is
 - JVM-only tests that read resource files from disk go in `app/shared/src/androidHostTest`.
 - Anything that needs Android, a resolved string or a rendered screen goes in `app/android/src/test`, under Robolectric
   (SDK 36, native graphics, set in `robolectric.properties`). What only one app has goes in `src/testPlay` (Play Games,
-  Sidekick, the Play Console sheets) or `src/testGithub` (the github app).
+  Sidekick, the Play Console sheets) or `src/testGithub` (progress files on Android).
 - `Res` is internal to `:app:shared`. An `:app:android` test therefore reaches strings through a public composable,
   or reads English from disk (`englishText()`).
 

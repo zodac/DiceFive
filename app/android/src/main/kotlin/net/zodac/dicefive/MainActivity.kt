@@ -44,8 +44,8 @@ class MainActivity : ComponentActivity() {
         )
         super.onCreate(savedInstanceState)
         val container = AndroidAppContainer.get(this)
-        val platform = AndroidPlatformServices(this)
-        // Each flavour's own (Distribution): Play Games in the play app, none in the github one.
+        // Each flavour's own (Distribution): Play Games in the play app, progress files in the github one.
+        val platform = AndroidPlatformServices(this, Distribution.progressFiles(this))
         val gameServices = Distribution.gameServices(this)
         // The window's recomposer, built as Compose would build it itself, but on a frame clock that can be capped
         // for the player's "Animations" level - see CappedFrameClock. setContent's ComposeView finds it on the

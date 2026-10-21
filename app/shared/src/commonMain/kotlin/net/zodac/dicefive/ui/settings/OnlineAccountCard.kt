@@ -1,10 +1,6 @@
 package net.zodac.dicefive.ui.settings
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,25 +9,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SportsEsports
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -45,6 +35,7 @@ import kotlinx.coroutines.launch
 import net.zodac.dicefive.model.sanitizePlayerName
 import net.zodac.dicefive.online.GameServices
 import net.zodac.dicefive.online.GameServicesState
+import net.zodac.dicefive.online.MergeStep
 import net.zodac.dicefive.online.SyncProgress
 import net.zodac.dicefive.online.SyncStep
 import net.zodac.dicefive.resources.Res
@@ -58,18 +49,12 @@ import net.zodac.dicefive.resources.online_signed_in_saved_cd
 import net.zodac.dicefive.resources.online_signed_in_syncing_cd
 import net.zodac.dicefive.resources.online_signed_out
 import net.zodac.dicefive.resources.online_signing_in
-import net.zodac.dicefive.resources.online_sync_progress
-import net.zodac.dicefive.resources.online_sync_step_achievements
 import net.zodac.dicefive.resources.online_sync_step_downloading
-import net.zodac.dicefive.resources.online_sync_step_game
 import net.zodac.dicefive.resources.online_sync_step_leaderboards
-import net.zodac.dicefive.resources.online_sync_step_scores
-import net.zodac.dicefive.resources.online_sync_step_settings
 import net.zodac.dicefive.resources.online_sync_step_uploading
 import net.zodac.dicefive.resources.online_unreachable
 import net.zodac.dicefive.resources.online_unreachable_cd
 import net.zodac.dicefive.resources.online_sign_out
-import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.timestamp
 import org.jetbrains.compose.resources.StringResource
@@ -187,9 +172,10 @@ fun OnlineAccountCard(
             }
         }
         if (sync != null) {
-            SyncingLines(
-                stringResource(Res.string.online_sync_progress, syncStep.orEmpty(), sync.number, sync.total),
-                sync,
+            StepProgress(
+                syncStep.orEmpty(),
+                sync.number,
+                sync.total,
                 // Under the header's text, past its icon; the heading already says all of it, so TalkBack skips it.
                 Modifier.padding(start = TEXT_START, end = 16.dp, bottom = 16.dp).semantics { hideFromAccessibility() },
             )
@@ -197,58 +183,11 @@ fun OnlineAccountCard(
     }
 }
 
-/** Where a [ListItem]'s text starts, past its leading icon: 16dp padding, the 24dp icon, then 16dp. */
-private val TEXT_START = 56.dp
-
-/**
- * [text] after a spinner the height of its first line's letters (a still sync icon under reduced motion, as nothing may
- * spin), above a bar of how far through [progress] is, which glides from step to step ([SYNC_BAR_MILLIS]) - and
- * snaps under reduced motion.
- */
-@Composable
-private fun SyncingLines(text: String, progress: SyncProgress, modifier: Modifier = Modifier) {
-    val style = MaterialTheme.typography.bodyMedium
-    val colour = MaterialTheme.colorScheme.onSurfaceVariant
-    val density = LocalDensity.current
-    val size = with(density) { style.fontSize.toDp() }
-    // Centred on the first line, however many the text wraps to.
-    val lineHeight = with(density) { style.lineHeight.toDp() }
-    val iconModifier = Modifier.padding(top = (lineHeight - size) / 2).size(size)
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (LocalReduceMotion.current) {
-                Icon(imageVector = Icons.Filled.Sync, contentDescription = null, modifier = iconModifier, tint = colour)
-            } else {
-                CircularProgressIndicator(modifier = iconModifier, color = colour, strokeWidth = 2.dp)
-            }
-            Text(text, style = style, color = colour)
-        }
-        // The step just started counts as half done, so the bar is never empty and never full while a sync runs.
-        val target = (progress.number - 0.5f) / progress.total
-        val reduceMotion = LocalReduceMotion.current
-        val shown = remember { Animatable(0f) }
-        LaunchedEffect(target, reduceMotion) {
-            if (reduceMotion) shown.snapTo(target) else shown.animateTo(target, tween(SYNC_BAR_MILLIS, easing = FastOutSlowInEasing))
-        }
-        LinearProgressIndicator(
-            progress = { shown.value },
-            modifier = Modifier.fillMaxWidth(),
-            drawStopIndicator = {},
-        )
-    }
-}
-
-/** How long the sync bar takes to glide to a step: the merges come in a burst, so it carries on through them. */
-private const val SYNC_BAR_MILLIS = 400
-
-/** What the card calls each step. */
+/** What the card calls each step: a merge as every merge's progress names it ([MergeStep.label]). */
 private val SyncStep.label: StringResource
     get() = when (this) {
         SyncStep.DOWNLOADING -> Res.string.online_sync_step_downloading
-        SyncStep.ACHIEVEMENTS -> Res.string.online_sync_step_achievements
-        SyncStep.SCORES -> Res.string.online_sync_step_scores
-        SyncStep.SETTINGS -> Res.string.online_sync_step_settings
-        SyncStep.GAME -> Res.string.online_sync_step_game
+        SyncStep.SETTINGS, SyncStep.GAME, SyncStep.ACHIEVEMENTS, SyncStep.SCORES -> checkNotNull(merge).label
         SyncStep.UPLOADING -> Res.string.online_sync_step_uploading
         SyncStep.LEADERBOARDS -> Res.string.online_sync_step_leaderboards
     }

@@ -30,7 +30,7 @@ app/
 │                                IosStorage, TransientMessageHost); actuals
 ├── android/     :app:android - the APK: MainActivity.kt; device/ (AndroidPlatformServices: SoundPool, Vibrator,
 │                SensorManager, Toast, licence JSON; AndroidAppContainer; TextViewLicenceDocument); the play and
-│                github flavours (src/play: Play Games)
+│                github flavours (src/play: Play Games; src/github: AndroidProgressFiles)
 ├── licensing/   licence records for everything either platform ships (see its README)
 └── ios/         the XcodeGen spec (project.yml), the Swift shell hosting MainViewController(), the icon
 ```
@@ -54,7 +54,8 @@ app/
   `kotlinx-datetime` was ~180 classes.
 - **Time.** `game/Clock.kt`'s `nowEpochMillis()` (`kotlin.time.Clock`).
 - **Platform services.** `PlatformServices`: `SoundPlayer`, `HapticsPlayer`, `Accelerometer`, `showTransientMessage`,
-  `LicenceDocument`, `loadLicenceReports`, `reduceMotion`, `capFrameRate`.
+  `LicenceDocument`, `loadLicenceReports`, `reduceMotion`, `capFrameRate`, and `progressFiles` (null: only a build with
+  no online service has them, so an iOS app with Game Center leaves it so; `DESIGN.md`, "Distribution").
   - `SoundEffects` and `DiceHaptics` are shared wrappers.
   - `ShakeDetector` is pure logic (`ShakeDetectorTest`).
 - **Build info.** `BuildInfo` (version, debug flag). Superuser tests pass `isDebugBuild` explicitly, and a test pins

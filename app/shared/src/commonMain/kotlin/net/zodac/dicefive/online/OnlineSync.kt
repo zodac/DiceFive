@@ -208,14 +208,7 @@ class OnlineSync(
         return restored.size
     }
 
-    /** Records, quietly, every achievement the merged totals have reached ([AchievementEngine.evaluateProgress]). */
-    private suspend fun unlockReachedTargets() {
-        val totals = leaderboardTotals()
-        store.locked {
-            val update = AchievementEngine.evaluateProgress(store.current(), totals, now())
-            store.record(update.unlockedAt(), emptyMap())
-        }
-    }
+    private suspend fun unlockReachedTargets() = store.unlockReachedTargets(leaderboardTotals(), now())
 
     /**
      * Writes this device's progress, merged with [remoteSave] (the save as read, if any), unless the two already match.
@@ -278,19 +271,20 @@ object OnlineSyncRequests {
 /**
  * The parts of an [OnlineSync.reconcile], in the order it takes them, as the Settings card names them; the
  * [cloudSaveOnly] ones are skipped with no cloud save. A merge with nothing to merge (no save yet) still has its step.
+ * The cloud save's [merge] steps are a progress file's import's too ([ImportStep.merge]), named the same.
  */
-enum class SyncStep(val cloudSaveOnly: Boolean = false) {
+enum class SyncStep(val cloudSaveOnly: Boolean = false, val merge: MergeStep? = null) {
     /** Asking the service what it has - unlocked achievements, and the cloud save - and another account's wipe. */
     DOWNLOADING,
 
-    SETTINGS(cloudSaveOnly = true),
-    GAME(cloudSaveOnly = true),
+    SETTINGS(cloudSaveOnly = true, merge = MergeStep.SETTINGS),
+    GAME(cloudSaveOnly = true, merge = MergeStep.GAME),
 
     /** The save's achievements merged in, and the service's unlocks restored. */
-    ACHIEVEMENTS,
+    ACHIEVEMENTS(merge = MergeStep.ACHIEVEMENTS),
 
     /** The save's scores merged in, then any achievement the merged totals reach. */
-    SCORES(cloudSaveOnly = true),
+    SCORES(cloudSaveOnly = true, merge = MergeStep.SCORES),
 
     /** The achievements sent, then the cloud save written. */
     UPLOADING,

@@ -82,7 +82,9 @@ DiceFive is for Android 8.0 and up, available on [Google Play Store](https://pla
 
 Alternatively, you can check the [Releases](https://github.com/zodac/DiceFive/releases) page of this repo to get the `.apk` file directly.
 This is a separate app from the Google Play one, and installs beside it rather than over it. It doesn't integrate with
-Google Play Games Services, so all activity is stored locally on your device only.
+Google Play Games Services, so all activity is stored locally on your device only. To keep a copy of your progress, or
+move it to another device, use **Export progress** and **Import progress** in Settings: an import adds the file's
+achievements and scores to the ones already there.
 
 ---
 

@@ -902,6 +902,31 @@
     <string name="settings_reset_leaderboard_title">Reset Leaderboard?</string>
     <string name="settings_reset_leaderboard_message">Every recorded score will be deleted, clearing the Leaderboard screen - and Statistics with it, since it's calculated from the same scores. This can't be undone. Achievements and settings are not affected, though any achievement progress measured against the leaderboard will start over.</string>
     <string name="settings_reset_leaderboard_online_note">Scores already sent to %1$s stay there.</string>
+    <!-- Progress files, in a build with no online game service (the GitHub APK): the player's own copy of their progress, to keep or carry to another device. -->
+    <string name="settings_export_progress">Export progress</string>
+    <string name="settings_export_progress_description">Save achievements, scores and settings to a file</string>
+    <!-- What a screen reader says a tap on the export row does (it opens the system's "save as" picker). -->
+    <string name="settings_export_progress_action">Export</string>
+    <string name="settings_import_progress">Import progress</string>
+    <string name="settings_import_progress_description">Add progress from an exported file</string>
+    <!-- What a screen reader says a tap on the import row does (it opens the "are you sure" dialog). -->
+    <string name="settings_import_progress_action">Import</string>
+    <string name="settings_import_progress_title">Import Progress?</string>
+    <!-- %1$s is the app's name. Importing merges: achievements and scores are added together; for each setting and the saved game, whichever was changed last wins. -->
+    <string name="settings_import_progress_message">Choose a file exported from %1$s. Its achievements and scores are added to this device's, and where both have a setting or a saved game, the newer one is kept. This can't be undone.</string>
+    <!-- The dialog's button that opens the system's file picker. -->
+    <string name="settings_import_progress_confirm">Choose file</string>
+    <!-- Under the card's rows once an export or import has finished, in red when it went wrong, until the next starts. %1$s is the app's name. -->
+    <string name="settings_progress_exported">Progress exported</string>
+    <string name="settings_progress_imported">Progress imported</string>
+    <string name="settings_progress_not_a_file">That isn't a %1$s progress file, or it has been changed</string>
+    <string name="settings_progress_newer">That file is from a newer version of %1$s. Update the app, then import it again.</string>
+    <string name="settings_progress_export_failed">Couldn't save the file</string>
+    <string name="settings_progress_import_failed">Couldn't read the file</string>
+    <!-- While an import runs, in place of those, after a spinner and above a progress bar: the step, as online_sync_progress shows it, with online_sync_step_settings, _game, _achievements and _scores for the merges. This is the first step's. -->
+    <string name="settings_progress_step_opening">Opening the file</string>
+    <!-- What a screen reader announces while an import runs, in place of each step. -->
+    <string name="settings_progress_importing_cd">Importing progress</string>
 
     <!-- Style names (ui/style/StyleCatalog.kt): what each style, and each colour of it, is called on the Styles screen. Short: they sit under a small tile. -->
     <string name="style_family_art_deco">Art Deco</string>

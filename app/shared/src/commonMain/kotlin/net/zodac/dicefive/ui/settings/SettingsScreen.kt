@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MotionPhotosOff
@@ -56,6 +57,7 @@ import net.zodac.dicefive.online.LocalOnlineSyncStatus
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.about_title
+import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.resources.common_cancel
 import net.zodac.dicefive.resources.licences_title
 import net.zodac.dicefive.resources.settings_animations
@@ -67,6 +69,9 @@ import net.zodac.dicefive.resources.settings_animations_medium
 import net.zodac.dicefive.resources.settings_animations_medium_short
 import net.zodac.dicefive.resources.settings_animations_off
 import net.zodac.dicefive.resources.settings_confirm_leaving
+import net.zodac.dicefive.resources.settings_import_progress_confirm
+import net.zodac.dicefive.resources.settings_import_progress_message
+import net.zodac.dicefive.resources.settings_import_progress_title
 import net.zodac.dicefive.resources.settings_online_achievements
 import net.zodac.dicefive.resources.settings_orientation
 import net.zodac.dicefive.resources.settings_orientation_device
@@ -252,6 +257,7 @@ fun SettingsScreen(
     var showResetLeaderboardConfirmation by rememberSaveable { mutableStateOf(false) }
     var showLicenses by rememberSaveable { mutableStateOf(false) }
     var showAbout by rememberSaveable { mutableStateOf(false) }
+    var showImportConfirmation by rememberSaveable { mutableStateOf(false) }
 
     val platform = LocalPlatformServices.current
     val alreadyDeveloper = stringResource(Res.string.settings_already_developer)
@@ -260,6 +266,9 @@ fun SettingsScreen(
     LaunchedEffect(viewModel) {
         viewModel.versionTapMessages.collect { steps -> platform.showTransientMessage(if (steps == 0) alreadyDeveloper else stepsAway[steps - 1]) }
     }
+    val progressFiles = platform.progressFiles
+    val progressFilesStatus by viewModel.progressFilesStatus.collectAsStateWithLifecycle()
+    val appName = stringResource(Res.string.app_name)
 
     ScreenScaffold(
         title = stringResource(Res.string.settings_title),
@@ -287,6 +296,16 @@ fun SettingsScreen(
                 unreachable = unreachable,
                 signInSynced = signInSynced,
             )
+        }
+        // In the online card's place: a build has one or the other, never both (PlatformServices.progressFiles).
+        val progressCard = @Composable {
+            if (progressFiles != null) {
+                ProgressFilesCard(
+                    onExport = { viewModel.exportProgress(progressFiles) },
+                    onImport = { showImportConfirmation = true },
+                    status = progressFilesStatus,
+                )
+            }
         }
         val switchesCard = @Composable {
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -383,6 +402,7 @@ fun SettingsScreen(
             TwoPanes(
                 start = {
                     onlineCard()
+                    progressCard()
                     switchesCard()
                     resetsCard()
                     aboutLink(Modifier.fillMaxWidth())
@@ -394,6 +414,7 @@ fun SettingsScreen(
             )
         } else {
             onlineCard()
+            progressCard()
             switchesCard()
             choicesCard()
             resetsCard()
@@ -439,6 +460,22 @@ fun SettingsScreen(
             dismissLabel = stringResource(Res.string.common_cancel),
             onDismiss = { showResetAchievementsConfirmation = false },
             onDismissRequest = { showResetAchievementsConfirmation = false },
+        )
+    }
+
+    if (showImportConfirmation && progressFiles != null) {
+        DiceFiveDialog(
+            icon = Icons.Filled.FileOpen,
+            title = stringResource(Res.string.settings_import_progress_title),
+            message = stringResource(Res.string.settings_import_progress_message, appName),
+            confirmLabel = stringResource(Res.string.settings_import_progress_confirm),
+            onConfirm = {
+                viewModel.importProgress(progressFiles)
+                showImportConfirmation = false
+            },
+            dismissLabel = stringResource(Res.string.common_cancel),
+            onDismiss = { showImportConfirmation = false },
+            onDismissRequest = { showImportConfirmation = false },
         )
     }
 

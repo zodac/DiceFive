@@ -1,9 +1,12 @@
 package net.zodac.dicefive.online
 
+import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsRepository
 import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
+import net.zodac.dicefive.game.AchievementEngine
+import net.zodac.dicefive.game.LeaderboardTotals
 
 /**
  * This device's side of the cloud save, for [OnlineSync]: read it whole, merge a save into it store by store, or wipe
@@ -68,10 +71,40 @@ class LocalCloudSave(
     }
 }
 
-/** All of [save] merged in, in [OnlineSync]'s order: settings, the game in progress, achievements, scores. */
-suspend fun CloudSaveStore.merge(save: CloudSave) {
-    mergeSettings(save)
-    mergeGame(save)
-    mergeAchievements(save)
-    mergeScores(save)
+/**
+ * The parts of a merge, in the order every merge takes them: a cloud save's ([OnlineSync], [SyncStep.merge]) and a
+ * progress file's ([ProgressTransfer], [ImportStep.merge]). Each flow's own steps name these, so both show the same.
+ */
+enum class MergeStep {
+    SETTINGS,
+    GAME,
+    ACHIEVEMENTS,
+
+    /** The scores, and the leaderboard reset marker with them. */
+    SCORES,
+}
+
+/** All of [save] merged in, in [MergeStep]'s order, telling [onStep] each part as it starts. */
+suspend fun CloudSaveStore.merge(save: CloudSave, onStep: (MergeStep) -> Unit = {}) {
+    for (step in MergeStep.entries) {
+        onStep(step)
+        mergePart(step, save)
+    }
+}
+
+/** The one [step] of [save] merged in. */
+suspend fun CloudSaveStore.mergePart(step: MergeStep, save: CloudSave) = when (step) {
+    MergeStep.SETTINGS -> mergeSettings(save)
+    MergeStep.GAME -> mergeGame(save)
+    MergeStep.ACHIEVEMENTS -> mergeAchievements(save)
+    MergeStep.SCORES -> mergeScores(save)
+}
+
+/**
+ * Records, quietly, every achievement a merge's [totals] have reached ([AchievementEngine.evaluateProgress]): another
+ * device's counters, scores or career points can carry one past a target neither reached alone. After every merge.
+ */
+suspend fun AchievementStore.unlockReachedTargets(totals: LeaderboardTotals, now: Long) = locked {
+    val update = AchievementEngine.evaluateProgress(current(), totals, now)
+    record(update.unlockedAt(), emptyMap())
 }

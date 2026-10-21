@@ -256,6 +256,8 @@ will map to Play Games.
     No reset clears it.
 - **Cloud save** (signed in only): one gzipped JSON snapshot of all of the above but the Animations level and the
   Styles page fit, merged, never picked. `PLAY_GAMES.md`, "Cloud save", is the source.
+- **Progress files** (the github app only): the same snapshot, sealed, in a file the player keeps. "Distribution",
+  below.
 - **The in-progress game.** `InProgressGameRepository` holds at most one, saved as JSON (`GameStateJson`).
   - It's saved after every change and cleared when the game ends.
   - Writes are queued and conflated in a process-lifetime scope, so leaving a game can't lose its last move.
@@ -444,8 +446,9 @@ screen) of `StyleColour`s.
 
 ## Settings
 
-- **Contents.** Switches for Sound effects, Vibration and Confirm leaving game; the Animations level; the Orientation;
-  and two resets behind confirmations (achievements, leaderboard).
+- **Contents.** The online account card (the play app) or the progress files card (the github app), at the top; switches
+  for Sound effects, Vibration and Confirm leaving game; the Animations level; the Orientation; and two resets behind
+  confirmations (achievements, leaderboard).
 - **Orientation** (`ScreenOrientation`): Device (the default: turns as the system allows), Portrait or Landscape. Not
   synced, as a phone and a tablet can want different ones. `DiceFiveApp` hands it to `PlatformServices.lockOrientation`;
   on Android `MainActivity` sets `requestedOrientation` (sensor portrait or landscape, so either way up). The manifest's
@@ -487,12 +490,38 @@ Two apps from one source, one per way the app reaches players: product flavours 
 | Ships as | The App Bundle, uploaded to Google Play by hand | The APK on each GitHub release |
 | `applicationId` | `net.zodac.dicefive` | `net.zodac.dicefive.github` |
 | Google Play Games | Yes (`PLAY_GAMES.md`): the SDK, its manifest entries, Sidekick | None: no SDK, no manifest entries, `NoGameServices` |
+| Progress files | None, signed in or not | Export and Import, in Settings |
 
-- **Kept apart.** The github app's data can't reach the play app's: they're separate packages (data, backups and
-  installs are per package), signed by different keys (Play re-signs the bundle). Pinned by `GithubFlavourTest` and
-  `PlayFlavourTest`.
+- **Kept apart so nothing from a file reaches Play Games.** A file's progress can only be imported into the github
+  app, which has no Play Games code, and the github app's data can't reach the play app's: they're separate packages
+  (data, backups and installs are per package), signed by different keys (Play re-signs the bundle). Pinned by
+  `GithubFlavourTest` and `PlayFlavourTest`.
 - **The github app is a different app.** It installs beside the play app, not over it; a GitHub install from before
   the split (`net.zodac.dicefive`, 1.0.0) doesn't update to it.
+- **Progress files** (`online/ProgressFileCodec`, `ProgressTransfer`; on Android `AndroidProgressFiles`, through the
+  system's pickers, with no storage permission).
+  - **What's in one**: everything a cloud save holds (`CloudSaveStore.snapshot`), as its own bytes (`CloudSaveCodec`).
+  - **An import is the cloud save's merge from another source**: `CloudSaveStore.merge`, then what the merged totals
+    reach (`unlockReachedTargets`), so the same rules apply (`PLAY_GAMES.md`, "Cloud save"). Nothing is picked or
+    thrown away, and importing a file twice changes nothing. A newer app's file is refused whole, with "update the app".
+  - **Sealed, not plain**: `DiceFive`, a format byte and a random nonce, then the save XORed with an HMAC-SHA256
+    keystream, then an HMAC-SHA256 of all of it. A file changed by one bit, or sealed by another build, isn't a progress
+    file. The key is CI's `PROGRESS_FILE_KEY` secret (64 hex digits), never in the source; a build without it uses an
+    all-zero key, and the release workflow refuses to build the APK without it. **The key is permanent**: files made
+    with one can't be opened with another.
+  - **What it stops**: editing a file by hand, or with a tool written from this public source. Not someone who pulls
+    the key out of the APK, or edits a rooted phone's own data, which no offline app can stop. Neither reaches Play
+    Games, as above.
+  - Named `DiceFive-<yyyy-MM-dd>.dicefive` (the player's day). Tests: `ProgressFileCodecTest`, `ProgressTransferTest`,
+    `ProgressFilesViewModelTest`, `ProgressFilesSettingsTest`.
+- **Settings card** (`ProgressFilesCard`): Export progress and Import progress, each a whole-row button, where the online
+  card would be. Import asks first ("Import Progress?"). Under the rows, while an import runs, its step and count over
+  a bar, drawn by the same `StepProgress` as the online card's sync ("Opening the file", then the same four merge
+  steps, `MergeStep`, named the same: `MergeStepTest` keeps the two flows in step), for at least 1s
+  (`IMPORT_SHOWN_MILLIS`, shared out between the steps, so a quick import's bar still visibly runs: the card catches up
+  with the import a step at a time, `nextShownStatus`, counting only while the app is in front); then
+  how the last export or import ended, in red if it failed, until the next starts. No toasts. The line is a polite live
+  region: TalkBack hears "Importing progress" (not each step), then the outcome.
 
 ## Release pipeline
 
@@ -529,6 +558,8 @@ Two apps from one source, one per way the app reaches players: product flavours 
   - The changelog is per app: commits since that app's previous tag, leaving out the other app's own code.
 - **Signing.** Four `ANDROID_RELEASE_*` env vars (repo secrets in CI); without them the build is unsigned. The keystore
   (alias `upload`) is the Play upload key, and signs both the bundle and the github APK.
+- **`PROGRESS_FILE_KEY`** (a repo secret): the github APK's progress file key ("Distribution"). The apk job fails
+  without it.
 - **R8** shrinks and obfuscates release builds (`app/android/r8-rules.pro`). Release dex is stored uncompressed.
   - It lays the dex out from the startup profile (`dexLayoutOptimization`): the code a cold start runs to the menu
     (`StartupProfileGenerator`) goes first. The release workflow fails if it generates no `startup-prof.txt`.

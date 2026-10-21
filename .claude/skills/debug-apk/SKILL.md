@@ -8,7 +8,7 @@ description: Build the debug APK and send it to the user. Use once a requested c
 1. `./gradlew -q assembleGithubDebug -PdevStamp` from `/work`. The build needs `ffmpeg` on PATH, because it normalises
    the sound clips.
    - That's the **github** app (`net.zodac.dicefive.github`), the only debug APK ever sent: everything a debug build
-     can show. The play app is tested only as a Play-signed build from an internal testing
+     can show, progress files included. The play app is tested only as a Play-signed build from an internal testing
      track (`PLAY_GAMES.md`, "Testing"); its debug variant exists for its unit tests and lint, never to hand out.
 2. Find the file: `ls -t app/android/build/outputs/apk/github/debug/*.apk | head -1`.
 3. Send it with the `SendUserFile` tool (load it via ToolSearch `select:SendUserFile` if it's deferred).

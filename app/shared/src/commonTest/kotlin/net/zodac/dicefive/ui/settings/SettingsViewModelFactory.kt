@@ -8,6 +8,7 @@ import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.online.OnlineSettingsRepository
+import net.zodac.dicefive.online.ProgressTransfer
 
 /** A Settings view model over in-memory repositories, with any a test cares about passed in. */
 fun settingsViewModel(
@@ -16,4 +17,5 @@ fun settingsViewModel(
     scores: ScoreRepository = ScoreRepository(InMemoryScoreDao()),
     online: OnlineSettingsRepository = OnlineSettingsRepository(InMemoryPreferences()),
     now: () -> Long = ::nowEpochMillis,
-) = SettingsViewModel(settings, achievements, scores, online, now)
+    progressTransfer: ProgressTransfer? = null,
+) = SettingsViewModel(settings, achievements, scores, online, now, progressTransfer)

@@ -15,8 +15,8 @@ import org.robolectric.Robolectric
 import org.robolectric.annotation.Config
 
 /**
- * The github APK: an app of its own, beside the Play one rather than in its place, with no Google Play Games anywhere
- * in it - no SDK, no manifest entries, no service.
+ * The github APK: an app of its own, beside the Play one rather than in its place, with progress files and no Google
+ * Play Games anywhere in it - no SDK, no manifest entries, no service.
  */
 @RunWith(AndroidJUnit4::class)
 class GithubFlavourTest {
@@ -58,8 +58,9 @@ class GithubFlavourTest {
     }
 
     @Test
-    fun `it has no online service`() {
+    fun `it has progress files - sealed with a 32-byte key - and no online service`() {
         val activity = Robolectric.buildActivity(ComponentActivity::class.java).create().get()
         assertSame(NoGameServices, Distribution.gameServices(activity))
+        assertEquals(32, Distribution.progressFiles(activity).key.size)
     }
 }

@@ -17,7 +17,7 @@ name: Android release
 # commit afterwards also empties those two sections, ready for the next release's notes.
 #
 # Every release attaches its build assets: the signed github APK (for sideloading; an app of its own,
-# net.zodac.dicefive.github, with no Play Games), the signed play App Bundle (.aab) for
+# net.zodac.dicefive.github, with progress files and no Play Games), the signed play App Bundle (.aab) for
 # Google Play, and R8's mapping.txt for each, for reading obfuscated stack traces. Once it's out, readme-assets.yml
 # refreshes the README's screenshots from the same commit.
 # Both are signed with the RELEASE_KEY* secrets' key, which is the app's
@@ -393,6 +393,18 @@ jobs:
       - name: Give the github APK the same profile
         run: cp -r app/android/src/playRelease/generated app/android/src/githubRelease/
 
+      # The github APK's progress files are sealed with this (app/android/build.gradle.kts, PROGRESS_FILE_KEY): without
+      # it the build would use the all-zero key anyone can read in the source, and its files would be readable and
+      # writable by anyone. Permanent once released - files made with one key can't be opened with another.
+      - name: Check the progress file key
+        env:
+          PROGRESS_FILE_KEY: ${{ secrets.PROGRESS_FILE_KEY }}
+        run: |
+          if ! [[ "$PROGRESS_FILE_KEY" =~ ^[0-9a-fA-F]{64}$ ]]; then
+            echo "::error::The PROGRESS_FILE_KEY secret must be set to 64 hex digits - see .claude/DESIGN.md, \"Progress files\""
+            exit 1
+          fi
+
       - name: Decode release keystore
         run: echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore.jks"
 
@@ -405,6 +417,7 @@ jobs:
           ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          PROGRESS_FILE_KEY: ${{ secrets.PROGRESS_FILE_KEY }}
         run: ./gradlew :app:android:assembleGithubRelease :app:android:bundlePlayRelease --console=plain
 
       # app/android/build.gradle.kts names the APK DiceFive-<version>-<flavour>-<buildType>.apk (signed here, so no

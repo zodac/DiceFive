@@ -40,6 +40,13 @@ val releaseKeystorePath = System.getenv("ANDROID_RELEASE_KEYSTORE_PATH")
 val releaseKeystorePassword = System.getenv("ANDROID_RELEASE_KEYSTORE_PASSWORD")
 val releaseKeyAlias = System.getenv("ANDROID_RELEASE_KEY_ALIAS")
 val releaseKeyPassword = System.getenv("ANDROID_RELEASE_KEY_PASSWORD")
+// The secret the github flavour seals progress files with (online/ProgressFileCodec), as 64 hex digits: CI's
+// PROGRESS_FILE_KEY secret, which never appears in the source, so a file can't be rewritten with the key read from
+// GitHub. Permanent: another key can't read the files made with this one. A build without it (a local or debug build)
+// uses this all-zero key instead, which can't read a release's files - android-release.yml refuses to release with it.
+val progressFileKey: String = System.getenv("PROGRESS_FILE_KEY")?.takeIf { it.isNotBlank() }?.trim()?.lowercase()
+    ?.also { require(Regex("[0-9a-f]{64}").matches(it)) { "PROGRESS_FILE_KEY must be 64 hex digits" } }
+    ?: "0".repeat(64)
 val hasReleaseSigningConfig = !releaseKeystorePath.isNullOrBlank() &&
     !releaseKeystorePassword.isNullOrBlank() &&
     !releaseKeyAlias.isNullOrBlank() &&
@@ -91,9 +98,9 @@ android {
     }
 
     // Two apps from one source, one per way the app reaches players (.claude/DESIGN.md, "Distribution"):
-    // - play: the App Bundle for Google Play, with Google Play Games (src/play);
+    // - play: the App Bundle for Google Play, with Google Play Games (src/play) and no progress files;
     // - github: the APK on GitHub releases, a separate app (its own applicationId, so no data of its own can reach the
-    //   play app's) with no Play Games SDK at all.
+    //   play app's) with progress files (src/github) and no Play Games SDK at all.
     flavorDimensions += "distribution"
     productFlavors {
         create("play") {
@@ -102,6 +109,7 @@ android {
         create("github") {
             dimension = "distribution"
             applicationIdSuffix = ".github"
+            buildConfigField("String", "PROGRESS_FILE_KEY", "\"$progressFileKey\"")
         }
     }
 

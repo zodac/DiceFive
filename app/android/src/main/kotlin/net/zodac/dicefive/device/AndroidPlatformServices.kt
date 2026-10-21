@@ -21,6 +21,7 @@ import net.zodac.dicefive.platform.Accelerometer
 import net.zodac.dicefive.platform.HapticsPlayer
 import net.zodac.dicefive.platform.LicenceReports
 import net.zodac.dicefive.platform.PlatformServices
+import net.zodac.dicefive.platform.ProgressFiles
 import net.zodac.dicefive.platform.SoundPlayer
 import net.zodac.dicefive.platform.LicenceScroll
 import net.zodac.dicefive.platform.LicenseReport
@@ -30,7 +31,7 @@ import net.zodac.dicefive.platform.SelectionClearer
  * [PlatformServices] for Android. Holds the application context, never an Activity's: sound
  * players and sensors can outlive any single Activity instance across a configuration change.
  */
-class AndroidPlatformServices(context: Context) : PlatformServices {
+class AndroidPlatformServices(context: Context, override val progressFiles: ProgressFiles? = null) : PlatformServices {
 
     private val appContext = context.applicationContext
 

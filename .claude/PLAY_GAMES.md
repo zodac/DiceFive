@@ -41,7 +41,8 @@ app/android/src/play/.../online/  PlayGamesServices, PlayGamesIds, PlayGamesAchi
 - **The engine and `GameMode` never learn the network exists.** Per-mode data is a field (`onlineLeaderboardKey`).
 - **The play app only.** Play Games is the `play` flavour's (`DESIGN.md`, "Distribution"): the SDK, the manifest's
   `APP_ID`, Sidekick and the disabled init provider are all in `src/play`. The github APK (`net.zodac.dicefive.github`)
-  has none of it, so a Play Games credential, which is per package, can't sign it in either.
+  has none of it, so a Play Games credential, which is per package, can't sign it in either; it has progress files
+  instead, which the play app never has, signed in or not.
 - **Play-only installs.** A play release build uses Play Games only when installed by Play (`com.android.vending`) on a
   phone with Play services; a debug build never does, as its public key has no credential ("Play Console")
   (`PlayGamesServices.usesPlayGames`). Otherwise: `NoGameServices`, no card, as in the github APK. The SDK is still
@@ -126,7 +127,8 @@ Always on while signed in, with no switch and no prompt. Every sync merges; noth
   greyed while signing in and until that sync ends.
 - "Last saved <time>" (`cloud_saved:<account>`, via `formatTimestamp`) under the header.
 - While a sign-in's sync runs (`OnlineSync.progress`), a block names the step and count ("Merging scores (5/7)") with
-  a spinner and a 400ms gliding bar (a still icon and snapping under reduced motion). Seven steps (`SyncStep`):
+  a spinner and a 400ms gliding bar (a still icon and snapping under reduced motion): `StepProgress`, which the
+  github app's import shows too, with the same merge steps (`MergeStep`). Seven steps (`SyncStep`):
   downloading, settings, the game in progress, achievements, scores, uploading, leaderboard scores.
 - "Couldn't reach Google Play Games - will retry" while the last sync failed (`OnlineSync.unreachable`).
 - **TalkBack**: one group with its status as `stateDescription`, and the sync step in the heading ("…, Merging scores,

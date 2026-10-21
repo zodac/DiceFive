@@ -46,6 +46,12 @@ interface PlatformServices {
     /** A short message that shows for a moment and needs no response - each platform's own (a toast, on Android). */
     fun showTransientMessage(message: String)
 
+    /**
+     * Saving and opening progress files, or null for a build without them: only one with no online game service has
+     * them (on Android, the github APK), so nothing from a file can reach the service's achievements or leaderboards.
+     */
+    val progressFiles: ProgressFiles? get() = null
+
     /** The build-generated open-source licence reports the Licences dialog lists - see [LicenceReports]. */
     suspend fun loadLicenceReports(): LicenceReports
 

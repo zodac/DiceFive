@@ -40,7 +40,7 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
   - `app/shared` holds the game, UI and persistence. It must compile for iOS: no Android or JVM APIs, resources
     through `Res.*`, devices through `platform/PlatformServices`.
   - `app/android` is the APK shell and Android's platform code (`device/`). Two flavours (`DESIGN.md`,
-    "Distribution"): `play` (Google Play, Play Games in `src/play`) and `github` (the GitHub APK, no Play Games,
+    "Distribution"): `play` (Google Play, Play Games in `src/play`) and `github` (the GitHub APK, progress files in
     `src/github`).
   - `app/baselineprofile` is the profile journey; `app/licensing` holds the licence records.
   - The package map is in `README.md`.
@@ -109,7 +109,7 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 
 | Doc | Read when |
 |---|---|
-| `.claude/DESIGN.md` | Rules of play, modes and modifiers in brief, the CPU, persistence, Leaderboard/Statistics, achievements, table art, sound, settings, the play and github apps, release pipeline |
+| `.claude/DESIGN.md` | Rules of play, modes and modifiers in brief, the CPU, persistence, Leaderboard/Statistics, achievements, table art, sound, settings, the play and github apps (progress files), release pipeline |
 | `.claude/UI.md` | Any visual change: colour, the brand font, shared chrome, insets, component rules, **the accessibility checklist**, motion and reduced motion, scrollbars, player colours, gotchas |
 | `.claude/UI_BOARD.md` | The game screen: scorecard grid per mode, tiles, tray, cup, totals and undo, tablets and landscape, name caps |
 | `.claude/UI_SCREENS.md` | Achievements list and banners, Styles screen and locks, Leaderboard views, menu logo and backdrop |
