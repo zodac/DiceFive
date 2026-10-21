@@ -16,8 +16,8 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
   - Shared code, ready for an iOS app.
 - **Google Play Games Services** (`PLAY_GAMES.md`) is built on Android: sign-in, achievements, leaderboards, cloud save
   and Sidekick. Its Play Console release remains.
-- **Planned, not built.** The iOS app (`IOS_SUPPORT.md`), and possibly ads with a one-time Pro purchase
-  (`PUBLISHING.md`).
+- **Planned, not built.** The iOS app (`IOS_SUPPORT.md`), an "Unlock all styles" purchase on Android, the app's only
+  purchase (`PURCHASES.md`), and possibly ads (`PUBLISHING.md`).
 - **Audience.** `README.md` is the public, player-facing description; keep it true to the app.
 
 ## Repo metadata
@@ -122,6 +122,7 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 | `.claude/STORE_ASSETS.md` | Changing store screenshots, scenes, captions or the video, and the generator traps |
 | `.claude/PUBLISHING.md` | Play Store submission checklist, the app's licence and third-party licence scope |
 | `.claude/PLAY_GAMES.md` | Anything touching Google Play Games Services: sign-in, achievement mirror, leaderboards, cloud save, Sidekick |
+| `.claude/PURCHASES.md` | The planned "Unlock all styles" purchase: Play Billing, the entitlement, the Styles button, the maintainer's Play Console steps, in phases |
 | `.claude/IOS_SUPPORT.md` | Module layout and platform seams, KMP gotchas, the phased iOS roadmap (Mac-less: CI builds, sideloaded) |
 
 ## Pending

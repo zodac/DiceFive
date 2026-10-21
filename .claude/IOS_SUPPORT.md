@@ -306,4 +306,5 @@ Exit: a signed build reaches TestFlight from CI.
 - **A shared `jvmMain`, with a desktop target only.** The Android `Diacritics` and `PlayerName` actuals are plain
   `java.text`, and Room and DataStore both run on desktop, so an intermediate `jvmMain` shared by Android and desktop
   would avoid copying them. With Android as its only consumer it shares nothing, so it waits for the desktop target.
-- **Ads and a Pro purchase** (`PUBLISHING.md`) would use StoreKit on iOS, through a seam like the online one.
+- **The "Unlock all styles" purchase** (`PURCHASES.md`, "Later: iOS") would use StoreKit on iOS, through its `Store`
+  seam.

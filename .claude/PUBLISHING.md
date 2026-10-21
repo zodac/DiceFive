@@ -32,7 +32,7 @@ In order:
   (`keytool -export -rfc -alias upload` if App integrity asks first).
 - **Closed testing.** 12+ testers for 14+ days before requesting production.
 - **Play Games Services.** Link it, register the SHA-1s and add testers (`PLAY_GAMES.md`).
-- **Later.** The Pro product and its license testers, and AdMob ad units.
+- **Later.** The "Unlock all styles" product and its license testers (`PURCHASES.md`), and AdMob ad units.
 
 ## Data safety
 
@@ -72,7 +72,7 @@ until the player signs in.
   Roll five dice and outscore friends or AI. Offline unless you use Play Games.
   ```
 
-  The full tagline (`README.md`'s first line, 120 chars) doesn't fit. Keep both true when ads or Pro ship, and declare
+  The full tagline (`README.md`'s first line, 120 chars) doesn't fit. Keep both true when ads or the purchase ship, and declare
   ads.
 - **Full description**: `assets/full-description.txt`, about 3000 of 4000 characters. Keep its counts and lists true:
   - the modes under "Seven ways to play" (and that heading's count);
@@ -97,7 +97,7 @@ until the player signs in.
 **Why**, over PolyForm Strict and open source:
 - the maintainer wants read-only code, with no reuse, no store forks and no contributions;
 - plain copyright is the most tested footing;
-- a permissive licence would allow Pro-unlocked, ad-free rebuilds;
+- a permissive licence would allow styles-unlocked, ad-free rebuilds;
 - the proprietary Google SDKs and the App Store conflict with GPL-style licences.
 
 The sole holder can relicense later.
@@ -113,7 +113,7 @@ The sole holder can relicense later.
   - CC0 needs nothing.
   - CC-BY needs a credit and can't take added restrictions, so it stays outside the all-rights-reserved scope.
   - CC-BY-SA adaptations stay CC-BY-SA.
-  - **NC licences are incompatible with ads or Pro.**
+  - **NC licences are incompatible with ads or the purchase.**
 - **Every library** in the licences dialog keeps its own licence.
 - **App artwork** is `LicenseRef-DiceFive-AllRightsReserved` in `asset-sources.json` (`APP_LICENSE` in
   `VerifyAssetSourcesTask`). Change both together.
@@ -121,8 +121,6 @@ The sole holder can relicense later.
 **Still open:**
 - **iOS licences.** Before an iOS release, generate iOS's own report and apply the copyleft guard to its dependencies
   (`IOS_SUPPORT.md`).
-- **GitHub release APKs.** Once Pro exists, decide whether they continue, stop, or become Pro-less (billing doesn't
-  work sideloaded).
 - **AI authorship.** Copyright in AI-generated material is unsettled. Worth a lawyer's view if the app earns real money.
 - **The copyright line is a pseudonym**: "Copyright 2026 zodac.net" (in `LICENSE`, `README.md` and
   `asset-sources.json`).
@@ -150,19 +148,15 @@ The sole holder can relicense later.
   because AGP leaves a kept library out of the extracted tables. Graphics-path ships pre-stripped, so its frames stay
   as addresses.
 
-## Future: ads and a one-time Pro purchase
+## Future: the purchase and ads
 
 Not being built, but both change this checklist.
 
-- **Pro.**
-  - Needs Play Billing (`com.android.billingclient:billing-ktx`; it merges the BILLING permission) and a non-consumable
-    product.
-  - License testers are needed, and test purchases only work from internal or closed testing.
-  - The app needs an entitlement check (`queryPurchasesAsync`) and a "Restore purchases" option.
+- **The "Unlock all styles" purchase**, the app's only one: `PURCHASES.md` has the plan, the payments profile, the
+  product, license testers and the declarations it changes. GitHub release APKs continue, with no purchase shown.
 - **Ads.**
   - AdMob: `play-services-ads`, the `com.google.android.gms.ads.APPLICATION_ID` meta-data, `AD_ID` (API 33+), and
     Google's UMP consent flow for the EEA, UK and California before any ad request.
-- **Together.** Pro's "no ads" must gate the ad-loading code path. The rating, data-safety and listing declarations all
-  need re-submitting.
+  - The rating, data-safety and listing declarations all need re-submitting.
 
 Release notes for each submission are written at release time, not stored here.
