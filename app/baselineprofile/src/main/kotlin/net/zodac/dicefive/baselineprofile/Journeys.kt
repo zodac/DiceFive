@@ -144,6 +144,19 @@ internal fun MacrobenchmarkScope.back() {
     device.waitForIdle()
 }
 
+/**
+ * Back from a page opened from the menu, pressed again if the menu hasn't come back: a starved emulator can drop a back
+ * press, and the next step would then look for the menu on that page. Pressed again only after [TIMEOUT_MS] without
+ * the menu, so a slow press isn't doubled into one that leaves the app.
+ */
+internal fun MacrobenchmarkScope.backToMenu() {
+    repeat(CLOSE_ATTEMPTS) {
+        back()
+        if (device.wait(Until.hasObject(MENU), TIMEOUT_MS)) return
+    }
+    error("Baseline Profile journey: back never returned to the menu (on screen: ${screenText()})")
+}
+
 /** Swipes up the middle of the screen [times] times - a long page or a dialog's text. */
 internal fun MacrobenchmarkScope.scrollDown(times: Int) {
     val x = device.displayWidth / 2
@@ -290,7 +303,7 @@ internal fun MacrobenchmarkScope.visitSettings() {
     scrollDown(1)
     closeDialog(By.desc("Close about"), "the About dialog's Close button")
 
-    back()
+    backToMenu()
 }
 
 /**
@@ -303,7 +316,7 @@ internal fun MacrobenchmarkScope.resetAchievements() {
     tapText("Reset achievements")
     await(By.text("Reset"), "the reset dialog's Reset button")
     closeDialog(By.text("Reset"), "the reset dialog's Reset button")
-    back()
+    backToMenu()
 }
 
 /**
@@ -316,8 +329,18 @@ internal fun MacrobenchmarkScope.resetAchievements() {
  * so the row's middle is about 33dp above the wordmark's top. A few nearby heights are tried in case
  * the fan sits a little off that. Every one of them is above the wordmark, well clear of the buttons -
  * and the run fails the moment a tap leaves the menu, rather than carrying on tapping elsewhere.
+ *
+ * The banners are kept up for [BANNER_TIMEOUT_MS] by the system's "Time to take action" setting, which the app's
+ * banners follow: their own four seconds were often gone before a hosted runner's emulator had found one to press.
+ * Any still up afterwards are swiped away, so they don't cover the rest of the journey.
  */
 internal fun MacrobenchmarkScope.visitAchievementBanner() {
+    withTimeToTakeAction(BANNER_TIMEOUT_MS) { pressAchievementBanner() }
+    clearBanners()
+}
+
+/** [visitAchievementBanner]'s attempts, each raising the banner and pressing it. */
+private fun MacrobenchmarkScope.pressAchievementBanner() {
     for (attempt in 1..BANNER_ATTEMPTS) {
         // A banner that was raised but missed can't be raised again until the achievement is locked. Any banners still
         // up are swiped away first: one the tap paused stays over the menu's buttons until it's tapped again.
@@ -345,13 +368,33 @@ internal fun MacrobenchmarkScope.visitAchievementBanner() {
         if (!device.wait(Until.gone(MENU), TIMEOUT_MS)) continue
         await(By.text("Achievements"), "the Achievements screen after the banner's long-press")
         Thread.sleep(GLOW_MS)
-        back()
+        backToMenu()
         return
     }
     error("Baseline Profile journey: tapping the logo's dice never raised a 'Not Those Dice!' banner it could press")
 }
 
-/** Swipes away the banners on screen, front first, whether counting down or paused. */
+/**
+ * Runs [block] with the system's "Time to take action" accessibility setting at [millis], then puts back what it was
+ * (unset, on a fresh emulator). Settings sets both of its keys to the one choice, and so does this.
+ */
+private inline fun MacrobenchmarkScope.withTimeToTakeAction(millis: Long, block: () -> Unit) {
+    val saved = TIME_TO_TAKE_ACTION_KEYS.associateWith { device.executeShellCommand("settings get secure $it").trim() }
+    TIME_TO_TAKE_ACTION_KEYS.forEach { device.executeShellCommand("settings put secure $it $millis") }
+    try {
+        block()
+    } finally {
+        saved.forEach { (key, value) ->
+            device.executeShellCommand(if (value == "null" || value.isEmpty()) "settings delete secure $key" else "settings put secure $key $value")
+        }
+    }
+}
+
+/**
+ * Swipes away the banners on screen, front first, whether counting down or paused. On a starved emulator a swipe's
+ * moves can arrive after the long-press timeout, and the banner takes it as a long press, opening Achievements or
+ * Styles: back to the menu, and the banner is swiped again.
+ */
 private fun MacrobenchmarkScope.clearBanners() {
     repeat(MAX_BANNERS) {
         val bounds = try {
@@ -363,7 +406,10 @@ private fun MacrobenchmarkScope.clearBanners() {
         // behind.
         val inset = bounds.width() / 8
         device.swipe(bounds.left + inset, bounds.centerY(), bounds.right - inset, bounds.centerY(), SWIPE_STEPS)
-        Thread.sleep(BANNER_LEAVE_MS)
+        if (device.wait(Until.gone(MENU), BANNER_LEAVE_MS)) {
+            back()
+            await(MENU, "the menu after a banner's swipe was taken as a long press")
+        }
     }
 }
 
@@ -641,7 +687,7 @@ internal fun MacrobenchmarkScope.visitRules() {
     tapTopText("Modes")
     tapTopText("Tricolour")
     scrollDown(2)
-    back()
+    backToMenu()
 }
 
 /**
@@ -676,11 +722,11 @@ internal fun MacrobenchmarkScope.visitScoreScreens() {
     openFromMenu("Leaderboard")
     tapDesc("Game Mode")
     tapDesc("Combined")
-    back()
+    backToMenu()
     openFromMenu("Statistics")
     tapDesc("Player 1.", startsWith = true)
     tapText("By mode")
-    back()
+    backToMenu()
 }
 
 /**
@@ -705,7 +751,7 @@ internal fun MacrobenchmarkScope.visitAchievements() {
     await(missing, "Tally's missing scores")
     closeDialog(By.text("Done"), "the missing scores' Done button")
     tapText("Locked only")
-    back()
+    backToMenu()
 }
 
 /**
@@ -717,13 +763,32 @@ internal fun MacrobenchmarkScope.visitStyles() {
     // Dice gallery on (every tile at once), down the page and back, then off for the rows below.
     tapDesc("Dice gallery")
     scrollDown(2)
+    closeMisreadLockDialog()
     scrollUp(2)
+    closeMisreadLockDialog()
     tapDesc("Dice gallery")
-    for (fraction in listOf(0.25f, 0.45f, 0.65f, 0.85f)) scrollRow(fraction, 2)
+    for (fraction in listOf(0.25f, 0.45f, 0.65f, 0.85f)) {
+        scrollRow(fraction, 2)
+        closeMisreadLockDialog()
+    }
     scrollDown(1)
-    for (fraction in listOf(0.25f, 0.45f, 0.65f, 0.85f)) scrollRow(fraction, 2)
-    back()
+    closeMisreadLockDialog()
+    for (fraction in listOf(0.25f, 0.45f, 0.65f, 0.85f)) {
+        scrollRow(fraction, 2)
+        closeMisreadLockDialog()
+    }
+    backToMenu()
 }
+
+/**
+ * Closes a locked style's dialog if a swipe opened it: on a starved emulator a swipe's moves can arrive after the
+ * long-press timeout, and the tile under it takes it as a long press. The dialog's "OK" is the only one on the page.
+ */
+private fun MacrobenchmarkScope.closeMisreadLockDialog() {
+    if (device.hasObject(LOCK_DIALOG_OK)) closeDialog(LOCK_DIALOG_OK, "a locked style's dialog")
+}
+
+private val LOCK_DIALOG_OK = By.text("OK")
 
 private val GAME_OVER = By.text("Game Over")
 private const val MODES_LOCKED = "Finish a game to unlock game modes"
@@ -754,8 +819,12 @@ private const val BANNER_APPEAR_MS = 2_000L
 private const val GLOW_MS = 2_000L
 private const val LONG_PRESS_STEPS = 200
 private const val BANNER_ATTEMPTS = 3
+/** One of the "Time to take action" setting's own choices: far longer than finding and pressing a banner takes. */
+private const val BANNER_TIMEOUT_MS = 30_000L
+private val TIME_TO_TAKE_ACTION_KEYS = listOf("accessibility_interactive_ui_timeout_ms", "accessibility_non_interactive_ui_timeout_ms")
 private const val MENU_GONE_MS = 3_000L
 private const val MAX_BANNERS = 6
 private const val SWIPE_STEPS = 10
-private const val BANNER_LEAVE_MS = 400L
+/** A swiped banner's going, or long enough for a page a misread swipe opened to take the menu's place. */
+private const val BANNER_LEAVE_MS = 1_500L
 private const val SHORT_IDLE_WAIT_MS = 100L
