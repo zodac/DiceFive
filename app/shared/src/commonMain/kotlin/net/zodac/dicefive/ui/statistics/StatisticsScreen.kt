@@ -43,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -186,10 +187,14 @@ fun StatisticsScreen(
             val listState = rememberLazyListState()
             // Two cards to a row in landscape, each opening on its own (the other keeps its height); one otherwise.
             val columns = if (LocalLandscapePage.current) LANDSCAPE_COLUMNS else 1
-            // Whether every card fits on screen opened: null until measured. Cards start open if so, else only the first.
-            // The top card of each column: the first row's.
-            val topRow = players.take(columns)
+            // Whether every card fits on screen opened: null until measured.
             var allFit by remember { mutableStateOf<Boolean?>(if (players.size > MEASURE_LIMIT) false else null) }
+            // The names of the open cards. Dealt afresh whenever the order changes (or the columns do, or the fit is known):
+            // every card if they all fit, else the top card of each column - the first row's. Toggled from there.
+            val openNames = remember(sortOrder?.stored, columns, allFit) {
+                val dealt = if (allFit == true) players else players.take(columns)
+                mutableStateListOf<String>().apply { addAll(dealt.map { it.playerName }) }
+            }
 
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 if (allFit == null) {
@@ -204,12 +209,13 @@ fun StatisticsScreen(
                     ) {
                         items(players.chunked(columns), key = { row -> row.first().playerName }) { row ->
                             StatsRow(row, columns) { player ->
-                                PlayerStatsCard(
+                                PlayerStatsCardContent(
                                     player,
+                                    expanded = player.playerName in openNames,
+                                    onExpandedChange = { open ->
+                                        if (open) openNames.add(player.playerName) else openNames.remove(player.playerName)
+                                    },
                                     onDelete = { pendingDeleteName = player.playerName },
-                                    initiallyExpanded = allFit == true || player in topRow,
-                                    // A new order deals the cards out afresh: the top ones open, the rest as they would at the start.
-                                    resetKey = sortOrder?.stored,
                                 )
                             }
                         }
@@ -334,19 +340,25 @@ private fun StatsFitMeasurer(players: List<PlayerStatistics>, columns: Int, onMe
             },
     ) {
         for (row in players.chunked(columns)) {
-            StatsRow(row, columns) { player -> PlayerStatsCard(player, onDelete = {}, initiallyExpanded = true) }
+            StatsRow(row, columns) { player -> PlayerStatsCardContent(player, expanded = true, onExpandedChange = {}, onDelete = {}) }
         }
     }
 }
 
+/** [PlayerStatsCardContent] that keeps its own open state, starting as [initiallyExpanded] says. */
+@Composable
+fun PlayerStatsCard(player: PlayerStatistics, onDelete: () -> Unit, initiallyExpanded: Boolean = false) {
+    var expanded by rememberSaveable(player.playerName) { mutableStateOf(initiallyExpanded) }
+    PlayerStatsCardContent(player, expanded = expanded, onExpandedChange = { expanded = it }, onDelete = onDelete)
+}
+
 /**
- * One player's card, open or closed to begin with as [initiallyExpanded] says, and again whenever [resetKey] changes. Closed it is just their name and best score (gold, in points), with a dropdown arrow
+ * One player's card, open or closed as [expanded] says. Closed it is just their name and best score (gold, in points), with a dropdown arrow
  * after the score; tapping that header opens the rest, under an Overview / By mode switch. The delete button at the
  * header's end, open or closed, is a control of its own.
  */
 @Composable
-fun PlayerStatsCard(player: PlayerStatistics, onDelete: () -> Unit, initiallyExpanded: Boolean = false, resetKey: String? = null) {
-    var expanded by rememberSaveable(player.playerName, resetKey) { mutableStateOf(initiallyExpanded) }
+private fun PlayerStatsCardContent(player: PlayerStatistics, expanded: Boolean, onExpandedChange: (Boolean) -> Unit, onDelete: () -> Unit) {
     var view by rememberSaveable(player.playerName) { mutableStateOf(StatsView.OVERVIEW) }
     val deleteLabel = stringResource(Res.string.stats_delete_action, player.playerName)
     val spoken = stringResource(Res.string.stats_spoken_best, player.playerName, player.maxScore.grouped())
@@ -368,11 +380,11 @@ fun PlayerStatsCard(player: PlayerStatistics, onDelete: () -> Unit, initiallyExp
                             contentDescription = spoken
                             stateDescription = stateText
                             onClick(label = toggleLabel) {
-                                expanded = !expanded
+                                onExpandedChange(!expanded)
                                 true
                             }
                         }
-                        .clickable(onClickLabel = toggleLabel) { expanded = !expanded }
+                        .clickable(onClickLabel = toggleLabel) { onExpandedChange(!expanded) }
                         .padding(CARD_PADDING)
                         // Leaves the delete button's room at the end.
                         .padding(end = DELETE_BUTTON_ROOM),

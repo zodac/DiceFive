@@ -133,12 +133,25 @@ class StatisticsDefaultExpansionTest {
         assertEquals("Expanded", state("Player1", 100))
         assertEquals("Collapsed", state("Player4", 400))
 
+        compose.onNodeWithContentDescription("Player2. Best score 200.").performClick()
+        compose.waitForIdle()
+        assertEquals("Expanded", state("Player2", 200))
+
         compose.onNodeWithContentDescription("Sort players").performClick()
         compose.onNodeWithContentDescription("Highest score").performClick()
         compose.waitForIdle()
-        // Player4 now leads, so it opens; Player1, now last, closes.
+        // Player4 now leads, so it opens; Player1, now last, and the Player2 opened by hand close.
         assertEquals("Expanded", state("Player4", 400))
         assertEquals("Collapsed", state("Player1", 100))
+        assertEquals("Collapsed", state("Player2", 200))
+        compose.onAllNodesWithText("Overview").assertCountEquals(1)
+
+        // And back again: Player1 leads, so it opens, and Player4 closes.
+        compose.onNodeWithContentDescription("Sort players").performClick()
+        compose.onNodeWithContentDescription("Name").performClick()
+        compose.waitForIdle()
+        assertEquals("Expanded", state("Player1", 100))
+        assertEquals("Collapsed", state("Player4", 400))
         compose.onAllNodesWithText("Overview").assertCountEquals(1)
     }
 
