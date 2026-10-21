@@ -924,6 +924,7 @@
     <string name="styles_gallery_cd">Galería de %1$s</string>
     <string name="styles_unlocked_count">%1$d de %2$d desbloqueados</string>
     <string name="styles_category_count">%1$d/%2$d</string>
+    <string name="styles_unlocked_only">Solo desbloqueados</string>
     <string name="styles_gallery_row_action">Mostrar %1$s en una fila</string>
     <string name="styles_gallery_all_action">Mostrar todos: %1$s</string>
     <string name="styles_select_action">Seleccionar</string>

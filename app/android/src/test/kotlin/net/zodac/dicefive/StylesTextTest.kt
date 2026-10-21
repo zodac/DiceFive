@@ -3,6 +3,7 @@ package net.zodac.dicefive
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -23,6 +24,12 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.isHeading
 import org.junit.Assert.assertTrue
 import net.zodac.dicefive.ui.styles.StylesScreen
+import net.zodac.dicefive.ui.styles.resetStylesPageMemory
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.test.performClick
+import org.junit.After
+import org.junit.Before
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.performScrollTo
@@ -40,6 +47,13 @@ class StylesTextTest {
     val compose = createComposeRule()
 
     private val showcase = Showcase(compose)
+
+    // Unlocked only is kept for the process: each test opens the page with it off, and leaves it off for the next class.
+    @Before
+    fun showEveryStyle() = resetStylesPageMemory()
+
+    @After
+    fun leaveEveryStyleShown() = resetStylesPageMemory()
 
     private fun show(achievements: AchievementsState) {
         val saved = MutableStateFlow<SavedStyles?>(
@@ -93,5 +107,26 @@ class StylesTextTest {
             assertTrue("$title: $headings", "$title, ${count.unlocked} of ${count.total} unlocked" in headings)
             compose.onNodeWithText("${count.unlocked}/${count.total}").assertDoesNotExist()
         }
+    }
+
+    @Test
+    fun `Unlocked only is one switch - on it hides every locked style but keeps the unlocked ones - and stays on when the page is opened again`() {
+        show(AchievementsState())
+        val switch = compose.onNodeWithText("Unlocked only").fetchSemanticsNode().config
+        assertEquals(Role.Switch, switch[SemanticsProperties.Role])
+        assertEquals(ToggleableState.Off, switch[SemanticsProperties.ToggleableState])
+        compose.onAllNodesWithContentDescription("Frosted").onFirst().assertExists()
+
+        compose.onNodeWithText("Unlocked only").performClick()
+        compose.mainClock.advanceTimeBy(10_000)
+        compose.waitForIdle()
+        assertEquals(ToggleableState.On, compose.onNodeWithText("Unlocked only").fetchSemanticsNode().config[SemanticsProperties.ToggleableState])
+        assertEquals(0, compose.onAllNodesWithContentDescription("Frosted").fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodes(hasStateDescription("Locked")).fetchSemanticsNodes().size)
+        compose.onAllNodesWithContentDescription("Classic", substring = true).onFirst().assertExists()
+
+        show(AchievementsState())
+        assertEquals(ToggleableState.On, compose.onNodeWithText("Unlocked only").fetchSemanticsNode().config[SemanticsProperties.ToggleableState])
+        assertEquals(0, compose.onAllNodesWithContentDescription("Frosted").fetchSemanticsNodes().size)
     }
 }

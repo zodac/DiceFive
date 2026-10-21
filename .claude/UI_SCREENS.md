@@ -166,6 +166,10 @@ it's earned, so the total doesn't hint at it.
 - Each category's title carries its own `46/96` before the gallery toggle. Title and count turn brand gold (`primary`)
   once every one is unlocked. TalkBack reads "Dice, 46 of 96 unlocked" as the heading; the drawn count is hidden.
 
+**Unlocked only** sits beside the count, drawn and placed as the Achievements page's Locked only switch: after the count
+in portrait, at the app bar's end in landscape. On, it hides every locked style; each row is built afresh, opening on
+its pick. It's kept for the process (`StylesPageMemory`, reset by `resetStylesPageMemory` for tests).
+
 **Tiles and rows.**
 - One tile per family. A long press opens a row of previews, one per colour. Colour names are spoken, not shown.
 - Picking a cup shakes and tips it (`CupPickShake`); picking a die rolls it through six faces (`DicePickRoll`). These

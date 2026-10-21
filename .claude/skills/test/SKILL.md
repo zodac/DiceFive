@@ -70,7 +70,7 @@ can't count on the classes before it in the same JVM. The configuration cache is
 - **Pick dice that tell the rules apart.** Use `LoadedDice` or `ScriptedDice` (`commonTest/.../TestDice.kt`), and work
   out the expected values by hand before asserting. They fail a draw outside the range asked for, so script every draw
   a roll makes - Unlucky Dice's odds and shuffle too (`AchievementTrackerTest`'s Bad Omen).
-- **Process-wide memories.** A screen that remembers its place for the process (`AchievementsScrollMemory`,
+- **Process-wide memories.** A screen that remembers its place for the process (`AchievementsScrollMemory`, `StylesPageMemory`,
   `RulesPageMemory`, the Scores warm-up) has a reset; call it before opening that screen.
 - **Fakes.** `InMemoryPreferences`, `InMemoryScoreDao` and `InMemoryAchievementStore` (commonTest) are the shared ones;
   reuse them rather than writing another. `:app:android` can't see them and keeps its own few (`TestRepositories.kt`).
