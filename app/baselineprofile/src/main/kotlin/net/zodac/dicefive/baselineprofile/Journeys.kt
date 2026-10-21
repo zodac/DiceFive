@@ -93,6 +93,8 @@ internal fun MacrobenchmarkScope.hasText(text: String): Boolean = device.hasObje
 
 /** The menu's "DiceFive" wordmark (AppLogo): only the menu shows it, so its going says the menu has. */
 private val MENU = By.text("DiceFive")
+private val NOT_THOSE_DICE_BANNER = By.descStartsWith("Achievement unlocked: Not Those Dice!")
+private val ANY_BANNER = By.desc(Pattern.compile("(Achievement unlocked|Styles? unlocked): .*", Pattern.DOTALL))
 
 /**
  * Taps the menu's [label] button until the menu has gone. A tap can be dropped - one that lands while
@@ -305,9 +307,9 @@ internal fun MacrobenchmarkScope.resetAchievements() {
 }
 
 /**
- * Taps the logo's dice on the menu (the "Not Those Dice!" easter egg) to raise an unlock banner,
- * then long-presses the banner, which takes the player to that achievement on the Achievements
- * screen, where its row glows. Needs the achievement locked - see [resetAchievements].
+ * Taps the logo's dice on the menu (the "Not Those Dice!" easter egg) to raise an unlock banner, taps the
+ * banner to pause its countdown, then long-presses it, which takes the player to that achievement on the
+ * Achievements screen, where its row glows. Needs the achievement locked - see [resetAchievements].
  *
  * The dice are drawn with a raw tap gesture and have no label to find them by, so they are found
  * from the wordmark under them: AppLogo puts "DiceFive" 16dp below the row of dice (each 34dp tall),
@@ -317,9 +319,24 @@ internal fun MacrobenchmarkScope.resetAchievements() {
  */
 internal fun MacrobenchmarkScope.visitAchievementBanner() {
     for (attempt in 1..BANNER_ATTEMPTS) {
-        // A banner that was raised but missed can't be raised again until the achievement is locked.
-        if (attempt > 1) resetAchievements()
+        // A banner that was raised but missed can't be raised again until the achievement is locked. Any banners still
+        // up are swiped away first: one the tap paused stays over the menu's buttons until it's tapped again.
+        if (attempt > 1) {
+            clearBanners()
+            resetAchievements()
+        }
         val bannerBounds = withShortIdleWait { raiseBanner() } ?: continue
+        // A tap pauses the banner's countdown until the next tap, so the long-press isn't racing it. One that came
+        // after the banner had gone pauses the styles banner moved up in its place (the egg unlocks a style), or lands
+        // on the menu - on a button, which opens its page: back, and the banner is tried again.
+        device.click(bannerBounds.centerX(), bannerBounds.centerY())
+        if (!device.hasObject(NOT_THOSE_DICE_BANNER)) {
+            if (device.wait(Until.gone(MENU), MENU_GONE_MS)) {
+                back()
+                await(MENU, "the menu after the banner's tap opened another page")
+            }
+            continue
+        }
         longPressAt(bannerBounds)
 
         // Lands on the Achievements screen - told by the menu going, as the menu has an Achievements
@@ -334,6 +351,22 @@ internal fun MacrobenchmarkScope.visitAchievementBanner() {
     error("Baseline Profile journey: tapping the logo's dice never raised a 'Not Those Dice!' banner it could press")
 }
 
+/** Swipes away the banners on screen, front first, whether counting down or paused. */
+private fun MacrobenchmarkScope.clearBanners() {
+    repeat(MAX_BANNERS) {
+        val bounds = try {
+            device.findObject(ANY_BANNER)?.visibleBounds ?: return
+        } catch (_: StaleObjectException) {
+            return@repeat
+        }
+        // Across most of its width: a swipe of 15% dismisses it. The front banner covers all but the top of those
+        // behind.
+        val inset = bounds.width() / 8
+        device.swipe(bounds.left + inset, bounds.centerY(), bounds.right - inset, bounds.centerY(), SWIPE_STEPS)
+        Thread.sleep(BANNER_LEAVE_MS)
+    }
+}
+
 /**
  * Taps the logo's dice (see [visitAchievementBanner]) until the banner appears, and returns where it is,
  * or null if no tap raised it - or it was gone again before it could be found.
@@ -342,12 +375,11 @@ private fun MacrobenchmarkScope.raiseBanner(): Rect? {
     val density = Resources.getSystem().displayMetrics.density
     val wordmarkTop = await(MENU, "the menu's DiceFive wordmark").visibleBounds.top
     val x = device.displayWidth / 2
-    val banner = By.descStartsWith("Achievement unlocked: Not Those Dice!")
 
     for (heightDp in DICE_PROBE_HEIGHTS_DP) {
         device.click(x, wordmarkTop - (heightDp * density).toInt())
-        val node = device.wait(Until.findObject(banner), BANNER_APPEAR_MS)
-        if (node != null) return boundsOf(node, banner)
+        val node = device.wait(Until.findObject(NOT_THOSE_DICE_BANNER), BANNER_APPEAR_MS)
+        if (node != null) return boundsOf(node, NOT_THOSE_DICE_BANNER)
         check(device.hasObject(MENU)) {
             "Baseline Profile journey: a tap ${heightDp}dp above the wordmark left the menu"
         }
@@ -575,9 +607,10 @@ private fun MacrobenchmarkScope.playToGameOver(rollsPerTurn: Int) = withShortIdl
 
 /** [playToGameOver]'s loop: everything in it waits for what it wants, so the dice's animations needn't be sat out as well. */
 private fun MacrobenchmarkScope.playTurnsToGameOver(nextTurn: BySelector) {
-    repeat(MAX_TURNS) {
+    repeat(MAX_TURNS + DROPPED_TAP_TURNS) {
         // The cup is back at its full rolls when it is a user's turn - a CPU's moves go by in between. A box still
-        // open to score says the last score's tap was dropped, and the turn is still the user's.
+        // open to score says the last score's tap was dropped, and the turn is still the user's: it is played
+        // again.
         val deadline = System.currentTimeMillis() + TURN_WAIT_MS
         while (!device.hasObject(GAME_OVER) && !device.hasObject(OPEN_BOX) && !device.wait(Until.hasObject(nextTurn), 1_000L)) {
             check(System.currentTimeMillis() < deadline) { "Baseline Profile journey: no turn and no Game Over came" }
@@ -701,6 +734,8 @@ private val OPEN_BOX = By.clickable(true).desc(
 )
 private const val SCREEN_TEXT_CHARS = 400
 private const val MAX_TURNS = 14
+// Turns repeated because a score's tap was dropped: a slow runner dropped two in one solo Standard game.
+private const val DROPPED_TAP_TURNS = 6
 private const val ROLL_ATTEMPTS = 12
 private const val ROLL_WAIT_MS = 2_500L
 private const val TURN_WAIT_MS = 60_000L
@@ -719,4 +754,8 @@ private const val BANNER_APPEAR_MS = 2_000L
 private const val GLOW_MS = 2_000L
 private const val LONG_PRESS_STEPS = 200
 private const val BANNER_ATTEMPTS = 3
+private const val MENU_GONE_MS = 3_000L
+private const val MAX_BANNERS = 6
+private const val SWIPE_STEPS = 10
+private const val BANNER_LEAVE_MS = 400L
 private const val SHORT_IDLE_WAIT_MS = 100L
