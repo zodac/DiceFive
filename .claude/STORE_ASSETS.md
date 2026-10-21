@@ -65,9 +65,11 @@ The generators are unit tests in `app/android/src/test/.../store/`, skipped with
 
 ## The README's images
 
-`.github/workflows/readme-assets.yml` runs after every release (`android-release.yml`'s last job), and on demand from the
-Actions tab.
-- It renders `feature,phone,tablet` from the released commit, shrinks the screenshots to PNGs (phone 540px wide,
+`.github/workflows/readme-assets.yml` runs on its own, beside `android-release.yml` rather than after it, on a push to
+`main` that touches what that releases or how the images are made (the script, `scripts/store-assets/`, the
+generator tests), and on demand from the Actions tab. It doesn't wait for the release, so a push whose release fails
+still refreshes the images.
+- It renders `feature,phone,tablet` from the pushed commit, shrinks the screenshots to PNGs (phone 540px wide,
   tablet 1280px) and uploads them with `feature-graphic.gif`, replacing the old files, to the `readme-assets` GitHub
   release. That release is an asset host, not
   a software release: no version, never Latest.

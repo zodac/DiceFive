@@ -2,9 +2,11 @@ name: README assets
 
 # The images README.md shows - the feature graphic (an animated GIF), and the phone and 10-inch tablet screenshots -
 # rendered from the app by scripts/generate-store-assets.sh (see .claude/STORE_ASSETS.md), shrunk to PNGs, and uploaded
-# to the standalone `readme-assets` release. android-release.yml calls this once a release has been published, so the README always
-# shows the latest release; the workflow_dispatch trigger refreshes them on demand (Actions tab, or
-# `gh workflow run readme-assets.yml`), with no release.
+# to the standalone `readme-assets` release. It runs on its own, beside android-release.yml rather than after it: on a
+# push to main that changes what the Android app shows (the same paths android-release.yml watches), or how the
+# images are made (the store-assets script, captions and generator tests). Not waiting for the release means a push
+# whose release fails still refreshes the images. The workflow_dispatch trigger refreshes them on demand (Actions tab,
+# or `gh workflow run readme-assets.yml`).
 #
 # That release is an ASSET HOST, not a software release: it carries no version, is never marked Latest, and --clobber
 # replaces its files in place, so README.md can embed permanent URLs
@@ -19,7 +21,28 @@ name: README assets
 # ubuntu-latest ships ImageMagick 6, without the `magick` the script uses; install_imagemagick.sh installs the same
 # ImageMagick 7 build the sandbox has.
 on:
-  workflow_call:
+  push:
+    branches: [main]
+    paths:
+      # What android-release.yml releases...
+      - "app/**"
+      - "gradle/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - "!app/**/src/test/**"
+      - "!app/**/src/testPlay/**"
+      - "!app/**/src/testGithub/**"
+      - "!app/**/src/commonTest/**"
+      - "!app/**/src/androidHostTest/**"
+      - "!app/**/src/androidTest/**"
+      - "!app/**/*.md"
+      - "!app/ios/**"
+      - "!app/shared/src/iosMain/**"
+      # ...and how the images are made (after the exclusions, which would otherwise drop the generator tests).
+      - "app/android/src/test/kotlin/net/zodac/dicefive/store/**"
+      - "scripts/generate-store-assets.sh"
+      - "scripts/store-assets/**"
   workflow_dispatch:
 
 permissions:

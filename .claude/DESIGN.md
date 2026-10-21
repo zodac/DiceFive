@@ -552,9 +552,9 @@ Two apps from one source, one per way the app reaches players: product flavours 
   - then a `release` job that publishes GitHub release `v<version>` once every check has passed, with
     `DiceFive-<version>.apk` (github), `.aab` (play), `-mapping.txt` (the APK's) and `-play-mapping.txt` (the bundle's);
   - then a commit that bumps the patch and empties `RELEASE_NOTES.md`'s Shared and Android sections (`[Release] Bump
-    Android version to X [skip ci]`);
-  - then `readme-assets.yml`, which renders the README's feature graphic and screenshots from the released commit
-    and replaces the files on the `readme-assets` release (`STORE_ASSETS.md`, "The README's images").
+    Android version to X [skip ci]`).
+- **Beside it, not part of it**, `readme-assets.yml` renders the README's feature graphic and screenshots from the
+  same push and replaces the files on the `readme-assets` release (`STORE_ASSETS.md`, "The README's images").
 - **iOS** has the same flow in `ios-release.yml`: iOS tests and the IPA (plus the simulator screen tour from 1.0.0,
   or with the `force_screenshots` dispatch input), then GitHub release `ios-v<version>` (a pre-release below 1.0.0,
   never "Latest") and a bump of `app/ios/VERSION`. A change to the shared code releases
