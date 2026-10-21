@@ -46,8 +46,8 @@ class StoreScreensGeneratorTest {
         const val STYLES = "styles"
         const val GAME_OVER = "game-over"
         const val ACHIEVEMENTS = "achievements"
-        val PHONE_SHOTS = setOf(GAME, MODES, STYLES, GAME_OVER, ACHIEVEMENTS)
-        val TABLET_SHOTS = setOf(GAME, STYLES, GAME_OVER, ACHIEVEMENTS)
+        /** The same screens on both devices, numbered alike (the order is [screenshots]'). */
+        val SHOTS = setOf(GAME, MODES, STYLES, GAME_OVER, ACHIEVEMENTS)
 
         /** The Styles categories opened as galleries for the styles shot - side by side in landscape. */
         val PHONE_GALLERIES = listOf("Dice")
@@ -77,18 +77,18 @@ class StoreScreensGeneratorTest {
     @StorePart(StoreAssets.PHONE)
     // 9:16, about as tall as the game screen: a taller phone leaves empty space under the dice.
     @Config(qualifiers = "w412dp-h732dp-xxhdpi")
-    fun `phone screenshots`() = screenshots("phone", PHONE_SHOTS, PHONE_GALLERIES)
+    fun `phone screenshots`() = screenshots("phone", SHOTS, PHONE_GALLERIES)
 
     @Test
     @StorePart(StoreAssets.TABLET)
     // Landscape, where a tablet's game screen lays the board out wide.
     @Config(qualifiers = "w1280dp-h800dp-land-xhdpi")
-    fun `10-inch tablet screenshots`() = screenshots("tablet-10", TABLET_SHOTS, TABLET_GALLERIES)
+    fun `10-inch tablet screenshots`() = screenshots("tablet-10", SHOTS, TABLET_GALLERIES)
 
     /**
      * Play takes 2 to 8 screenshots per device type, and only considers a listing for featuring with at least 4 at
-     * 1080px or more; most people see only the first two or three. So: a few strong ones, not all eight - phone gets
-     * 5, the 10-inch tablet the 4 that featuring asks for. Names are listing order, and the script captions each.
+     * 1080px or more; most people see only the first two or three. So: a few strong ones, not all eight - the same 5
+     * on the phone and the 10-inch tablet. Names are listing order, and the script captions each.
      */
     private fun screenshots(device: String, shots: Set<String>, galleries: List<String>) {
         val dir = File(StoreAssets.outDir, device).apply { deleteRecursively(); mkdirs() }

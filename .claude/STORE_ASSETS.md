@@ -10,7 +10,7 @@ the `store-assets` skill. The rest of the Play submission is in `PUBLISHING.md`.
 | `icon-512.png`                                                      | 512x512, 32-bit PNG, ≤1MB                                        |
 | `feature-graphic-1024x500.png`                                      | 1024x500, JPEG or 24-bit PNG (no alpha)                          |
 | `phone/phone-1-game.png` ... `phone-5-achievements.png`             | 1440x2560                                                        |
-| `tablet-10/tablet-10-1-game.png` ... `tablet-10-4-achievements.png` | 2560x1440 (landscape)                                            |
+| `tablet-10/tablet-10-1-game.png` ... `tablet-10-5-achievements.png` | 2560x1440 (landscape)                                            |
 | `DiceFive-Promo-1080p60.mp4`                                        | ~25s, 1920x1080, 60fps, H.264; the app's sounds over music (AAC) |
 | `video-description.txt`                                             | not uploaded: the YouTube description, with its credits          |
 | `contact-sheet.png`                                                 | not uploaded: every still, for review                            |
@@ -38,7 +38,7 @@ video.
 
 - **Captions**: `scripts/store-assets/captions.txt`, keyed by screen name (shared by the stills and the video). Rerun
   with `--no-render`. The banned-words rule applies, and each caption must stay true of the app.
-- **Screens and order**: `PHONE_SHOTS`/`TABLET_SHOTS` and `screenshots()` in
+- **Screens and order**: `SHOTS` (the same five, in the same order, on phone and tablet) and `screenshots()` in
   `app/android/src/test/kotlin/net/zodac/dicefive/store/StoreScreensGeneratorTest.kt`. A new screen needs a caption.
 - **Staged games**: `Scenes` in the same file.
   - Each is a real game, played by the CPU up to the moment shown. A seed search finds one that fits, and only the

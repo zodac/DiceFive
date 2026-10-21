@@ -396,7 +396,7 @@ if [[ -d "${OUT}/phone" ]]; then
     sheet_rows+=("${WORK}/sheet-phone.png")
 fi
 if [[ -d "${OUT}/tablet-10" ]]; then
-    magick montage "${OUT}/tablet-10"/*.png -tile 4x -geometry 528x297+12+12 -background '#222' "${WORK}/sheet-tablet.png"
+    magick montage "${OUT}/tablet-10"/*.png -tile 5x -geometry 432x243+12+12 -background '#222' "${WORK}/sheet-tablet.png"
     sheet_rows+=("${WORK}/sheet-tablet.png")
 fi
 art=()
