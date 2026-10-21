@@ -281,6 +281,9 @@ will map to Play Games.
 - **Statistics** (`StatisticsScreen`). One card per distinct human *name*; a rename starts a new player.
   - Closed, a card is the name and best score ("1,287pts", the unit at 0.75 of the number's size). Its header opens it
     onto an Overview / By mode switch.
+  - **Open by default** when every card fits on screen opened (measured unseen, `StatsFitMeasurer`; more than 12
+    players skip the measure and don't fit). Otherwise all start closed but the first, which always opens. Opening a
+    card never closes another.
   - **Overview**: games, win rate and average (in points), then a won/lost/solo bar with its key, then the current and best win
     streak, 5x scored, total points and first played (date and time).
   - **By mode**: a row per mode played, in mode order: games, win rate, solo games and best score, the name in the

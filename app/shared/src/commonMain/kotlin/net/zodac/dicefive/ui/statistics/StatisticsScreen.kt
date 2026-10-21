@@ -47,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -59,6 +60,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
@@ -123,6 +125,12 @@ import org.jetbrains.compose.resources.StringResource
 /** Player cards to a row in landscape. */
 private const val LANDSCAPE_COLUMNS = 2
 
+/** More players than this open collapsed without measuring: they can't all fit. */
+private const val MEASURE_LIMIT = 12
+
+private val CARD_GAP = 12.dp
+private val SCROLLBAR_ROOM = 12.dp
+
 @Composable
 fun StatisticsScreen(
     viewModel: StatisticsViewModel,
@@ -150,24 +158,28 @@ fun StatisticsScreen(
             val listState = rememberLazyListState()
             // Two cards to a row in landscape, each opening on its own (the other keeps its height); one otherwise.
             val columns = if (LocalLandscapePage.current) LANDSCAPE_COLUMNS else 1
+            // Whether every card fits on screen opened: null until measured. Cards start open if so, else only the first.
+            var allFit by remember { mutableStateOf<Boolean?>(if (state.players.size > MEASURE_LIMIT) false else null) }
 
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    // Room on the right for the scrollbar so it doesn't sit on top of a card's edge.
-                    contentPadding = PaddingValues(end = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    items(state.players.chunked(columns), key = { row -> row.first().playerName }) { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            for (player in row) {
-                                Box(modifier = Modifier.weight(1f)) {
-                                    PlayerStatsCard(player, onDelete = { pendingDeleteName = player.playerName })
-                                }
+                if (allFit == null) {
+                    StatsFitMeasurer(state.players, columns, onMeasured = { allFit = it })
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        // Room on the right for the scrollbar so it doesn't sit on top of a card's edge.
+                        contentPadding = PaddingValues(end = SCROLLBAR_ROOM),
+                        verticalArrangement = Arrangement.spacedBy(CARD_GAP),
+                    ) {
+                        items(state.players.chunked(columns), key = { row -> row.first().playerName }) { row ->
+                            StatsRow(row, columns) { player ->
+                                PlayerStatsCard(
+                                    player,
+                                    onDelete = { pendingDeleteName = player.playerName },
+                                    initiallyExpanded = allFit == true || player.playerName == state.players.first().playerName,
+                                )
                             }
-                            // A row's last place left empty, so its card keeps the others' width.
-                            repeat(columns - row.size) { Spacer(modifier = Modifier.weight(1f)) }
                         }
                     }
                 }
@@ -193,14 +205,50 @@ fun StatisticsScreen(
     }
 }
 
+/** A row of up to [columns] cards; a last place left empty keeps its card the others' width. */
+@Composable
+private fun StatsRow(row: List<PlayerStatistics>, columns: Int, card: @Composable (PlayerStatistics) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(CARD_GAP)) {
+        for (player in row) {
+            Box(modifier = Modifier.weight(1f)) { card(player) }
+        }
+        repeat(columns - row.size) { Spacer(modifier = Modifier.weight(1f)) }
+    }
+}
+
 /**
- * One player's card. Closed it is just their name and best score (gold, in points), with a dropdown arrow
+ * Lays out every card opened, unseen and taking no room, and reports through [onMeasured] whether they all fit in the
+ * height it is given. The screen shows the real list once it has.
+ */
+@Composable
+private fun StatsFitMeasurer(players: List<PlayerStatistics>, columns: Int, onMeasured: (Boolean) -> Unit) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(CARD_GAP),
+        modifier = Modifier
+            .clearAndSetSemantics {}
+            .layout { measurable, constraints ->
+                val room = SCROLLBAR_ROOM.roundToPx()
+                val placeable = measurable.measure(
+                    Constraints(maxWidth = (constraints.maxWidth - room).coerceAtLeast(0), maxHeight = Constraints.Infinity),
+                )
+                onMeasured(placeable.height <= constraints.maxHeight)
+                layout(0, 0) {}
+            },
+    ) {
+        for (row in players.chunked(columns)) {
+            StatsRow(row, columns) { player -> PlayerStatsCard(player, onDelete = {}, initiallyExpanded = true) }
+        }
+    }
+}
+
+/**
+ * One player's card, open or closed to begin with as [initiallyExpanded] says. Closed it is just their name and best score (gold, in points), with a dropdown arrow
  * after the score; tapping that header opens the rest, under an Overview / By mode switch. The delete button at the
  * header's end, open or closed, is a control of its own.
  */
 @Composable
-fun PlayerStatsCard(player: PlayerStatistics, onDelete: () -> Unit) {
-    var expanded by rememberSaveable(player.playerName) { mutableStateOf(false) }
+fun PlayerStatsCard(player: PlayerStatistics, onDelete: () -> Unit, initiallyExpanded: Boolean = false) {
+    var expanded by rememberSaveable(player.playerName) { mutableStateOf(initiallyExpanded) }
     var view by rememberSaveable(player.playerName) { mutableStateOf(StatsView.OVERVIEW) }
     val deleteLabel = stringResource(Res.string.stats_delete_action, player.playerName)
     val spoken = stringResource(Res.string.stats_spoken_best, player.playerName, player.maxScore.grouped())
