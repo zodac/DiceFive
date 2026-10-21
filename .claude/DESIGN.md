@@ -490,11 +490,16 @@ screen) of `StyleColour`s.
     emulator; see `EMULATOR.md`), and the APK plus App Bundle;
   - then a `release` job that publishes GitHub release `v<VERSION>` once every check has passed, with
     `DiceFive-<version>.apk`, `.aab` and `-mapping.txt` (one R8 run, one mapping);
-  - then a commit that bumps the patch and empties `RELEASE_NOTES.md` (`[Release] Bump version to X [skip ci]`);
+  - then a commit that bumps the patch and empties `RELEASE_NOTES.md`'s Shared and Android sections (`[Release] Bump
+    version to X [skip ci]`);
   - then `readme-assets.yml`, which renders the README's feature graphic and screenshots from the released commit
     and replaces the files on the `readme-assets` release (`STORE_ASSETS.md`, "The README's images").
 - **Release description.** `RELEASE_NOTES.md` (the maintainer's), then "## Changes since X" from
   `scripts/release-changelog.sh`, grouped by each commit's `[Category]`.
+  - The notes have three sections, headed `## Shared`, `## Android` and `## iOS`. A platform's release takes Shared
+    plus its own, then empties those two; the other platform's waits for its release (`scripts/release-notes.sh`,
+    tested by `scripts/tests/release-notes-test.sh`).
+  - Until iOS has a release pipeline (`IOS_SUPPORT.md`, Phase 8), Android's release empties Shared on its own.
 - **Signing.** Four `ANDROID_RELEASE_*` env vars (repo secrets in CI); without them the build is unsigned. The keystore
   (alias `upload`) is the Play upload key.
 - **R8** shrinks and obfuscates release builds (`app/android/r8-rules.pro`). Release dex is stored uncompressed.

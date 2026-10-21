@@ -82,6 +82,8 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
   - `.claude/hooks/guard-release-notes.sh` backs this up: an edit waits for a permission prompt, and a shell change is
     undone. The prompt is a backstop, not permission.
   - Only the release workflow empties it. Hook tests: `.claude/hooks/tests/run-hook-tests.sh`.
+  - It has `## Shared`, `## Android` and `## iOS` sections; each platform's release uses Shared plus its own
+    (`DESIGN.md`, "Release pipeline").
 - **Commits**: the subject is `[Category] Short description` (`.githooks/commit-msg`). Use the `commit` skill; the
   category list lives there.
 - **After a requested code change is verified** (it compiles and the relevant tests pass), build and send the debug

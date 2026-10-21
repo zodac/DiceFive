@@ -260,7 +260,17 @@ Exit: a signed build reaches TestFlight from CI.
 
 - [ ] **`release.yml`** gains an iOS job: on a push that changes what ships, build, test and upload to TestFlight beside
   the Android release. The GitHub release attaches the IPA only if it's useful (it can't be installed unsigned).
-- [ ] **Versions.** `VERSION` drives both apps; the build number is monotonic.
+- [ ] **Versions, split.** `app/android/VERSION` (from Android's current version) and `app/ios/VERSION` (from 1.0.0)
+  replace the root `VERSION`. Every reader moves with it: the Gradle build, `set-version.sh`, `bump-patch-version.sh`,
+  the workflows, the skills and docs.
+  - Shared code and the build (`app/shared/**`, `gradle/**`, the root Gradle files) release both apps; `app/android/**`
+    only Android; `app/ios/**` only iOS. Each pipeline bumps its own file.
+  - Tags `android-vX.Y.Z` and `ios-vX.Y.Z` (the old `v*` tags stay as Android's history). `release-changelog.sh`
+    finds the previous tag of the same platform and lists only commits touching that platform's paths.
+  - iOS's build number is the CI run number (always rising, as App Store Connect requires).
+- [ ] **Release notes.** The iOS release takes `RELEASE_NOTES.md`'s Shared and iOS sections
+  (`scripts/release-notes.sh extract ios` / `clear ios`). With both pipelines, Shared is emptied by each; they release
+  from the same push, so each has already read it. Check the two bump commits can't race each other on `main`.
 - [ ] **`update_dependency_versions.sh`** bumps the entries generically, except those marked `# @update` in
   `libs.versions.toml`: the JetBrains Compose entries match the Compose BOM, and sqlite follows Room. Add the Xcode
   pin to whatever it checks.

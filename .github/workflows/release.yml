@@ -11,11 +11,11 @@ name: Release
 # (or run scripts/set-version.sh) and push that - the next run releases
 # that version, then resumes patch-bumping from it (0.1.0 -> 0.1.1 -> ...).
 #
-# The release's description is RELEASE_NOTES.md (the maintainer's own summary, written before
-# pushing) followed by every commit since the previous release, grouped by the "[Category]" at the
-# start of its subject line (scripts/release-changelog.sh; the format is enforced locally by
-# .githooks/commit-msg). The bump commit afterwards also empties RELEASE_NOTES.md, ready for the
-# next release's notes.
+# The release's description is RELEASE_NOTES.md's Shared and Android sections (the maintainer's own
+# summary, written before pushing; scripts/release-notes.sh) followed by every commit since the
+# previous release, grouped by the "[Category]" at the start of its subject line
+# (scripts/release-changelog.sh; the format is enforced locally by .githooks/commit-msg). The bump
+# commit afterwards also empties those two sections, ready for the next release's notes.
 #
 # Every release attaches its build assets: the signed APK (for sideloading), the signed App Bundle (.aab)
 # for Google Play, and R8's mapping.txt for reading obfuscated stack traces. Once it's out, readme-assets.yml
@@ -431,18 +431,18 @@ jobs:
           name: release-files
           path: release-files/
 
-      # RELEASE_NOTES.md as written (skipped if empty), then the grouped commit list. A copy of the
-      # notes is kept aside so the bump step below can tell whether RELEASE_NOTES.md on main is
-      # still the text this release shipped with.
+      # RELEASE_NOTES.md's Shared and Android sections (skipped if empty; scripts/release-notes.sh), then
+      # the grouped commit list. A copy of the notes is kept aside so the bump step below can tell whether
+      # those sections on main are still the text this release shipped with.
       - name: Compose release description
         id: notes
         run: |
           body="$RUNNER_TEMP/release-body.md"
-          cp RELEASE_NOTES.md "$RUNNER_TEMP/released-notes.md"
+          if [[ -f RELEASE_NOTES.md ]]; then cp RELEASE_NOTES.md "$RUNNER_TEMP/released-notes.md"; fi
+          notes="$(./scripts/release-notes.sh extract android)"
           {
-            if grep -q '[^[:space:]]' RELEASE_NOTES.md; then
-              cat RELEASE_NOTES.md
-              echo
+            if [[ -n "$notes" ]]; then
+              printf '%s\n\n' "$notes"
             fi
             ./scripts/release-changelog.sh "${{ needs.version.outputs.name }}"
           } > "$body"
@@ -462,20 +462,16 @@ jobs:
       # case it moved during this run, since `concurrency` only serializes
       # this workflow's own runs, not unrelated pushes from elsewhere.
       #
-      # RELEASE_NOTES.md is emptied for the next release - but only if it still
-      # holds exactly what this release shipped with. If notes for the next
-      # release were pushed while this run was going, they're left alone.
+      # RELEASE_NOTES.md's Shared and Android sections are emptied for the next release - each only if it
+      # still holds exactly what this release shipped with. If notes for the next release were pushed while
+      # this run was going, they're left alone; so is the iOS section.
       - name: Bump version for next development iteration
         run: |
           git fetch origin main
           git checkout main
           git reset --hard origin/main
           ./scripts/bump-patch-version.sh
-          if cmp -s RELEASE_NOTES.md "$RUNNER_TEMP/released-notes.md"; then
-            : > RELEASE_NOTES.md
-          else
-            echo "RELEASE_NOTES.md changed on main during this run - leaving it for the next release"
-          fi
+          ./scripts/release-notes.sh clear android "$RUNNER_TEMP/released-notes.md"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add VERSION RELEASE_NOTES.md
