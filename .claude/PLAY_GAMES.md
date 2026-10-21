@@ -103,7 +103,7 @@ Always on while signed in, with no switch and no prompt. Every sync merges; noth
 | Dismissed stats cards                                          | Union, later kept; dropped once a later game under the name is in the save                                                                  |
 | Style picks, New Game setup, sound, vibration, confirm-leaving | Last writer wins per key (`synced_at:<key>`); an unstamped one (a pick after Reset achievements) beats one never set                        |
 | In-progress game                                               | Newest wins (`saved_at`); one this app can't read is never taken                                                                            |
-| Animations level, Styles page fit                              | Not saved: they're about the device                                                                                                         |
+| Animations level, Orientation, Styles page fit, Locked and Unlocked only switches                           | Not saved: they're about the device                                                                                                         |
 
 - **Ids, not enums**, so an older app carries a newer one's achievements, counters and settings through a merge.
 - **Versions.** Fields are only added within a `version`. An app reads a newer version's known fields but never writes

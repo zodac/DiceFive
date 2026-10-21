@@ -21,7 +21,7 @@ class SettingsRepositoryCloudTest {
     private val repository = SettingsRepository(InMemoryPreferences(), now = { clock })
 
     @Test
-    fun `settings are stamped when they change - the Animations level - Orientation and page fit aren't in the save`() = runTest {
+    fun `settings are stamped when they change - the Animations level - Orientation - page fit and list filters aren't in the save`() = runTest {
         repository.setDiceStyleId("ocean")
         repository.setPlayerName(slot = 2, name = "Bob")
         clock = 200L
@@ -33,6 +33,8 @@ class SettingsRepositoryCloudTest {
         repository.setScreenOrientation(ScreenOrientation.LANDSCAPE)
         repository.setConfirmBeforeLeavingGame(false)
         repository.setStylesPageFit("fit")
+        repository.setLockedOnlyAchievements(true)
+        repository.setUnlockedOnlyStyles(true)
         assertEquals(
             mapOf(
                 "dice_style_id" to Stamped(SettingValue.Text("ocean"), 100L),
@@ -103,6 +105,8 @@ class SettingsRepositoryCloudTest {
         repository.setAnimationLevel(AnimationLevel.OFF)
         repository.setScreenOrientation(ScreenOrientation.PORTRAIT)
         repository.setStylesPageFit("fit")
+        repository.setLockedOnlyAchievements(true)
+        repository.setUnlockedOnlyStyles(true)
         repository.wipeSynced()
         assertEquals(emptyMap(), repository.cloudSettings())
         assertEquals(DefaultStyleIds.DICE, repository.diceStyleId.first())
@@ -110,6 +114,21 @@ class SettingsRepositoryCloudTest {
         assertEquals("fit", repository.stylesPageFit.first())
         assertEquals(AnimationLevel.OFF, repository.animationLevel.first())
         assertEquals(ScreenOrientation.PORTRAIT, repository.screenOrientation.first())
+        assertEquals(true, repository.lockedOnlyAchievements.first())
+        assertEquals(true, repository.unlockedOnlyStyles.first())
+    }
+
+    @Test
+    fun `the Locked only and Unlocked only switches start off - are kept - and are set apart from each other`() = runTest {
+        assertEquals(false, repository.lockedOnlyAchievements.first())
+        assertEquals(false, repository.unlockedOnlyStyles.first())
+        repository.setLockedOnlyAchievements(true)
+        assertEquals(true, repository.lockedOnlyAchievements.first())
+        assertEquals(false, repository.unlockedOnlyStyles.first())
+        repository.setUnlockedOnlyStyles(true)
+        repository.setLockedOnlyAchievements(false)
+        assertEquals(false, repository.lockedOnlyAchievements.first())
+        assertEquals(true, repository.unlockedOnlyStyles.first())
     }
 
     @Test
@@ -122,13 +141,15 @@ class SettingsRepositoryCloudTest {
     }
 
     @Test
-    fun `a change to a synced setting is announced - the Animations level's - Orientation's and page fit's aren't`() = runTest {
+    fun `a change to a synced setting is announced - the Animations level's - Orientation's - page fit's and list filters' aren't`() = runTest {
         var changes = 0
         backgroundScope.launch { repository.syncedChanges.collect { changes++ } }
         runCurrent()
         repository.setStylesPageFit("fit")
         repository.setAnimationLevel(AnimationLevel.OFF)
         repository.setScreenOrientation(ScreenOrientation.LANDSCAPE)
+        repository.setLockedOnlyAchievements(true)
+        repository.setUnlockedOnlyStyles(true)
         runCurrent()
         assertEquals(0, changes)
         repository.setDiceMatId("felt")

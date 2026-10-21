@@ -19,6 +19,7 @@ import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.model.Achievement
@@ -65,7 +66,18 @@ class AchievementsViewModel(
     private val isDebugBuild: Boolean = false,
     /** Told when superuser mode activates, so its cheated unlocks are never mirrored online. */
     private val onlineSettingsRepository: OnlineSettingsRepository,
+    private val settingsRepository: SettingsRepository,
+    /** The app's own copy of the Locked only switch ([AppContainer.lockedOnlyAchievements]); without one, it's read from [settingsRepository]. */
+    lockedOnly: StateFlow<Boolean?>? = null,
 ) : ViewModel() {
+
+    /** Whether only the achievements not yet unlocked are shown - null until it has loaded, when the page shows them all. */
+    val lockedOnly: StateFlow<Boolean?> = lockedOnly
+        ?: settingsRepository.lockedOnlyAchievements.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun setLockedOnly(lockedOnly: Boolean) {
+        viewModelScope.launch { settingsRepository.setLockedOnlyAchievements(lockedOnly) }
+    }
 
     // Read once: the leaderboard only changes when a game finishes, which can't happen while this
     // screen is open. Null until read, so the list isn't drawn with the score-collection
@@ -249,6 +261,8 @@ class AchievementsViewModel(
                     scoreRepository = container.scoreRepository,
                     isDebugBuild = container.buildInfo.isDebug,
                     onlineSettingsRepository = container.onlineSettingsRepository,
+                    settingsRepository = container.settingsRepository,
+                    lockedOnly = container.lockedOnlyAchievements,
                 )
             }
         }

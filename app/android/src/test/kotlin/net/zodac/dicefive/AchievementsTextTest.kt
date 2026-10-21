@@ -1,5 +1,6 @@
 package net.zodac.dicefive
 
+import net.zodac.dicefive.data.settings.SettingsRepository
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
@@ -194,7 +195,8 @@ class AchievementsTextTest {
     @Test
     fun `Locked only is one switch - it hides what is unlocked - and is still on when the page is opened again`() {
         val store = InMemoryAchievementStore(AchievementsState(unlockedAt = mapOf(Achievement.THE_JOURNEY_BEGINS to 0L)))
-        showAchievements(achievementsViewModel(store = store))
+        val settings = SettingsRepository(InMemoryPreferences())
+        showAchievements(achievementsViewModel(store = store, settings = settings))
         // Its label and switch are one target, read as "Locked only, switch" and whether it's on.
         val lockedOnly = compose.onNode(hasText("Locked only") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
         lockedOnly.assertIsOff()
@@ -207,7 +209,7 @@ class AchievementsTextTest {
         compose.onNodeWithText("Practice Makes Perfect").assertExists()
 
         // Back to the menu and in again: a new page, as navigation makes one, still showing the locked ones only.
-        showAchievements(achievementsViewModel(store = store))
+        showAchievements(achievementsViewModel(store = store, settings = settings))
         lockedOnly.assertIsOn()
         compose.onNodeWithText("The Journey Begins").assertDoesNotExist()
 

@@ -31,11 +31,13 @@ import net.zodac.dicefive.model.TurnTimer
  *   CPU difficulty and colour (1-4, slot 1 always Human), the player count, the game mode, the turn timer and every
  *   modifier;
  * - the Styles picks (as ids) and the Styles page's fitted size;
+ * - the Achievements page's Locked only switch and the Styles page's Unlocked only switch;
  * - sound, vibration, the Animations level and whether leaving a game in progress asks first;
  * - whether a game has ever been finished here, which unlocks the New Game form's game modes and modifiers.
  *
- * Every setting but the Animations level and the Styles page fit goes in the cloud save ([SYNCED_KEYS]): those two are
- * about this device - what it can draw, and its screen. Each synced key is stamped with when its value last changed
+ * Every setting but the Animations level, the Orientation, the Styles page fit and the two list filters goes in the cloud
+ * save ([SYNCED_KEYS]): those are about this device - what it can draw, how it's held, its screen, and how this player likes
+ * to browse. Each synced key is stamped with when its value last changed
  * ([stampKey]), and the cloud save keeps whichever device set it last. A Styles pick Reset achievements unstamps
  * ([unstampStylePicks]) is stamped 0: it loses to any later change, but beats a device that never set one.
  */
@@ -345,6 +347,20 @@ class SettingsRepository(
         edit { it[STYLES_PAGE_FIT_KEY] = fit }
     }
 
+    /** Whether the Achievements page shows only the achievements not yet unlocked - its Locked only switch. Off until switched on. */
+    val lockedOnlyAchievements: Flow<Boolean> = read { prefs -> prefs[LOCKED_ONLY_ACHIEVEMENTS_KEY] ?: false }
+
+    suspend fun setLockedOnlyAchievements(lockedOnly: Boolean) {
+        edit { it[LOCKED_ONLY_ACHIEVEMENTS_KEY] = lockedOnly }
+    }
+
+    /** Whether the Styles page shows only the styles already unlocked - its Unlocked only switch. Off until switched on. */
+    val unlockedOnlyStyles: Flow<Boolean> = read { prefs -> prefs[UNLOCKED_ONLY_STYLES_KEY] ?: false }
+
+    suspend fun setUnlockedOnlyStyles(unlockedOnly: Boolean) {
+        edit { it[UNLOCKED_ONLY_STYLES_KEY] = unlockedOnly }
+    }
+
     private companion object {
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
         val SOUND_ENABLED_KEY = booleanPreferencesKey("sound_enabled")
@@ -370,6 +386,8 @@ class SettingsRepository(
         val DICE_MAT_ID_KEY = stringPreferencesKey("dice_mat_id")
         val SCORE_FRAME_ID_KEY = stringPreferencesKey("score_frame_id")
         val STYLES_PAGE_FIT_KEY = stringPreferencesKey("styles_page_fit")
+        val LOCKED_ONLY_ACHIEVEMENTS_KEY = booleanPreferencesKey("locked_only_achievements")
+        val UNLOCKED_ONLY_STYLES_KEY = booleanPreferencesKey("unlocked_only_styles")
         fun playerNameKey(slot: Int) = stringPreferencesKey("player_name_$slot")
         fun playerTypeKey(slot: Int) = stringPreferencesKey("player_type_$slot")
         fun playerColourKey(slot: Int) = stringPreferencesKey("player_colour_$slot")
@@ -394,7 +412,8 @@ class SettingsRepository(
         /**
          * What the cloud save carries: everything but the Animations level ([ANIMATION_LEVEL_KEY]), chosen for what this
          * device can draw, the Orientation ([SCREEN_ORIENTATION_KEY]), chosen for how it's held, and the Styles page fit
-         * ([STYLES_PAGE_FIT_KEY]), a measurement of its screen.
+         * ([STYLES_PAGE_FIT_KEY]), a measurement of its screen, and the two list filters ([LOCKED_ONLY_ACHIEVEMENTS_KEY],
+         * [UNLOCKED_ONLY_STYLES_KEY]), a way of browsing.
          */
         val SYNCED_KEYS: List<Preferences.Key<*>> = SYNCED_STRING_KEYS + SYNCED_INT_KEYS + SYNCED_BOOLEAN_KEYS
         private val SYNCED_KEYS_BY_NAME = SYNCED_KEYS.associateBy { it.name }

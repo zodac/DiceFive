@@ -21,6 +21,8 @@ class StylesViewModel(
     achievementsRepository: AchievementStore,
     /** The app's own copy of the saved picks ([AppContainer.savedStyles]); without one, they're read from [settingsRepository]. */
     savedStyles: StateFlow<SavedStyles?>? = null,
+    /** The app's own copy of the Unlocked only switch ([AppContainer.unlockedOnlyStyles]); without one, it's read from [settingsRepository]. */
+    unlockedOnly: StateFlow<Boolean?>? = null,
 ) : ViewModel() {
 
     /**
@@ -32,6 +34,14 @@ class StylesViewModel(
     val savedStyles: StateFlow<SavedStyles?> = savedStyles
         ?: savedStylesFlow(settingsRepository, achievementsRepository).stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    /** Whether only the unlocked styles are shown - null until it has loaded, when the page shows them all. */
+    val unlockedOnly: StateFlow<Boolean?> = unlockedOnly
+        ?: settingsRepository.unlockedOnlyStyles.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun setUnlockedOnly(unlockedOnly: Boolean) {
+        viewModelScope.launch { settingsRepository.setUnlockedOnlyStyles(unlockedOnly) }
+    }
+
     /** Saves [id] as [category]'s pick. */
     fun setStyleId(category: StyleCategory, id: String) {
         viewModelScope.launch { category.saveId(settingsRepository, id) }
@@ -39,7 +49,7 @@ class StylesViewModel(
 
     companion object {
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
-            initializer { StylesViewModel(container.settingsRepository, container.achievementsRepository, container.savedStyles) }
+            initializer { StylesViewModel(container.settingsRepository, container.achievementsRepository, container.savedStyles, container.unlockedOnlyStyles) }
         }
     }
 }

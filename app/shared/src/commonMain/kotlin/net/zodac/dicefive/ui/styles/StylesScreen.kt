@@ -284,15 +284,13 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
             StyleScrollRequests.consumePending()
         }
     }
-    var unlockedOnly by remember { mutableStateOf(StylesPageMemory.unlockedOnly) }
+    // Kept across restarts, on this device only (SettingsRepository.unlockedOnlyStyles).
+    val unlockedOnly by viewModel.unlockedOnly.collectAsStateWithLifecycle()
     StylesScaffold(
         picks = saved,
         focus = focus,
-        unlockedOnly = unlockedOnly,
-        onUnlockedOnlyChange = {
-            unlockedOnly = it
-            StylesPageMemory.unlockedOnly = it
-        },
+        unlockedOnly = unlockedOnly ?: false,
+        onUnlockedOnlyChange = viewModel::setUnlockedOnly,
         onBack = onBack,
         onSelect = { category -> { id -> viewModel.setStyleId(category, id) } },
         modifier = modifier,
@@ -460,16 +458,6 @@ private fun UnlockedOnlySwitch(unlockedOnly: Boolean, onChange: (Boolean) -> Uni
         )
         Switch(checked = unlockedOnly, onCheckedChange = null)
     }
-}
-
-/** The Unlocked only switch, kept for the life of the process as the Achievements page's Locked only switch is. */
-private object StylesPageMemory {
-    var unlockedOnly = false
-}
-
-/** Turns Unlocked only off, so the page opens with every style - tests start from there. */
-fun resetStylesPageMemory() {
-    StylesPageMemory.unlockedOnly = false
 }
 
 /** Categories to a row in landscape. */

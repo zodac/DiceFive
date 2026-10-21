@@ -32,7 +32,7 @@ the header and the last row) lets the final rows reach the middle, so a banner l
 
 **Scroll memory.** The position is kept in a process-lifetime `object` (`AchievementsScrollMemory`), because popping
 the screen discards its ViewModel and anything `rememberSaveable`d. It's restored only after the list has loaded, since
-an empty `LazyColumn` clamps to the top. The Locked only switch is kept there too. Reuse this approach for any list
+an empty `LazyColumn` clamps to the top. Reuse this approach for any list
 that must remember its place, with a reset for tests (`resetAchievementsScrollMemory`, `resetRulesPageMemory`): every
 Robolectric test shares one process, so a test that opens the screen calls it first.
 
@@ -168,7 +168,7 @@ it's earned, so the total doesn't hint at it.
 
 **Unlocked only** sits beside the count, drawn and placed as the Achievements page's Locked only switch: after the count
 in portrait, at the app bar's end in landscape. On, it hides every locked style; each row is built afresh, opening on
-its pick. It's kept for the process (`StylesPageMemory`, reset by `resetStylesPageMemory` for tests).
+its pick. It's kept across restarts on this device (`SettingsRepository.unlockedOnlyStyles`), as Locked only is (`lockedOnlyAchievements`); neither goes in the cloud save.
 
 **Tiles and rows.**
 - One tile per family. A long press opens a row of previews, one per colour. Colour names are spoken, not shown.

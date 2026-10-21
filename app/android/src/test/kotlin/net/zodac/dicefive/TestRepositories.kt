@@ -33,7 +33,8 @@ internal class InMemoryAchievementStore(initial: AchievementsState = Achievement
 internal fun achievementsViewModel(
     store: AchievementStore = InMemoryAchievementStore(),
     scores: ScoreRepository = ScoreRepository(RowsDao(emptyList())),
-) = AchievementsViewModel(store, scores, onlineSettingsRepository = OnlineSettingsRepository(InMemoryPreferences()))
+    settings: SettingsRepository = SettingsRepository(InMemoryPreferences()),
+) = AchievementsViewModel(store, scores, onlineSettingsRepository = OnlineSettingsRepository(InMemoryPreferences()), settingsRepository = settings)
 
 /** A Settings view model over in-memory repositories, with the settings passed in when a test needs to read them back. */
 internal fun settingsViewModel(settings: SettingsRepository = SettingsRepository(InMemoryPreferences())) = SettingsViewModel(
@@ -44,8 +45,11 @@ internal fun settingsViewModel(settings: SettingsRepository = SettingsRepository
 )
 
 /** A Styles view model over in-memory repositories; [saved] stands in for the app's own copy of the picks, as the container passes it. */
-internal fun stylesViewModel(saved: StateFlow<SavedStyles?>? = null) = StylesViewModel(
-    SettingsRepository(InMemoryPreferences()),
+internal fun stylesViewModel(
+    saved: StateFlow<SavedStyles?>? = null,
+    settings: SettingsRepository = SettingsRepository(InMemoryPreferences()),
+) = StylesViewModel(
+    settings,
     InMemoryAchievementStore(),
     saved,
 )

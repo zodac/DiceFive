@@ -1,5 +1,6 @@
 package net.zodac.dicefive
 
+import net.zodac.dicefive.data.settings.SettingsRepository
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.hasContentDescription
@@ -24,12 +25,9 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.isHeading
 import org.junit.Assert.assertTrue
 import net.zodac.dicefive.ui.styles.StylesScreen
-import net.zodac.dicefive.ui.styles.resetStylesPageMemory
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.performClick
-import org.junit.After
-import org.junit.Before
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.performScrollTo
@@ -48,18 +46,14 @@ class StylesTextTest {
 
     private val showcase = Showcase(compose)
 
-    // Unlocked only is kept for the process: each test opens the page with it off, and leaves it off for the next class.
-    @Before
-    fun showEveryStyle() = resetStylesPageMemory()
-
-    @After
-    fun leaveEveryStyleShown() = resetStylesPageMemory()
+    // Unlocked only is stored by the settings, so each test starts from a new repository with it off.
+    private val settings = SettingsRepository(InMemoryPreferences())
 
     private fun show(achievements: AchievementsState) {
         val saved = MutableStateFlow<SavedStyles?>(
             SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements),
         )
-        val viewModel = stylesViewModel(saved)
+        val viewModel = stylesViewModel(saved, settings)
         showcase.show { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
         compose.mainClock.advanceTimeBy(10_000)
         compose.waitForIdle()

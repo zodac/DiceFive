@@ -227,14 +227,12 @@ private object AchievementsScrollMemory {
     // place has another index after a turn of the device.
     var firstVisibleItemKey: Any? = null
     var firstVisibleItemScrollOffset = 0
-    var onlyLocked = false
 }
 
-/** Forgets the remembered place and the Locked only switch, so the list opens at the top with every row - tests start from there. */
+/** Forgets the remembered place, so the list opens at the top - tests start from there. */
 fun resetAchievementsScrollMemory() {
     AchievementsScrollMemory.firstVisibleItemKey = null
     AchievementsScrollMemory.firstVisibleItemScrollOffset = 0
-    AchievementsScrollMemory.onlyLocked = false
 }
 
 /**
@@ -287,7 +285,8 @@ fun AchievementsScreen(
     val listState = rememberLazyListState()
     // Achievements to a row: LANDSCAPE_COLUMNS on a landscape page, one otherwise. Set by the page below, which knows its shape.
     var columns by remember { mutableIntStateOf(1) }
-    var onlyLocked by remember { mutableStateOf(AchievementsScrollMemory.onlyLocked) }
+    // Kept across restarts, on this device only (SettingsRepository.lockedOnlyAchievements).
+    val onlyLocked = viewModel.lockedOnly.collectAsStateWithLifecycle().value ?: false
     val groups = remember(state.groups, onlyLocked) {
         if (!onlyLocked) {
             state.groups
@@ -409,8 +408,7 @@ fun AchievementsScreen(
                 indication = null,
                 role = Role.Switch,
             ) {
-                onlyLocked = it
-                AchievementsScrollMemory.onlyLocked = it
+                viewModel.setLockedOnly(it)
                 scope.launch { listState.scrollToItem(0) }
             },
         ) {

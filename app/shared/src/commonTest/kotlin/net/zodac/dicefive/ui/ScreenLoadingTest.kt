@@ -138,7 +138,7 @@ class ScreenLoadingTest {
         val statistics = StatisticsViewModel(ScoreRepository(statisticsDao))
         // Achievements wait for the leaderboard as well as the unlocks before showing.
         val achievementsDao = GatedEmptyScoreDao()
-        val achievements = AchievementsViewModel(achievementsRepository = InMemoryAchievementStore(), scoreRepository = ScoreRepository(achievementsDao), onlineSettingsRepository = OnlineSettingsRepository(InMemoryPreferences()))
+        val achievements = AchievementsViewModel(achievementsRepository = InMemoryAchievementStore(), scoreRepository = ScoreRepository(achievementsDao), onlineSettingsRepository = OnlineSettingsRepository(InMemoryPreferences()), settingsRepository = SettingsRepository(InMemoryPreferences()))
         backgroundScope.launch(testDispatcher) { achievements.uiState.collect {} }
         advanceUntilIdle()
         assertFalse(scores.uiState.value.isLoaded)

@@ -50,6 +50,12 @@ class AppContainer(
     val savedStyles: StateFlow<SavedStyles?> =
         savedStylesFlow(settingsRepository, achievementsRepository).stateIn(scope, SharingStarted.Eagerly, null)
 
+    /** The Achievements page's Locked only switch, loaded with the container so the page opens already filtered - null until then. */
+    val lockedOnlyAchievements: StateFlow<Boolean?> = settingsRepository.lockedOnlyAchievements.stateIn(scope, SharingStarted.Eagerly, null)
+
+    /** The Styles page's Unlocked only switch, loaded as [lockedOnlyAchievements] is. */
+    val unlockedOnlyStyles: StateFlow<Boolean?> = settingsRepository.unlockedOnlyStyles.stateIn(scope, SharingStarted.Eagerly, null)
+
     /**
      * The dice every game rolls ([net.zodac.dicefive.ui.game.GameViewModel]'s random). Replaced only by the store-asset
      * generator, to deal the rolls its promo video shows - see `.claude/STORE_ASSETS.md`.

@@ -1,5 +1,6 @@
 package net.zodac.dicefive.ui.achievements
 
+import net.zodac.dicefive.data.settings.SettingsRepository
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -31,7 +32,7 @@ class SuperuserMirroringTest {
 
     private fun blockedAfter(taps: Int, isDebugBuild: Boolean): Boolean {
         val settings = OnlineSettingsRepository(InMemoryPreferences())
-        val viewModel = AchievementsViewModel(InMemoryAchievementStore(), ScoreRepository(InMemoryScoreDao()), isDebugBuild = isDebugBuild, onlineSettingsRepository = settings)
+        val viewModel = AchievementsViewModel(InMemoryAchievementStore(), ScoreRepository(InMemoryScoreDao()), isDebugBuild = isDebugBuild, onlineSettingsRepository = settings, settingsRepository = SettingsRepository(InMemoryPreferences()))
         var blocked = false
         runTest {
             repeat(taps) { viewModel.onUnlockedCountTapped() }
