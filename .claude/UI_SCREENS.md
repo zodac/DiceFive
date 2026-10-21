@@ -161,8 +161,8 @@ A lock is on the style (`StyleFamily.unlock`), not the colour: once it's met, al
 
 **Counts.** Every colour of a style counts as one (`StyleCatalog.unlockCount`). A secret colour isn't counted until
 it's earned, so the total doesn't hint at it.
-- The unlocked/total count is drawn like the Achievements page's: a full-width card over the cards, or compact at the
-  app bar's end in landscape.
+- The unlocked/total count is drawn like the Achievements page's: a full-width card over the cards, or compact after
+  the back arrow in landscape.
 - Each category's title carries its own `46/96` before the gallery toggle. Title and count turn brand gold (`primary`)
   once every one is unlocked. TalkBack reads "Dice, 46 of 96 unlocked" as the heading; the drawn count is hidden.
 

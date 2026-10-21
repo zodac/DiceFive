@@ -323,11 +323,13 @@ private fun StylesScaffold(
         scrollable = false,
         driftingDice = driftingDice,
         wide = true,
-        // In landscape the count and the switch are at the app bar's end, level with the cards' end edge; otherwise they're a
-        // row over the cards (StylesPage).
+        // In landscape, as on the Achievements page, the count follows the back arrow and the switch ends level with the cards'
+        // end edge, either side of the title; otherwise they're a row over the cards (StylesPage).
+        startActions = {
+            if (LocalLandscapePage.current && picks != null) StylesUnlockedCount(picks.achievements, compact = true, modifier = Modifier.padding(start = 8.dp))
+        },
         actions = {
             if (LocalLandscapePage.current && picks != null) {
-                StylesUnlockedCount(picks.achievements, compact = true, modifier = Modifier.padding(end = 8.dp))
                 Box(modifier = Modifier.padding(end = BACK_ARROW_OUTSET)) { UnlockedOnlySwitch(unlockedOnly, onUnlockedOnlyChange) }
             }
         },
