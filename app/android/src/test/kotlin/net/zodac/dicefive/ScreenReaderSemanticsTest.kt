@@ -116,7 +116,7 @@ class ScreenReaderSemanticsTest {
         compose.onNodeWithContentDescription("Played 5, won 3, lost 2. 2 solo games played. Win rate 60%. Average score 200.").assertExists()
         val details = compose.onNodeWithContentDescription("Win streak 1", substring = true).fetchSemanticsNode()
             .config[SemanticsProperties.ContentDescription].single()
-        assertTrue(details, details.startsWith("Win streak 1, best win streak 2. 4 5x scored. First played "))
+        assertTrue(details, details.startsWith("Win streak 1, best win streak 2. 4 5x scored. Total points scored: 1,001. First played "))
 
         // By mode: a stop per mode, the win rate left out with nothing but solo games; the headings and bar are silent.
         compose.onNodeWithText("By mode").performClick()

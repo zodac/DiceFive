@@ -98,8 +98,10 @@ import net.zodac.dicefive.resources.stats_spoken_games
 import net.zodac.dicefive.resources.stats_spoken_record
 import net.zodac.dicefive.resources.stats_spoken_solo
 import net.zodac.dicefive.resources.stats_spoken_streaks
+import net.zodac.dicefive.resources.stats_spoken_total_points
 import net.zodac.dicefive.resources.stats_spoken_win_rate
 import net.zodac.dicefive.resources.stats_title
+import net.zodac.dicefive.resources.stats_total_points
 import net.zodac.dicefive.resources.stats_win
 import net.zodac.dicefive.resources.stats_win_rate
 import net.zodac.dicefive.resources.stats_win_rate_value
@@ -313,7 +315,7 @@ private enum class StatsView(val label: StringResource) {
 
 /**
  * The player's overall stats: games, win rate and average large; the won/lost/solo split as a bar with its key; then
- * the win streak, 5x scored and when they first played. Two stops for TalkBack: the numbers with the split, then the
+ * the win streak, 5x scored, total points and when they first played. Two stops for TalkBack: the numbers with the split, then the
  * rest.
  */
 @Composable
@@ -328,6 +330,7 @@ private fun Overview(player: PlayerStatistics) {
     val details = listOf(
         stringResource(Res.string.stats_spoken_streaks, player.currentWinStreak, player.bestWinStreak),
         pluralStringResource(Res.plurals.stats_spoken_fives, player.fiveOfAKindCount, player.fiveOfAKindCount),
+        stringResource(Res.string.stats_spoken_total_points, player.totalScore.grouped()),
         stringResource(Res.string.stats_spoken_first_played, firstPlayed),
     )
     val numbersSpoken = joinSentences(numbers)
@@ -369,6 +372,7 @@ private fun Overview(player: PlayerStatistics) {
             value = stringResource(Res.string.stats_win_streak_value, player.currentWinStreak, player.bestWinStreak),
         )
         DetailLine(label = stringResource(Res.string.stats_fives_scored), value = player.fiveOfAKindCount.grouped())
+        DetailLine(label = stringResource(Res.string.stats_total_points), value = player.totalScore.grouped())
         DetailLine(label = stringResource(Res.string.stats_first_played), value = firstPlayed)
     }
 }

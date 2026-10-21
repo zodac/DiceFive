@@ -282,7 +282,7 @@ will map to Play Games.
   - Closed, a card is the name and best score ("1,287pts", the unit at 0.75 of the number's size). Its header opens it
     onto an Overview / By mode switch.
   - **Overview**: games, win rate and average (in points), then a won/lost/solo bar with its key, then the current and best win
-    streak, 5x scored and first played (date and time).
+    streak, 5x scored, total points and first played (date and time).
   - **By mode**: a row per mode played, in mode order: games, win rate, solo games and best score, the name in the
     mode's colour (`UI.md`, "Mode colours"). Under it, a bar of each mode's share of the games.
   - Above 1.3x font, the header's score goes under the name, Overview's details put the label over the value, and

@@ -1069,6 +1069,7 @@
     <string name="stats_spoken_first_played">أول لعب %1$s.</string>
     <string name="stats_spoken_record">لعب %1$d، فاز %2$d، خسر %3$d.</string>
     <string name="stats_spoken_streaks">سلسلة الفوز %1$d، أفضل سلسلة فوز %2$d.</string>
+    <string name="stats_spoken_total_points">إجمالي النقاط المسجلة: %1$s.</string>
     <plurals name="stats_spoken_fives">
         <item quantity="zero">عدد مرات تسجيل 5x: %1$d.</item>
         <item quantity="one">عدد مرات تسجيل 5x: %1$d.</item>
@@ -1123,6 +1124,7 @@
     <string name="stats_win_streak">سلسلة الفوز</string>
     <string name="stats_win_streak_value">%1$d (الأفضل %2$d)</string>
     <string name="stats_fives_scored">مرات تسجيل 5x</string>
+    <string name="stats_total_points">إجمالي النقاط</string>
     <string name="stats_mode">النمط</string>
     <string name="stats_win">الفوز</string>
     <string name="stats_spoken_win_rate">نسبة الفوز %1$d٪.</string>

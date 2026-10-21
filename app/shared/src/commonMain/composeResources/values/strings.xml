@@ -1247,6 +1247,8 @@
     <string name="stats_spoken_first_played">First played %1$s.</string>
     <string name="stats_spoken_record">Played %1$d, won %2$d, lost %3$d.</string>
     <string name="stats_spoken_streaks">Win streak %1$d, best win streak %2$d.</string>
+    <!-- %1$s is the player's points across every game, thousands-separated. -->
+    <string name="stats_spoken_total_points">Total points scored: %1$s.</string>
     <plurals name="stats_spoken_fives">
         <item quantity="one">%1$d 5x scored.</item>
         <item quantity="other">%1$d 5x scored.</item>
@@ -1290,6 +1292,7 @@
     <!-- %1$d is the current win streak, %2$d the longest. -->
     <string name="stats_win_streak_value">%1$d (best %2$d)</string>
     <string name="stats_fives_scored">5x scored</string>
+    <string name="stats_total_points">Total points</string>
     <!-- The By mode table's column headings; the rows under Win are win rates, under Best each mode's best score. -->
     <string name="stats_mode">Mode</string>
     <string name="stats_win">Win</string>

@@ -976,6 +976,7 @@
     <string name="stats_spoken_first_played">Primera partida: %1$s.</string>
     <string name="stats_spoken_record">Jugadas %1$d, ganadas %2$d, perdidas %3$d.</string>
     <string name="stats_spoken_streaks">Racha de victorias %1$d, mejor racha de victorias %2$d.</string>
+    <string name="stats_spoken_total_points">Puntos totales anotados: %1$s.</string>
     <plurals name="stats_spoken_fives">
         <item quantity="one">%1$d 5x anotado.</item>
         <item quantity="other">%1$d 5x anotados.</item>
@@ -1010,6 +1011,7 @@
     <string name="stats_win_streak">Racha de victorias</string>
     <string name="stats_win_streak_value">%1$d (mejor %2$d)</string>
     <string name="stats_fives_scored">5x anotados</string>
+    <string name="stats_total_points">Puntos totales</string>
     <string name="stats_mode">Modo</string>
     <string name="stats_win">Vict.</string>
     <string name="stats_spoken_win_rate">Porcentaje de victorias: %1$d\u00A0%.</string>
