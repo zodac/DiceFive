@@ -147,6 +147,11 @@ if wants feature; then
     echo "==> Feature graphic"
     # 1024x500, JPEG or 24-bit PNG - no alpha.
     magick "${RAW}/feature-graphic.png" -filter Lanczos -resize '1024x500!' -alpha off -strip PNG24:"${OUT}/feature-graphic-1024x500.png"
+    # Not for Play: the README's title, moving. One palette for the whole loop, and only the changed part of each frame
+    # stored, so the still backdrop costs nothing after the first frame. 20fps (5cs a frame), forever.
+    ffmpeg -loglevel error -y -framerate 20 -i "${RAW}/feature-graphic-frames/%05d.png" \
+        -vf "scale=1024:500:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=sierra2_4a:diff_mode=rectangle" \
+        -loop 0 "${OUT}/feature-graphic.gif"
 fi
 
 # ---- Screenshots ----------------------------------------------------------------------------------------------------

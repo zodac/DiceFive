@@ -1,14 +1,14 @@
 name: README assets
 
-# The images README.md shows - the feature graphic, and the phone and 10-inch tablet screenshots - rendered from the
-# app by scripts/generate-store-assets.sh (see .claude/STORE_ASSETS.md), shrunk to WebP, and uploaded to the
-# standalone `readme-assets` release. android-release.yml calls this once a release has been published, so the README always
+# The images README.md shows - the feature graphic (an animated GIF), and the phone and 10-inch tablet screenshots -
+# rendered from the app by scripts/generate-store-assets.sh (see .claude/STORE_ASSETS.md), shrunk to PNGs, and uploaded
+# to the standalone `readme-assets` release. android-release.yml calls this once a release has been published, so the README always
 # shows the latest release; the workflow_dispatch trigger refreshes them on demand (Actions tab, or
 # `gh workflow run readme-assets.yml`), with no release.
 #
 # That release is an ASSET HOST, not a software release: it carries no version, is never marked Latest, and --clobber
 # replaces its files in place, so README.md can embed permanent URLs
-# (`releases/download/readme-assets/<name>.webp`). A failed refresh leaves the previous images up rather than breaking
+# (`releases/download/readme-assets/<name>`). A failed refresh leaves the previous images up rather than breaking
 # them. The README names each file, so a screenshot renamed or dropped in StoreScreensGeneratorTest needs README.md
 # changed with it (the old file stays on the release until it is deleted by hand). Its tag isn't a `v*` tag, so the
 # changelog and the Baseline Profile's lap count never take it for a release.
@@ -61,18 +61,18 @@ jobs:
       - name: Render the feature graphic and screenshots
         run: scripts/generate-store-assets.sh --parts feature,phone,tablet
 
-      # The store's PNGs are about 1MB each; at the README's size a WebP is a few dozen KB. Phone shots at 540px wide
-      # and tablet ones at 1280px, both twice the width the README shows them at.
+      # The store's PNGs are about 1MB each; at the README's size a few hundred KB. Phone shots at 540px wide and tablet
+      # ones at 1280px, both twice the width the README shows them at; the GIF is the script's, at 1024x500.
       - name: Shrink them for the README
         run: |
           out="assets/$(tr -d '[:space:]' < app/android/VERSION)"
           mkdir readme-assets
-          magick "$out/feature-graphic-1024x500.png" -quality 90 readme-assets/feature-graphic.webp
+          cp "$out/feature-graphic.gif" readme-assets/feature-graphic.gif
           for shot in "$out"/phone/*.png; do
-            magick "$shot" -filter Lanczos -resize 540x -quality 85 "readme-assets/$(basename "$shot" .png).webp"
+            magick "$shot" -filter Lanczos -resize 540x -strip -quality 95 PNG24:"readme-assets/$(basename "$shot")"
           done
           for shot in "$out"/tablet-10/*.png; do
-            magick "$shot" -filter Lanczos -resize 1280x -quality 85 "readme-assets/$(basename "$shot" .png).webp"
+            magick "$shot" -filter Lanczos -resize 1280x -strip -quality 95 PNG24:"readme-assets/$(basename "$shot")"
           done
           ls -l readme-assets
 
@@ -87,4 +87,4 @@ jobs:
               --latest=false \
               --notes "Images for README.md: the feature graphic and screenshots of the latest release. Not a software release; its files are replaced after every release."
           fi
-          gh release upload readme-assets --clobber readme-assets/*.webp
+          gh release upload readme-assets --clobber readme-assets/*.png readme-assets/feature-graphic.gif

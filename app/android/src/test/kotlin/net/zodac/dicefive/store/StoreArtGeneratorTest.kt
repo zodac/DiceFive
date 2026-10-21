@@ -51,7 +51,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Renders the store listing's still art - the hi-res icon, the feature graphic, and the promo video's closing card -
+ * Renders the store listing's art - the hi-res icon, the feature graphic, and the promo video's closing card -
  * from the app's own icon and artwork, each at three times its size for the script to scale down. A generator, not a
  * check - see [StoreAssets.onlyWhenAsked] and `.claude/STORE_ASSETS.md`.
  */
@@ -89,16 +89,28 @@ class StoreArtGeneratorTest {
     /**
      * 1024x500, drawn at 3x. Play lays its play button over the middle when the listing has a video, and crops the
      * edges in some places, so the logo sits left of centre and nothing that matters touches an edge.
+     *
+     * Also one loop of the scene moving, every [FEATURE_GIF_STRIDE]th frame into a folder, for the README's animated
+     * copy: [FEATURE_LOOP_FRAMES] frames, the length of the RGB dice's colour cycle and two of the googly dice's shaking,
+     * so its last frame runs on into its first.
      */
     @Test
     @StorePart(StoreAssets.FEATURE)
     @Config(qualifiers = "w1024dp-h500dp-xxhdpi")
     fun `feature graphic`() {
+        val dir = File(StoreAssets.outDir, "feature-graphic-frames").apply { deleteRecursively(); mkdirs() }
         compose.mainClock.autoAdvance = false
         compose.setContent { DiceFiveTheme { BannerScene(logoDie = 52.dp, animated = true) } }
-        // Stopped where the glitch die is at the worst of a burst, so the still shows it glitching.
-        repeat(FEATURE_GLITCH_FRAMES) { compose.mainClock.advanceTimeBy(FRAME_MILLIS) }
-        StoreAssets.save(compose.onRoot().captureToImage().asAndroidBitmap(), File(StoreAssets.outDir, "feature-graphic.png"))
+        for (frame in 1..FEATURE_LOOP_FRAMES) {
+            compose.mainClock.advanceTimeBy(FRAME_MILLIS)
+            // The still is where the glitch die is at the worst of a burst, so it shows it glitching.
+            if (frame == FEATURE_GLITCH_FRAMES) {
+                StoreAssets.save(compose.onRoot().captureToImage().asAndroidBitmap(), File(StoreAssets.outDir, "feature-graphic.png"))
+            }
+            if (frame % FEATURE_GIF_STRIDE == 0) {
+                StoreAssets.save(compose.onRoot().captureToImage().asAndroidBitmap(), File(dir, "%05d.png".format(frame / FEATURE_GIF_STRIDE)))
+            }
+        }
         compose.mainClock.autoAdvance = true
     }
 
@@ -130,6 +142,12 @@ class StoreArtGeneratorTest {
 
         /** Frames in, where the glitch die's first burst peaks (die 2 in [TOSSES], from its seeded timing). */
         const val FEATURE_GLITCH_FRAMES = 52
+
+        /** One loop of the feature graphic's scene: 6s, the RGB dice's colour cycle and two [SWAY_MILLIS]. */
+        const val FEATURE_LOOP_FRAMES = 375
+
+        /** The animated feature graphic keeps one frame in this many: 48ms apart, close to a GIF's 50ms. */
+        const val FEATURE_GIF_STRIDE = 3
     }
 }
 

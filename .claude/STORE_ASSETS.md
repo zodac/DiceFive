@@ -13,6 +13,7 @@ the `store-assets` skill. The rest of the Play submission is in `PUBLISHING.md`.
 | `tablet-10/tablet-10-1-game.png` ... `tablet-10-5-achievements.png` | 2560x1440 (landscape)                                            |
 | `DiceFive-Promo-1080p60.mp4`                                        | ~25s, 1920x1080, 60fps, H.264; the app's sounds over music (AAC) |
 | `video-description.txt`                                             | not uploaded: the YouTube description, with its credits          |
+| `feature-graphic.gif`                                               | not uploaded: the README's title, the feature graphic moving     |
 | `contact-sheet.png`                                                 | not uploaded: every still, for review                            |
 
 - **File names** start with the device, so the two folders can't be mixed up in an upload.
@@ -66,10 +67,15 @@ The generators are unit tests in `app/android/src/test/.../store/`, skipped with
 
 `.github/workflows/readme-assets.yml` runs after every release (`android-release.yml`'s last job), and on demand from the
 Actions tab.
-- It renders `feature,phone,tablet` from the released commit, shrinks them to WebP (phone 540px wide, tablet 1280px)
-  and uploads them, replacing the old files, to the `readme-assets` GitHub release. That release is an asset host, not
+- It renders `feature,phone,tablet` from the released commit, shrinks the screenshots to PNGs (phone 540px wide,
+  tablet 1280px) and uploads them with `feature-graphic.gif`, replacing the old files, to the `readme-assets` GitHub
+  release. That release is an asset host, not
   a software release: no version, never Latest.
-- `README.md` embeds them as `releases/download/readme-assets/<name>.webp`: the feature graphic as its title, the phone
+- **The GIF**: the `feature graphic` test also records a 6s loop (the RGB dice's colour cycle, two of the googly dice's
+  sways) at every third 16ms frame, and the script makes it a 20fps, 1024x500 GIF with one palette (under 1MB). The
+  Play still is frame 52 of the same run. A new die in `TOSSES` whose animation doesn't repeat in 6s shows a jump
+  where the loop restarts.
+- `README.md` embeds them as `releases/download/readme-assets/<name>`: the feature graphic as its title, the phone
   shots under the introduction and the tablet ones in a collapsed section. A failed run leaves the previous images up.
 - **Renaming, adding or dropping a screen** means changing `README.md` too. A dropped file stays on the release until
   it's deleted there by hand.
