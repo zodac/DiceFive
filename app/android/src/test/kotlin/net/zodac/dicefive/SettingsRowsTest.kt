@@ -15,6 +15,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -73,8 +74,10 @@ class SettingsRowsTest {
             }
         }
         // The page names every switch - and its version and two links.
-        listOf("Settings", "Sound effects", "Vibration", "Animations", "Orientation", "Confirm leaving game", "About", "Licences").forEach { compose.onNodeWithText(it).assertExists() }
+        listOf("Settings", "Sound effects", "Vibration", "Confirm leaving game", "About", "Licences").forEach { compose.onNodeWithText(it).assertExists() }
         compose.onNode(hasText("Version ", substring = true)).assertExists()
+        // The two choice rows have no visible title: each icon carries its name for a screen reader.
+        listOf("Animations", "Orientation").forEach { compose.onNodeWithContentDescription(it).assertExists() }
 
         // Tapping a setting's label flips it - label and switch are one toggle.
         val vibration = compose.onNode(hasText("Vibration") and isToggleable())

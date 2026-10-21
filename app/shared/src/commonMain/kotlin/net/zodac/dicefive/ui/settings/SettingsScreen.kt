@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.Animation
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -185,28 +185,25 @@ private fun <T> SegmentedSetting(
     compactLabel: @Composable (T) -> String,
     compactGlyph: (T) -> ImageVector?,
 ) {
-    // The icon and label in a ListItem, so they sit exactly as the switch rows' do; the options below it, not in its
-    // supporting slot, which ListItem measures intrinsically - and the fitted row (a BoxWithConstraints) can't be.
-    Column {
-        ListItem(
-            leadingContent = { Icon(imageVector = icon, contentDescription = null) },
-            headlineContent = { SettingLabel(label) },
-            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        )
+    // No visible label: the icon names the setting and the options sit beside it. The icon carries the label for a
+    // screen reader, which hears it before the options.
+    Row(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Icon(imageVector = icon, contentDescription = label)
         FittedSegmentedChoiceRow(
             options = options,
             selected = selected,
             onSelect = onSelect,
             label = optionLabel,
-            // Lined up under the label: ListItem's 16dp start, the 24dp icon and the 16dp gap after it; its 24dp end.
-            modifier = Modifier.padding(start = SETTING_TEXT_START, end = 24.dp, bottom = 16.dp),
+            modifier = Modifier.weight(1f),
             compactLabel = compactLabel,
             compactGlyph = compactGlyph,
         )
     }
 }
-
-private val SETTING_TEXT_START = 56.dp
 
 @Composable
 private fun animationLevelLabel(level: AnimationLevel): String = stringResource(
@@ -307,7 +304,7 @@ fun SettingsScreen(
         val choicesCard = @Composable {
             Card(modifier = Modifier.fillMaxWidth()) {
                 SegmentedSetting(
-                    icon = Icons.Filled.Animation,
+                    icon = Icons.Filled.AutoAwesome,
                     label = stringResource(Res.string.settings_animations),
                     // Least to most, Off first: from the start edge, so left to right here and mirrored in a right-to-left language.
                     options = AnimationLevel.entries.reversed(),
