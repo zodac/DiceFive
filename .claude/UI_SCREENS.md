@@ -159,6 +159,13 @@ A lock is on the style (`StyleFamily.unlock`), not the colour: once it's met, al
 
 ## The Styles screen
 
+**Counts.** Every colour of a style counts as one (`StyleCatalog.unlockCount`). A secret colour isn't counted until
+it's earned, so the total doesn't hint at it.
+- The unlocked/total count is drawn like the Achievements page's: a full-width card over the cards, or compact at the
+  app bar's end in landscape.
+- Each category's title carries its own `46/96` before the gallery toggle. Title and count turn brand gold (`primary`)
+  once every one is unlocked. TalkBack reads "Dice, 46 of 96 unlocked" as the heading; the drawn count is hidden.
+
 **Tiles and rows.**
 - One tile per family. A long press opens a row of previews, one per colour. Colour names are spoken, not shown.
 - Picking a cup shakes and tips it (`CupPickShake`); picking a die rolls it through six faces (`DicePickRoll`). These
@@ -173,12 +180,12 @@ neighbours) build first, then the rest over the following frames, nearest the pi
 - The picks come from `AppContainer.savedStyles`, loaded at launch and shared with the menu logo.
 
 **Fit-to-screen scaling** is worked out in the warm-up, never on opening.
-- `StylesWarmUp` lays the page out off screen at full size and, if that scrolls, at `MIN_PAGE_FIT_SCALE` (75%).
+- `StylesWarmUp` lays the page out off screen at full size and, if that scrolls, at `MIN_PAGE_FIT_SCALE` (70%).
   This is its first step, laid out but not drawn, so the fit is saved within moments of the menu settling.
 - The cards get smaller dp but the same sp, and `fittedPageScale` finds the scale that just fits.
 - The resulting `PageFit` is keyed on window size, density and font scale, and saved with the picks
   (`styles_page_fit`). Opening just reads it.
-- A page that fits, or would need less than 75%, stays full size. A page with no measure yet is full size until the
+- A page that fits, or would need less than 70%, stays full size. A page with no measure yet is full size until the
   next warm-up.
 - Tests: `PageFitTest`, `StylesPageFitTest`.
 

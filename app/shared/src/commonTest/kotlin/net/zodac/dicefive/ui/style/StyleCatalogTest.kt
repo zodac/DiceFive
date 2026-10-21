@@ -123,4 +123,21 @@ class StyleCatalogTest {
         assertEquals(TableBackgrounds.default, TableBackgrounds.unlockedById("glitch_screen", everythingButBigFan))
         assertEquals("glitch_screen", TableBackgrounds.unlockedById("glitch_screen", bigFanEarned).id)
     }
+
+    @Test
+    fun `the unlocked count counts every colour - leaving out a secret one until it's earned`() {
+        val none = AchievementsState()
+        val all = AchievementsState(Achievement.entries.associateWith { 0L })
+        for (catalog in catalogs) {
+            val secret = catalog.families.sumOf { family -> family.colours.count { it.secretAchievement != null } }
+            val classic = catalog.families.single { it.unlock == StyleUnlock.Free }
+            assertEquals(UnlockCount(classic.availableColours(none).size, catalog.all.size - secret), catalog.unlockCount(none), catalog.noun.key)
+            assertEquals(UnlockCount(catalog.all.size, catalog.all.size), catalog.unlockCount(all), catalog.noun.key)
+            assertTrue(catalog.unlockCount(all).complete, catalog.noun.key)
+            assertTrue(!catalog.unlockCount(none).complete, catalog.noun.key)
+        }
+        // Nat 20 unlocks the D20 style and its white and black dice: two more counted, both unlocked.
+        val nat20 = AchievementsState(mapOf(Achievement.NAT_20 to 0L))
+        assertEquals(DiceStyles.unlockCount(none) + UnlockCount(2, 2), DiceStyles.unlockCount(nat20))
+    }
 }

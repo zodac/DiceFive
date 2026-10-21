@@ -317,6 +317,26 @@ open class StyleCatalog<T : TableArt>(
      * which case the [default] - the saved pick itself is left alone, see [StyleUnlock].
      */
     fun unlockedById(id: String, achievements: AchievementsState): T = if (isUnlocked(id, achievements)) byId(id) else default
+
+    /**
+     * How many of the colours the Styles screen offers in this category are unlocked, out of how many it offers: every
+     * colour of every family it shows, less a secret colour ([StyleColour.secretAchievement]) not yet earned, which isn't
+     * counted until it is.
+     */
+    fun unlockCount(achievements: AchievementsState): UnlockCount {
+        val shown = families.filter { it.unlock.isMet(achievements) || !it.unlock.hiddenWhileLocked }
+        val (unlocked, locked) = shown.partition { it.unlock.isMet(achievements) }
+        val unlockedColours = unlocked.sumOf { it.availableColours(achievements).size }
+        return UnlockCount(unlocked = unlockedColours, total = unlockedColours + locked.sumOf { it.availableColours(achievements).size })
+    }
+}
+
+/** [unlocked] of [total] styles, counting each colour of a style as one. */
+data class UnlockCount(val unlocked: Int, val total: Int) {
+    /** Whether every one counted is unlocked. */
+    val complete: Boolean get() = unlocked == total
+
+    operator fun plus(other: UnlockCount): UnlockCount = UnlockCount(unlocked + other.unlocked, total + other.total)
 }
 
 /** A Classic die in one of Tricolour mode's colours, from the same palette that colours its dice in that mode. */

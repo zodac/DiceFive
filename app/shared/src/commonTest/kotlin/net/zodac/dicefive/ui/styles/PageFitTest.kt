@@ -13,10 +13,10 @@ class PageFitTest {
     fun `a page shrinks only as far as it takes to fit - left full size if it fits or would still scroll at the smallest scale`() {
         assertEquals(1f, fittedPageScale(full = 900, smallest = 800, viewport = 900))
         assertEquals(1f, fittedPageScale(full = 1000, smallest = 870, viewport = 850))
-        // 1000 at full size and 838 at 0.75: 648 of it scales and 352 doesn't - so 930 fits at about 0.89.
+        // 1000 at full size and 838 at 0.7: 540 of it scales and 460 doesn't - so 930 fits at about 0.87.
         val scale = fittedPageScale(full = 1000, smallest = 838, viewport = 930)
-        assertTrue(scale in 0.88f..0.89f, "$scale")
-        assertTrue(352 + 648 * scale <= 930)
+        assertTrue(scale in 0.86f..0.87f, "$scale")
+        assertTrue(460 + 540 * scale <= 930)
     }
 
     @Test

@@ -1168,6 +1168,8 @@
     <string name="styles_frame_preview_name">You</string>
     <!-- A switch at the end of a category's title: on, every tile of the category shows at once. %1$s is the category. -->
     <string name="styles_gallery_cd">%1$s gallery</string>
+    <string name="styles_unlocked_count">%1$d of %2$d unlocked</string>
+    <string name="styles_category_count">%1$d/%2$d</string>
     <string name="styles_gallery_row_action">Show %1$s as a row</string>
     <string name="styles_gallery_all_action">Show all %1$s</string>
     <!-- TalkBack's name for tapping a style, or one of its colours. -->

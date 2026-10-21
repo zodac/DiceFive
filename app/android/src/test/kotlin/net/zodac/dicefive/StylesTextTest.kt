@@ -16,7 +16,12 @@ import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DiceMats
 import net.zodac.dicefive.ui.style.DiceStyles
+import net.zodac.dicefive.ui.style.ScoreFrames
 import net.zodac.dicefive.ui.style.TableBackgrounds
+import net.zodac.dicefive.ui.style.UnlockCount
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.isHeading
+import org.junit.Assert.assertTrue
 import net.zodac.dicefive.ui.styles.StylesScreen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import androidx.compose.ui.test.longClick
@@ -71,5 +76,22 @@ class StylesTextTest {
         metal.performTouchInput { longClick() }
         compose.waitForIdle()
         compose.onNodeWithText("Earn 20 achievements to unlock Metal. You've earned 0 so far.").assertExists()
+    }
+
+    @Test
+    fun `the page counts every colour unlocked - and each category's heading says its own count - drawn as a fraction TalkBack doesn't read`() {
+        val achievements = AchievementsState(unlockedAt = mapOf(Achievement.NAT_20 to 0L))
+        show(achievements)
+        val counts = listOf(
+            "Dice" to DiceStyles, "Dice Cup" to DiceCupStyles, "Mat" to DiceMats, "Background" to TableBackgrounds, "Frame" to ScoreFrames,
+        ).map { (title, catalog) -> title to catalog.unlockCount(achievements) }
+        val total = counts.map { it.second }.reduce(UnlockCount::plus)
+        compose.onNodeWithText("${total.unlocked} of ${total.total} unlocked").assertExists()
+
+        val headings = compose.onAllNodes(isHeading()).fetchSemanticsNodes().mapNotNull { it.config.getOrNull(SemanticsProperties.ContentDescription)?.single() }
+        for ((title, count) in counts) {
+            assertTrue("$title: $headings", "$title, ${count.unlocked} of ${count.total} unlocked" in headings)
+            compose.onNodeWithText("${count.unlocked}/${count.total}").assertDoesNotExist()
+        }
     }
 }

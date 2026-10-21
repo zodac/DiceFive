@@ -83,7 +83,7 @@ class StylesPageFitTest {
     @Config(qualifiers = "w393dp-h820dp")
     fun `a page a little too tall for its screen opens shrunk just enough to fit`() {
         val (dieTile, lowest) = openAfterWarmUp()
-        assertTrue("dice tile $dieTile", dieTile < 72f && dieTile >= 72f * 0.75f)
+        assertTrue("dice tile $dieTile", dieTile < 72f && dieTile >= 72f * 0.7f)
         val height = compose.onRoot().fetchSemanticsNode().size.height
         assertTrue("tiles end at $lowest on a $height screen", lowest < height)
     }
@@ -105,6 +105,6 @@ class StylesPageFitTest {
     fun `a page opened about a second after the menu, before the tiles are warmed, is already sized to fit`() {
         // 600ms of waiting, then the measures, then the tiles: these frames end long before the tiles do.
         val (dieTile, _) = openAfterWarmUp(frames = 60)
-        assertTrue("dice tile $dieTile", dieTile < 72f && dieTile >= 72f * 0.75f)
+        assertTrue("dice tile $dieTile", dieTile < 72f && dieTile >= 72f * 0.7f)
     }
 }

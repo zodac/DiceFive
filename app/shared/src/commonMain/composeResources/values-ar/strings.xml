@@ -1015,6 +1015,8 @@
     <string name="styles_category_frame">الإطار</string>
     <string name="styles_frame_preview_name">أنت</string>
     <string name="styles_gallery_cd">معرض %1$s</string>
+    <string name="styles_unlocked_count">%1$d من %2$d مفتوحة</string>
+    <string name="styles_category_count">%2$d/%1$d</string>
     <string name="styles_gallery_row_action">عرض %1$s في صف</string>
     <string name="styles_gallery_all_action">عرض كل %1$s</string>
     <string name="styles_select_action">اختيار</string>

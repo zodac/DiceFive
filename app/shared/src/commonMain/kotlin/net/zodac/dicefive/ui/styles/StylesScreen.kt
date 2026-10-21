@@ -112,6 +112,7 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
@@ -147,6 +148,7 @@ import net.zodac.dicefive.resources.styles_choose_variant_action
 import net.zodac.dicefive.resources.styles_family_colour_cd
 import net.zodac.dicefive.resources.styles_frame_preview_name
 import net.zodac.dicefive.resources.styles_gallery_all_action
+import net.zodac.dicefive.resources.styles_category_count
 import net.zodac.dicefive.resources.styles_gallery_cd
 import net.zodac.dicefive.resources.styles_gallery_row_action
 import net.zodac.dicefive.resources.styles_locked_spoken
@@ -163,7 +165,9 @@ import net.zodac.dicefive.resources.styles_unlock_any
 import net.zodac.dicefive.resources.styles_unlock_count
 import net.zodac.dicefive.resources.styles_unlock_free
 import net.zodac.dicefive.resources.styles_unlock_specific
+import net.zodac.dicefive.resources.styles_unlocked_count
 import net.zodac.dicefive.ui.common.accessibleCombinedClickable
+import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
 import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.ColourDisc
 import net.zodac.dicefive.ui.common.DiceFiveDialog
@@ -197,6 +201,7 @@ import net.zodac.dicefive.ui.style.StyleCategory
 import net.zodac.dicefive.ui.style.StyleColour
 import net.zodac.dicefive.ui.style.StyleFamily
 import net.zodac.dicefive.ui.style.StyleUnlock
+import net.zodac.dicefive.ui.style.UnlockCount
 import net.zodac.dicefive.ui.style.TableArt
 import net.zodac.dicefive.ui.style.TableBackground
 import net.zodac.dicefive.ui.style.TableBackgrounds
@@ -306,6 +311,12 @@ private fun StylesScaffold(
         scrollable = false,
         driftingDice = driftingDice,
         wide = true,
+        // In landscape the count is at the app bar's end, level with the cards' end edge; otherwise it's over the cards (StylesPage).
+        actions = {
+            if (LocalLandscapePage.current && picks != null) {
+                StylesUnlockedCount(picks.achievements, compact = true, modifier = Modifier.padding(end = BACK_ARROW_OUTSET))
+            }
+        },
     ) {
         // Nothing until the saved picks have loaded, so each row can open scrolled to its real pick.
         // They're normally in already (AppContainer.savedStyles), so the page has them from its first frame.
@@ -351,6 +362,7 @@ private fun ColumnScope.StylesPage(
                 onMeasured(PageMeasure(content = overflow + viewport, viewport = viewport))
             }
         }
+        if (!LocalLandscapePage.current) StylesUnlockedCount(picks.achievements, compact = false, modifier = Modifier.fillMaxWidth())
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
             CompositionLocalProvider(LocalDensity provides cardsDensity) {
                 Column(modifier = Modifier.verticalScroll(pageScroll), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -375,6 +387,23 @@ private fun ColumnScope.StylesPage(
                 modifier = Modifier.align(Alignment.TopEnd).offset(x = PAGE_MARGIN),
             )
         }
+    }
+}
+
+/**
+ * How many styles are unlocked, out of how many the page offers, each colour counted as one - see [StyleCatalog.unlockCount].
+ * Drawn as the Achievements page's count is: a full-width card over the cards, or [compact] in a landscape app bar.
+ */
+@Composable
+private fun StylesUnlockedCount(achievements: AchievementsState, compact: Boolean, modifier: Modifier = Modifier) {
+    val count = remember(achievements) { StyleCategory.entries.map { it.catalog.unlockCount(achievements) }.reduce(UnlockCount::plus) }
+    Card(modifier = modifier) {
+        Text(
+            text = stringResource(Res.string.styles_unlocked_count, count.unlocked, count.total),
+            style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = if (compact) 4.dp else 12.dp).then(if (compact) Modifier else Modifier.fillMaxWidth()),
+        )
     }
 }
 
@@ -412,8 +441,8 @@ internal data class PageFit(val key: PageFitKey, val scale: Float) {
 }
 
 // No smaller than this, or the page is left full size and scrolls. Low enough for the maintainer's own
-// phone (~369 x 816dp), where the page needs about 79%.
-private const val MIN_PAGE_FIT_SCALE = 0.75f
+// phone (~369 x 816dp), where the page needs about 77% with the unlocked count over it, and a 360 x 800dp one (about 75%).
+private const val MIN_PAGE_FIT_SCALE = 0.7f
 // A hair under the exact fit, so a pixel's rounding doesn't leave it scrolling by one.
 private const val PAGE_FIT_SLACK = 0.995f
 
@@ -527,9 +556,10 @@ private fun StyleCategorySection(
 ) {
     val achievements = picks.achievements
     var gallery by rememberSaveable { mutableStateOf(false) }
+    val count = remember(achievements) { category.catalog.unlockCount(achievements) }
     @Composable
     fun CategoryCard(title: String, content: @Composable ColumnScope.() -> Unit) =
-        StyleCategoryCard(title = title, gallery = gallery, onGalleryChange = { gallery = it }, content = content)
+        StyleCategoryCard(title = title, count = count, gallery = gallery, onGalleryChange = { gallery = it }, content = content)
     when (category) {
         StyleCategory.DICE -> CategoryCard(title = stringResource(Res.string.styles_category_dice)) {
             val roll = rememberDicePickRoll()
@@ -943,20 +973,35 @@ private const val WARM_UP_TILES_PER_PASS = 3
 
 /**
  * A titled group of preview tiles for one swappable category, matching Settings' Card sections. The
- * title's [GalleryToggle] switches [gallery] - every tile at once, rather than a scrolling row.
+ * title's [GalleryToggle] switches [gallery] - every tile at once, rather than a scrolling row. Before the
+ * toggle, [count]'s unlocked/total; the title and count turn brand gold once every one is unlocked.
  */
 @Composable
-private fun StyleCategoryCard(title: String, gallery: Boolean, onGalleryChange: (Boolean) -> Unit, content: @Composable ColumnScope.() -> Unit) {
+private fun StyleCategoryCard(title: String, count: UnlockCount, gallery: Boolean, onGalleryChange: (Boolean) -> Unit, content: @Composable ColumnScope.() -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         // The title's line, with the toggle centred on it.
         Row(modifier = Modifier.padding(top = 10.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            val colour = if (count.complete) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            val spokenCount = stringResource(Res.string.styles_unlocked_count, count.unlocked, count.total)
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
+                color = colour,
                 modifier = Modifier
                     .weight(1f)
                     .padding(horizontal = 12.dp)
-                    .semantics { heading() },
+                    // The count after the title, as one heading.
+                    .semantics {
+                        heading()
+                        contentDescription = "$title, $spokenCount"
+                    },
+            )
+            // The heading above already speaks the count.
+            Text(
+                text = stringResource(Res.string.styles_category_count, count.unlocked, count.total),
+                style = MaterialTheme.typography.labelMedium,
+                color = colour,
+                modifier = Modifier.padding(end = 4.dp).clearAndSetSemantics { },
             )
             GalleryToggle(title = title, gallery = gallery, onGalleryChange = onGalleryChange)
         }
