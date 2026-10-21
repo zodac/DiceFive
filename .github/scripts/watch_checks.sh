@@ -3,7 +3,7 @@
 # Script Name:  watch_checks.sh
 #
 # Description:  Watches other jobs of this workflow run and stops this one's long work if any of them
-#               fails. release.yml's baseline-profile job runs it in the background: the profile takes
+#               fails. android-release.yml's baseline-profile job runs it in the background: the profile takes
 #               ~20 minutes and is useless once a check has failed, since the release won't be made.
 #               (GitHub can cancel a whole run but not one job of it, and cancelling the run would also
 #               cut short the other checks, whose results are still wanted.)

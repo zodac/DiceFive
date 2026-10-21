@@ -132,7 +132,7 @@ The sole holder can relicense later.
 
 ## In-repo build changes
 
-- **App Bundle**: done. `release.yml` builds `bundleRelease` beside the APK and attaches
+- **App Bundle**: done. `android-release.yml` builds `bundleRelease` beside the APK and attaches
   `DiceFive-<version>.aab`. Uploading to Play is by hand, with "Sidekick is on by default" ticked (`PLAY_GAMES.md`,
   "Release").
 - **`INTERNET` permission**: not declared, and Play Games doesn't add it. The v2 SDK talks to the Play services app,

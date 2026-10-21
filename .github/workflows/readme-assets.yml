@@ -2,7 +2,7 @@ name: README assets
 
 # The images README.md shows - the feature graphic, and the phone and 10-inch tablet screenshots - rendered from the
 # app by scripts/generate-store-assets.sh (see .claude/STORE_ASSETS.md), shrunk to WebP, and uploaded to the
-# standalone `readme-assets` release. release.yml calls this once a release has been published, so the README always
+# standalone `readme-assets` release. android-release.yml calls this once a release has been published, so the README always
 # shows the latest release; the workflow_dispatch trigger refreshes them on demand (Actions tab, or
 # `gh workflow run readme-assets.yml`), with no release.
 #
@@ -42,7 +42,7 @@ jobs:
         with:
           ffmpeg: "true"
 
-      # The runtime release.yml's android-tests job caches (see there). Only restored: on a miss, Gradle downloads it.
+      # The runtime android-release.yml's android-tests job caches (see there). Only restored: on a miss, Gradle downloads it.
       - name: Read what picks Robolectric's runtime
         id: robolectric
         run: |
@@ -65,7 +65,7 @@ jobs:
       # and tablet ones at 1280px, both twice the width the README shows them at.
       - name: Shrink them for the README
         run: |
-          out="assets/$(tr -d '[:space:]' < VERSION)"
+          out="assets/$(tr -d '[:space:]' < app/android/VERSION)"
           mkdir readme-assets
           magick "$out/feature-graphic-1024x500.png" -quality 90 readme-assets/feature-graphic.webp
           for shot in "$out"/phone/*.png; do

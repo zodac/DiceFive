@@ -52,7 +52,7 @@ drawing DiceFive**.
 
 ## The same journey in CI
 
-`release.yml`'s `baseline-profile` job runs the journey on a GitHub-hosted runner for every release APK: 3 laps, or 10
+`android-release.yml`'s `baseline-profile` job runs the journey on a GitHub-hosted runner for every release APK: 3 laps, or 10
 if the journey or a profile file changed. The `apk` job builds with the profile it makes.
 
 **`.github/scripts/ci_emulator.sh` is `emulator.sh`'s twin.** It uses the same API (read from the Dockerfile's

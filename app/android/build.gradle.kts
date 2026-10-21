@@ -14,8 +14,9 @@ plugins {
     alias(libs.plugins.androidx.baselineprofile)
 }
 
-// Single source of truth for the app version - bump the root VERSION file to release a new one.
-val appVersionName = rootProject.file("VERSION").readText().trim()
+// Single source of truth for the app version - bump this module's VERSION file to release a new one (iOS has its own,
+// app/ios/VERSION).
+val appVersionName = file("VERSION").readText().trim()
 val appVersionCode = appVersionName.split(".").map { it.toInt() }
     .let { (major, minor, patch) ->
         // Two digits each for minor and patch, so a part of 100 or more would collide with the next minor/major
@@ -35,7 +36,7 @@ val javaVersion: Int = Properties()
     .getProperty("toolchainVersion").trim().toInt()
 
 // Release signing is optional locally (assembleRelease then produces an unsigned APK) but
-// required in CI, which supplies these via secrets - see .github/workflows/release.yml.
+// required in CI, which supplies these via secrets - see .github/workflows/android-release.yml.
 val releaseKeystorePath = System.getenv("ANDROID_RELEASE_KEYSTORE_PATH")
 val releaseKeystorePassword = System.getenv("ANDROID_RELEASE_KEYSTORE_PASSWORD")
 val releaseKeyAlias = System.getenv("ANDROID_RELEASE_KEY_ALIAS")

@@ -476,30 +476,35 @@ screen) of `StyleColour`s.
 
 ## Release pipeline
 
-- **Version.**
-  - `VERSION` is the single source: `versionName` is its contents, and `versionCode` is
+- **Version.** Each app has its own: `app/android/VERSION` and `app/ios/VERSION` (`IOS_SUPPORT.md`).
+  - Android's is the single source: `versionName` is its contents, and `versionCode` is
     `major*10000 + minor*100 + patch`.
-  - `scripts/set-version.sh` writes it, and `scripts/bump-patch-version.sh` bumps the patch.
+  - `scripts/set-version.sh <android|ios> X.Y.Z` writes one, and `scripts/bump-patch-version.sh <android|ios>`
+    bumps its patch.
   - Debug builds are signed with the repo's `app/android/debug.keystore`, so every debug APK shares one SHA-1 (which
     Play Games testing registers). Built with `-PdevStamp`, one also takes the minute it was built as its `versionCode`
     (`<version>-dev<minute>`), so each installs over the last. Without it, a debug build keeps `VERSION`'s, so test
     and lint runs stay up to date. The minute is read through a `ValueSource` when the build runs, never while the
     script is evaluated, or the configuration cache would hand every build the same one.
-- **On every push to `main` that changes what ships**, `.github/workflows/release.yml` runs:
+- **On every push to `main` that changes what Android ships**, `.github/workflows/android-release.yml` runs:
   - parallel jobs: Android tests, shared tests with the iOS compile, lint, the Baseline Profile (generated fresh on an
     emulator; see `EMULATOR.md`), and the APK plus App Bundle;
-  - then a `release` job that publishes GitHub release `v<VERSION>` once every check has passed, with
+  - then a `release` job that publishes GitHub release `v<version>` once every check has passed, with
     `DiceFive-<version>.apk`, `.aab` and `-mapping.txt` (one R8 run, one mapping);
   - then a commit that bumps the patch and empties `RELEASE_NOTES.md`'s Shared and Android sections (`[Release] Bump
-    version to X [skip ci]`);
+    Android version to X [skip ci]`);
   - then `readme-assets.yml`, which renders the README's feature graphic and screenshots from the released commit
     and replaces the files on the `readme-assets` release (`STORE_ASSETS.md`, "The README's images").
+- **iOS** has the same flow in `ios-release.yml`: iOS tests and the IPA (plus the simulator screen tour from 1.0.0,
+  or with the `force_screenshots` dispatch input), then GitHub release `ios-v<version>` (a pre-release below 1.0.0,
+  never "Latest") and a bump of `app/ios/VERSION`. A change to the shared code releases
+  both apps; the two release jobs share a `version-bump` concurrency group, so their bump commits don't collide.
 - **Release description.** `RELEASE_NOTES.md` (the maintainer's), then "## Changes since X" from
   `scripts/release-changelog.sh`, grouped by each commit's `[Category]`.
   - The notes have three sections, headed `## Shared`, `## Android` and `## iOS`. A platform's release takes Shared
     plus its own, then empties those two; the other platform's waits for its release (`scripts/release-notes.sh`,
     tested by `scripts/tests/release-notes-test.sh`).
-  - Until iOS has a release pipeline (`IOS_SUPPORT.md`, Phase 8), Android's release empties Shared on its own.
+  - The changelog is per app: commits since that app's previous tag, leaving out the other app's own code.
 - **Signing.** Four `ANDROID_RELEASE_*` env vars (repo secrets in CI); without them the build is unsigned. The keystore
   (alias `upload`) is the Play upload key.
 - **R8** shrinks and obfuscates release builds (`app/android/r8-rules.pro`). Release dex is stored uncompressed.

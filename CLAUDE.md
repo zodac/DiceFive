@@ -24,9 +24,9 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 
 | | |
 |---|---|
-| Repo | `github.com/zodac/DiceFive`, default branch `main`. Every push to `main` that changes what ships cuts a GitHub release (`DESIGN.md`, "Release pipeline") |
+| Repo | `github.com/zodac/DiceFive`, default branch `main`. Every push to `main` that changes what an app ships cuts a GitHub release for that app (`v*` Android, `ios-v*` iOS; `DESIGN.md`, "Release pipeline") |
 | Package | `net.zodac.dicefive` (Android `applicationId`, Kotlin root package) |
-| Version | `VERSION` (single source; released from 1.0.0). Never hand-edit for a debug install |
+| Version | One per app: `app/android/VERSION` (released from 1.0.0) and `app/ios/VERSION` (pre-releases below 1.0.0). Never hand-edit for a debug install |
 | Platforms | Android minSdk 26, targetSdk/compileSdk 37 (`app/android/build.gradle.kts`); iOS compiles but no app yet |
 | Stack | Kotlin Multiplatform, Compose Multiplatform, Material 3 (dark only), Navigation Compose, MVVM (`ViewModel` + `StateFlow`), Room (scores), DataStore (everything else) |
 | Versions | `gradle/libs.versions.toml`, bumped monthly by CI (an entry tied to another is marked `# @update`); sandbox pins in `sandbox/Dockerfile` |
@@ -101,7 +101,7 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 | `benchmark` | Measuring frame cost without a device |
 | `emulator` | Sandbox emulator: seeing the real app, the Baseline Profile journey |
 | `store-assets` | Generating and reviewing the Play Store graphics and video |
-| `ios-build` | The iOS app's CI results: the IPA to sideload, simulator screenshots, iOS test failures |
+| `ios-build` | The iOS app's CI results: the IPA to sideload (`ios-v*` releases), simulator screenshots, iOS test failures |
 
 ## Reference docs (read the one for an area before changing it)
 

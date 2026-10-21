@@ -2,7 +2,7 @@
 # ------------------------------------------------------------------------------
 # Script Name:  ci_emulator.sh
 #
-# Description:  Boots a headless Android emulator on a GitHub-hosted Linux runner, for release.yml's
+# Description:  Boots a headless Android emulator on a GitHub-hosted Linux runner, for android-release.yml's
 #               baseline-profile job (`./gradlew :app:android:generateBaselineProfile`). The CI twin of
 #               sandbox/emulator.sh, which does the same inside the sandbox; .claude/EMULATOR.md explains
 #               both, and why each step below is there.
@@ -90,7 +90,7 @@ ensure_kvm() {
     fi
 }
 
-# Skipped when release.yml's cache already restored them. Installed the same way as
+# Skipped when android-release.yml's cache already restored them. Installed the same way as
 # .github/actions/build-setup installs the build's packages: the `android` CLI if the runner has it,
 # otherwise sdkmanager.
 ensure_packages() {
@@ -266,7 +266,7 @@ logcat() {
     adb logcat -d -b all -v time >"${1:?usage: $0 logcat <file.txt>}"
 }
 
-# The same, from a failed start, where release.yml's report artifact picks it up (logcat-*.txt).
+# The same, from a failed start, where android-release.yml's report artifact picks it up (logcat-*.txt).
 save_logcat() {
     logcat "${RUNNER_TEMP:-/tmp}/logcat-boot-$(date +%H%M%S).txt" 2>/dev/null || true
 }

@@ -1,0 +1,289 @@
+name: iOS release
+
+# Every push to main that changes what the iOS app ships (see the paths filter below) tests and builds it on
+# macOS runners and publishes a GitHub release ios-v<version> for the version in app/ios/VERSION, with the IPA
+# and its dSYMs, then commits that file bumped to the next patch version back to main - the iOS counterpart of
+# android-release.yml, with its own version. A change to the shared code releases both apps. See
+# .claude/IOS_SUPPORT.md.
+#
+# Below 1.0.0 every release is a pre-release, for the maintainer's own testing: the shared tests on the iOS
+# simulator, then the IPA. From 1.0.0 a release also needs the simulator screen tour (the screenshots job), which
+# the force_screenshots dispatch input below runs for a pre-release too.
+#
+# The IPA is a Release build, unsigned: Sideloadly signs it with an Apple ID when it installs it. Its build number
+# is this workflow's run number, so each one installs over the last.
+#
+# The Xcode project is generated from app/ios/project.yml (XcodeGen); its build phase builds the Kotlin framework
+# through Gradle.
+#
+# For a minor/major bump, edit app/ios/VERSION by hand (or run scripts/set-version.sh ios) and push that.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/shared/**"
+      - "app/ios/**"
+      - "gradle/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      # ...except test code, documentation and Android-only code inside those.
+      - "!app/**/src/commonTest/**"
+      - "!app/**/src/androidHostTest/**"
+      - "!app/**/src/iosTest/**"
+      - "!app/**/*.md"
+      - "!app/ios/DiceFiveUITests/**"
+      - "!app/shared/src/androidMain/**"
+  # Releases the version currently on main on demand (Actions tab, or `gh workflow run ios-release.yml`).
+  workflow_dispatch:
+    inputs:
+      force_screenshots:
+        description: "Run the simulator screen tour even if the version is still below 1.0.0 (release stays a pre-release)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-release
+  cancel-in-progress: false
+
+jobs:
+  # What's being released, read once for the jobs that need it.
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.version.outputs.name }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Read version
+        id: version
+        run: |
+          version="$(tr -d '[:space:]' < app/ios/VERSION)"
+          echo "name=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$version" == 0.* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # app:shared's tests on the iOS simulator: commonTest and iosTest.
+  tests:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the build
+        uses: ./.github/actions/build-setup
+        with:
+          kotlin-native: "true"
+          android-sdk: "false"
+
+      - name: Run the shared tests on the iOS simulator
+        run: ./gradlew :app:shared:iosSimulatorArm64Test --console=plain
+
+      - name: Upload the test report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-test-report
+          path: app/shared/build/reports/tests/iosSimulatorArm64Test/
+
+  # The app for a real iPhone, unsigned, as DiceFive-<version>.ipa, with its dSYMs for reading crash reports.
+  ipa:
+    needs: version
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the build
+        uses: ./.github/actions/build-setup
+        with:
+          kotlin-native: "true"
+          android-sdk: "false"
+
+      - name: Show Xcode
+        run: xcodebuild -version
+
+      - name: Generate the Xcode project
+        run: |
+          brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+          xcodegen generate --spec app/ios/project.yml
+
+      - name: Build the app (unsigned)
+        run: |
+          xcodebuild build \
+            -project app/ios/DiceFive.xcodeproj \
+            -scheme DiceFive \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath build/ios \
+            MARKETING_VERSION="${{ needs.version.outputs.name }}" \
+            CURRENT_PROJECT_VERSION="${GITHUB_RUN_NUMBER}" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      # An .ipa is a zip with the app under Payload/. Unsigned, so only a re-signing installer can use it.
+      - name: Package the IPA
+        run: |
+          name="DiceFive-${{ needs.version.outputs.name }}"
+          products="build/ios/Build/Products/Release-iphoneos"
+          mkdir -p build/ipa/Payload release-files
+          cp -R "${products}/DiceFive.app" build/ipa/Payload/
+          (cd build/ipa && zip -qry "${GITHUB_WORKSPACE}/release-files/${name}.ipa" Payload)
+          (cd "${products}" && zip -qry "${GITHUB_WORKSPACE}/release-files/${name}-dSYM.zip" DiceFive.app.dSYM)
+
+      - name: Upload the release files
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-release-files
+          path: release-files/
+          if-no-files-found: error
+          retention-days: 1
+
+  # The app on a simulated iPhone, toured by ScreenTourTests (app/ios/DiceFiveUITests): a PNG per screen, uploaded as
+  # the "ios-screenshots" artifact. The iOS counterpart of the render skill, and a check that every screen can be
+  # reached by the labels VoiceOver reads. For full releases (from 1.0.0), or when force_screenshots asks.
+  screenshots:
+    needs: version
+    if: needs.version.outputs.prerelease == 'false' || inputs.force_screenshots == true
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the build
+        uses: ./.github/actions/build-setup
+        with:
+          kotlin-native: "true"
+          android-sdk: "false"
+
+      - name: Show Xcode
+        run: xcodebuild -version
+
+      - name: Generate the Xcode project
+        run: |
+          brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+          xcodegen generate --spec app/ios/project.yml
+
+      # The largest current non-Max iPhone the runner's newest iOS runtime has, so the shots look like a typical phone.
+      - name: Pick a simulator
+        id: simulator
+        run: |
+          xcrun simctl list devices available --json > "$RUNNER_TEMP/devices.json"
+          udid="$(jq -r '
+            [.devices | to_entries[] | select(.key | test("iOS")) | .value[]] as $all
+            | ([$all[] | select(.name | test("^iPhone [0-9]+ Pro$"))] | last // empty | .udid)
+              // ([$all[] | select(.name | startswith("iPhone"))] | last | .udid)
+          ' "$RUNNER_TEMP/devices.json")"
+          echo "Simulator: $(jq -r --arg u "$udid" '.devices[][] | select(.udid == $u) | .name' "$RUNNER_TEMP/devices.json") ($udid)"
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      - name: Tour the screens
+        env:
+          TEST_RUNNER_SCREENSHOT_DIR: ${{ github.workspace }}/build/ios-screenshots
+        run: |
+          mkdir -p "$TEST_RUNNER_SCREENSHOT_DIR"
+          xcodebuild test \
+            -project app/ios/DiceFive.xcodeproj \
+            -scheme DiceFive \
+            -destination "id=${{ steps.simulator.outputs.udid }}" \
+            -derivedDataPath build/ios \
+            -resultBundlePath build/ios-tour.xcresult \
+            MARKETING_VERSION="${{ needs.version.outputs.name }}" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload the screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-screenshots
+          path: build/ios-screenshots/
+          if-no-files-found: warn
+
+      - name: Upload the test result
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-tour-xcresult
+          path: build/ios-tour.xcresult
+
+  # Made only once every check it needs has passed; the screen tour counts only when it ran.
+  release:
+    needs: [version, tests, ipa, screenshots]
+    if: >-
+      always()
+      && needs.tests.result == 'success'
+      && needs.ipa.result == 'success'
+      && (needs.screenshots.result == 'success' || needs.screenshots.result == 'skipped')
+    runs-on: ubuntu-latest
+    # Shared with android-release.yml's release job: a change to the shared code releases both apps, and their
+    # version-bump commits must reach main one after the other.
+    concurrency:
+      group: version-bump
+      cancel-in-progress: false
+    steps:
+      # Full history and tags: the release description lists every commit since the previous iOS release.
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Fetch the release files
+        uses: actions/download-artifact@v8
+        with:
+          name: ios-release-files
+          path: release-files/
+
+      # RELEASE_NOTES.md's Shared and iOS sections (skipped if empty; scripts/release-notes.sh), then the grouped
+      # commit list. A copy of the notes is kept aside so the bump step below can tell whether those sections on
+      # main are still the text this release shipped with.
+      - name: Compose release description
+        id: notes
+        run: |
+          body="$RUNNER_TEMP/release-body.md"
+          if [[ -f RELEASE_NOTES.md ]]; then cp RELEASE_NOTES.md "$RUNNER_TEMP/released-notes.md"; fi
+          notes="$(./scripts/release-notes.sh extract ios)"
+          {
+            if [[ -n "$notes" ]]; then
+              printf '%s\n\n' "$notes"
+            fi
+            ./scripts/release-changelog.sh ios "${{ needs.version.outputs.name }}"
+          } > "$body"
+          cat "$body"
+          echo "path=$body" >> "$GITHUB_OUTPUT"
+
+      # Never "Latest": that stays the Android release.
+      - name: Create/update GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ios-v${{ needs.version.outputs.name }}
+          target_commitish: ${{ github.sha }}
+          name: DiceFive iOS v${{ needs.version.outputs.name }}
+          prerelease: ${{ needs.version.outputs.prerelease == 'true' }}
+          make_latest: "false"
+          files: release-files/*
+          body_path: ${{ steps.notes.outputs.path }}
+
+      # As in android-release.yml: only reached once everything above has succeeded, re-synced with main first
+      # (the other app's bump may have landed meanwhile), and the notes' Shared and iOS sections are emptied only
+      # if they still hold what this release shipped with.
+      - name: Bump version for next development iteration
+        run: |
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          ./scripts/bump-patch-version.sh ios
+          ./scripts/release-notes.sh clear ios "$RUNNER_TEMP/released-notes.md"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add app/ios/VERSION RELEASE_NOTES.md
+          git commit -m "[Release] Bump iOS version to $(cat app/ios/VERSION) [skip ci]"
+          git push origin main

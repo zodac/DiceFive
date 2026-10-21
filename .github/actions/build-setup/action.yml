@@ -1,8 +1,9 @@
 name: Build setup
 description: >-
-  Everything a Gradle job here needs before it runs: the JDK, the Android SDK packages, Gradle with its
-  caches - and, when asked, ffmpeg (for app:android's audio) and the Kotlin/Native toolchain (for
-  app:shared's iOS compile). Shared by release.yml's parallel jobs and ios.yml; runs after actions/checkout.
+  Everything a Gradle job here needs before it runs: the JDK, the Android SDK packages (unless turned
+  off), Gradle with its caches - and, when asked, ffmpeg (for app:android's audio) and the Kotlin/Native
+  toolchain (for app:shared's iOS compile). Shared by android-release.yml's parallel jobs and the iOS workflows;
+  runs after actions/checkout.
 
 inputs:
   ffmpeg:
@@ -11,26 +12,20 @@ inputs:
   kotlin-native:
     description: "Restore and save the Kotlin/Native toolchain - only app:shared's iOS tasks use it"
     default: "false"
+  android-sdk:
+    description: "Install the Android SDK packages (Linux runners). app:shared's iOS tasks build without them"
+    default: "true"
 
 runs:
   using: composite
   steps:
-    # The scripts here use GNU grep's -P, which macOS's own grep lacks (ios.yml runs on macOS). Homebrew's GNU grep
-    # goes first on the PATH.
-    - name: Put GNU grep on the PATH (macOS)
-      if: runner.os == 'macOS'
-      shell: bash
-      run: |
-        brew list grep >/dev/null 2>&1 || brew install grep
-        echo "$(brew --prefix)/opt/grep/libexec/gnubin" >> "$GITHUB_PATH"
-
     # The Java version is owned by the Gradle toolchain (gradle/gradle-daemon-jvm.properties), which
     # Gradle would download itself; installing the same JDK here just saves it that download. Read
     # at run time rather than pinned here, so a JDK move never has to edit this file.
     - name: Read the Java version from the Gradle toolchain
       id: java
       shell: bash
-      run: echo "version=$(grep -oP '^toolchainVersion=\K[0-9]+' gradle/gradle-daemon-jvm.properties)" >> "$GITHUB_OUTPUT"
+      run: echo "version=$(sed -n 's/^toolchainVersion=\([0-9]*\).*/\1/p' gradle/gradle-daemon-jvm.properties)" >> "$GITHUB_OUTPUT"
 
     - name: Set up JDK
       uses: actions/setup-java@v6
@@ -44,6 +39,7 @@ runs:
     # reason as the JDK above). (android-actions/setup-android@v3 was tried here but fails on current
     # runners: it also tries to install the long-removed legacy "tools" package.)
     - name: Install required Android SDK packages
+      if: inputs.android-sdk == 'true'
       shell: bash
       run: |
         ANDROID_CLI="$ANDROID_HOME/cmdline-tools/latest/bin/android"
@@ -79,10 +75,14 @@ runs:
     # Kotlin/Native toolchain - a few hundred MB that Gradle otherwise downloads into ~/.konan on every
     # run. setup-gradle doesn't cache it. Keyed on the version catalog, where the Kotlin version lives;
     # a partial match still restores the last toolchain, so only a Kotlin bump downloads a new one.
+    # Per job, too: ~/.konan also holds the compiled caches of the libraries a link uses, which take
+    # minutes to build, and each job links for its own target (simulator tests, simulator app, device app).
     - name: Cache Kotlin/Native toolchain
       if: inputs.kotlin-native == 'true'
       uses: actions/cache@v6
       with:
         path: ~/.konan
-        key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
-        restore-keys: konan-${{ runner.os }}-
+        key: konan-${{ runner.os }}-${{ github.job }}-${{ hashFiles('gradle/libs.versions.toml') }}
+        restore-keys: |
+          konan-${{ runner.os }}-${{ github.job }}-
+          konan-${{ runner.os }}-

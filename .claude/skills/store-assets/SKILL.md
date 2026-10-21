@@ -6,7 +6,7 @@ description: Generate, review and upload the Play Store listing graphics (hi-res
 # Store listing assets
 
 Everything is rendered from the real app by Robolectric tests, then captioned, encoded and checked by the script. The
-output goes into the gitignored `assets/<VERSION>/`, and none of it is committed. Read `.claude/STORE_ASSETS.md`
+output goes into the gitignored `assets/<version>/` (Android's version), and none of it is committed. Read `.claude/STORE_ASSETS.md`
 before changing scenes, captions or the generators.
 
 ```sh

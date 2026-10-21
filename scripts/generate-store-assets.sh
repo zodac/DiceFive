@@ -53,7 +53,7 @@ if [[ -n "$(git ls-files assets | grep -vxF "${TRACKED_IN_ASSETS}")" ]]; then
     exit 1
 fi
 
-VERSION="$(tr -d '[:space:]' < VERSION)"
+VERSION="$(tr -d '[:space:]' < app/android/VERSION)"
 RAW="${ROOT}/build/store-assets/raw"
 OUT="${ROOT}/assets/${VERSION}"
 WORK="${ROOT}/build/store-assets/work"

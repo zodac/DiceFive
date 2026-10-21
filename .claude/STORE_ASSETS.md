@@ -3,7 +3,7 @@
 How the listing's graphics are made, what to change, and the traps. **Running the script and the release steps** are
 the `store-assets` skill. The rest of the Play submission is in `PUBLISHING.md`.
 
-## Output (`assets/<VERSION>/`, gitignored)
+## Output (`assets/<version>/`, gitignored)
 
 | File                                                                | Play's requirement                                               |
 |---------------------------------------------------------------------|------------------------------------------------------------------|
@@ -64,7 +64,7 @@ The generators are unit tests in `app/android/src/test/.../store/`, skipped with
 
 ## The README's images
 
-`.github/workflows/readme-assets.yml` runs after every release (`release.yml`'s last job), and on demand from the
+`.github/workflows/readme-assets.yml` runs after every release (`android-release.yml`'s last job), and on demand from the
 Actions tab.
 - It renders `feature,phone,tablet` from the released commit, shrinks them to WebP (phone 540px wide, tablet 1280px)
   and uploads them, replacing the old files, to the `readme-assets` GitHub release. That release is an asset host, not

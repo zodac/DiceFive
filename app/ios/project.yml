@@ -1,7 +1,7 @@
 # The Xcode project, as an XcodeGen spec: CI runs `xcodegen` on a macOS runner to make DiceFive.xcodeproj, which is
-# never committed (.github/workflows/ios.yml). See .claude/IOS_SUPPORT.md.
+# never committed (.github/workflows/ios-release.yml). See .claude/IOS_SUPPORT.md.
 #
-# The version comes from the root VERSION file and the build number from the CI run: ios.yml passes them to xcodebuild
+# The version comes from app/ios/VERSION and the build number from the CI run: the workflows pass them to xcodebuild
 # as MARKETING_VERSION and CURRENT_PROJECT_VERSION.
 name: DiceFive
 options:

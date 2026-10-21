@@ -131,7 +131,7 @@ Each phase ends with something checkable on the iPhone or in CI. Tick items off 
   accelerometer remap are Phase 3.
 - [x] **Licences page**: keep `ComposeLicenceDocument` unless its links fail on the phone (Phase 3).
 
-### Phase 1: first IPA on the phone (Next: needs a push and the phone)
+### Phase 1: first IPA on the phone (Next: the check on the phone)
 
 Exit: the app launches on the iPhone, a game can be played, and it survives being killed and reopened.
 
@@ -140,22 +140,19 @@ Exit: the app launches on the iPhone, a game can be played, and it survives bein
   - XcodeGen `project.yml`: one app target, iPhone only, a pre-build phase running
     `./gradlew :app:shared:embedAndSignAppleFrameworkForXcode`. The generated project and `Info.plist` are ignored.
   - `DiceFive/DiceFiveApp.swift` hosting `MainViewControllerKt.MainViewController()`, edge to edge.
-  - `Info.plist` (in `project.yml`): version from `VERSION` and build number from the run, both passed by `ios.yml`;
+  - `Info.plist` (in `project.yml`): version from `app/ios/VERSION` and build number from the run, both passed by the
+    workflows;
     dark only; the three languages; `CADisableMinimumFrameDurationOnPhone`; no non-exempt encryption.
   - App icon: `scripts/generate-store-assets.sh --parts icon` writes `AppIcon.png` (1024px, no alpha) with the Play
     icon. The launch screen is `window_background`, as on Android.
-- [x] **`.github/workflows/ios.yml`.**
-  - `workflow_dispatch` only, Debug (default) or Release. `release.yml` ignores `app/ios/**`.
-  - `macos-latest`, Xcode unpinned for now (the log prints its version). `build-setup` puts GNU grep on the PATH on
-    macOS, for its `grep -P` scripts.
-  - `xcodegen`, `xcodebuild` for device (unsigned), the IPA and dSYM zip uploaded as one artifact.
-- [ ] **First CI run.** Not run yet: the workflow must be on `main` before it can be dispatched. Likely first-run
-  fixes: the Android SDK set-up on macOS, Gradle's configuration cache under Xcode, Compose resources in the app
-  bundle.
+- [x] **The IPA workflow** (first `ios.yml`, now `ios-release.yml`; Phase 8).
+  - `macos-latest`, Xcode unpinned for now (the log prints its version). `android-release.yml` ignores `app/ios/**`.
+  - `xcodegen`, then `xcodebuild` for device (unsigned); the IPA and dSYM zip are published.
+- [x] **First CI run** (run 39560636966): green first time. The IPA built and the Debug one went to the maintainer.
 - [ ] **Smoke on the phone**: launch, play a solo game, settings and achievements persist after a kill (Room and
   DataStore on iOS for the first time), Application Support paths are right.
 
-### Phase 2: iOS tests and screenshots in CI (written, not yet run)
+### Phase 2: iOS tests and screenshots in CI (done)
 
 Exit: every iOS-touching change has a CI job that runs it, not just compiles it.
 
@@ -170,15 +167,29 @@ Exit: every iOS-touching change has a CI job that runs it, not just compiles it.
   - PNGs `NN-<screen>.png` (and `missing-*.png` when a step fails) go to the `ios-screenshots` artifact. The
     `.xcresult` is uploaded on failure.
   - iPad joins when the app supports it (Phase 4).
-- [x] **Trigger**: pushes to `main` and pull requests touching `app/shared/**`, `app/ios/**`, the build or the
-  workflow, and on demand.
-- [x] **Skill**: `ios-build` (find the run, download, review the screenshots, send the IPA).
-- [ ] **First green run.** Fix what the first runs turn up: failing iOS tests, labels the tour can't find, a first-run
-  dialog in the way of the board.
+- [x] **Trigger**: both jobs are in `ios-release.yml`. The tests run for every release; the tour runs for full
+  releases (1.0.0+) and for a pre-release dispatched with `force_screenshots`.
+- [x] **Skill**: `ios-build` (find the run, download the release's IPA or the screenshots, review, send).
+- [x] **First green run** (run 39560636966).
+  - The iOS tests passed, and the tour reached every screen and the board by label.
+  - The tour now waits for the setup screen before its shot, and waits longer on Styles.
+- [ ] **Faster runs.** The first run took 25 minutes; nearly all of it was Gradle, cold.
+  - Each job spent ~2.5 minutes configuring with empty caches, ~45s downloading Kotlin/Native, and 8-10 minutes
+    linking. Most of the link was building caches of the libraries, which live in `~/.konan`.
+  - Now the `~/.konan` cache is per job, since each job links a different target.
+  - The Mac jobs skip the Android SDK and NDK (`android-sdk: "false"`): the iOS tasks build without them.
+  - Check the next warm run's timings, and consider one simulator job for tests and the tour if linking still
+    dominates.
 
 ### Phase 3: platform parity
 
 Exit: everything Android does offline, iOS does, checked on the phone.
+
+- [ ] **Seen in the first simulator screenshots.**
+  - Styles' preview cards were empty 1s after opening. Either they draw slowly in a Debug build or not at all;
+    the tour now waits 5s to tell which.
+  - Settings' "Version" pill sits cut off at the bottom of the scroll. Compare with Android; it may just be the
+    scroll position.
 
 - [ ] **Audio.** iOS can't decode Ogg.
   - Extend `NormalizeOggAudioTask` to write AAC `.m4a` copies, generated and never hand-made.
@@ -265,19 +276,22 @@ Exit: a signed build reaches TestFlight from CI.
 
 ### Phase 8: release pipeline
 
-- [ ] **`release.yml`** gains an iOS job: on a push that changes what ships, build, test and upload to TestFlight beside
-  the Android release. The GitHub release attaches the IPA only if it's useful (it can't be installed unsigned).
-- [ ] **Versions, split.** `app/android/VERSION` (from Android's current version) and `app/ios/VERSION` (from 1.0.0)
-  replace the root `VERSION`. Every reader moves with it: the Gradle build, `set-version.sh`, `bump-patch-version.sh`,
-  the workflows, the skills and docs.
-  - Shared code and the build (`app/shared/**`, `gradle/**`, the root Gradle files) release both apps; `app/android/**`
-    only Android; `app/ios/**` only iOS. Each pipeline bumps its own file.
-  - Tags `android-vX.Y.Z` and `ios-vX.Y.Z` (the old `v*` tags stay as Android's history). `release-changelog.sh`
-    finds the previous tag of the same platform and lists only commits touching that platform's paths.
-  - iOS's build number is the CI run number (always rising, as App Store Connect requires).
-- [ ] **Release notes.** The iOS release takes `RELEASE_NOTES.md`'s Shared and iOS sections
-  (`scripts/release-notes.sh extract ios` / `clear ios`). With both pipelines, Shared is emptied by each; they release
-  from the same push, so each has already read it. Check the two bump commits can't race each other on `main`.
+- [x] **Versions, split.** `app/android/VERSION` (Android, 1.0.1 at the split) and `app/ios/VERSION` (iOS, from
+  0.1.0) replaced the root `VERSION`. `set-version.sh` and `bump-patch-version.sh` take the platform.
+  - Shared code and the build release both apps; `app/android/**` (and `app/shared/src/androidMain`) only Android;
+    `app/ios/**` (and `app/shared/src/iosMain`) only iOS. Each pipeline bumps its own file.
+  - Tags: Android keeps `v*`, iOS has `ios-v*`. `release-changelog.sh <platform>` starts from the previous tag of the
+    same app and leaves out the other app's own commits.
+  - iOS's build number is `ios-release.yml`'s run number, so it only rises, as App Store Connect requires.
+- [x] **Release notes.** The iOS release takes `RELEASE_NOTES.md`'s Shared and iOS sections. Each release empties
+  Shared; they release from the same push, so each has already read it.
+- [x] **Pre-releases.** `ios-release.yml` ("iOS release", beside "Android release"): on a push changing what iOS
+  ships, the iOS tests and the Release IPA. Then GitHub release `ios-v<version>` with the IPA and dSYM zip, a
+  pre-release below 1.0.0 and never "Latest". Then the bump.
+  - The two release jobs share the `version-bump` concurrency group, so their bump commits reach `main` in turn.
+  - The screen tour is a check from 1.0.0; below that, only when dispatched with `force_screenshots`.
+- [ ] **TestFlight** (Phase 6's signing): full releases (1.0.0+) upload the signed build. Whether the GitHub release
+  still attaches the unsigned IPA is open.
 - [ ] **`update_dependency_versions.sh`** bumps the entries generically, except those marked `# @update` in
   `libs.versions.toml`: the JetBrains Compose entries match the Compose BOM, and sqlite follows Room. Add the Xcode
   pin to whatever it checks.

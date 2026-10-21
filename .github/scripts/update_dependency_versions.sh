@@ -485,7 +485,7 @@ install_sdk_package() {
 
 BUILD_LOG="${WORK_DIR}/gradle-build.log"
 
-# The same gates CI applies (.github/workflows/release.yml): the debug build, the unit tests, the
+# The same gates CI applies (.github/workflows/android-release.yml): the debug build, the unit tests, the
 # instrumented tests compiling, and lint - so a bump that, say, deprecates an API only a test uses is
 # caught here rather than on the next push. No JAVA_HOME juggling: the Gradle toolchain
 # (gradle/gradle-daemon-jvm.properties) decides which JDK the build runs and compiles on, and Gradle

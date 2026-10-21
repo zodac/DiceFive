@@ -81,5 +81,5 @@ class BaselineProfileGenerator {
 
 private const val DEFAULT_LAPS = 15
 
-/** A run of this many laps or fewer is a release's usual one (release.yml); longer ones are the soak. */
+/** A run of this many laps or fewer is a release's usual one (android-release.yml); longer ones are the soak. */
 private const val SHORT_RUN_LAPS = 3

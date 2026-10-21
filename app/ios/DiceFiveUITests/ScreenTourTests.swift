@@ -1,8 +1,8 @@
 import XCTest
 
 /// Opens each screen from the menu on a fresh install and saves a screenshot of it - the simulator's counterpart of the
-/// `render` skill, run by .github/workflows/ios.yml. It finds everything by the text and labels VoiceOver reads, so a
-/// screen it can't reach is also a screen VoiceOver may not reach.
+/// `render` skill, run by .github/workflows/ios-release.yml. It finds everything by the text and labels VoiceOver
+/// reads, so a screen it can't reach is also a screen VoiceOver may not reach.
 ///
 /// Screenshots go to `$SCREENSHOT_DIR` (xcodebuild passes `TEST_RUNNER_SCREENSHOT_DIR` through), named
 /// `NN-<screen>.png`, and are attached to the test result as well.
@@ -26,6 +26,8 @@ final class ScreenTourTests: XCTestCase {
         let play = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label == 'Play' OR label == 'New Game'")).firstMatch
         guard tap(play, "the menu's Play button") else { return }
+        _ = element("Start Game").waitForExistence(timeout: 10)
+        sleep(1)
         screenshot("setup")
         guard tap(element("Start Game"), "Start Game") else { return }
         let cup = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Dice cup'")).firstMatch
@@ -35,9 +37,9 @@ final class ScreenTourTests: XCTestCase {
 
     private func visitFromMenu(_ label: String) {
         guard tap(element(label), "the menu's \(label)") else { return }
-        // Let the screen's entry transition finish.
+        // Let the screen's entry transition finish, and give Styles' previews (the heaviest drawing) time to appear.
         _ = element("Back").waitForExistence(timeout: 10)
-        sleep(1)
+        sleep(label == "Styles" ? 5 : 1)
         screenshot(label.lowercased())
         _ = tap(element("Back"), "Back on \(label)")
         XCTAssertTrue(element("Settings").waitForExistence(timeout: 10), "Back from \(label) didn't reach the menu")
