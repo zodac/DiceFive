@@ -22,7 +22,7 @@ the `store-assets` skill. The rest of the Play submission is in `PUBLISHING.md`.
 **Why this many.** Play accepts 2-8 screenshots per device. A listing is considered for featuring only with **4+ at
 1080px or more**, and most people see only the first two or three.
 - **Phone, 5**: game, Tricolour at a dressed table, the Styles dice, results, achievements.
-- **10-inch, 4**: game, styles (the Dice and Dice Cup galleries open side by side), results, achievements, in
+- **10-inch, 5**: the same five, with the Dice and Dice Cup galleries open side by side on the styles shot, in
   landscape (`w1280dp-h800dp-land-xhdpi`), where the game screen lays its board out wide.
 - **7-inch: none**, by the maintainer's choice.
 - **The phone is 9:16** (`w412dp-h732dp`), about the game screen's own height: a taller phone leaves empty space
@@ -56,7 +56,25 @@ video.
 
 The generators are unit tests in `app/android/src/test/.../store/`, skipped without `-PgenerateStoreAssets`.
 - Each is tagged `@StorePart(...)`. `-PstoreAssetParts` picks parts, and `-PstoreAssetsDir` sets where raw renders go.
-- They check nothing, so CI never runs them.
+- They check nothing, so CI's checks never run them. Only the README-assets workflow does (below).
+- `magick` is ImageMagick's own AppImage, the same build in the sandbox (`sandbox/Dockerfile`) and in CI
+  (`.github/scripts/install_imagemagick.sh`). The monthly dependency update moves both pins together, and its
+  consistency check fails if they differ. The script passes the app's font to every text and `montage` call: the
+  AppImage's default font needs system fonts a runner may not have.
+
+## The README's images
+
+`.github/workflows/readme-assets.yml` runs after every release (`release.yml`'s last job), and on demand from the
+Actions tab.
+- It renders `feature,phone,tablet` from the released commit, shrinks them to WebP (phone 540px wide, tablet 1280px)
+  and uploads them, replacing the old files, to the `readme-assets` GitHub release. That release is an asset host, not
+  a software release: no version, never Latest.
+- `README.md` embeds them as `releases/download/readme-assets/<name>.webp`: the feature graphic as its title, the phone
+  shots under the introduction and the tablet ones in a collapsed section. A failed run leaves the previous images up.
+- **Renaming, adding or dropping a screen** means changing `README.md` too. A dropped file stays on the release until
+  it's deleted there by hand.
+- **"Immutable releases" must stay off** in the repo's settings, or the files can't be replaced and the tag name is
+  lost for good.
 
 The traps:
 

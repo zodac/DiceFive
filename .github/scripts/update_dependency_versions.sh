@@ -34,6 +34,8 @@
 #                 - GitHub Actions `uses:` references (keeping the pin style: `@v4` stays a major tag) -
 #                   or, with --no-workflow-edits, only reported
 #                 - The actionlint image pinned in .github/scripts/lint_workflows.sh
+#                 - ImageMagick's AppImage (version + sha256), pinned in .github/scripts/install_imagemagick.sh
+#                   (CI) and sandbox/Dockerfile (the sandbox), always moved together
 #               Then two checks (NOT best-effort - either one failing fails the run):
 #                 - a consistency guard over values that must agree across files (JDK major, Android
 #                   platform, build-tools, NDK, emulator API), which also fails if the sandbox's emulator
@@ -1916,6 +1918,55 @@ update_actionlint() {
     ok "actionlint processed → ${latest}"
 }
 
+# ── 11c. ImageMagick (.github/scripts/install_imagemagick.sh + sandbox/Dockerfile) ──
+# ImageMagick's own x86_64 AppImage, which renders the store assets in CI (the README-assets workflow) and in the
+# sandbox. Both files pin the same release and its SHA-256 (the sandbox image's build context can't reach the CI
+# script), so they are moved together or not at all, and the consistency guard checks they agree. Moved to
+# ImageMagick's latest stable GitHub release that has the AppImage; the SHA-256 is the digest GitHub records for
+# that release asset.
+
+IMAGEMAGICK_SCRIPT=".github/scripts/install_imagemagick.sh"
+
+update_imagemagick() {
+    echo
+    echo "🔍 Fetching latest ImageMagick version..."
+
+    local current
+    current=$(grep -oP '^IMAGEMAGICK_VERSION="\K[^"]+' "${IMAGEMAGICK_SCRIPT}" 2>/dev/null || true)
+    if [[ -z "${current}" ]]; then
+        warn "No IMAGEMAGICK_VERSION pin in ${IMAGEMAGICK_SCRIPT}, skipping"
+        return 0
+    fi
+
+    local latest
+    latest=$(latest_stable_github_release "ImageMagick/ImageMagick" || true)
+    if [[ -z "${latest}" ]]; then
+        warn "Could not fetch a stable ImageMagick version, skipping"
+        return 0
+    fi
+    if ! version_gt "${latest}" "${current}"; then
+        echo "  ImageMagick=${current} (already up-to-date)"
+        return 0
+    fi
+
+    local asset="ImageMagick-${latest}-gcc-x86_64.AppImage" sha256
+    sha256=$(github_curl "https://api.github.com/repos/ImageMagick/ImageMagick/releases/tags/${latest}" \
+        | jq -r --arg name "${asset}" '.assets[] | select(.name == $name) | .digest // empty' \
+        | grep -oP '^sha256:\K[0-9a-f]{64}$' || true)
+    if [[ -z "${sha256}" ]]; then
+        warn "ImageMagick ${latest} has no ${asset} with a SHA-256 digest, skipping"
+        return 0
+    fi
+
+    echo "  ImageMagick: ${current} → ${latest}"
+    sed -i -e "s|^IMAGEMAGICK_VERSION=\"[^\"]*\"|IMAGEMAGICK_VERSION=\"${latest}\"|" \
+        -e "s|^IMAGEMAGICK_SHA256=\"[^\"]*\"|IMAGEMAGICK_SHA256=\"${sha256}\"|" "${IMAGEMAGICK_SCRIPT}"
+    sed -i -e "s|^ENV IMAGEMAGICK_VERSION=.*|ENV IMAGEMAGICK_VERSION=${latest}|" \
+        -e "s|^ENV IMAGEMAGICK_SHA256=.*|ENV IMAGEMAGICK_SHA256=${sha256}|" "${SANDBOX_DOCKERFILE}"
+    record_update "ImageMagick: ${current} → ${latest}"
+    ok "ImageMagick processed → ${latest}"
+}
+
 # ── 12. Consistency guard: values that must agree across files ─────────────────
 # Values pinned in more than one place that must say the same thing - a drift between them is a
 # broken setup rather than a stale one:
@@ -2023,6 +2074,20 @@ verify_version_sync() {
     v=$(grep -oP 'EMULATOR_API:-\K[0-9.]+' "${SANDBOX_EMULATOR_SCRIPT}" | head -1 || true)
     entries+=("${v} (${SANDBOX_EMULATOR_SCRIPT} fallback)")
     check_group "Emulator API" "${entries[@]}"
+
+    # ── ImageMagick (CI's install script and the sandbox: the same AppImage, by version and checksum) ──
+    entries=()
+    v=$(grep -oP '^IMAGEMAGICK_VERSION="\K[^"]+' "${IMAGEMAGICK_SCRIPT}" | head -1 || true)
+    entries+=("${v} (${IMAGEMAGICK_SCRIPT} IMAGEMAGICK_VERSION)")
+    v=$(grep -oP '^ENV IMAGEMAGICK_VERSION=\K\S+' "${SANDBOX_DOCKERFILE}" | head -1 || true)
+    entries+=("${v} (${SANDBOX_DOCKERFILE} ENV IMAGEMAGICK_VERSION)")
+    check_group "ImageMagick version" "${entries[@]}"
+    entries=()
+    v=$(grep -oP '^IMAGEMAGICK_SHA256="\K[^"]+' "${IMAGEMAGICK_SCRIPT}" | head -1 || true)
+    entries+=("${v} (${IMAGEMAGICK_SCRIPT} IMAGEMAGICK_SHA256)")
+    v=$(grep -oP '^ENV IMAGEMAGICK_SHA256=\K\S+' "${SANDBOX_DOCKERFILE}" | head -1 || true)
+    entries+=("${v} (${SANDBOX_DOCKERFILE} ENV IMAGEMAGICK_SHA256)")
+    check_group "ImageMagick SHA-256" "${entries[@]}"
 
     # ── Followed catalog entries (see "Pinned and paired entries" in section 9) ──
     local ref leader
@@ -2364,6 +2429,7 @@ update_apt_packages "${SANDBOX_DOCKERFILE}" "DEBIAN" || warn "Debian packages up
 
 update_github_actions || warn "GitHub Actions update failed, continuing..."
 update_actionlint     || warn "actionlint update failed, continuing..."
+update_imagemagick    || warn "ImageMagick update failed, continuing..."
 
 # Final checks (NOT best-effort). Both run before either fails the run, so one report covers both.
 # The JDK major trial sits between them: it needs the build's verdict on the current JDK, and the

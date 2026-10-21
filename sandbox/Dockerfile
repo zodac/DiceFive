@@ -27,8 +27,8 @@
 # .github/scripts/update_dependency_versions.sh from the repo root (nothing runs it
 # on a schedule), so a build that fails on a version Debian has since dropped means
 # it is time for a run. That script relies on this file's shape: the `FROM … AS
-# jdk|maven|node` stage names, the BEGIN/END DEBIAN PACKAGES markers, and the
-# cmdline-tools URL + sha1 line.
+# jdk|maven|node` stage names, the BEGIN/END DEBIAN PACKAGES markers, the
+# cmdline-tools URL + sha1 line, and the `ENV IMAGEMAGICK_VERSION`/`IMAGEMAGICK_SHA256` lines.
 #
 # The nested Docker engine is the one toolchain NOT copied from an image: the
 # binaries in the official `docker`/`docker:dind` images are musl-linked (Alpine),
@@ -257,15 +257,15 @@ RUN set -eux; \
 # the bottom where its invalidation costs only itself and the two cheap layers
 # below — NOT the ~550MB of toolchain COPYs or the Docker engine install.
 #
-# python3 (+pip/venv) with python3-fonttools, imagemagick, librsvg2-bin and optipng are an
+# python3 (+pip/venv) with python3-fonttools, librsvg2-bin and optipng are an
 # image-asset toolchain (font/SVG rendering, PNG/ICO rasterising) carried over from the project this
 # sandbox was copied from. fonttools now earns its keep in THIS repo too: `app/shared/src/commonMain/composeResources/font/sora.ttf`
 # is a static weight-700 instance produced with `python3 -m fontTools.varLib.instancer`, subset to
 # printable ASCII with `python3 -m fontTools.subset` (see AppLogo.kt's SoraFontFamily doc) - a one-off,
 # not a build-time step, so regenerating it later still needs this package. scripts/subset-maths-fonts.sh
-# (the Maths dice's cut-down DiceFive Maths fonts) needs it too. imagemagick/librsvg2-bin/
-# optipng remain unused by this repo; kept because the layer is already built and python3 is generally
-# useful in a session. Drop them from the list if the image size ever matters. fonttools is the distro
+# (the Maths dice's cut-down DiceFive Maths fonts) needs it too. librsvg2-bin/optipng remain unused by
+# this repo (ImageMagick is its own layer below, the same build CI uses); kept because the layer is
+# already built and python3 is generally useful in a session. Drop them from the list if the image size ever matters. fonttools is the distro
 # `python3-fonttools` package, NOT pip: the base image's Python is PEP-668 "externally managed", so
 # `pip install fonttools` is refused.
 #
@@ -304,7 +304,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
         fontconfig="2.15.0-2.3" \
         gh="2.46.0-3" \
         git="1:2.47.3-0+deb13u1" \
-        imagemagick="8:7.1.1.43+dfsg1-1+deb13u12" \
         iproute2="6.15.0-1" \
         jq="1.7.1-6+deb13u4" \
         librsvg2-bin="2.60.0+dfsg-1+deb13u1" \
@@ -435,6 +434,28 @@ RUN runuser -u dev -- env HOME=/home/dev bash -c \
 # setup.sh) to avoid baking ~150MB of Chromium into every layer.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
     npx --yes playwright@1.64.1 install-deps chromium
+
+# ── ImageMagick 7 (scripts/generate-store-assets.sh's `magick`) ──────────────
+# ImageMagick's own AppImage, not Debian's package, so the sandbox renders store assets with exactly the
+# build CI's README-assets workflow uses (.github/scripts/install_imagemagick.sh): the same release, checked
+# against the same SHA-256. .github/scripts/update_dependency_versions.sh moves the pins in both files
+# together, and its consistency check fails the run if they drift. Extracted rather than mounted (no FUSE
+# in a container); its AppRun runs the tool named by the link it was called through, so the `magick` link
+# is `magick`. Its own layer near the end, so a bump never re-downloads the Android layers above.
+ENV IMAGEMAGICK_VERSION=7.1.2-32
+ENV IMAGEMAGICK_SHA256=d456cab221b5fc1c396768a026d0a33ee8665f7119c7fea7151b960c69058b21
+RUN set -eux; \
+    curl -fsSL -o /tmp/magick.AppImage \
+        "https://github.com/ImageMagick/ImageMagick/releases/download/${IMAGEMAGICK_VERSION}/ImageMagick-${IMAGEMAGICK_VERSION}-gcc-x86_64.AppImage"; \
+    echo "${IMAGEMAGICK_SHA256}  /tmp/magick.AppImage" | sha256sum -c -; \
+    chmod +x /tmp/magick.AppImage; \
+    cd /opt; \
+    /tmp/magick.AppImage --appimage-extract > /dev/null; \
+    mv /opt/squashfs-root /opt/imagemagick; \
+    rm -f /tmp/magick.AppImage; \
+    chmod -R a+rX /opt/imagemagick; \
+    ln -s /opt/imagemagick/AppRun /usr/local/bin/magick; \
+    magick -version
 
 # ── Claude Code CLI into a dev-owned npm prefix ──────────────────────────────
 # Installing `-g` into npm's default /usr prefix makes the package and the

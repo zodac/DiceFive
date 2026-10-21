@@ -18,7 +18,8 @@ name: Release
 # next release's notes.
 #
 # Every release attaches its build assets: the signed APK (for sideloading), the signed App Bundle (.aab)
-# for Google Play, and R8's mapping.txt for reading obfuscated stack traces.
+# for Google Play, and R8's mapping.txt for reading obfuscated stack traces. Once it's out, readme-assets.yml
+# refreshes the README's screenshots from the same commit.
 # Both are signed with the RELEASE_KEY* secrets' key, which is the app's
 # Play App Signing upload key - Play re-signs the bundle with its own key.
 #
@@ -478,3 +479,9 @@ jobs:
           git add VERSION RELEASE_NOTES.md
           git commit -m "[Release] Bump version to $(cat VERSION) [skip ci]"
           git push origin main
+
+  # The README's images, rendered from the commit just released - see readme-assets.yml. After the release, not
+  # beside the checks: it never holds a release up, and a failure here leaves the previous images in place.
+  readme-assets:
+    needs: release
+    uses: ./.github/workflows/readme-assets.yml

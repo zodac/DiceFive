@@ -1,0 +1,90 @@
+name: README assets
+
+# The images README.md shows - the feature graphic, and the phone and 10-inch tablet screenshots - rendered from the
+# app by scripts/generate-store-assets.sh (see .claude/STORE_ASSETS.md), shrunk to WebP, and uploaded to the
+# standalone `readme-assets` release. release.yml calls this once a release has been published, so the README always
+# shows the latest release; the workflow_dispatch trigger refreshes them on demand (Actions tab, or
+# `gh workflow run readme-assets.yml`), with no release.
+#
+# That release is an ASSET HOST, not a software release: it carries no version, is never marked Latest, and --clobber
+# replaces its files in place, so README.md can embed permanent URLs
+# (`releases/download/readme-assets/<name>.webp`). A failed refresh leaves the previous images up rather than breaking
+# them. The README names each file, so a screenshot renamed or dropped in StoreScreensGeneratorTest needs README.md
+# changed with it (the old file stays on the release until it is deleted by hand). Its tag isn't a `v*` tag, so the
+# changelog and the Baseline Profile's lap count never take it for a release.
+#
+# THIS NEEDS THE REPOSITORY'S "Immutable releases" SETTING TO STAY OFF. A release published while it is on is frozen
+# (its assets can never be replaced), and its tag name is reserved for good: deleting the release doesn't free it.
+#
+# ubuntu-latest ships ImageMagick 6, without the `magick` the script uses; install_imagemagick.sh installs the same
+# ImageMagick 7 build the sandbox has.
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: readme-assets
+  cancel-in-progress: false
+
+jobs:
+  readme-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the build
+        uses: ./.github/actions/build-setup
+        with:
+          ffmpeg: "true"
+
+      # The runtime release.yml's android-tests job caches (see there). Only restored: on a miss, Gradle downloads it.
+      - name: Read what picks Robolectric's runtime
+        id: robolectric
+        run: |
+          echo "version=$(grep -oP '^robolectric = "\K[^"]+' gradle/libs.versions.toml)" >> "$GITHUB_OUTPUT"
+          echo "sdk=$(grep -oP '^sdk=\K[0-9]+' app/android/src/test/resources/robolectric.properties)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Robolectric's runtime
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ steps.robolectric.outputs.version }}-sdk${{ steps.robolectric.outputs.sdk }}
+
+      - name: Install ImageMagick 7
+        run: .github/scripts/install_imagemagick.sh
+
+      - name: Render the feature graphic and screenshots
+        run: scripts/generate-store-assets.sh --parts feature,phone,tablet
+
+      # The store's PNGs are about 1MB each; at the README's size a WebP is a few dozen KB. Phone shots at 540px wide
+      # and tablet ones at 1280px, both twice the width the README shows them at.
+      - name: Shrink them for the README
+        run: |
+          out="assets/$(tr -d '[:space:]' < VERSION)"
+          mkdir readme-assets
+          magick "$out/feature-graphic-1024x500.png" -quality 90 readme-assets/feature-graphic.webp
+          for shot in "$out"/phone/*.png; do
+            magick "$shot" -filter Lanczos -resize 540x -quality 85 "readme-assets/$(basename "$shot" .png).webp"
+          done
+          for shot in "$out"/tablet-10/*.png; do
+            magick "$shot" -filter Lanczos -resize 1280x -quality 85 "readme-assets/$(basename "$shot" .png).webp"
+          done
+          ls -l readme-assets
+
+      # Created on first use, so it needs no setup by hand.
+      - name: Upload them to the readme-assets release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view readme-assets > /dev/null 2>&1; then
+            gh release create readme-assets \
+              --title "README assets" \
+              --latest=false \
+              --notes "Images for README.md: the feature graphic and screenshots of the latest release. Not a software release; its files are replaced after every release."
+          fi
+          gh release upload readme-assets --clobber readme-assets/*.webp

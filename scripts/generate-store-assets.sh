@@ -389,21 +389,22 @@ fi
 
 # ---- A contact sheet to review it all at a glance -------------------------------------------------------------------
 
-# A row each: the phone's portrait shots, the tablet's landscape ones, then the feature graphic and icon.
+# A row each: the phone's portrait shots, the tablet's landscape ones, then the feature graphic and icon. montage loads a
+# font even with no labels, so it is given the app's own: ImageMagick's default needs system fonts a runner may lack.
 sheet_rows=()
 if [[ -d "${OUT}/phone" ]]; then
-    magick montage "${OUT}/phone"/*.png -tile 6x -geometry 360x640+12+12 -background '#222' "${WORK}/sheet-phone.png"
+    magick montage -font "${FONT}" "${OUT}/phone"/*.png -tile 6x -geometry 360x640+12+12 -background '#222' "${WORK}/sheet-phone.png"
     sheet_rows+=("${WORK}/sheet-phone.png")
 fi
 if [[ -d "${OUT}/tablet-10" ]]; then
-    magick montage "${OUT}/tablet-10"/*.png -tile 5x -geometry 432x243+12+12 -background '#222' "${WORK}/sheet-tablet.png"
+    magick montage -font "${FONT}" "${OUT}/tablet-10"/*.png -tile 5x -geometry 432x243+12+12 -background '#222' "${WORK}/sheet-tablet.png"
     sheet_rows+=("${WORK}/sheet-tablet.png")
 fi
 art=()
 [[ -f "${OUT}/feature-graphic-1024x500.png" ]] && art+=("${OUT}/feature-graphic-1024x500.png")
 [[ -f "${OUT}/icon-512.png" ]] && art+=("${OUT}/icon-512.png")
 if [[ ${#art[@]} -gt 0 ]]; then
-    magick montage "${art[@]}" -tile 2x -geometry 640x312+12+12 -background '#222' "${WORK}/sheet-art.png"
+    magick montage -font "${FONT}" "${art[@]}" -tile 2x -geometry 640x312+12+12 -background '#222' "${WORK}/sheet-art.png"
     sheet_rows+=("${WORK}/sheet-art.png")
 fi
 if [[ ${#sheet_rows[@]} -gt 0 ]]; then
