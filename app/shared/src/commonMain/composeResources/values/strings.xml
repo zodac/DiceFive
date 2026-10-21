@@ -1229,6 +1229,18 @@
 
     <!-- Statistics (ui/statistics/*) -->
     <string name="stats_title">Statistics</string>
+    <!-- TalkBack's name for the button that opens the sort menu on the Statistics screen. -->
+    <string name="stats_sort_action">Sort players</string>
+    <string name="stats_sort_name">Name</string>
+    <string name="stats_sort_first_played">First played</string>
+    <string name="stats_sort_highest_score">Highest score</string>
+    <string name="stats_sort_highest_average">Highest average</string>
+    <string name="stats_sort_most_games">Most games</string>
+    <!-- Spoken state of the sort option in use: ascending is A to Z, oldest first, fewest first. -->
+    <string name="stats_sort_ascending">Selected, ascending</string>
+    <string name="stats_sort_descending">Selected, descending</string>
+    <!-- TalkBack's name for tapping the sort option already in use. -->
+    <string name="stats_sort_reverse_action">Reverse order</string>
     <string name="stats_empty">No stats yet - play a game!</string>
     <string name="stats_delete_title">Delete stats?</string>
     <!-- %1$s is the player's name. -->

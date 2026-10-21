@@ -1056,6 +1056,15 @@
     <string name="scores_next">التالي</string>
     <string name="common_page_of">الصفحة %1$d من %2$d</string>
     <string name="stats_title">الإحصائيات</string>
+    <string name="stats_sort_action">ترتيب اللاعبين</string>
+    <string name="stats_sort_name">الاسم</string>
+    <string name="stats_sort_first_played">أول لعب</string>
+    <string name="stats_sort_highest_score">أعلى نتيجة</string>
+    <string name="stats_sort_highest_average">أعلى متوسط</string>
+    <string name="stats_sort_most_games">أكثر مباريات</string>
+    <string name="stats_sort_ascending">محدد، تصاعدي</string>
+    <string name="stats_sort_descending">محدد، تنازلي</string>
+    <string name="stats_sort_reverse_action">عكس الترتيب</string>
     <string name="stats_empty">لا إحصائيات بعد، العب لعبة!</string>
     <string name="stats_delete_title">حذف الإحصائيات؟</string>
     <string name="stats_delete_message">هل تريد حذف إحصائيات %1$s؟ لن تتأثر نتائجه في لوحة المتصدرين.</string>

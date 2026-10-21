@@ -282,8 +282,12 @@ will map to Play Games.
   - Closed, a card is the name and best score ("1,287pts", the unit at 0.75 of the number's size). Its header opens it
     onto an Overview / By mode switch.
   - **Open by default** when every card fits on screen opened (measured unseen, `StatsFitMeasurer`; more than 12
-    players skip the measure and don't fit). Otherwise all start closed but the first, which always opens. Opening a
-    card never closes another.
+    players skip the measure and don't fit). Otherwise all start closed but the top card of each column (the first
+    one in portrait, the first two in landscape), which always open. Opening a card never closes another.
+  - **Sort** (`StatisticsSort`): a button at the app bar's end opens a menu of Name, First played, Highest score,
+    Highest average and Most games. The one in use is marked with an arrow, up for ascending and down for descending;
+    picking it reverses it, picking another starts it in its own direction (A to Z and oldest first for Name and First
+    played, highest first for the rest). Ties go by name. The choice lasts while the screen is open.
   - **Overview**: games, win rate and average (in points), then a won/lost/solo bar with its key, then the current and best win
     streak, 5x scored, total points and first played (date and time).
   - **By mode**: a row per mode played, in mode order: games, win rate, solo games and best score, the name in the

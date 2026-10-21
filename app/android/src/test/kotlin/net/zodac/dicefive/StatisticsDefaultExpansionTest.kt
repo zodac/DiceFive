@@ -5,6 +5,8 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.data.scores.PlayerModeTotals
 import net.zodac.dicefive.data.scores.PlayerRecord
@@ -14,6 +16,9 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.statistics.StatisticsScreen
 import net.zodac.dicefive.ui.statistics.StatisticsViewModel
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
+import net.zodac.dicefive.data.scores.PlayerStatistics
+import net.zodac.dicefive.ui.statistics.StatisticsSort
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -62,6 +67,60 @@ class StatisticsDefaultExpansionTest {
         compose.onNodeWithContentDescription("Player2. Best score 200.").performClick()
         compose.waitForIdle()
         compose.onAllNodesWithText("Overview").assertCountEquals(2)
+    }
+
+    @Test
+    @Config(qualifiers = "w891dp-h411dp")
+    fun `in landscape the top card of each column opens`() {
+        showPlayers(5)
+        compose.onAllNodesWithText("Overview").assertCountEquals(2)
+    }
+
+    @Test
+    fun `the sort menu names its options - marks the one in use and reverses it when tapped again - which reorders the cards`() {
+        showPlayers(3)
+        compose.onNodeWithContentDescription("Sort players").performClick()
+        compose.waitForIdle()
+        listOf("Name", "First played", "Highest score", "Highest average", "Most games").forEach {
+            compose.onNodeWithContentDescription(it).assertExists()
+        }
+        var config = compose.onNodeWithContentDescription("Name").fetchSemanticsNode().config
+        assertEquals("Selected, ascending", config[SemanticsProperties.StateDescription])
+        assertEquals("Reverse order", config[SemanticsActions.OnClick].label)
+
+        compose.onNodeWithContentDescription("Name").performClick()
+        compose.onNodeWithContentDescription("Sort players").performClick()
+        compose.waitForIdle()
+        config = compose.onNodeWithContentDescription("Name").fetchSemanticsNode().config
+        assertEquals("Selected, descending", config[SemanticsProperties.StateDescription])
+
+        // Another option starts in its own direction: highest first.
+        compose.onNodeWithContentDescription("Most games").performClick()
+        compose.onNodeWithContentDescription("Sort players").performClick()
+        compose.waitForIdle()
+        config = compose.onNodeWithContentDescription("Most games").fetchSemanticsNode().config
+        assertEquals("Selected, descending", config[SemanticsProperties.StateDescription])
+    }
+
+    @Test
+    fun `sorting orders by the option in either direction - ties by name`() {
+        fun player(name: String, played: Int, total: Int, max: Int, first: Long) = PlayerStatistics(
+            playerName = name, firstPlayedEpochMillis = first, gamesPlayed = played, gamesWon = 0, gamesLost = 0, currentWinStreak = 0,
+            bestWinStreak = 0, maxScore = max, totalScore = total, fiveOfAKindCount = 0, soloGames = 0,
+        )
+        val players = listOf(
+            player("bob", played = 4, total = 400, max = 150, first = 30),
+            player("Ann", played = 4, total = 800, max = 300, first = 20),
+            player("Cleo", played = 2, total = 400, max = 300, first = 10),
+        )
+        fun names(sort: StatisticsSort, ascending: Boolean) = sort.order(players, ascending).map { it.playerName }
+        assertEquals(listOf("Ann", "bob", "Cleo"), names(StatisticsSort.NAME, true))
+        assertEquals(listOf("Cleo", "bob", "Ann"), names(StatisticsSort.NAME, false))
+        assertEquals(listOf("Cleo", "Ann", "bob"), names(StatisticsSort.FIRST_PLAYED, true))
+        assertEquals(listOf("Ann", "Cleo", "bob"), names(StatisticsSort.HIGHEST_SCORE, false))
+        assertEquals(listOf("Ann", "Cleo", "bob"), names(StatisticsSort.HIGHEST_AVERAGE, false))
+        assertEquals(listOf("Ann", "bob", "Cleo"), names(StatisticsSort.MOST_GAMES, false))
+        assertEquals(listOf("Cleo", "Ann", "bob"), names(StatisticsSort.MOST_GAMES, true))
     }
 
     @Test

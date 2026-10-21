@@ -1,7 +1,5 @@
 package net.zodac.dicefive.ui.statistics
 
-import net.zodac.dicefive.ui.common.LocalLandscapePage
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,6 +12,7 @@ import androidx.compose.foundation.layout.FlowRowScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,10 +26,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,9 +54,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -92,6 +98,10 @@ import net.zodac.dicefive.resources.stats_record_solo
 import net.zodac.dicefive.resources.stats_record_won
 import net.zodac.dicefive.resources.stats_show_action
 import net.zodac.dicefive.resources.stats_solo
+import net.zodac.dicefive.resources.stats_sort_action
+import net.zodac.dicefive.resources.stats_sort_ascending
+import net.zodac.dicefive.resources.stats_sort_descending
+import net.zodac.dicefive.resources.stats_sort_reverse_action
 import net.zodac.dicefive.resources.stats_spoken_average
 import net.zodac.dicefive.resources.stats_spoken_best
 import net.zodac.dicefive.resources.stats_spoken_first_played
@@ -109,8 +119,10 @@ import net.zodac.dicefive.resources.stats_win_rate
 import net.zodac.dicefive.resources.stats_win_rate_value
 import net.zodac.dicefive.resources.stats_win_streak
 import net.zodac.dicefive.resources.stats_win_streak_value
+import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.LazyListScrollbar
+import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SegmentedChoiceRow
@@ -139,8 +151,36 @@ fun StatisticsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pendingDeleteName by rememberSaveable { mutableStateOf<String?>(null) }
+    var sort by rememberSaveable { mutableStateOf(StatisticsSort.NAME) }
+    var ascending by rememberSaveable { mutableStateOf(sort.ascendingFirst) }
+    val players = remember(state.players, sort, ascending) { sort.order(state.players, ascending) }
 
-    ScreenScaffold(title = stringResource(Res.string.stats_title), onBack = onBack, modifier = modifier, wide = true) {
+    ScreenScaffold(
+        title = stringResource(Res.string.stats_title),
+        onBack = onBack,
+        modifier = modifier,
+        wide = true,
+        // At the bar's end, level with the cards' end edge in landscape.
+        actions = {
+            if (state.isLoaded && state.players.isNotEmpty()) {
+                Box(modifier = Modifier.padding(end = if (LocalLandscapePage.current) BACK_ARROW_OUTSET else 0.dp)) {
+                    SortMenu(
+                        sort = sort,
+                        ascending = ascending,
+                        onPick = { picked ->
+                            // The current pick reverses; another starts in its own direction.
+                            if (picked == sort) {
+                                ascending = !ascending
+                            } else {
+                                sort = picked
+                                ascending = picked.ascendingFirst
+                            }
+                        },
+                    )
+                }
+            }
+        },
+    ) {
         // Nothing but the title bar until the stats are read, so "No stats yet" never flashes up
         // before the player cards.
         if (!state.isLoaded) return@ScreenScaffold
@@ -159,11 +199,13 @@ fun StatisticsScreen(
             // Two cards to a row in landscape, each opening on its own (the other keeps its height); one otherwise.
             val columns = if (LocalLandscapePage.current) LANDSCAPE_COLUMNS else 1
             // Whether every card fits on screen opened: null until measured. Cards start open if so, else only the first.
-            var allFit by remember { mutableStateOf<Boolean?>(if (state.players.size > MEASURE_LIMIT) false else null) }
+            // The top card of each column: the first row's.
+            val topRow = players.take(columns)
+            var allFit by remember { mutableStateOf<Boolean?>(if (players.size > MEASURE_LIMIT) false else null) }
 
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 if (allFit == null) {
-                    StatsFitMeasurer(state.players, columns, onMeasured = { allFit = it })
+                    StatsFitMeasurer(players, columns, onMeasured = { allFit = it })
                 } else {
                     LazyColumn(
                         state = listState,
@@ -172,12 +214,12 @@ fun StatisticsScreen(
                         contentPadding = PaddingValues(end = SCROLLBAR_ROOM),
                         verticalArrangement = Arrangement.spacedBy(CARD_GAP),
                     ) {
-                        items(state.players.chunked(columns), key = { row -> row.first().playerName }) { row ->
+                        items(players.chunked(columns), key = { row -> row.first().playerName }) { row ->
                             StatsRow(row, columns) { player ->
                                 PlayerStatsCard(
                                     player,
                                     onDelete = { pendingDeleteName = player.playerName },
-                                    initiallyExpanded = allFit == true || player.playerName == state.players.first().playerName,
+                                    initiallyExpanded = allFit == true || player in topRow,
                                 )
                             }
                         }
@@ -201,6 +243,71 @@ fun StatisticsScreen(
                 onDismiss = { pendingDeleteName = null },
                 onDismissRequest = { pendingDeleteName = null },
             )
+        }
+    }
+}
+
+/**
+ * The sort button and its menu: a row for each [StatisticsSort], the current one marked with an arrow for its direction
+ * (up for ascending, down for descending). Picking the current one reverses it.
+ */
+@Composable
+private fun SortMenu(sort: StatisticsSort, ascending: Boolean, onPick: (StatisticsSort) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Sort,
+                contentDescription = stringResource(Res.string.stats_sort_action),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            for (option in StatisticsSort.entries) {
+                val selected = option == sort
+                val label = stringResource(option.label)
+                val state = stringResource(if (ascending) Res.string.stats_sort_ascending else Res.string.stats_sort_descending)
+                val reverseLabel = stringResource(Res.string.stats_sort_reverse_action)
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = label,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        )
+                    },
+                    trailingIcon = {
+                        // Decorative: the direction is the row's spoken state.
+                        Icon(
+                            imageVector = if (ascending) Icons.Filled.ArrowUpward else Icons.Filled.ArrowDownward,
+                            contentDescription = null,
+                            tint = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        )
+                    },
+                    onClick = {
+                        onPick(option)
+                        open = false
+                    },
+                    modifier = Modifier.clearAndSetSemantics {
+                        contentDescription = label
+                        role = Role.Button
+                        if (selected) {
+                            stateDescription = state
+                            onClick(label = reverseLabel) {
+                                onPick(option)
+                                open = false
+                                true
+                            }
+                        } else {
+                            onClick(label = null) {
+                                onPick(option)
+                                open = false
+                                true
+                            }
+                        }
+                    },
+                )
+            }
         }
     }
 }
