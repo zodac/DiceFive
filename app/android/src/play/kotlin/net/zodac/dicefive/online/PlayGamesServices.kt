@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
@@ -43,6 +42,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import net.zodac.dicefive.BuildConfig
+import net.zodac.dicefive.PLAY_STORE_PACKAGE
+import net.zodac.dicefive.installerPackage
 import net.zodac.dicefive.model.Achievement
 
 /**
@@ -376,7 +377,6 @@ class PlayGamesServices private constructor(private val application: Application
         /** Whether the player signed in from Settings on this device, and hasn't signed out since: so never restored onto another. */
         private const val START_AT_LAUNCH_KEY = "start_at_launch"
 
-        private const val PLAY_STORE_PACKAGE = "com.android.vending"
         private const val TIMEOUT_MILLIS = 15_000L
         private const val MAX_CONFLICT_RESOLUTIONS = 10
         private const val AVATAR_SIZE_PX = 96
@@ -411,17 +411,6 @@ class PlayGamesServices private constructor(private val application: Application
          */
         internal fun usesPlayGames(playServicesAvailable: Boolean, isDebugBuild: Boolean, installer: String?): Boolean =
             playServicesAvailable && !isDebugBuild && installer == PLAY_STORE_PACKAGE
-
-        private fun installerPackage(context: Context): String? = runCatching {
-            val packageManager = context.packageManager
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                packageManager.getInstallSourceInfo(context.packageName).installingPackageName
-            } else {
-                // The only way to ask before Android 11, which deprecated it for getInstallSourceInfo above.
-                @Suppress("DEPRECATION")
-                packageManager.getInstallerPackageName(context.packageName)
-            }
-        }.getOrNull()
 
         /** Google's status code and its name for an [ApiException] (10 is DEVELOPER_ERROR, a credential mismatch). */
         private fun describe(error: Exception?): String = when (error) {

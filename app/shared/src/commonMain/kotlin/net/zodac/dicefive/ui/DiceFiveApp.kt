@@ -41,6 +41,9 @@ import net.zodac.dicefive.online.OnlineSync
 import net.zodac.dicefive.online.OnlineSyncRequests
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.PlatformServices
+import net.zodac.dicefive.purchases.LocalStore
+import net.zodac.dicefive.purchases.NoStore
+import net.zodac.dicefive.purchases.Store
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
 import net.zodac.dicefive.ui.common.DriftState
 import net.zodac.dicefive.ui.common.LocalAnimationLevel
@@ -57,11 +60,16 @@ import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /**
  * The whole app, on whatever platform hosts it: each platform's entry point builds its
- * [AppContainer] and [PlatformServices] (and, where the platform has one, its [GameServices]) and hands them in here, and everything below is shared.
+ * [AppContainer] and [PlatformServices] (and, where the platform has them, its [GameServices] and [Store]) and hands them in here, and everything below is shared.
  */
 @OptIn(FlowPreview::class)
 @Composable
-fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameServices: GameServices = NoGameServices) {
+fun DiceFiveApp(
+    container: AppContainer,
+    platform: PlatformServices,
+    gameServices: GameServices = NoGameServices,
+    store: Store = NoStore,
+) {
     // Held here, above the NavHost, so the menu's drifting dice carry on unbroken across every screen off it.
     val driftState = remember { DriftState() }
     // Lifecycle-aware, so the system-settings observer behind it is only registered while the app is in front.
@@ -113,6 +121,8 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameService
     LaunchedEffect(container) {
         container.settingsRepository.syncedChanges.debounce(SETTINGS_SYNC_DELAY).collect { OnlineSyncRequests.request() }
     }
+    // What the store says the player owns is kept on the device, which every style lock reads.
+    LaunchedEffect(container, store) { container.purchasesRepository.follow(store) }
     // Put one device down and pick another up: the first saves, the second reads.
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { OnlineSyncRequests.request() }
     LifecycleEventEffect(Lifecycle.Event.ON_START) { OnlineSyncRequests.request() }
@@ -122,6 +132,7 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameService
         LocalAppContainer provides container,
         LocalPlatformServices provides platform,
         LocalGameServices provides gameServices,
+        LocalStore provides store,
         LocalOnlineSyncStatus provides onlineSync.status,
         LocalDriftState provides driftState,
         LocalLeaveGameConfirmation provides leaveConfirmation,

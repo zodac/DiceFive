@@ -1,8 +1,8 @@
 # DiceFive: the "Unlock all styles" purchase
 
-**Planned, not built.** One one-time Google Play purchase that unlocks every style without earning it. Android only.
-This file is the plan, in phases. Resume at the phase marked **Next**.
-Commits go under `[Purchases]` (add the category to the `commit` skill when work starts).
+**In progress: the seam is built (Phase 2), nothing is visible yet.** One one-time Google Play purchase that unlocks
+every style without earning it. Android only. This file is the plan, in phases. Resume at the phase marked **Next**.
+Commits go under `[Purchases]`.
 
 What the player gets:
 - An **Unlock all** button in the Styles screen's top bar, showing Play's localised price.
@@ -16,8 +16,12 @@ products" to "one-time products" in 2025 and moves menus often.
 ## What Google provides
 
 - **Library**: `com.android.billingclient:billing-ktx` (9.1.0, June 2026). It merges the
-  `com.android.vending.BILLING` permission; it talks to the Play Store app over IPC, so no `INTERNET` permission is
-  expected (check the merged manifest, as was done for Play Games).
+  `com.android.vending.BILLING` permission and talks to the Play Store app over IPC.
+  - Every version from 8.0 also pulls in Google's telemetry (`com.google.android.datatransport`), which asks for
+    `INTERNET` and `ACCESS_NETWORK_STATE`. The play manifest removes both (decided 2026-10-22), so the app still has no
+    network permission and only that telemetry goes unsent (`PlayBillingStoreTest`). Phase 6 confirms purchases work so.
+  - It also pulls in `play-services-location` and `play-services-places-placereport`, which add no permission.
+- **Cost.** The play release APK grew 6.28 MB to 6.53 MB (+243 KB, unsigned, R8). The github APK has none of it.
 - **Minimum version**: Play rejects updates using Billing Library below 8 since 31 August 2026. The monthly CI bump
   keeps it current; 9.0 needs AndroidX core 1.9+ (already met).
 - **Product**: a **one-time product** with one purchase option ("Buy"). "Non-consumable" isn't a console setting: a
@@ -44,18 +48,27 @@ products" to "one-time products" in 2025 and moves menus often.
 ### Architecture (to build)
 
 ```
-app/shared/.../purchases/  Store (interface, StoreState), NoStore, PurchasesRepository (the cached entitlement),
-                           ProductKey - nothing here names Google
-app/android/.../purchases/ PlayBillingStore - the only com.android.billingclient imports
+app/shared/.../purchases/            Store (interface, StoreState, ProductKey, LocalStore), NoStore,
+                                     PurchasesRepository (the cached entitlement) - nothing here names Google
+app/android/src/play/.../purchases/  PlayBillingStore - the only com.android.billingclient imports, in the play
+                                     flavour alone
 ```
 
 - **Mirrors the Play Games seam** (`PLAY_GAMES.md`, "Architecture"): an interface in shared, a no-op default
-  (`NoStore`), the Play implementation built in `MainActivity` and re-attached across
-  configuration changes, provided through a `LocalStore` composition local.
+  (`NoStore`), the Play implementation made once per process by `Distribution.store` in `MainActivity` and
+  re-attached across configuration changes, handed to `DiceFiveApp` and provided through `LocalStore`.
+- **The play app only.** The library is `playImplementation`; the github flavour's `Distribution.store` is `NoStore`,
+  and `GithubFlavourTest` pins that neither the library nor the `BILLING` permission is in that app.
+- **Calls.** One connection (`enableAutoServiceReconnection`). Play's purchase updates and the "what's owned" asks go
+  through one queue, in order, so an ask already under way never overwrites a newer purchase. Every call has a
+  15-second timeout but the purchase sheet; failures are logged as `adb logcat -s DiceFivePurchases`, with Play's
+  response code, and a product Play didn't send logs its `UnfetchedProduct` status (not yet active, say).
 - **Play-only, same gate as Play Games**: a release build uses Play Billing only when installed by Play
   (`com.android.vending`), a debug build always, neither without the Play Store. Otherwise `NoStore`: no button.
   GitHub APKs therefore never show the purchase.
-- **`StoreState`**: `Unavailable`, `Loading`, `ForSale(price: String)`, `Pending`, `Owned`.
+- **`StoreState`**: `Unavailable`, `Loading`, `ForSale(price: String?)`, `Pending`, `Owned`. The price is null while
+  Play hasn't sent it: the account is known not to own the product even then, which the entitlement needs.
+  `BILLING_UNAVAILABLE` at connection (an old Play Store, a country without Play billing) is `Unavailable`.
 - **Product id is permanent once created**: `unlock_all_styles` (`ProductKey.UNLOCK_ALL_STYLES`). It is the app's
   only purchase.
 
@@ -66,8 +79,9 @@ app/android/.../purchases/ PlayBillingStore - the only com.android.billingclient
   save (the Play Store account owns the purchase, and may differ from the Play Games account).
 - Read at launch into `AppContainer`, so the Styles screen, the menu logo and the game draw unlocked styles with no
   network and no wait.
-- **Updated from Play**: on connection, `ON_RESUME` and a purchase update. `PURCHASED` sets it;
-  a successful query **without** the product clears it (refund). A failed query changes nothing.
+- **Updated from Play** (`PurchasesRepository.follow`, collected by `DiceFiveApp`): on connection, `ON_RESUME` and a
+  purchase update. `Owned` sets it; `ForSale` or `Pending` (a successful query without a paid purchase: a refund)
+  clears it. `Loading` and `Unavailable` (no answer, or a failed one) change nothing (`StoreState.ownsAllStyles`).
 - **Revoking keeps picks.** Existing rule: a locked saved pick draws the default but stays saved, so a refund just
   re-locks, and earning the style later brings the pick back.
 - **No server verification.** There's no backend, the source is public, and it's cosmetic. Optionally verify
@@ -147,13 +161,13 @@ Decided (2026-10-21):
 - **GitHub release APKs** keep publishing, with no purchase shown (the Play-only gate).
 - **No Restore purchases button on Android** ("Restoring: no button on Android").
 
-### Phase 1: the Google account side, part 1 (maintainer; Next, can start now)
+### Phase 1: the Google account side, part 1 (maintainer; Next: steps 2, 4 and 6)
 
 Payments verification can take days, so start early. In order:
 
-1. **Merchant account.** The developer account already has a **payments profile**: it was made, with your legal
-   name and address, when you paid the $25 registration. Selling turns that profile into a **merchant** one. Start
-   wherever the console offers it (it moves): the app's **Monetise with Play** section ("Set up a merchant
+1. **Merchant account** (done 2026-10-22). The developer account already has a **payments profile**: it was made, with
+   your legal name and address, when you paid the $25 registration. Selling turns that profile into a **merchant** one.
+   Start wherever the console offers it (it moves): the app's **Monetise with Play** section ("Set up a merchant
    account"), or **Download reports > Financial > Set up a merchant account now**.
    - It reuses the existing payments profile. The link between a developer account and its payments profile is made
      **once and can never be changed** (changing it means a new developer account and moving the app), so check the
@@ -168,18 +182,21 @@ Payments verification can take days, so start early. In order:
    regions require the phone number or full address too (Play Console Help, "developer account information"). Check
    what the console says it will show before submitting. The legal name appears on receipts, which also settles the
    pseudonymous copyright question (`PUBLISHING.md`: "Copyright <legal name> (zodac.net)").
-3. **Bank account** (payments profile > "How you get paid" > **Add payment method**), in the same country as the
-   profile. It **must be verified**, by a small test deposit whose amount you enter: Google removes developers with
-   unverified bank accounts.
+3. **Bank account** (connected 2026-10-22). Payments profile > "How you get paid" > **Add payment method**, in the same
+   country as the profile. It **must be verified**, by a small test deposit whose amount you enter: Google removes
+   developers with unverified bank accounts.
 4. **Tax information** in the payments profile (e.g. W-8BEN for a non-US individual; Google asks what applies).
    For UK/EU sales Google collects and remits VAT on digital goods itself.
-5. **15% service fee tier.** Play Console > **Settings > Account groups** (create a group saying you have no other
-   developer accounts), then accept the 15% tier's terms. Without this the fee is 30%.
+5. **15% service fee tier** (confirmed 2026-10-22). Play Console > **Settings > Account groups** (create a group
+   saying you have no other developer accounts), then accept the 15% tier's terms. Without this the fee is 30%.
 6. **License testers.** Play Console (the account level, not the app) > **Settings > License testing**: add your
    Google account(s) and any testers, licence response "RESPOND_NORMALLY". These accounts get test cards and are
    never charged.
 
-### Phase 2: the library and the seam (code)
+### Phase 2: the library and the seam (code; done 2026-10-22, but the upload)
+
+Built as below, with the network permissions removed (see "What Google provides"). Left: the internal testing upload,
+the maintainer's.
 
 - Add `billing-ktx` to `libs.versions.toml` and the Android module only. It must pass the licence guard
   (`allowedLicenses`; the library is under the Android SDK licence terms, so check how the guard classifies it, as

@@ -396,6 +396,8 @@ dependencies {
     // Google Play Games Services v2: sign-in, achievements, leaderboards and saved games (online/PlayGamesServices).
     // The play flavour's alone: the github APK has none of it.
     "playImplementation"(libs.play.services.games.v2)
+    // Google Play Billing: the one purchase, "Unlock all styles" (purchases/PlayBillingStore). The play flavour's alone.
+    "playImplementation"(libs.play.billing.ktx)
     constraints {
         // play-services-base asks for androidx.fragment 1.1.0, which Play Console flags as an outdated SDK.
         "playImplementation"(libs.androidx.fragment)

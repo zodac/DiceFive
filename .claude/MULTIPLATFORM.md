@@ -24,6 +24,7 @@ app/
 │       │   ├── app/             AppContainer, BuildInfo
 │       │   ├── platform/        PlatformServices and its parts (+ SilentPlatformServices for previews/tests)
 │       │   ├── online/          the Play Games seam (PLAY_GAMES.md)
+│       │   ├── purchases/       the store seam, for the one purchase (PURCHASES.md)
 │       │   └── navigation/ ui/  Compose; ui/DiceFiveApp.kt is the root
 │       ├── commonMain/composeResources/   strings, drawables, fonts, files (Res.*)
 │       ├── androidMain/         Android's actuals
@@ -34,7 +35,7 @@ app/
 │       └── jvmTest/             the JVM's test actuals
 ├── android/     :app:android - the APK: MainActivity.kt; device/ (AndroidPlatformServices: SoundPool, Vibrator,
 │                SensorManager, Toast, licence JSON; AndroidAppContainer; TextViewLicenceDocument); the play and
-│                github flavours (src/play: Play Games; src/github: AndroidProgressFiles). Its tests are of it alone.
+│                github flavours (src/play: Play Games and Play Billing; src/github: AndroidProgressFiles). Its tests are of it alone.
 ├── baselineprofile/   :app:baselineprofile - the Baseline Profile journey (com.android.test)
 ├── audio/       the sound effects' sources; each app packages them its own way (Android: normalised into res/raw)
 └── licensing/   licence records for everything the app ships (see its README)

@@ -34,6 +34,7 @@ baselineProfile = "1.5.0"
 uiautomator = "2.4.0"
 profileinstaller = "1.4.1"
 playGames = "22.1.0"
+playBilling = "9.1.0"
 # ICU for the shared code's JVM target (app/shared/src/jvmMain): the same number, list and ordinal formatting Android's
 # android.icu (a repackaged ICU) gives the app. Never in the APK.
 icu4j = "78.3"
@@ -66,6 +67,7 @@ androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomato
 androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "baselineProfile" }
 androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 play-services-games-v2 = { group = "com.google.android.gms", name = "play-services-games-v2", version.ref = "playGames" }
+play-billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "playBilling" }
 icu4j = { group = "com.ibm.icu", name = "icu4j", version.ref = "icu4j" }
 aboutlibraries-core = { group = "com.mikepenz", name = "aboutlibraries-core", version.ref = "aboutLibraries" }
 

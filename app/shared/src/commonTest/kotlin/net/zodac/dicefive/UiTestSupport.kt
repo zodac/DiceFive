@@ -19,6 +19,7 @@ import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.online.OnlineSettingsRepository
+import net.zodac.dicefive.purchases.PurchasesRepository
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
 import net.zodac.dicefive.ui.achievements.UnlockedStyle
 import net.zodac.dicefive.ui.game.GameViewModel
@@ -85,5 +86,6 @@ internal fun inMemoryAppContainer(settings: SettingsRepository = SettingsReposit
     achievementsRepository = AchievementsRepository(InMemoryPreferences()),
     inProgressGameRepository = InProgressGameRepository(InMemoryPreferences()),
     onlineSettingsRepository = OnlineSettingsRepository(InMemoryPreferences()),
+    purchasesRepository = PurchasesRepository(InMemoryPreferences()),
     buildInfo = BuildInfo(versionName = "test", isDebug = false),
 )

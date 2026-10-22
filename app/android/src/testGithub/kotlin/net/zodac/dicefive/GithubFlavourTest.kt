@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.online.NoGameServices
+import net.zodac.dicefive.purchases.NoStore
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -16,7 +17,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The github APK: an app of its own, beside the Play one rather than in its place, with progress files and no Google
- * Play Games anywhere in it - no SDK, no manifest entries, no service.
+ * Play Games or Play Billing anywhere in it - no SDK, no manifest entries, no service, nothing for sale.
  */
 @RunWith(AndroidJUnit4::class)
 class GithubFlavourTest {
@@ -58,9 +59,19 @@ class GithubFlavourTest {
     }
 
     @Test
-    fun `it has progress files - sealed with a 32-byte key - and no online service`() {
+    fun `there is no Billing Library in it - and no billing permission`() {
+        for (name in listOf("com.android.billingclient.api.BillingClient", "net.zodac.dicefive.purchases.PlayBillingStore")) {
+            assertFalse(name, runCatching { Class.forName(name) }.isSuccess)
+        }
+        val permissions = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS).requestedPermissions.orEmpty()
+        assertFalse(permissions.contains("com.android.vending.BILLING"))
+    }
+
+    @Test
+    fun `it has progress files - sealed with a 32-byte key - and no online service or store`() {
         val activity = Robolectric.buildActivity(ComponentActivity::class.java).create().get()
         assertSame(NoGameServices, Distribution.gameServices(activity))
+        assertSame(NoStore, Distribution.store(activity))
         assertEquals(32, Distribution.progressFiles(activity).key.size)
     }
 

@@ -26,6 +26,7 @@ import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.data.settings.savedStylesFlow
 import net.zodac.dicefive.game.StandardPerfectPlayTable
 import net.zodac.dicefive.online.OnlineSettingsRepository
+import net.zodac.dicefive.purchases.PurchasesRepository
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.ui.statistics.StatisticsSortOrder
 
@@ -40,6 +41,7 @@ class AppContainer(
     val achievementsRepository: AchievementsRepository,
     val inProgressGameRepository: InProgressGameRepository,
     val onlineSettingsRepository: OnlineSettingsRepository,
+    val purchasesRepository: PurchasesRepository,
     val buildInfo: BuildInfo,
     /** Where [savedStyles] is kept loaded - the process, not any one screen. */
     scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
@@ -98,6 +100,7 @@ class AppContainer(
                 achievementsRepository = AchievementsRepository(dataStore(PreferencesFile.ACHIEVEMENTS)),
                 inProgressGameRepository = InProgressGameRepository(dataStore(PreferencesFile.IN_PROGRESS_GAME)),
                 onlineSettingsRepository = OnlineSettingsRepository(dataStore(PreferencesFile.ONLINE)),
+                purchasesRepository = PurchasesRepository(dataStore(PreferencesFile.PURCHASES)),
                 buildInfo = buildInfo,
             )
         }

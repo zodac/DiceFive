@@ -246,7 +246,7 @@ will map to Play Games.
     `ScoreDatabaseMigrationTest` from the exported schema it migrates from. There is **deliberately no destructive
     fallback**: a missing migration must fail loudly, never wipe scores. A change to `playerNameKey` changes stored
     keys, so it needs a migration too.
-- **Preferences.** Four DataStore files (`PreferencesFile`), kept apart so a reset can clear one:
+- **Preferences.** Five DataStore files (`PreferencesFile`), kept apart so a reset can clear one:
   - `settings`. Every key but the Animations level and the Styles page fit is synced
     (`SettingsRepository.SYNCED_KEYS`) and stamped `synced_at:<key>` when it changes.
   - `achievements`: unlock times and counters, plus the cloud save's counter shares (this file's own share id and the
@@ -254,6 +254,8 @@ will map to Play Games.
   - `in_progress_game`, stamped `saved_at` on every save and clear.
   - `online`: Play Games choices and the cloud save's bookkeeping (leaderboard reset marker, "Last saved").
     No reset clears it.
+  - `purchases`: `owns_all_styles`, what the store last said (`PURCHASES.md`). No reset clears it, and it isn't in
+    the cloud save.
 - **Cloud save** (signed in only): one gzipped JSON snapshot of all of the above but the Animations level and the
   Styles page fit, merged, never picked. `PLAY_GAMES.md`, "Cloud save", is the source.
 - **Progress files** (the github app only): the same snapshot, sealed, in a file the player keeps. "Distribution",
