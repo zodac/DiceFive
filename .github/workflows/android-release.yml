@@ -60,8 +60,10 @@ on:
   # VERSION with nothing to re-trigger it.
   workflow_dispatch:
 
+# Read-only by default: the checks run Gradle, its plugins and the app's dependencies, none of which needs to write.
+# Only the release job, which tags, uploads and pushes the version bump, gets write access.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: android-release
@@ -409,8 +411,11 @@ jobs:
             exit 1
           fi
 
+      # Through env, never ${{ }} in the script: the secret is then never part of the script's text.
       - name: Decode release keystore
-        run: echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore.jks"
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore.jks"
 
       # The APK is the github flavour's and the bundle the play flavour's: two apps, two R8 runs, a mapping.txt each.
       # The bundle also carries its mapping inside it (BUNDLE-METADATA), which Play uses to deobfuscate its crash
@@ -453,6 +458,8 @@ jobs:
   release:
     needs: [version, android-tests, shared-tests, lint, baseline-profile, apk]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     # Shared with ios-release.yml's release job: a change to the shared code releases both apps, and their
     # version-bump commits must reach main one after the other.
     concurrency:

@@ -46,7 +46,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: readme-assets
@@ -99,10 +99,33 @@ jobs:
           done
           ls -l readme-assets
 
+      - name: Hand them to the upload job
+        uses: actions/upload-artifact@v7
+        with:
+          name: readme-assets
+          path: readme-assets/
+          if-no-files-found: error
+          retention-days: 1
+
+  # The upload on its own, as the one job with write access: the render above runs Gradle, its plugins and the app's
+  # dependencies, none of which needs it.
+  upload:
+    needs: readme-assets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Fetch the images
+        uses: actions/download-artifact@v8
+        with:
+          name: readme-assets
+          path: readme-assets/
+
       # Created on first use, so it needs no setup by hand.
       - name: Upload them to the readme-assets release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           if ! gh release view readme-assets > /dev/null 2>&1; then
             gh release create readme-assets \

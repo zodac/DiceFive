@@ -44,8 +44,10 @@ on:
         type: boolean
         default: false
 
+# Read-only by default: the checks run Gradle, its plugins and the app's dependencies, none of which needs to write.
+# Only the release job, which tags, uploads and pushes the version bump, gets write access.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ios-release
@@ -228,6 +230,8 @@ jobs:
       && needs.ipa.result == 'success'
       && (needs.screenshots.result == 'success' || needs.screenshots.result == 'skipped')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     # Shared with android-release.yml's release job: a change to the shared code releases both apps, and their
     # version-bump commits must reach main one after the other.
     concurrency:
