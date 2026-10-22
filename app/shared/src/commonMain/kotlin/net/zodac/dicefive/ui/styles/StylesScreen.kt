@@ -1438,7 +1438,7 @@ private fun TileSlot(tile: @Composable () -> Unit) {
 @Composable
 private fun PlaceholderRun(count: Int, previewSize: DpSize, gap: Dp) {
     val fill = MaterialTheme.colorScheme.surfaceContainerHigh
-    val outline = MaterialTheme.colorScheme.outlineVariant
+    val outline = MaterialTheme.colorScheme.outline
     Canvas(
         modifier = Modifier
             .clearAndSetSemantics {}
@@ -1785,7 +1785,8 @@ private fun <T : TableArt> StylePreview(
             }
             .border(
                 width = if (selected) 2.dp else 1.dp,
-                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                // outline, not outlineVariant: the border is the tile's edge, which needs 3:1 against the page.
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                 shape = shape,
             ),
         contentAlignment = Alignment.Center,

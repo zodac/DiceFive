@@ -145,6 +145,20 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
   - The one exception is `GameScreen`'s `BackHandler`, which confirms before leaving a game in progress.
 - **Screen transitions** are 350ms fades, set once on the `NavHost`. Navigation Compose's 700ms default felt sluggish.
 
+### Open M3 departures
+
+Where the chrome still differs from M3 without a decision behind it. Each is a change to agree with the maintainer
+first, not a convention to copy.
+
+- **Transient messages are Android Toasts** (`AndroidPlatformServices.showTransientMessage`: the Achievements screen,
+  the game, the Settings version taps). M3's in-app feedback is a `Snackbar`, which stays in the app, takes the theme
+  and can carry an action. A Snackbar would land where achievement banners do, so the two would need to queue or sit
+  apart.
+- **Dialog messages are centred** (`DiceFiveDialog`). M3 centres a dialog's icon and title, but starts its supporting
+  text at the start edge; centred text reads worse past two lines, and at large font sizes.
+- **Dialog actions are filled and tonal buttons** (`DiceFiveDialog`), where M3 uses text buttons. Every dialog is thus
+  a second filled button over its screen, outside "One filled button per screen".
+
 ## Accessibility
 
 **Mandatory for every new or changed UI element.** A change isn't done until it has been through this checklist, and
@@ -214,13 +228,13 @@ are the patterns). Real TalkBack speech can't be checked here, so the report say
     - tile icon on teal: 8.5-12.7:1;
     - gold on a highlighted tile: 7.3:1;
     - `onSurfaceVariant` on the surface: 10.9:1;
-    - the selected style's border: 10.9:1.
+    - the selected style's border: 10.9:1;
+    - an unselected style tile's `outline` border on its card: 3.9:1 (it was `outlineVariant`, 1.3:1).
   - Borderline, but exempt or spoken:
     - a scored tile's icon: 3.2-3.5:1;
     - disabled Undo: 2.4-2.9:1;
     - a scored tile against the page: 1.4:1 (its state is spoken).
   - Below 3:1:
-    - an unselected style tile's `outlineVariant` border: 2.0:1 (`outline` would be 5.8:1);
     - the locked padlock over light art: ~2.1:1 (it's spoken "Locked").
 - **Not looked at**: whether a title-less dialog announces anything (the locked-style dialog passes `title = null`),
   and the Achievements rows' locked state beyond the icon.
