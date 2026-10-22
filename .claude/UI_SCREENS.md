@@ -174,7 +174,9 @@ its pick. It's kept across restarts on this device (`SettingsRepository.unlocked
 
 **Unlock All** (the purchase, `PURCHASES.md`) is a tonal button at the app bar's end, before Unlocked only in
 landscape: the purchase's mark (`UnlockAllStylesIcon`) and "Unlock All". No price: Play's sheet shows it.
-- For sale: enabled, opening Play's sheet. Play not yet answered: disabled. A payment pending: disabled, "Payment
+- For sale: enabled. A tap opens a dialog first (the mark, "Unlock all styles", what it unlocks, and that every style
+  can be earned for free, so paying is a shortcut and a way to support DiceFive); its Continue opens Play's sheet,
+  Cancel or back nothing. Play not yet answered: disabled. A payment pending: disabled, "Payment
   pending". Owned (bought, cached or a debug build's pretence) or no store: no button.
 - **The title never moves for it.** `PageTopBar` tells the page when the actions push its title off-centre or onto two
   lines (`onTitleCrowded`); the button then drops its words for that screen size, font scale and label, leaving the

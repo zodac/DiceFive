@@ -946,6 +946,9 @@
     <string name="styles_unlock_all_spoken">Desbloquear todos los estilos</string>
     <string name="styles_payment_pending">Pago pendiente</string>
     <string name="styles_all_unlocked">Todos los estilos desbloqueados</string>
+    <string name="styles_unlock_all_dialog_title">Desbloquear todos los estilos</string>
+    <string name="styles_unlock_all_dialog_message">Desbloquea todos los estilos al instante, sin necesidad de conseguir logros. Incluye todos los dados, cubiletes, tapetes, fondos, marcos e incluso los colores secretos.\n\nTodos los estilos también se pueden conseguir gratis jugando, y esta aplicación nunca bloqueará nada tras una compra. Es solo un atajo opcional, ¡y una forma de apoyar a %1$s!</string>
+    <string name="styles_unlock_all_continue">Continuar</string>
     <string name="styles_gallery_row_action">Mostrar %1$s en una fila</string>
     <string name="styles_gallery_all_action">Mostrar todos: %1$s</string>
     <string name="styles_select_action">Seleccionar</string>

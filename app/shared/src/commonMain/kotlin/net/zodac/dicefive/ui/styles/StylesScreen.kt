@@ -1,5 +1,6 @@
 package net.zodac.dicefive.ui.styles
 
+import net.zodac.dicefive.ui.common.DIALOG_ICON_SIZE
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.animation.core.Animatable
@@ -147,6 +148,8 @@ import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.purchases.LocalStore
 import net.zodac.dicefive.purchases.StoreState
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.app_name
+import net.zodac.dicefive.resources.common_cancel
 import net.zodac.dicefive.resources.common_ok
 import net.zodac.dicefive.resources.style_variant_colour
 import net.zodac.dicefive.resources.styles_all_unlocked
@@ -174,6 +177,9 @@ import net.zodac.dicefive.resources.styles_selected_cd
 import net.zodac.dicefive.resources.styles_show_unlock_action
 import net.zodac.dicefive.resources.styles_title
 import net.zodac.dicefive.resources.styles_unlock_all
+import net.zodac.dicefive.resources.styles_unlock_all_continue
+import net.zodac.dicefive.resources.styles_unlock_all_dialog_message
+import net.zodac.dicefive.resources.styles_unlock_all_dialog_title
 import net.zodac.dicefive.resources.styles_unlock_all_spoken
 import net.zodac.dicefive.resources.styles_unlock_any
 import net.zodac.dicefive.resources.styles_unlock_count
@@ -486,7 +492,8 @@ private fun StylesUnlockedCount(access: StyleAccess, compact: Boolean, onTap: ()
 
 /**
  * The "Unlock all styles" purchase ([net.zodac.dicefive.purchases.ProductKey.UNLOCK_ALL_STYLES]): its mark and "Unlock All",
- * opening the store's own sheet, which shows the price. Usable once the store has the product ([StoreState.ForSale] with its
+ * opening a dialog that says what the purchase is, and that everything it unlocks can be earned for free; its Continue
+ * opens the store's own sheet, which shows the price. Usable once the store has the product ([StoreState.ForSale] with its
  * price); disabled while it's [StoreState.Loading], and while it's [StoreState.Pending], when it says "Payment pending"
  * instead. [compact], it's the mark alone. TalkBack hears "Unlock all styles", with "Payment pending" as its state.
  */
@@ -495,8 +502,25 @@ private fun UnlockAllStylesButton(state: StoreState, compact: Boolean, onBuy: ()
     val pending = state == StoreState.Pending
     val spoken = stringResource(Res.string.styles_unlock_all_spoken)
     val pendingText = stringResource(Res.string.styles_payment_pending)
+    var explaining by remember { mutableStateOf(false) }
+    if (explaining) {
+        val primary = MaterialTheme.colorScheme.primary
+        DiceFiveDialog(
+            icon = { UnlockAllStylesIcon(size = DIALOG_ICON_SIZE, tint = primary) },
+            title = stringResource(Res.string.styles_unlock_all_dialog_title),
+            message = AnnotatedString(stringResource(Res.string.styles_unlock_all_dialog_message, stringResource(Res.string.app_name))),
+            confirmLabel = stringResource(Res.string.styles_unlock_all_continue),
+            onConfirm = {
+                explaining = false
+                onBuy()
+            },
+            onDismissRequest = { explaining = false },
+            dismissLabel = stringResource(Res.string.common_cancel),
+            onDismiss = { explaining = false },
+        )
+    }
     FilledTonalButton(
-        onClick = onBuy,
+        onClick = { explaining = true },
         enabled = state is StoreState.ForSale && state.price != null,
         contentPadding = if (compact) PaddingValues(horizontal = 12.dp) else PaddingValues(start = 8.dp, end = 12.dp),
         modifier = Modifier.semantics {

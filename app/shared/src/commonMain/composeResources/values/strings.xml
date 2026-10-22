@@ -1205,6 +1205,11 @@
     <string name="styles_payment_pending">Payment pending</string>
     <!-- Shown for a moment once the purchase completes. -->
     <string name="styles_all_unlocked">All styles unlocked</string>
+    <!-- The dialog Unlock All opens, before the store's own purchase sheet (which shows the price). Two paragraphs; %1$s is the app's name. -->
+    <string name="styles_unlock_all_dialog_title">Unlock all styles</string>
+    <string name="styles_unlock_all_dialog_message">Unlock every style instantly, without needing to earn achievements. Includes all dice, dice cups, mats, backgrounds, frames and even secret colours.\n\nAll styles can also be earned for free through gameplay, and this app will never lock anything behind a purchase. This is purely an optional shortcut and a way to support %1$s!</string>
+    <!-- Goes on to the store's purchase sheet: nothing is bought yet. -->
+    <string name="styles_unlock_all_continue">Continue</string>
     <string name="styles_gallery_row_action">Show %1$s as a row</string>
     <string name="styles_gallery_all_action">Show all %1$s</string>
     <!-- TalkBack's name for tapping a style, or one of its colours. -->

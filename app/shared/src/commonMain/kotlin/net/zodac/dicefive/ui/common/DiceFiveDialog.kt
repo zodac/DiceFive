@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
@@ -40,6 +42,9 @@ import androidx.compose.ui.unit.dp
  * [dismissLabel]/[onDismiss] are both null for a purely informational dialog with nothing to
  * confirm or decline - just the one button, [confirmLabel], to close it. Passing one without the
  * other is a caller error.
+ *
+ * An icon that isn't an [ImageVector] (drawn art) goes in the overload taking a composable one, drawn at
+ * [DIALOG_ICON_SIZE].
  */
 @Composable
 fun DiceFiveDialog(
@@ -85,18 +90,37 @@ fun DiceFiveDialog(
     iconTint: Color = MaterialTheme.colorScheme.primary,
     // Shown under the message, e.g. a scrollable list too long for the message itself.
     extraContent: (@Composable () -> Unit)? = null,
+) = DiceFiveDialog(
+    icon = { Icon(imageVector = icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(DIALOG_ICON_SIZE)) },
+    title = title,
+    message = message,
+    confirmLabel = confirmLabel,
+    onConfirm = onConfirm,
+    onDismissRequest = onDismissRequest,
+    modifier = modifier,
+    dismissLabel = dismissLabel,
+    onDismiss = onDismiss,
+    extraContent = extraContent,
+)
+
+/** [DiceFiveDialog] with drawn art for its [icon], decorative, [DIALOG_ICON_SIZE] and in `primary` as the others' are. */
+@Composable
+fun DiceFiveDialog(
+    icon: @Composable () -> Unit,
+    title: String?,
+    message: AnnotatedString,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+    dismissLabel: String? = null,
+    onDismiss: (() -> Unit)? = null,
+    extraContent: (@Composable () -> Unit)? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismissRequest,
         modifier = modifier,
-        icon = {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(36.dp),
-            )
-        },
+        icon = icon,
         title = title?.let {
             {
                 Text(
@@ -109,7 +133,8 @@ fun DiceFiveDialog(
             }
         },
         text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // Scrolls rather than being cut off when it can't fit: a large font on a small phone. M3 doesn't scroll it.
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodyMedium,
@@ -140,6 +165,9 @@ fun DiceFiveDialog(
         tonalElevation = 6.dp,
     )
 }
+
+/** A [DiceFiveDialog]'s icon. */
+val DIALOG_ICON_SIZE = 36.dp
 
 /** The space M3 leaves between a dialog's two buttons. */
 private val DIALOG_BUTTON_GAP = 8.dp

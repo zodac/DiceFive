@@ -1,0 +1,1 @@
+- Added an 'Unlock all' option on the styles page, giving a user the user the option to purchase all styles instead of locking them naturally. All styles can still be unlocked without paying!

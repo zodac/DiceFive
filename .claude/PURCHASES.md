@@ -126,7 +126,9 @@ given it, so the menu logo, the game table, the Styles screen and the Fresh Coat
 
 Built (Phase 5): as `UI_SCREENS.md`, "The Styles screen", describes. Decided with the renders (2026-10-23): the mark and
 "Unlock All", **no price** (Play's sheet shows it, so the app never handles one), and the mark alone wherever the words
-would move the title. The plan as it was:
+would move the title. A tap opens a dialog before Play's sheet (decided 2026-10-23), in the maintainer's words: what
+the purchase unlocks, and that every style can be earned for free, so "this app will never lock anything behind a
+purchase" and paying is "an optional shortcut and a way to support DiceFive". Cancel / Continue. The plan as it was:
 - Label "Unlock all" plus Play's price (`ProductDetails...formattedPrice`, already localised by Play; never format it
   ourselves). States:
   - `ForSale`: enabled button. Tap launches Play's sheet.

@@ -1039,6 +1039,9 @@
     <string name="styles_unlock_all_spoken">فتح كل الأنماط</string>
     <string name="styles_payment_pending">الدفع قيد الانتظار</string>
     <string name="styles_all_unlocked">تم فتح كل الأنماط</string>
+    <string name="styles_unlock_all_dialog_title">فتح كل الأنماط</string>
+    <string name="styles_unlock_all_dialog_message">افتح كل الأنماط فورًا، دون الحاجة إلى كسب الإنجازات. يشمل ذلك كل أنماط النرد وكؤوس النرد والحصائر والخلفيات والإطارات، وحتى الألوان السرية.\n\nيمكن أيضًا كسب كل الأنماط مجانًا من خلال اللعب، ولن يحجب هذا التطبيق أي شيء خلف عملية شراء أبدًا. هذا مجرد اختصار اختياري ووسيلة لدعم %1$s!</string>
+    <string name="styles_unlock_all_continue">متابعة</string>
     <string name="styles_gallery_row_action">عرض %1$s في صف</string>
     <string name="styles_gallery_all_action">عرض كل %1$s</string>
     <string name="styles_select_action">اختيار</string>

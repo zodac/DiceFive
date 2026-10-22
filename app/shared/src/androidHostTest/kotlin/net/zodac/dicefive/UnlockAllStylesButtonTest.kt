@@ -10,9 +10,15 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isHeading
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.TextLayoutResult
@@ -42,7 +48,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The "Unlock all styles" purchase on the Styles page: a button in its app bar for each thing the store can say, what
- * TalkBack hears of it, and the word that the purchase is done. Its visible words ("Unlock All", "Payment pending") are
+ * TalkBack hears of it, the dialog it opens before the store's sheet, and the word that the purchase is done. Its visible words ("Unlock All", "Payment pending") are
  * cleared for TalkBack, so they're checked in renders, not here.
  *
  * Android only: it draws the whole Styles page, which the desktop test harness draws frame by frame.
@@ -96,7 +102,7 @@ class UnlockAllStylesButtonTest : UiTest() {
     }
 
     @Test
-    fun `for sale - a button says Unlock All - TalkBack hears Unlock all styles - and a tap opens the store's sheet`() = uiTest {
+    fun `for sale - a button says Unlock All - TalkBack hears Unlock all styles - and a tap explains the purchase first`() = uiTest {
         val store = FakeStore(StoreState.ForSale(price = "£2.99"))
         show(store)
         assertLabelled(true)
@@ -107,7 +113,38 @@ class UnlockAllStylesButtonTest : UiTest() {
         assertTrue(node.fetchSemanticsNode().touchBoundsInRoot.height >= with(compose.density) { 48.dp.toPx() })
         assertTitleCentredOnOneLine("for sale")
         node.performClick()
+        // Nothing bought yet: the dialog says what the purchase is first, word for word.
+        assertEquals(0, store.buys)
+        compose.onNode(isDialog()).assertExists()
+        compose.onNode(hasText("Unlock all styles") and hasAnyAncestor(isDialog())).assertExists()
+        compose.onNodeWithText(DIALOG_MESSAGE).assertExists()
+        compose.onNode(hasText("Cancel") and hasClickAction()).assertExists()
+        compose.onNode(hasText("Continue") and hasClickAction()).assertExists()
+    }
+
+    @Test
+    fun `the dialog's Continue opens the store's sheet - Cancel or back opens nothing`() = uiTest {
+        val store = FakeStore(StoreState.ForSale(price = "£2.99"))
+        show(store)
+        compose.onNode(button).performClick()
+        compose.onNode(hasText("Cancel") and hasClickAction()).performClick()
+        compose.onNode(isDialog()).assertDoesNotExist()
+        assertEquals(0, store.buys)
+
+        compose.onNode(button).performClick()
+        compose.onNode(hasText("Continue") and hasClickAction()).performClick()
+        compose.onNode(isDialog()).assertDoesNotExist()
         assertEquals(1, store.buys)
+    }
+
+    @Test
+    @Config(qualifiers = "w320dp-h640dp", fontScale = 2f)
+    fun `at a large font on a small phone the dialog's words scroll rather than being cut off`() = uiTest {
+        show(FakeStore(StoreState.ForSale(price = "£2.99")))
+        compose.onNode(button).performClick()
+        val words = compose.onNode(hasScrollAction() and hasAnyDescendant(hasText(DIALOG_MESSAGE)))
+        words.assertExists()
+        assertTrue(words.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].maxValue() > 0f)
     }
 
     @Test
@@ -189,6 +226,12 @@ class UnlockAllStylesButtonTest : UiTest() {
         val width = compose.onNode(button).fetchSemanticsNode().size.width
         val markAlone = with(compose.density) { 72.dp.roundToPx() }
         assertEquals(labelled, width > markAlone, "button width $width px")
+    }
+
+    private companion object {
+        const val DIALOG_MESSAGE = "Unlock every style instantly, without needing to earn achievements. Includes all dice, dice cups, " +
+            "mats, backgrounds, frames and even secret colours.\n\nAll styles can also be earned for free through gameplay, and this " +
+            "app will never lock anything behind a purchase. This is purely an optional shortcut and a way to support DiceFive!"
     }
 
     /** The page's title, on one line, centred on the screen as on every other page. */
