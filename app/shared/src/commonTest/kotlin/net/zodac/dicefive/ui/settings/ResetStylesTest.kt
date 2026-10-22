@@ -4,6 +4,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -12,12 +13,23 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import net.zodac.dicefive.app.AppContainer
+import net.zodac.dicefive.app.BuildInfo
 import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.Stamped
+import net.zodac.dicefive.data.achievements.AchievementsRepository
+import net.zodac.dicefive.data.game.InProgressGameRepository
+import net.zodac.dicefive.data.scores.InMemoryScoreDao
+import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingValue
 import net.zodac.dicefive.data.settings.SettingsRepository
+import net.zodac.dicefive.data.settings.savedStylesFlow
+import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.online.OnlineSettingsRepository
+import net.zodac.dicefive.purchases.PurchasesRepository
 import net.zodac.dicefive.ui.style.DiceStyles
+import net.zodac.dicefive.ui.style.StyleCatalogs
+import net.zodac.dicefive.ui.style.access
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ResetStylesTest {
@@ -49,6 +61,44 @@ class ResetStylesTest {
         advanceUntilIdle()
         assertEquals("frosted_ice", settings.diceStyleId.first())
         assertEquals("glitch_screen", settings.tableBackgroundId.first())
+    }
+
+    @Test
+    fun `resetting achievements relocks nothing for an owner - the purchase survives, every style and colour stays unlocked`() = runTest {
+        val container = AppContainer(
+            scoreRepository = ScoreRepository(InMemoryScoreDao()),
+            settingsRepository = SettingsRepository(InMemoryPreferences()),
+            achievementsRepository = AchievementsRepository(InMemoryPreferences()),
+            inProgressGameRepository = InProgressGameRepository(InMemoryPreferences()),
+            onlineSettingsRepository = OnlineSettingsRepository(InMemoryPreferences()),
+            purchasesRepository = PurchasesRepository(InMemoryPreferences()),
+            buildInfo = BuildInfo(versionName = "test", isDebug = false),
+            scope = backgroundScope,
+        )
+        container.purchasesRepository.setOwnsAllStyles(true)
+        container.achievementsRepository.record(Achievement.entries.associateWith { 0L }, emptyMap())
+        // A secret colour, and a style behind an Easter egg.
+        val secret = DiceStyles.families.flatMap { it.colours }.first { it.secretAchievement != null }.style.id
+        container.settingsRepository.setDiceStyleId(secret)
+        container.settingsRepository.setTableBackgroundId("glitch_screen")
+
+        SettingsViewModel(
+            settingsRepository = container.settingsRepository,
+            achievementsRepository = container.achievementsRepository,
+            scoreRepository = container.scoreRepository,
+            onlineSettingsRepository = container.onlineSettingsRepository,
+            ownsAllStyles = container.ownsAllStyles,
+        ).resetAchievements()
+        advanceUntilIdle()
+
+        assertTrue(container.achievementsRepository.current().unlockedAt.isEmpty(), "the reset didn't happen")
+        assertTrue(container.purchasesRepository.ownsAllStyles.first())
+        val saved = savedStylesFlow(container.settingsRepository, container.achievementsRepository, container.ownsAllStyles).first()
+        for (catalog in StyleCatalogs) {
+            for (art in catalog.all) assertTrue(catalog.isUnlocked(art.id, saved.access), "${art.id} is locked again")
+        }
+        assertEquals(secret, saved.diceStyleId)
+        assertEquals("glitch_screen", saved.tableBackgroundId)
     }
 
     @Test
