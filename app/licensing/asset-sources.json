@@ -89,6 +89,18 @@
     "copyright": "Copyright 2026 zodac.net",
     "license": "LicenseRef-DiceFive-AllRightsReserved"
   },
+  "app/android/src/play/res/xml/backup_rules.xml": {
+    "description": "Auto Backup rules up to Android 11: leaves out Play Games' start-at-launch choice",
+    "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_011pQ5G3K1HaY2XL2VD7bzXF",
+    "copyright": "Copyright 2026 zodac.net",
+    "license": "LicenseRef-DiceFive-AllRightsReserved"
+  },
+  "app/android/src/play/res/xml/data_extraction_rules.xml": {
+    "description": "Backup and device-transfer rules from Android 12: leaves out Play Games' start-at-launch choice",
+    "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_011pQ5G3K1HaY2XL2VD7bzXF",
+    "copyright": "Copyright 2026 zodac.net",
+    "license": "LicenseRef-DiceFive-AllRightsReserved"
+  },
   "app/android/src/play/res/xml/sidekick_config.xml": {
     "description": "Play Games Sidekick config: the tab's default position and the first-session snooze",
     "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01B2fBbenxLkeAc4xpD93yyf",

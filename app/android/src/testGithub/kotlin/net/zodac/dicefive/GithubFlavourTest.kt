@@ -63,4 +63,10 @@ class GithubFlavourTest {
         assertSame(NoGameServices, Distribution.gameServices(activity))
         assertEquals(32, Distribution.progressFiles(activity).key.size)
     }
+
+    @Test
+    fun `its backups carry everything - it has no Play Games choice to leave out`() {
+        assertEquals(0, applicationManifestResource(context, "dataExtractionRules"))
+        assertEquals(0, applicationManifestResource(context, "fullBackupContent"))
+    }
 }

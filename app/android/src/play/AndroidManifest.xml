@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The play flavour's own entries: Google Play Games and Sidekick, which the github flavour has none of. -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <application>
+    <!-- Backups and device transfers leave out Play Games' start-at-launch choice, which is this device's own: see
+         res/xml/backup_rules.xml (up to Android 11) and data_extraction_rules.xml (from 12). -->
+    <application
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        tools:targetApi="31">
 
         <meta-data
             android:name="com.google.android.gms.games.APP_ID"

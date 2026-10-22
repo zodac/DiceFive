@@ -370,9 +370,10 @@ class PlayGamesServices private constructor(private val application: Application
 
         private const val ACHIEVEMENTS_UI_KEY = "play_games_achievements"
         private const val LEADERBOARD_UI_KEY = "play_games_leaderboard"
-        private const val PREFERENCES_FILE = "play_games"
+        /** Left out of backups and device transfers (res/xml/backup_rules.xml, data_extraction_rules.xml). */
+        internal const val PREFERENCES_FILE = "play_games"
 
-        /** Whether the player signed in from Settings on this device, and hasn't signed out since. */
+        /** Whether the player signed in from Settings on this device, and hasn't signed out since: so never restored onto another. */
         private const val START_AT_LAUNCH_KEY = "start_at_launch"
 
         private const val PLAY_STORE_PACKAGE = "com.android.vending"

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cloud backup and device-to-device transfer from Android 12 (dataExtractionRules): everything but Play Games'
+     start-at-launch choice - see backup_rules.xml, the same for older Androids. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="play_games.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="play_games.xml" />
+    </device-transfer>
+</data-extraction-rules>

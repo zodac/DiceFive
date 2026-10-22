@@ -53,12 +53,16 @@ app/android/src/play/.../online/  PlayGamesServices, PlayGamesIds, PlayGamesAchi
 ## Account and sign-in
 
 - **Only from Settings.** The SDK isn't started (`PlayGamesSdk.initialize`) until the player taps **Sign in**, and its
-  auto-start `PlayGamesInitProvider` is disabled in the manifest (`PlayGamesServicesTest`). A sign-in sets `signed_in`
-  (the `online` store); from then on the SDK starts with the app and signs in quietly.
+  auto-start `PlayGamesInitProvider` is disabled in the manifest (`PlayGamesServicesTest`). A sign-in sets `start_at_launch`
+  (the `play_games` SharedPreferences, read in `Application.onCreate`, before DataStore could be); from then on the SDK
+  starts with the app and signs in quietly.
+- **That choice stays on its device.** Backups and device transfers leave `play_games` out (`res/xml/backup_rules.xml`
+  up to Android 11, `data_extraction_rules.xml` from 12; `PlayFlavourTest`), so a restored phone asks before signing
+  in. Everything else is backed up, the `online` store included: its mirroring block must survive a restore.
 - **A failed sign-in says why** on the card, in red: "Couldn't sign in: " and the first failure's log message
   (`GameServicesState.SignedOut.failure`), untranslated, for a player to report. It goes on the next Sign in tap.
   Cancelling the account picker shows it too ("not authenticated"): the SDK can't tell the two apart.
-- **Sign out is ours** (v2 has none): it clears `signed_in` and stops every call. It waits for the sign-in's sync to
+- **Sign out is ours** (v2 has none): it clears `start_at_launch` and stops every call. It waits for the sign-in's sync to
   finish (`OnlineSync.signInSynced`).
 - **The gamer name appears only on the Settings card** and never touches seat 1's name. Sanitised, ellipsised, up to
   two lines.
