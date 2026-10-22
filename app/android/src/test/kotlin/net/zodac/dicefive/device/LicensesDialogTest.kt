@@ -55,6 +55,7 @@ import org.hamcrest.Matchers.containsString
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -278,6 +279,15 @@ class LicensesDialogTest {
         press(PROTOBUF)
         assertFalse(selectedCard.hasSelection())
         assertNull(shadowOf(application).nextStartedActivity)
+    }
+
+    @Test
+    fun `showing a licence's text restyles no card - each keeps the background it was drawn with`() {
+        showDialog()
+        val backgrounds = cards().map { it.background }
+        press("Show licence text", card = document)
+        assertTrue(document.text.contains(APACHE_TEXT))
+        cards().zip(backgrounds).forEach { (card, background) -> assertSame(background, card.background) }
     }
 
     // The licences are English whatever the app's language: on a right-to-left phone, in a right-to-left app, they stay

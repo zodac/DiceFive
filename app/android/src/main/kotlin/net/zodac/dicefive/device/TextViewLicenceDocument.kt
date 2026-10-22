@@ -290,6 +290,7 @@ internal fun TextViewLicenceDocument(report: LicenseReport, scroll: LicenceScrol
                 (clearer as? TextViewSelectionClearer)?.unregister(column.getChildAt(column.childCount - 1) as TextView)
                 column.removeViewAt(column.childCount - 1)
             }
+            val look = CardLook(style, bodySize, accent, density)
             val scrollY = scrollView.scrollY
             var changed = false
             cards.forEachIndexed { index, card ->
@@ -302,17 +303,21 @@ internal fun TextViewLicenceDocument(report: LicenseReport, scroll: LicenceScrol
                     // whenever it next lays out or is touched - a jump back to the top of the card.
                     Selection.removeSelection(view.text as Spannable)
                 }
-                view.background = GradientDrawable().apply {
-                    setColor(style.card)
-                    cornerRadius = CARD_CORNER_DP * density
+                // Restyled only when the look changes, not on every update (a licence shown or hidden is one).
+                if (view.look != look) {
+                    view.look = look
+                    view.background = GradientDrawable().apply {
+                        setColor(style.card)
+                        cornerRadius = CARD_CORNER_DP * density
+                    }
+                    val padding = (CARD_PADDING_DP * density).toInt()
+                    view.setPadding(padding, padding, padding, padding)
+                    view.setTextColor(style.text)
+                    view.setLinkTextColor(style.accent)
+                    view.setTextSize(TypedValue.COMPLEX_UNIT_SP, bodySize)
+                    view.setLineSpacing(2f * density, 1f)
+                    view.tintSelection(accent)
                 }
-                val padding = (CARD_PADDING_DP * density).toInt()
-                view.setPadding(padding, padding, padding, padding)
-                view.setTextColor(style.text)
-                view.setLinkTextColor(style.accent)
-                view.setTextSize(TypedValue.COMPLEX_UNIT_SP, bodySize)
-                view.setLineSpacing(2f * density, 1f)
-                view.tintSelection(accent)
                 view.labels = labels
             }
             if (changed) {
@@ -335,6 +340,9 @@ internal fun TextViewLicenceDocument(report: LicenseReport, scroll: LicenceScrol
         },
     )
 }
+
+/** Everything a card is drawn with bar its text: [bodySize] in sp, [density] the screen's. */
+internal data class CardLook(val style: DocumentStyle, val bodySize: Float, val accent: Color, val density: Float)
 
 /** Matches the M3 Card's medium shape and the 16dp padding and gaps of the cards elsewhere (About). */
 private const val CARD_CORNER_DP = 12f
@@ -407,6 +415,9 @@ internal class LinkTextView(context: Context) : TextView(context) {
 
     /** The words of the long-press menu and its confirmation; set with the card's text. */
     var labels: LicenceLabels? = null
+
+    /** The look this card was last styled with, so an update that doesn't change it doesn't restyle it. */
+    var look: CardLook? = null
 
     /** Where the current press went down - a long click itself carries no position. */
     private var downX = 0f
