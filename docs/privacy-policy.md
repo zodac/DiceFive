@@ -2,7 +2,7 @@
 
 # Privacy Policy
 
-**Last updated: 15 October 2026**
+**Last updated: 23 October 2026**
 
 This Privacy Policy explains how DiceFive ("the App") handles information when you use the App.
 
@@ -11,7 +11,8 @@ This Privacy Policy explains how DiceFive ("the App") handles information when y
 DiceFive is a dice game and does not use advertising or analytics services.
 
 The App does not directly collect or require you to provide personal information such as your name,
-email address, postal address, telephone number, or payment information.
+email address, postal address, telephone number, or payment information. Its one optional purchase is paid for
+through Google Play, which handles the payment (see section 6).
 
 The App lets you type in names for the players in a game. These names are stored on your device (see
 section 4) and are not sent to us. If you sign in to Google Play Games, they are also kept in your cloud-saved game data
@@ -74,7 +75,7 @@ your device's settings.
 
 ## 5. Advertising and Analytics
 
-The App does not currently use advertising services or third-party analytics services.
+The App does not show advertising, and does not use advertising services or third-party analytics services.
 
 We do not use Google AdMob or similar advertising SDKs.
 
@@ -88,15 +89,25 @@ If these practices change in the future, this Privacy Policy will be updated acc
 
 ## 6. Purchases
 
-The App may offer optional purchases through Google Play Billing in the future.
+The App offers one optional, one-time purchase, "Unlock all styles", which unlocks every table style straight away.
+Every style can still be earned for free by playing. The purchase is offered only in copies of the App installed from
+Google Play; copies downloaded from elsewhere offer no purchases.
 
-If purchases are introduced, payments will be processed through Google Play. The App does not receive
-or store your complete payment card or other payment credentials.
-
-Google may collect and process information associated with purchases in accordance with Google's
-applicable terms and privacy policies.
-
-This Privacy Policy will be updated if necessary when purchasing functionality is introduced.
+- **Payment.** The purchase is made through Google Play Billing, on Google Play's own purchase screen. Google Play
+  processes the payment. The App never receives or stores your payment card, other payment details, name, address or
+  email address, and none of it is sent to us.
+- **What the App receives.** From the Google Play account signed in to the Play Store on your device, the App learns
+  only whether that account owns the purchase, and confirms the purchase back to Google Play so that it is completed.
+  It asks when it starts and when you return to it, so that a purchase you made on another device, or one that
+  finishes later (a pending payment), is recognised.
+- **What the App stores.** One setting on your device recording that every style is unlocked (see section 4). It is
+  not part of your cloud-saved game data, and it is not sent to us.
+- **Refunds and restoring.** If a purchase is refunded or cancelled, the App sees that the account no longer owns it,
+  and the styles you haven't earned lock again; the styles you picked are kept, ready for when you earn them. If you
+  reinstall the App, or use another device with the same Google Play account, the purchase is restored automatically.
+- **Google.** Google collects and processes information about purchases, such as your order history, under the Google
+  Play Terms of Service, the Google Payments Privacy Notice and Google's Privacy Policy
+  (<https://policies.google.com/privacy>). You can see and manage your Google Play orders in your Google account.
 
 ## 7. Third-Party Services
 
@@ -112,6 +123,9 @@ data.
 The App is not specifically designed to collect personal information from children.
 
 We do not knowingly collect personal information directly from children.
+
+The App's purchase is made through Google Play, so Google Play's parental controls and Google Family Link purchase
+approvals apply to it.
 
 Because the App may use Google Play Games Services and other Google services, the availability and
 operation of certain features may be subject to Google's applicable age requirements and policies.

@@ -196,9 +196,11 @@ Payments verification can take days, so start early. In order:
    For UK/EU sales Google collects and remits VAT on digital goods itself.
 5. **15% service fee tier** (confirmed 2026-10-22). Play Console > **Settings > Account groups** (create a group
    saying you have no other developer accounts), then accept the 15% tier's terms. Without this the fee is 30%.
-6. **License testers.** Play Console (the account level, not the app) > **Settings > License testing**: add your
-   Google account(s) and any testers, licence response "RESPOND_NORMALLY". These accounts get test cards and are
-   never charged.
+6. **License testers** (set up 2026-10-23). Play Console (the account level, not the app) > **Settings > License
+   testing**: email lists (up to 2,000 addresses each) or Google Groups (every member, no limit). The developer
+   account is always one. They pay with Google's test methods and are never charged; each must also be a tester on
+   the track the build is on, with the Play Store signed in to that account. Before Phase 8, make sure some real
+   buyers on the closed track aren't license testers: a real purchase behaves differently.
 
 ### Phase 2: the library and the seam (code; done 2026-10-22)
 
@@ -275,8 +277,10 @@ On a real phone signed in to Play as a license tester (the emulator has no Play 
 
 ### Phase 7: declarations and docs (maintainer + code)
 
-- **Privacy policy** (`docs/privacy-policy.md`): purchases go through Google Play; the app stores only "owns all
-  styles" on the device. Update "Last updated".
+- **Privacy policy** (`docs/privacy-policy.md`): done 2026-10-23. Section 6 describes the purchase (Google Play takes
+  the payment; the app learns only whether the account owns it and stores one flag on the device, outside the cloud
+  save; refunds re-lock, reinstalls restore), section 5 says there are no ads, and section 8 notes Play's parental
+  purchase controls.
 - **Data safety**: review; Google processes the payment. Purchase history is the likely question: the app reads the
   player's purchase of this one product from Play to unlock styles. Answer per Google's current guidance.
 - **Content rating questionnaire**: re-answer ("digital purchases": yes). The listing then shows "In-app purchases".

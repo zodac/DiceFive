@@ -17,8 +17,8 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
     platform code apart from it (`MULTIPLATFORM.md`).
 - **Google Play Games Services** (`PLAY_GAMES.md`) is built on Android: sign-in, achievements, leaderboards, cloud save
   and Sidekick. Its Play Console release remains.
-- **Planned, not built.** An "Unlock all styles" purchase on Android, the app's only purchase (`PURCHASES.md`), and
-  possibly ads (`PUBLISHING.md`).
+- **In progress.** An "Unlock all styles" purchase on Android, the app's only purchase (`PURCHASES.md`): built, being
+  tested. **Never ads** (decided 2026-10-23).
 - **Audience.** `README.md` is the public, player-facing description; keep it true to the app.
 
 ## Repo metadata

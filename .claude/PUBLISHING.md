@@ -20,19 +20,19 @@ In order:
    - GitHub Pages publishes it (`.github/workflows/pages.yml`, which runs when `docs/` changes; the Pages source must be
      "GitHub Actions") at https://zodac.github.io/DiceFive/privacy-policy.
    - The contact is zodacapps@gmail.com.
-   - **Update it, and its "Last updated" date,** when ads, billing, a new SDK or `INTERNET` use ships, or when
-     `android:allowBackup` changes (it mentions backup).
-3. **An AdMob account**, only once ads work starts.
+   - **Update it, and its "Last updated" date,** when billing changes, a new SDK or `INTERNET` use ships, or when
+     `android:allowBackup` changes (it mentions backup). It describes the purchase (section 6) and says there are no
+     ads (section 5), as of 2026-10-23.
 
 **Console-only configuration**:
 - **The listing.** Text, graphics, category and contact.
-- **Declarations.** The content rating, data safety form, and target audience. Each is revisited when ads or billing
-  ship. They're under Play Console > the app > **Policy and programs > App content**; the data safety answers are below.
+- **Declarations.** The content rating, data safety form, and target audience. Each is revisited when the purchase
+  ships (`PURCHASES.md`, Phase 7). They're under Play Console > the app > **Policy and programs > App content**; the data safety answers are below.
 - **Play App Signing.** Play takes the upload certificate from the first signed `.aab`
   (`keytool -export -rfc -alias upload` if App integrity asks first).
 - **Closed testing.** 12+ testers for 14+ days before requesting production.
 - **Play Games Services.** Link it, register the SHA-1s and add testers (`PLAY_GAMES.md`).
-- **Later.** The "Unlock all styles" product and its license testers (`PURCHASES.md`), and AdMob ad units.
+- **The "Unlock all styles" product** and its license testers: done (`PURCHASES.md`).
 
 ## Data safety
 
@@ -60,7 +60,7 @@ until the player signs in.
     (the saved game: settings, styles, the game in progress).
   - App info and performance > **Crash logs** and **Diagnostics**: collected by the Play Games SDK itself, purpose
     Analytics (Google's list says "to improve the stability of our SDKs").
-- **Revisit** when ads, billing or analytics ship, or the cloud save gains a new kind of data.
+- **Revisit** when billing or analytics ship, or the cloud save gains a new kind of data.
 
 ## Store listing
 
@@ -72,8 +72,7 @@ until the player signs in.
   Roll five dice and outscore friends or AI. Offline unless you use Play Games.
   ```
 
-  The full tagline (`README.md`'s first line, 120 chars) doesn't fit. Keep both true when ads or the purchase ship, and declare
-  ads.
+  The full tagline (`README.md`'s first line, 120 chars) doesn't fit. Keep both true when the purchase ships.
 - **Full description**: `assets/full-description.txt`, about 3000 of 4000 characters. Keep its counts and lists true:
   - the modes under "Seven ways to play" (and that heading's count);
   - the modifiers under "House rules";
@@ -113,7 +112,7 @@ The sole holder can relicense later.
   - CC0 needs nothing.
   - CC-BY needs a credit and can't take added restrictions, so it stays outside the all-rights-reserved scope.
   - CC-BY-SA adaptations stay CC-BY-SA.
-  - **NC licences are incompatible with ads or the purchase.**
+  - **NC licences are incompatible with the purchase.**
 - **Every library** in the licences dialog keeps its own licence.
 - **App artwork** is `LicenseRef-DiceFive-AllRightsReserved` in `asset-sources.json` (`APP_LICENSE` in
   `VerifyAssetSourcesTask`). Change both together.
@@ -132,8 +131,8 @@ The sole holder can relicense later.
   attaches `DiceFive-<version>.aab` (`DESIGN.md`, "Distribution"). Uploading to Play is by hand, with "Sidekick is on by default" ticked (`PLAY_GAMES.md`,
   "Release").
 - **`INTERNET` permission**: not declared, and Play Games doesn't add it. The v2 SDK talks to the Play services app,
-  which does the network work (`PLAY_GAMES.md`, "What Google provides"). Ads and billing will likely need it (their SDK
-  manifests merge it; ads may want it declared).
+  which does the network work (`PLAY_GAMES.md`, "What Google provides"). The Billing Library's telemetry merges it,
+  and the play manifest removes it (`PURCHASES.md`, "What Google provides").
 - **Signing**: done. Play App Signing holds the app key. The upload key backs the `RELEASE_KEY*` secrets (alias
   `upload`, SHA-256 `DD:9E:C8:0C:…:1E:A6:18`); the maintainer keeps a copy, and Play support can reset it if lost.
 - **`mapping.txt`**: done. Each release attaches `DiceFive-<version>-mapping.txt`, and the `.aab` carries it too
@@ -146,15 +145,10 @@ The sole holder can relicense later.
   because AGP leaves a kept library out of the extracted tables. Graphics-path ships pre-stripped, so its frames stay
   as addresses.
 
-## Future: the purchase and ads
-
-Not being built, but both change this checklist.
+## The purchase, and no ads
 
 - **The "Unlock all styles" purchase**, the app's only one: `PURCHASES.md` has the plan, the payments profile, the
   product, license testers and the declarations it changes. GitHub release APKs continue, with no purchase shown.
-- **Ads.**
-  - AdMob: `play-services-ads`, the `com.google.android.gms.ads.APPLICATION_ID` meta-data, `AD_ID` (API 33+), and
-    Google's UMP consent flow for the EEA, UK and California before any ad request.
-  - The rating, data-safety and listing declarations all need re-submitting.
+- **No ads, ever** (decided 2026-10-23): no ad SDK, no `AD_ID`, and "Contains ads: No" in Play Console.
 
 Release notes for each submission are written at release time, not stored here.
