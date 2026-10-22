@@ -307,7 +307,9 @@ tasks.withType<Test>().configureEach {
 // Both flavours' debug checks under the names they had before there were flavours, so `./gradlew testDebugUnitTest
 // lintDebug compileDebugAndroidTestKotlin` from the root (CI, the update script, the test skill's gate) still covers the
 // whole app rather than quietly matching nothing here. One flavour's own task takes --tests: testPlayDebugUnitTest.
-for (check in listOf("test%sDebugUnitTest", "lint%sDebug", "compile%sDebugAndroidTestKotlin")) {
+// lintRelease is both release builds' full lint: what only they have (src/release, src/playRelease, the release
+// manifests), which lintDebug never sees and the release build's own lintVital only checks for fatal issues.
+for (check in listOf("test%sDebugUnitTest", "lint%sDebug", "lint%sRelease", "compile%sDebugAndroidTestKotlin")) {
     tasks.register(check.format("")) {
         group = "verification"
         description = "Runs ${check.format("<Flavour>")} for every flavour."

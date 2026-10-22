@@ -12,7 +12,7 @@ failure stops what follows.
 ## The full gate (before a commit)
 
 ```sh
-./gradlew testDebugUnitTest :app:shared:lint lintDebug assembleDebug compileDebugAndroidTestKotlin :app:android:assembleRelease \
+./gradlew testDebugUnitTest :app:shared:lint lintDebug lintRelease assembleDebug compileDebugAndroidTestKotlin :app:android:assembleRelease \
   --console=plain 2>&1 | grep -v -E '^> Task|^$'
 ```
 
@@ -21,6 +21,8 @@ failure stops what follows.
 - `app/android` has two flavours, `play` and `github` (`.claude/DESIGN.md`, "Distribution"). Its `testDebugUnitTest`,
   `lintDebug` and `compileDebugAndroidTestKotlin` run both (`testPlayDebugUnitTest`, `testGithubDebugUnitTest`, ...),
   so `src/test` runs twice, once in each app, with `src/testPlay` and `src/testGithub` once in their own.
+- `lintRelease` is both release builds' full lint (`lintPlayRelease`, `lintGithubRelease`): the release-only source
+  sets and manifests, which `lintDebug` never sees.
 - `:app:android:assembleRelease` is the release job's build for both apps: R8, and the release lint
   (`lintVitalPlayRelease`, `lintVitalGithubRelease`), which `lintDebug` doesn't run. Without the signing secrets it
   builds unsigned, which is fine here.

@@ -169,7 +169,8 @@ jobs:
   # Deprecation gates. Any compile already fails on a deprecated API (the Kotlin DEPRECATION flag in
   # app/android/build.gradle.kts) or a build-script warning (org.gradle.kotlin.dsl.allWarningsAsErrors in
   # gradle.properties); this extends that to the instrumented-test code, which nothing else here
-  # compiles, and runs lint, where Deprecated / ObsoleteSdkInt findings are errors.
+  # compiles, and runs lint, where Deprecated / ObsoleteSdkInt findings are errors - on the release builds too
+  # (lintRelease), whose own source sets and manifests the debug lint never sees.
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -182,7 +183,7 @@ jobs:
           ffmpeg: "true"
 
       - name: Check instrumented tests compile and lint passes
-        run: ./gradlew compileDebugAndroidTestKotlin lintDebug --console=plain
+        run: ./gradlew compileDebugAndroidTestKotlin lintDebug lintRelease --console=plain
 
   # A fresh Baseline Profile for every APK: the profile journey (app/baselineprofile) run on an
   # emulator, from this commit. Only when there's an APK to put it in. The profile is not committed (it is

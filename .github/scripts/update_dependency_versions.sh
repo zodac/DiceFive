@@ -495,7 +495,7 @@ BUILD_LOG="${WORK_DIR}/gradle-build.log"
 # fetches it if this machine lacks it. Extra Gradle arguments may be passed.
 run_gradle_build() {
     ./gradlew --no-daemon --console=plain "${@}" \
-        assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lintDebug \
+        assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lintDebug lintRelease \
         :app:android:assembleGithubRelease :app:android:bundlePlayRelease > "${BUILD_LOG}" 2>&1
 }
 
@@ -2260,7 +2260,7 @@ verify_build() {
         return 0
     fi
     if [[ "${SKIP_BUILD}" == "true" ]]; then
-        warn "Gradle inputs changed but --skip-build was given - run './gradlew assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lintDebug :app:android:assembleGithubRelease :app:android:bundlePlayRelease' before committing"
+        warn "Gradle inputs changed but --skip-build was given - run './gradlew assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lintDebug lintRelease :app:android:assembleGithubRelease :app:android:bundlePlayRelease' before committing"
         return 0
     fi
 

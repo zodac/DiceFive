@@ -146,7 +146,7 @@ jobs:
       - name: Build, test and lint
         if: steps.changes.outputs.changed == 'true'
         run: |
-          ./gradlew assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lintDebug \
+          ./gradlew assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lintDebug lintRelease \
             :app:android:assembleGithubRelease :app:android:bundlePlayRelease --console=plain
 
       # Also exercises a freshly bumped actionlint image before it is committed.
