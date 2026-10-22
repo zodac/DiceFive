@@ -8,13 +8,16 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.android.gms.games.SnapshotsClient
 import com.google.android.gms.games.snapshot.Snapshot
 import com.google.android.gms.games.snapshot.SnapshotContents
+import com.google.android.gms.tasks.Tasks
 import java.lang.reflect.Proxy
+import kotlinx.coroutines.runBlocking
 import net.zodac.dicefive.online.PlayGamesServices.Companion.conflictOrNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -79,6 +82,47 @@ class PlayGamesServicesTest {
         assertNotEquals(key, PlayGamesServices.accountKey("a_player_id_1235"))
         assertFalse(key.contains("a_player_id_1234"))
         assertEquals(64, key.length)
+    }
+
+    @Test
+    fun `a save read or left unchanged is discarded - and the discard waited for`() {
+        val (client, calls) = recordingSnapshotsClient()
+        var awaited = 0
+        val result = runBlocking { client.closingSnapshot(stub<Snapshot>(), awaitDiscard = { awaited++ }) { "read" } }
+        assertEquals("read", result)
+        assertEquals(listOf("discardAndClose"), calls)
+        assertEquals(1, awaited)
+    }
+
+    @Test
+    fun `a committed save is closed by its commit alone`() {
+        val (client, calls) = recordingSnapshotsClient()
+        var awaited = 0
+        runBlocking { client.closingSnapshot(stub<Snapshot>(), awaitDiscard = { awaited++ }) { commit -> commit() } }
+        assertEquals(listOf("commitAndClose"), calls)
+        assertEquals(0, awaited)
+    }
+
+    @Test
+    fun `a save whose merge throws is still discarded - and the error goes on`() {
+        val (client, calls) = recordingSnapshotsClient()
+        var awaited = 0
+        val error = assertThrows(IllegalStateException::class.java) {
+            runBlocking { client.closingSnapshot<Unit>(stub<Snapshot>(), awaitDiscard = { awaited++ }) { error("unreadable save") } }
+        }
+        assertEquals("unreadable save", error.message)
+        assertEquals(listOf("discardAndClose"), calls)
+        assertEquals(0, awaited)
+    }
+
+    /** A [SnapshotsClient] that records the name of each call made on it, every one completing at once. */
+    private fun recordingSnapshotsClient(): Pair<SnapshotsClient, List<String>> {
+        val calls = mutableListOf<String>()
+        val client = Proxy.newProxyInstance(SnapshotsClient::class.java.classLoader, arrayOf(SnapshotsClient::class.java)) { _, method, _ ->
+            calls += method.name
+            Tasks.forResult(null)
+        } as SnapshotsClient
+        return client to calls
     }
 
     /** A [T] whose every method returns null: Play's types are interfaces, and these tests never call them. */

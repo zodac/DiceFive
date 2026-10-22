@@ -25,6 +25,7 @@ import com.google.android.gms.games.PlayGamesSdk
 import com.google.android.gms.games.SnapshotsClient
 import com.google.android.gms.games.achievement.Achievement as PlayAchievement
 import com.google.android.gms.games.snapshot.Snapshot
+import com.google.android.gms.games.snapshot.SnapshotMetadata
 import com.google.android.gms.games.snapshot.SnapshotMetadataChange
 import com.google.android.gms.tasks.Task
 import java.lang.ref.WeakReference
@@ -242,8 +243,7 @@ class PlayGamesServices private constructor(private val application: Application
             val notFound = (error as? ApiException)?.statusCode == GamesClientStatusCodes.SNAPSHOT_NOT_FOUND
             return if (notFound) CloudSaveRead.Empty else CloudSaveRead.Failed
         }
-        val bytes = snapshot.bytes()
-        client.discardAndClose(snapshot).awaitOrNull("discardSnapshot")
+        val bytes = client.closingSnapshot(snapshot, awaitDiscard = { it.awaitOrNull("discardSnapshot") }) { snapshot.bytes() }
         return when {
             bytes == null -> CloudSaveRead.Failed
             bytes.isEmpty() -> CloudSaveRead.Empty
@@ -259,17 +259,14 @@ class PlayGamesServices private constructor(private val application: Application
         val activity = signedInActivity() ?: return null
         val client = PlayGames.getSnapshotsClient(activity)
         val snapshot = openSave(client, createIfNotFound = true, merge).getOrNull() ?: return null
-        val current = snapshot.bytes()
-        val final = when {
-            current == null -> null
-            current.isEmpty() || current.contentEquals(data) -> data
-            else -> withContext(Dispatchers.Default) { merge(data, current) }
-        }
-        return when {
-            final == null || final.contentEquals(current) -> final.also { client.discardAndClose(snapshot).awaitOrNull("discardSnapshot") }
-            !withContext(Dispatchers.IO) { snapshot.snapshotContents.writeBytes(final) } ->
-                null.also { client.discardAndClose(snapshot).awaitOrNull("discardSnapshot") }
-            else -> final.takeIf { client.commitAndClose(snapshot, SnapshotMetadataChange.EMPTY_CHANGE).awaitOrNull("commitSnapshot") != null }
+        return client.closingSnapshot(snapshot, awaitDiscard = { it.awaitOrNull("discardSnapshot") }) { commit ->
+            val current = snapshot.bytes() ?: return@closingSnapshot null
+            val final = if (current.isEmpty() || current.contentEquals(data)) data else withContext(Dispatchers.Default) { merge(data, current) }
+            when {
+                final.contentEquals(current) -> final
+                !withContext(Dispatchers.IO) { snapshot.snapshotContents.writeBytes(final) } -> null
+                else -> final.takeIf { commit().awaitOrNull("commitSnapshot") != null }
+            }
         }
     }
 
@@ -440,4 +437,25 @@ class PlayGamesServices private constructor(private val application: Application
                 .joinToString("") { "%02x".format(it) }
 
     }
+}
+
+/**
+ * [block]'s result for [snapshot], opened by this client, which is then discarded - unless [block] committed it with the
+ * commit it's given - so a snapshot is never left open. The discard is waited for with [awaitDiscard] after a return;
+ * after a throw or a cancellation it is sent but not waited for, and the error goes on at once.
+ */
+internal suspend fun <T> SnapshotsClient.closingSnapshot(
+    snapshot: Snapshot,
+    awaitDiscard: suspend (Task<Void>) -> Unit,
+    block: suspend (commit: () -> Task<SnapshotMetadata>) -> T,
+): T {
+    var committed = false
+    val result = try {
+        block { commitAndClose(snapshot, SnapshotMetadataChange.EMPTY_CHANGE).also { committed = true } }
+    } catch (error: Throwable) {
+        if (!committed) discardAndClose(snapshot)
+        throw error
+    }
+    if (!committed) awaitDiscard(discardAndClose(snapshot))
+    return result
 }
