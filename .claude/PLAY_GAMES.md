@@ -166,6 +166,7 @@ Play's overlay: an edge tab that slides out achievements, streaks, offers and re
   - `achievements.csv` and `icons/<id>.png` (512px) for review.
   - `leaderboards.csv` and `leaderboard-icons/<key>.png` (`PlayConsoleLeaderboards.kt`), entered by hand: Play has
     no leaderboard import. An icon can change any time; a board's ordering can't once published.
+  - `product-icons/unlock_all_styles.png`: the purchase's icon (`PURCHASES.md`, Phase 3).
 - Everything stays **draft** until publishing, because only drafts can be reset.
 
 ## Release

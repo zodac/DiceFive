@@ -193,10 +193,10 @@ Payments verification can take days, so start early. In order:
    Google account(s) and any testers, licence response "RESPOND_NORMALLY". These accounts get test cards and are
    never charged.
 
-### Phase 2: the library and the seam (code; done 2026-10-22, but the upload)
+### Phase 2: the library and the seam (code; done 2026-10-22)
 
-Built as below, with the network permissions removed (see "What Google provides"). Left: the internal testing upload,
-the maintainer's.
+Built as below, with the network permissions removed (see "What Google provides"). Released as 1.0.2, published to
+closed testing on 2026-10-23 (any track will do; internal testing is the quickest).
 
 - Add `billing-ktx` to `libs.versions.toml` and the Android module only. It must pass the licence guard
   (`allowedLicenses`; the library is under the Android SDK licence terms, so check how the guard classifies it, as
@@ -210,15 +210,26 @@ the maintainer's.
 - Ship it to the **internal testing** track (by hand, as today). Play wants a bundle containing the BILLING permission
   uploaded to a track before it lets you create products.
 
-### Phase 3: the Google account side, part 2 (maintainer)
+### Phase 3: the Google account side, part 2 (maintainer; Next, with Phase 1's steps 2, 4 and 6)
 
-Once Phase 1's merchant account is active and Phase 2's bundle is on internal testing (Play enables product
-setup only after a build containing the Billing Library is on a track):
+Once Phase 1's merchant account is active and Phase 2's bundle is on a track (Play enables product setup only after
+a build containing the Billing Library is published to one). Done: 1.0.2 on closed testing; the One-time products
+page opened on 2026-10-23, a day after it was published there.
 
 1. Play Console > the app > **Monetise with Play > Products > One-time products > Create one-time product**.
    - Product id `unlock_all_styles` (**permanent**, can't be reused even if deleted).
    - Name and description, in English, Spanish and Arabic (they appear on Play's purchase sheet; banned-word rule
-     applies).
+     applies). The style words are the app's own (`styles_category_*`):
+
+     | | Name | Description |
+     |---|---|---|
+     | en-GB | Unlock all styles | Every dice, dice cup, mat, background and frame style, in every colour, secret ones included. Every style can still be earned free by playing. |
+     | es | Desbloquear todos los estilos | Todos los estilos de dados, cubiletes, tapetes, fondos y marcos, en todos sus colores, incluidos los secretos. Todos se pueden seguir ganando gratis jugando. |
+     | ar | فتح كل الأنماط | كل أنماط النرد وكأس النرد والحصيرة والخلفية والإطار، بكل ألوانها، بما فيها الألوان السرية. ويمكنك دائمًا كسب كل الأنماط مجانًا باللعب. |
+   - **Icon**: `assets/play-console/product-icons/unlock_all_styles.png`, from `scripts/export-play-console.sh`
+     (`PlayConsoleProductExportTest`): `UnlockAllStylesIcon` (a palette with an open padlock at its lower left) on the
+     achievements' gold tile, 512px. **Tags**: none; they're the app's own labels for telling offers apart, and it
+     reads none.
    - Add a purchase option (**Buy**), set the price, and let Play convert it for every country. Tick it as digital
      content. Leave "multi-quantity" off.
    - **Activate** the product and its purchase option (a draft can't be bought).

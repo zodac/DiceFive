@@ -5,12 +5,14 @@
 # - achievements.csv and icons/: the same achievements as one sheet with a header, and their 512px icons, to review;
 # - leaderboards.csv and leaderboard-icons/: one leaderboard per game mode, made by hand (Play has no import for
 #   them), and their 512px icons.
+# - product-icons/: the one-time product's 512px icon, for Monetise with Play > Products (.claude/PURCHASES.md).
 # See .claude/PLAY_GAMES.md, "Play Console".
 set -euo pipefail
 
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root_dir"
 
-./gradlew -q :app:android:testPlayDebugUnitTest --tests '*PlayConsoleExportTest' --tests '*PlayConsoleLeaderboardsExportTest' -PexportPlayConsole
+./gradlew -q :app:android:testPlayDebugUnitTest --tests '*PlayConsoleExportTest' --tests '*PlayConsoleLeaderboardsExportTest' \
+    --tests '*PlayConsoleProductExportTest' -PexportPlayConsole
 
 echo "Written to $root_dir/assets/play-console/"
