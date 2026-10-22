@@ -13,9 +13,11 @@
 # Used by each app's release workflow to build a GitHub release's description, after RELEASE_NOTES.md.
 # Run it locally to preview what the next release will list.
 #
-# Each app has its own releases: Android's are tagged v<version>, iOS's ios-v<version>. "Since the
-# previous release" means since the newest tag of the same app reachable from HEAD other than this
-# release's own tag (so re-running a release that already has a tag still lists the same changes).
+# Each app has its own releases: Android's are tagged android-v<version> (plain v<version> up to
+# 1.0.1), iOS's ios-v<version>. "Since the previous release" means since the newest tag of the same
+# app reachable from HEAD other than this release's own tag (so re-running a release that already has
+# a tag still lists the same changes); Android looks for a plain v<version> tag only when it has no
+# android-v one.
 # With none, Android lists the whole history, and iOS everything from its first commit under app/ios.
 # Only commits touching something besides the other app's code are listed: an iOS release leaves out
 # Android-only commits (app/android, app/baselineprofile), and an Android release iOS-only ones
@@ -38,16 +40,20 @@ root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 version="${2:-$(tr -d '[:space:]' < "$root_dir/app/$platform/VERSION")}"
 
 if [ "$platform" = ios ]; then
-  tag_prefix="ios-v"
+  tag_prefixes=("ios-v")
   other_app=(':(exclude)app/android' ':(exclude)app/baselineprofile')
 else
-  tag_prefix="v"
+  tag_prefixes=("android-v" "v")
   other_app=(':(exclude)app/ios')
 fi
-this_tag="$tag_prefix$version"
+this_tag="${tag_prefixes[0]}$version"
 
-previous_tag="$(git -C "$root_dir" tag --merged HEAD --list "$tag_prefix*" --sort=-version:refname \
-  | grep -vxF "$this_tag" | head -n 1 || true)"
+previous_tag=""
+for tag_prefix in "${tag_prefixes[@]}"; do
+  previous_tag="$(git -C "$root_dir" tag --merged HEAD --list "$tag_prefix*" --sort=-version:refname \
+    | grep -vxF "$this_tag" | head -n 1 || true)"
+  [ -n "$previous_tag" ] && break
+done
 if [ -n "$previous_tag" ]; then
   range="$previous_tag..HEAD"
 elif [ "$platform" = ios ]; then

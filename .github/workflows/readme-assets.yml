@@ -12,8 +12,8 @@ name: README assets
 # replaces its files in place, so README.md can embed permanent URLs
 # (`releases/download/readme-assets/<name>`). A failed refresh leaves the previous images up rather than breaking
 # them. The README names each file, so a screenshot renamed or dropped in StoreScreensGeneratorTest needs README.md
-# changed with it (the old file stays on the release until it is deleted by hand). Its tag isn't a `v*` tag, so the
-# changelog and the Baseline Profile's lap count never take it for a release.
+# changed with it (the old file stays on the release until it is deleted by hand). Its tag isn't an `android-v*` or
+# `v*` tag, so the changelog and the Baseline Profile's lap count never take it for a release.
 #
 # THIS NEEDS THE REPOSITORY'S "Immutable releases" SETTING TO STAY OFF. A release published while it is on is frozen
 # (its assets can never be replaced), and its tag name is reserved for good: deleting the release doesn't free it.

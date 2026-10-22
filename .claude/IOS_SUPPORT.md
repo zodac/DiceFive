@@ -287,8 +287,9 @@ Exit: a signed build reaches TestFlight from CI.
   0.1.0) replaced the root `VERSION`. `set-version.sh` and `bump-patch-version.sh` take the platform.
   - Shared code and the build release both apps; `app/android/**` (and `app/shared/src/androidMain`) only Android;
     `app/ios/**` (and `app/shared/src/iosMain`) only iOS. Each pipeline bumps its own file.
-  - Tags: Android keeps `v*`, iOS has `ios-v*`. `release-changelog.sh <platform>` starts from the previous tag of the
-    same app and leaves out the other app's own commits.
+  - Tags: Android has `android-v*` (plain `v*` up to 1.0.1), iOS has `ios-v*`. `release-changelog.sh <platform>`
+    starts from the previous tag of the same app (Android falls back to `v*`) and leaves out the other app's own
+    commits.
   - iOS's build number is `ios-release.yml`'s run number, so it only rises, as App Store Connect requires.
 - [x] **Release notes.** The iOS release takes `RELEASE_NOTES.md`'s Shared and iOS sections. Each release empties
   Shared; they release from the same push, so each has already read it.

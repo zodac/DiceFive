@@ -1,7 +1,7 @@
 name: Android release
 
 # Every push to main that changes what the Android app ships (see the paths filter below) builds, tests,
-# and publishes a GitHub Release v<version> for the version currently in app/android/VERSION, then commits
+# and publishes a GitHub Release android-v<version> for the version currently in app/android/VERSION, then commits
 # that file bumped to the next patch version back to main (e.g. 1.0.1 -> 1.0.2) so development always
 # continues one patch ahead of the last release. That bump-commit is pushed with the default GITHUB_TOKEN,
 # which GitHub does not use to re-trigger workflows, so this can't loop. iOS has its own version and
@@ -220,8 +220,13 @@ jobs:
       - name: Pick the number of laps
         id: laps
         run: |
-          previous_tag="$(git tag --merged HEAD --list 'v*' --sort=-version:refname \
-            | grep -vxF "v${{ needs.version.outputs.name }}" | head -n 1 || true)"
+          # Android's tags are android-v<version>, plain v<version> up to 1.0.1.
+          previous_tag=""
+          for pattern in 'android-v*' 'v*'; do
+            previous_tag="$(git tag --merged HEAD --list "$pattern" --sort=-version:refname \
+              | grep -vxF "android-v${{ needs.version.outputs.name }}" | head -n 1 || true)"
+            [ -n "$previous_tag" ] && break
+          done
           laps=3
           if [ -z "$previous_tag" ] || ! git diff --quiet "$previous_tag" HEAD -- \
               app/baselineprofile app/android/src/main/baseline-prof.txt; then
@@ -488,8 +493,8 @@ jobs:
       - name: Create/update GitHub release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: v${{ needs.version.outputs.name }}
-          name: DiceFive v${{ needs.version.outputs.name }}
+          tag_name: android-v${{ needs.version.outputs.name }}
+          name: DiceFive Android v${{ needs.version.outputs.name }}
           files: release-files/*
           body_path: ${{ steps.notes.outputs.path }}
 

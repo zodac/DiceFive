@@ -549,7 +549,7 @@ Two apps from one source, one per way the app reaches players: product flavours 
   - parallel jobs: Android tests (a runner per flavour), shared tests with the iOS compile, lint, the Baseline Profile
     (generated fresh on an emulator from the play app, and given to both; see `EMULATOR.md`), and the github APK plus
     the play App Bundle;
-  - then a `release` job that publishes GitHub release `v<version>` once every check has passed, with
+  - then a `release` job that publishes GitHub release `android-v<version>` (plain `v<version>` up to 1.0.1) once every check has passed, with
     `DiceFive-<version>.apk` (github), `.aab` (play), `-mapping.txt` (the APK's) and `-play-mapping.txt` (the bundle's);
   - then a commit that bumps the patch and empties `RELEASE_NOTES.md`'s Shared and Android sections (`[Release] Bump
     Android version to X [skip ci]`).
