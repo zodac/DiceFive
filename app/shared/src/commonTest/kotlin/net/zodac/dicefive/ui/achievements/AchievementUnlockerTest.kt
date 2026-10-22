@@ -11,6 +11,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import net.zodac.dicefive.data.achievements.AchievementsRepository
@@ -37,8 +38,8 @@ class AchievementUnlockerTest {
         val preferences = GatedPreferences()
         val repository = AchievementsRepository(preferences)
         // The menu's and the game's: each screen has its own unlocker, over the one store.
-        val first = AchievementUnlocker(repository)
-        val second = AchievementUnlocker(repository)
+        val first = AchievementUnlocker(repository, flowOf(false))
+        val second = AchievementUnlocker(repository, flowOf(false))
 
         val gate = CompletableDeferred<Unit>()
         preferences.gate = gate
@@ -56,7 +57,7 @@ class AchievementUnlockerTest {
     @Test
     fun `unlocking what is already unlocked records nothing`() = runTest {
         val repository = AchievementsRepository(GatedPreferences())
-        val unlocker = AchievementUnlocker(repository)
+        val unlocker = AchievementUnlocker(repository, flowOf(false))
         assertTrue(!unlocker.unlock(setOf(Achievement.WHO_MADE_THIS)).isEmpty)
         assertTrue(unlocker.unlock(setOf(Achievement.WHO_MADE_THIS)).isEmpty)
     }

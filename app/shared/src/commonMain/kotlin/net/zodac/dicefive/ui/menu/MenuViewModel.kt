@@ -58,7 +58,7 @@ class MenuViewModel(
         DiceCupStyles.unlockedById(saved.diceCupStyleId, saved.access),
     )
 
-    private val achievementUnlocker = AchievementUnlocker(achievementsRepository)
+    private val achievementUnlocker = AchievementUnlocker(achievementsRepository, ownsAllStyles)
 
     fun onDiceTapped() {
         viewModelScope.launch { achievementUnlocker.unlock(setOf(Achievement.NOT_THOSE_DICE)) }

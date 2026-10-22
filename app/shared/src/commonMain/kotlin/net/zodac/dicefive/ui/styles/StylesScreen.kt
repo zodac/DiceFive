@@ -35,6 +35,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -46,6 +47,7 @@ import androidx.compose.material.icons.outlined.GridView as GridViewOutlined
 import androidx.compose.material3.Card
 import androidx.compose.material3.Switch
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -65,6 +67,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -141,9 +144,12 @@ import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.navigation.StyleScrollRequest
 import net.zodac.dicefive.navigation.StyleScrollRequests
 import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.purchases.LocalStore
+import net.zodac.dicefive.purchases.StoreState
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_ok
 import net.zodac.dicefive.resources.style_variant_colour
+import net.zodac.dicefive.resources.styles_all_unlocked
 import net.zodac.dicefive.resources.styles_category_background
 import net.zodac.dicefive.resources.styles_category_dice
 import net.zodac.dicefive.resources.styles_category_dice_cup
@@ -158,6 +164,7 @@ import net.zodac.dicefive.resources.styles_gallery_cd
 import net.zodac.dicefive.resources.styles_gallery_row_action
 import net.zodac.dicefive.resources.styles_locked_spoken
 import net.zodac.dicefive.resources.styles_name_with_variant
+import net.zodac.dicefive.resources.styles_payment_pending
 import net.zodac.dicefive.resources.styles_requirement_any
 import net.zodac.dicefive.resources.styles_requirement_count
 import net.zodac.dicefive.resources.styles_requirement_free
@@ -166,6 +173,8 @@ import net.zodac.dicefive.resources.styles_select_action
 import net.zodac.dicefive.resources.styles_selected_cd
 import net.zodac.dicefive.resources.styles_show_unlock_action
 import net.zodac.dicefive.resources.styles_title
+import net.zodac.dicefive.resources.styles_unlock_all
+import net.zodac.dicefive.resources.styles_unlock_all_spoken
 import net.zodac.dicefive.resources.styles_unlock_any
 import net.zodac.dicefive.resources.styles_unlock_count
 import net.zodac.dicefive.resources.styles_unlock_free
@@ -294,12 +303,25 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
     LaunchedEffect(viewModel) {
         viewModel.toastMessages.collect { message -> platform.showTransientMessage(message) }
     }
+    // The "Unlock all styles" purchase: its button, and a word when a purchase completes here.
+    val store = LocalStore.current
+    val storeState by store.state.collectAsStateWithLifecycle()
+    val allUnlocked by rememberUpdatedState(stringResource(Res.string.styles_all_unlocked))
+    LaunchedEffect(store) {
+        var before = store.state.value
+        store.state.collect { state ->
+            if (state == StoreState.Owned && (before is StoreState.ForSale || before == StoreState.Pending)) platform.showTransientMessage(allUnlocked)
+            before = state
+        }
+    }
     StylesScaffold(
         picks = saved,
         focus = focus,
         unlockedOnly = unlockedOnly ?: false,
         onUnlockedOnlyChange = viewModel::setUnlockedOnly,
         onUnlockedCountTap = viewModel::onUnlockedCountTapped,
+        storeState = storeState,
+        onBuy = store::buy,
         onBack = onBack,
         onSelect = { category -> { id -> viewModel.setStyleId(category, id) } },
         modifier = modifier,
@@ -321,9 +343,18 @@ private fun StylesScaffold(
     unlockedOnly: Boolean = false,
     onUnlockedOnlyChange: (Boolean) -> Unit = {},
     onUnlockedCountTap: () -> Unit = {},
+    storeState: StoreState = StoreState.Unavailable,
+    onBuy: () -> Unit = {},
     pageScale: Float? = null,
     onPageMeasured: ((PageMeasure) -> Unit)? = null,
 ) {
+    // Never once every style is owned (the store's word as cached, or pretended), nor where there's no store.
+    val offerUnlockAll = picks != null && !picks.ownsAllStyles && storeState.offersUnlockAll
+    // Just its mark, without its words, where they'd push the title off its centre or onto two lines (a narrow screen, a
+    // large font): decided again for each screen size, font scale and label.
+    val windowWidth = LocalWindowInfo.current.containerSize.width
+    val fontScale = LocalDensity.current.fontScale
+    var compactUnlockAll by remember(windowWidth, fontScale, storeState == StoreState.Pending) { mutableStateOf(false) }
     ScreenScaffold(
         title = stringResource(Res.string.styles_title),
         onBack = onBack,
@@ -337,10 +368,12 @@ private fun StylesScaffold(
             if (LocalLandscapePage.current && picks != null) StylesUnlockedCount(picks.access, compact = true, onTap = onUnlockedCountTap, modifier = Modifier.padding(start = 8.dp))
         },
         actions = {
+            if (offerUnlockAll) UnlockAllStylesButton(storeState, compact = compactUnlockAll, onBuy = onBuy)
             if (LocalLandscapePage.current && picks != null) {
-                Box(modifier = Modifier.padding(end = BACK_ARROW_OUTSET)) { UnlockedOnlySwitch(unlockedOnly, onUnlockedOnlyChange) }
+                Box(modifier = Modifier.padding(start = 8.dp, end = BACK_ARROW_OUTSET)) { UnlockedOnlySwitch(unlockedOnly, onUnlockedOnlyChange) }
             }
         },
+        onTitleCrowded = { if (offerUnlockAll) compactUnlockAll = true },
     ) {
         // Nothing until the saved picks have loaded, so each row can open scrolled to its real pick.
         // They're normally in already (AppContainer.savedStyles), so the page has them from its first frame.
@@ -450,6 +483,45 @@ private fun StylesUnlockedCount(access: StyleAccess, compact: Boolean, onTap: ()
         )
     }
 }
+
+/**
+ * The "Unlock all styles" purchase ([net.zodac.dicefive.purchases.ProductKey.UNLOCK_ALL_STYLES]): its mark and "Unlock All",
+ * opening the store's own sheet, which shows the price. Usable once the store has the product ([StoreState.ForSale] with its
+ * price); disabled while it's [StoreState.Loading], and while it's [StoreState.Pending], when it says "Payment pending"
+ * instead. [compact], it's the mark alone. TalkBack hears "Unlock all styles", with "Payment pending" as its state.
+ */
+@Composable
+private fun UnlockAllStylesButton(state: StoreState, compact: Boolean, onBuy: () -> Unit) {
+    val pending = state == StoreState.Pending
+    val spoken = stringResource(Res.string.styles_unlock_all_spoken)
+    val pendingText = stringResource(Res.string.styles_payment_pending)
+    FilledTonalButton(
+        onClick = onBuy,
+        enabled = state is StoreState.ForSale && state.price != null,
+        contentPadding = if (compact) PaddingValues(horizontal = 12.dp) else PaddingValues(start = 8.dp, end = 12.dp),
+        modifier = Modifier.semantics {
+            if (pending) stateDescription = pendingText
+            if (compact) contentDescription = spoken
+        },
+    ) {
+        UnlockAllStylesIcon(size = UNLOCK_ALL_ICON_SIZE, tint = LocalContentColor.current)
+        if (!compact) {
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = if (pending) pendingText else stringResource(Res.string.styles_unlock_all),
+                maxLines = 1,
+                modifier = Modifier.clearAndSetSemantics { contentDescription = spoken },
+            )
+        }
+    }
+}
+
+/** Whether the store's answer offers the purchase at all: not where there's no store, and not once it's owned. */
+private val StoreState.offersUnlockAll: Boolean
+    get() = this is StoreState.Loading || this is StoreState.ForSale || this is StoreState.Pending
+
+/** The purchase's mark on its button: an icon's size. */
+private val UNLOCK_ALL_ICON_SIZE = 24.dp
 
 /** The switch that hides every style not yet unlocked, drawn as the Achievements page's Locked only switch is. */
 @Composable

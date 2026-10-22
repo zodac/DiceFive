@@ -94,12 +94,14 @@ The constants are at the top of `AchievementBannerHost.kt`:
   - `tertiaryContainer`, with the style star in a circle. It's the size of an unlock banner.
   - Title "Style(s) Unlocked"; description "Earned 23 achievements: the 'Frosted' dice style", naming two styles and
     counting the rest.
-  - **Order.** `announce(update)` (`AchievementAnnouncements.kt`) emits each unlock followed by its own styles banner if
+  - **Order.** `announce(update, ownsAllStyles)` (`AchievementAnnouncements.kt`) emits each unlock followed by its own styles banner if
     it has styles behind it (`styleRewards`: "Earned 'Big Fan': 'Glitch' dice and background", or "the hidden
     'Multicolour' dice colour"); then **at most one** styles banner for every count lock crossed
     (`stylesUnlockedByCount`, from `countedUnlocksBefore` to `countedUnlocksAfter`); then the progress nudges.
   - The achievement's own banner keeps its star. The styles banner is what remains when Play Games' pop-up replaces the
     unlock banner (`PLAY_GAMES.md`, "Achievements").
+  - **None for an owner of every style** (the purchase, `PURCHASES.md`): `AchievementUnlocker` reads `ownsAllStyles` as
+    it announces, and only the unlock and progress banners show. The star stays on rows and unlock banners.
   - One achievement's styles of one name are named once ("'Starry' dice, mat and background"), so they fit the two
     lines in Spanish.
   - TalkBack hears every style unlocked (`StylesUnlockedBannerSemanticsTest`).
@@ -169,6 +171,17 @@ it's earned, so the total doesn't hint at it.
 **Unlocked only** sits beside the count, drawn and placed as the Achievements page's Locked only switch: after the count
 in portrait, at the app bar's end in landscape. On, it hides every locked style; each row is built afresh, opening on
 its pick. It's kept across restarts on this device (`SettingsRepository.unlockedOnlyStyles`), as Locked only is (`lockedOnlyAchievements`); neither goes in the cloud save.
+
+**Unlock All** (the purchase, `PURCHASES.md`) is a tonal button at the app bar's end, before Unlocked only in
+landscape: the purchase's mark (`UnlockAllStylesIcon`) and "Unlock All". No price: Play's sheet shows it.
+- For sale: enabled, opening Play's sheet. Play not yet answered: disabled. A payment pending: disabled, "Payment
+  pending". Owned (bought, cached or a debug build's pretence) or no store: no button.
+- **The title never moves for it.** `PageTopBar` tells the page when the actions push its title off-centre or onto two
+  lines (`onTitleCrowded`); the button then drops its words for that screen size, font scale and label, leaving the
+  mark (a 320dp phone at 1.3x font; "Payment pending" until about 411dp).
+- TalkBack: "Unlock all styles, button", with "Payment pending" as its state; the drawn words are cleared. It comes
+  before the first card. A purchase completing on the page toasts "All styles unlocked" (`UnlockAllStylesButtonTest`).
+- Debug builds: 5 taps on the unlocked count pretend every style is owned (`DESIGN.md`, "Superuser modes").
 
 **Tiles and rows.**
 - One tile per family. A long press opens a row of previews, one per colour. Colour names are spoken, not shown.

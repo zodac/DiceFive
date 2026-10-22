@@ -1,5 +1,6 @@
 package net.zodac.dicefive
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -20,14 +21,13 @@ import kotlin.test.assertTrue
 import net.zodac.dicefive.data.scores.ModeStatistics
 import net.zodac.dicefive.data.scores.PlayerStatistics
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.game.TurnTimerBadge
 import net.zodac.dicefive.ui.game.UndoButton
 import net.zodac.dicefive.ui.statistics.PlayerStatsCard
 import net.zodac.dicefive.ui.styles.StylesScreen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
-import androidx.compose.runtime.CompositionLocalProvider
-import net.zodac.dicefive.platform.LocalPlatformServices
-import net.zodac.dicefive.platform.SilentPlatformServices
 
 /**
  * What a screen reader gets from the Styles, Statistics and turn-timer changes: a style tile that is

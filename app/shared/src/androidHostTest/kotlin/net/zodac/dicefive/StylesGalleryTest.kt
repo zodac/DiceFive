@@ -1,5 +1,6 @@
 package net.zodac.dicefive
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsNode
@@ -26,15 +27,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DiceMats
 import net.zodac.dicefive.ui.style.DiceStyles
 import net.zodac.dicefive.ui.style.TableBackgrounds
 import net.zodac.dicefive.ui.styles.StylesScreen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
-import androidx.compose.runtime.CompositionLocalProvider
-import net.zodac.dicefive.platform.LocalPlatformServices
-import net.zodac.dicefive.platform.SilentPlatformServices
 
 /** The screen this class's tests are drawn on. */
 private val SCREEN = TestScreen(411, 891)

@@ -97,7 +97,7 @@ class StylesUnlockedBannerTest {
         val crossing = AchievementEngine.unlockNow(countedAchievements.subList(20, 30).toSet(), stateWith(20), 0L)
         val expectedStyles = stylesUnlockedByCount(20, 30)
         assertTrue(expectedStyles.size > 1, "the test needs several styles between 20 and 30, got $expectedStyles")
-        val events = events { announce(crossing) }
+        val events = events { announce(crossing, ownsAllStyles = false) }
         val styleBanners = events.filterIsInstance<AchievementEvent.StylesUnlocked>()
         assertEquals(1, styleBanners.size, "$events")
         assertEquals(expectedStyles.map { UnlockedStyle(it.styleName, it.categoryNoun) }, styleBanners.single().styles)
@@ -117,12 +117,12 @@ class StylesUnlockedBannerTest {
                     StylesEarnedBy.OneAchievement(Achievement.THE_SOLUTION),
                 ),
             ),
-            events { announce(ownStyle) },
+            events { announce(ownStyle, ownsAllStyles = false) },
         )
 
         // With a count crossed too (Garden dice at 95): the achievement's banner, its styles, then the count's styles.
         val crossing = AchievementEngine.unlockNow(setOf(countedAchievements[94], Achievement.BIG_FAN), stateWith(94), 0L)
-        val banners = events { announce(crossing) }.filter { it !is AchievementEvent.Progressed }
+        val banners = events { announce(crossing, ownsAllStyles = false) }.filter { it !is AchievementEvent.Progressed }
         val bigFan = banners.indexOf(AchievementEvent.Unlocked(Achievement.BIG_FAN))
         val ownBanner = banners[bigFan + 1] as AchievementEvent.StylesUnlocked
         assertEquals(StylesEarnedBy.OneAchievement(Achievement.BIG_FAN), ownBanner.earnedBy)
@@ -132,6 +132,16 @@ class StylesUnlockedBannerTest {
         // An achievement with no style behind it gets no styles banner of its own.
         val plainAchievement = countedAchievements.first { it.styleRewards.isEmpty() }
         val plain = AchievementEngine.unlockNow(setOf(plainAchievement), stateWith(0), 0L)
-        assertTrue(events { announce(plain) }.none { it is AchievementEvent.StylesUnlocked && it.earnedBy is StylesEarnedBy.OneAchievement })
+        assertTrue(events { announce(plain, ownsAllStyles = false) }.none { it is AchievementEvent.StylesUnlocked && it.earnedBy is StylesEarnedBy.OneAchievement })
+    }
+
+    @Test
+    fun `an owner of every style gets the unlock and progress banners - in order - and no styles banner of either kind`() {
+        // Big Fan has styles of its own, and the step onto 95 crosses Garden dice's count.
+        val crossing = AchievementEngine.unlockNow(setOf(countedAchievements[94], Achievement.BIG_FAN), stateWith(94), 0L)
+        val owned = events { announce(crossing, ownsAllStyles = true) }
+        assertTrue(owned.none { it is AchievementEvent.StylesUnlocked }, "$owned")
+        assertEquals(events { announce(crossing, ownsAllStyles = false) }.filterNot { it is AchievementEvent.StylesUnlocked }, owned)
+        assertTrue(owned.any { it is AchievementEvent.Unlocked })
     }
 }

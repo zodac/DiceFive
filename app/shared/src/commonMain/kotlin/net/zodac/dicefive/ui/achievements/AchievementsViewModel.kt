@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -69,6 +70,8 @@ class AchievementsViewModel(
     private val settingsRepository: SettingsRepository,
     /** The app's own copy of the Locked only switch ([AppContainer.lockedOnlyAchievements]); without one, it's read from [settingsRepository]. */
     lockedOnly: StateFlow<Boolean?>? = null,
+    /** Whether the purchase unlocks every style ([AppContainer.ownsAllStyles]): an owner's unlocks get no styles banners. */
+    ownsAllStyles: Flow<Boolean> = flowOf(false),
 ) : ViewModel() {
 
     /** Whether only the achievements not yet unlocked are shown - null until it has loaded, when the page shows them all. */
@@ -102,7 +105,7 @@ class AchievementsViewModel(
     // corrupt a shared counter or seed the leaderboard with fake rows.
     private val superuserProgressOverride = MutableStateFlow<Map<Achievement, Int>>(emptyMap())
 
-    private val achievementUnlocker = AchievementUnlocker(achievementsRepository)
+    private val achievementUnlocker = AchievementUnlocker(achievementsRepository, ownsAllStyles)
 
     private val _toastMessages = Channel<String>(Channel.BUFFERED)
     val toastMessages: Flow<String> = _toastMessages.receiveAsFlow()
@@ -263,6 +266,7 @@ class AchievementsViewModel(
                     onlineSettingsRepository = container.onlineSettingsRepository,
                     settingsRepository = container.settingsRepository,
                     lockedOnly = container.lockedOnlyAchievements,
+                    ownsAllStyles = container.ownsAllStyles,
                 )
             }
         }

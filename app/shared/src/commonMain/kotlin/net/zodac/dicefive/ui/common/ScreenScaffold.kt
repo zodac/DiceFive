@@ -47,6 +47,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -58,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_back_cd
 import net.zodac.dicefive.ui.game.landscapeGameContentWidth
+import kotlin.math.abs
 
 /** How long a page's content takes to fade in once it's opened - see [ScreenScaffold]. */
 const val PAGE_CONTENT_FADE_IN_MILLIS = 100
@@ -148,7 +152,8 @@ fun TwoPanes(
  *
  * [startActions] sit after the back arrow and [actions] at the app bar's end - where a landscape page moves controls that
  * would otherwise take a row of its height. In landscape the app bar spans the content's column, not the screen, so its
- * arrow lines up with the content's start edge (see [PageTopBar]).
+ * arrow lines up with the content's start edge (see [PageTopBar]). [onTitleCrowded] is told when the actions push the
+ * title off the bar's centre or onto two lines, so a page can make them smaller.
  * The whole page, app bar included, sees [LocalLandscapePage].
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -163,6 +168,7 @@ fun ScreenScaffold(
     wide: Boolean = false,
     startActions: @Composable RowScope.() -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
+    onTitleCrowded: () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BrandBackdrop(modifier = modifier, driftingDice = driftingDice) {
@@ -178,6 +184,7 @@ fun ScreenScaffold(
                         onBack = onBack,
                         startActions = startActions,
                         actions = actions,
+                        onTitleCrowded = onTitleCrowded,
                         contentColumn = ContentColumn(
                             maxWidth = if (wide && LocalLandscapePage.current) wideColumnMaxWidth(padding) else CONTENT_MAX_WIDTH,
                             padding = padding,
@@ -266,7 +273,8 @@ data class ContentColumn(val maxWidth: Dp, val padding: Dp)
  * [ScreenScaffold]'s app bar on its own, for a page that can't take the whole scaffold but still
  * wants its title where every other page's is (the results screen, whose fireworks go between the
  * backdrop and the page). With no [onBack] there's no back arrow, and the title stays centred. [startActions] follow the
- * back arrow and [actions] go at its end.
+ * back arrow and [actions] go at its end. [onTitleCrowded] is told when they push the title off its centre or onto two
+ * lines.
  *
  * Given its page's [contentColumn], a landscape bar spans that column rather than the screen, with its [BackArrow] lined
  * up on the content's start edge as the game screen's is. Without one, or in portrait, it spans the screen.
@@ -280,15 +288,19 @@ fun PageTopBar(
     contentColumn: ContentColumn? = null,
     startActions: @Composable RowScope.() -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
+    onTitleCrowded: () -> Unit = {},
 ) {
     val landscape = LocalLandscapePage.current
+    val crowding = remember { TitleCrowding() }
+    crowding.onCrowded = onTitleCrowded
     val bar = @Composable { barModifier: Modifier, windowInsets: WindowInsets ->
         CenterAlignedTopAppBar(
             title = {
                 Text(
                     text = title,
                     style = pageTitleStyle,
-                    modifier = Modifier.semantics { heading() },
+                    onTextLayout = { if (it.lineCount > 1) onTitleCrowded() },
+                    modifier = Modifier.semantics { heading() }.onGloballyPositioned { crowding.title = it },
                 )
             },
             navigationIcon = {
@@ -305,7 +317,7 @@ fun PageTopBar(
                 containerColor = Color.Transparent,
                 titleContentColor = MaterialTheme.colorScheme.primary,
             ),
-            modifier = barModifier,
+            modifier = barModifier.onGloballyPositioned { crowding.bar = it },
         )
     }
     if (landscape && contentColumn != null) {
@@ -324,6 +336,33 @@ fun PageTopBar(
         bar(modifier, TopAppBarDefaults.windowInsets)
     }
 }
+
+/**
+ * Where [PageTopBar]'s title and the bar itself were last placed: whichever is placed second checks that the title is
+ * still centred on the bar, and tells [onCrowded] if not.
+ */
+private class TitleCrowding {
+    var onCrowded: () -> Unit = {}
+    var bar: LayoutCoordinates? = null
+        set(value) {
+            field = value
+            check()
+        }
+    var title: LayoutCoordinates? = null
+        set(value) {
+            field = value
+            check()
+        }
+
+    private fun check() {
+        val bar = bar?.takeIf { it.isAttached } ?: return
+        val title = title?.takeIf { it.isAttached } ?: return
+        if (abs(title.boundsInRoot().center.x - bar.boundsInRoot().center.x) > CENTRED_TOLERANCE_PX) onCrowded()
+    }
+}
+
+/** How far off the bar's centre a title can sit and still count as centred: rounding, not a push. */
+private const val CENTRED_TOLERANCE_PX = 2f
 
 /** [PageTopBar]'s height on a landscape page: an icon button's. */
 private val LANDSCAPE_APP_BAR_HEIGHT = 48.dp

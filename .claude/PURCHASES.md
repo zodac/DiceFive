@@ -1,6 +1,6 @@
 # DiceFive: the "Unlock all styles" purchase
 
-**In progress: the seam is built and the product is live in Play Console (Phases 1-3); nothing is visible yet.**
+**In progress: built (Phases 1-5); testing on a phone (Phase 6) is next.**
 One one-time Google Play purchase that unlocks every style without earning it. Android only. This file is the plan, in
 phases. Resume at the phase marked **Next**.
 Commits go under `[Purchases]`.
@@ -124,6 +124,9 @@ given it, so the menu logo, the game table, the Styles screen and the Fresh Coat
 
 ### The Styles screen button
 
+Built (Phase 5): as `UI_SCREENS.md`, "The Styles screen", describes. Decided with the renders (2026-10-23): the mark and
+"Unlock All", **no price** (Play's sheet shows it, so the app never handles one), and the mark alone wherever the words
+would move the title. The plan as it was:
 - Label "Unlock all" plus Play's price (`ProductDetails...formattedPrice`, already localised by Play; never format it
   ourselves). States:
   - `ForSale`: enabled button. Tap launches Play's sheet.
@@ -246,14 +249,14 @@ page opened on 2026-10-23, a day after it was published there.
 The "Styles rule change" section: `StyleAccess`, `SavedStyles`, the reset path, the cached flag read at launch, the
 debug fake store. Unit tests. Nothing visible yet but the superuser switch.
 
-### Phase 5: the UI (code; renders first; Next)
+### Phase 5: the UI (code; done 2026-10-23)
 
 - Render the top-bar button (`render` skill: phone sizes, 2x font, Arabic, each `StoreState`). Agree the look, then
   build.
 - Banners: `announce` gated; the star unchanged.
 - Strings in three languages; spoken text asserted word for word; the accessibility checklist; then the debug APK.
 
-### Phase 6: test on a phone (maintainer, with Claude's checklist)
+### Phase 6: test on a phone (maintainer, with Claude's checklist; Next)
 
 On a real phone signed in to Play as a license tester (the emulator has no Play Store):
 - Price shows; purchase with the "always approves" test card; padlocks go; no styles banners on the next unlock.

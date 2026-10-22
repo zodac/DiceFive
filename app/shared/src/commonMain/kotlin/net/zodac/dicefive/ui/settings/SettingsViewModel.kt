@@ -96,7 +96,7 @@ class SettingsViewModel(
         viewModelScope.launch { settingsRepository.setScreenOrientation(orientation) }
     }
 
-    private val achievementUnlocker = AchievementUnlocker(achievementsRepository)
+    private val achievementUnlocker = AchievementUnlocker(achievementsRepository, ownsAllStyles)
 
     /** Backs the one achievement this screen itself can earn - opening the About dialog
      * ("Who Made This?"). Same fire-and-check-once pattern as

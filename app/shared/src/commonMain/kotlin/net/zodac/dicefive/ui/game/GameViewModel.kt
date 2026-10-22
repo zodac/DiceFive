@@ -452,7 +452,7 @@ class GameViewModel(
     private val tracker = AchievementTracker()
 
     /** Earns achievements one read-decide-write at a time - see [AchievementUnlocker]. */
-    private val achievementUnlocker = AchievementUnlocker(achievementsRepository)
+    private val achievementUnlocker = AchievementUnlocker(achievementsRepository, ownsAllStyles)
 
     /**
      * Whether this is the first 5x the player in [playerIndex]'s seat has had this game: true once per seat, then false.

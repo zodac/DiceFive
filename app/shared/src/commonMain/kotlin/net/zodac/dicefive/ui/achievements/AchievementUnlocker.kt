@@ -1,5 +1,7 @@
 package net.zodac.dicefive.ui.achievements
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import net.zodac.dicefive.data.achievements.AchievementStore
@@ -16,8 +18,11 @@ import net.zodac.dicefive.online.OnlineSyncRequests
  *
  * Every read-decide-write runs one at a time - this unlocker's own, and inside [AchievementStore.locked] every
  * screen's: two overlapping would each read "not unlocked yet" and both announce the same achievement.
+ *
+ * [ownsAllStyles] ([net.zodac.dicefive.app.AppContainer.ownsAllStyles]) is read as each update is announced: an owner of
+ * every style gets no styles banners.
  */
-class AchievementUnlocker(private val store: AchievementStore) {
+class AchievementUnlocker(private val store: AchievementStore, private val ownsAllStyles: Flow<Boolean>) {
 
     private val lock = Mutex()
 
@@ -31,7 +36,7 @@ class AchievementUnlocker(private val store: AchievementStore) {
             val update = decide(store.current())
             if (!update.isEmpty) {
                 store.record(update.unlockedAt(), update.counters)
-                announce(update)
+                announce(update, ownsAllStyles.first())
                 OnlineSyncRequests.request()
             }
             update

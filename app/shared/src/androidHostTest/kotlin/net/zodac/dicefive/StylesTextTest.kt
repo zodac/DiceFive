@@ -1,5 +1,6 @@
 package net.zodac.dicefive
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -25,6 +26,8 @@ import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DiceMats
 import net.zodac.dicefive.ui.style.DiceStyles
@@ -34,9 +37,6 @@ import net.zodac.dicefive.ui.style.TableBackgrounds
 import net.zodac.dicefive.ui.style.UnlockCount
 import net.zodac.dicefive.ui.styles.StylesScreen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
-import androidx.compose.runtime.CompositionLocalProvider
-import net.zodac.dicefive.platform.LocalPlatformServices
-import net.zodac.dicefive.platform.SilentPlatformServices
 
 /**
  * The Styles screen's words: its title and categories, and how a style - locked, or in several colours - is named and what a tap is called.

@@ -72,7 +72,7 @@ class PlayConsoleProductExportTest {
             val colours = MaterialTheme.colorScheme
             onTile(colours.primaryContainer.toArgb())
             Box(Modifier.size(ICON_SIZE.dp).background(colours.primaryContainer).testTag(ICON_TAG)) {
-                UnlockAllStylesIcon(size = ICON_SIZE.dp, tint = colours.onPrimaryContainer, background = colours.primaryContainer)
+                UnlockAllStylesIcon(size = ICON_SIZE.dp, tint = colours.onPrimaryContainer)
             }
         }
     }

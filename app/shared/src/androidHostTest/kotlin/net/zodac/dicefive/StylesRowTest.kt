@@ -1,5 +1,6 @@
 package net.zodac.dicefive
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -14,6 +15,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DiceMats
 import net.zodac.dicefive.ui.style.DiceStyles
@@ -22,9 +25,6 @@ import net.zodac.dicefive.ui.style.TableBackgrounds
 import net.zodac.dicefive.ui.styles.StylesScreen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.jetbrains.compose.resources.getString
-import androidx.compose.runtime.CompositionLocalProvider
-import net.zodac.dicefive.platform.LocalPlatformServices
-import net.zodac.dicefive.platform.SilentPlatformServices
 
 /**
  * How a Styles row behaves once it's open.
