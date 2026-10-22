@@ -17,10 +17,14 @@ import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DiceMats
 import net.zodac.dicefive.ui.style.DiceStyles
+import net.zodac.dicefive.ui.style.StyleAccess
 import net.zodac.dicefive.ui.style.TableBackgrounds
 import net.zodac.dicefive.ui.styles.StylesScreen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.jetbrains.compose.resources.getString
+import androidx.compose.runtime.CompositionLocalProvider
+import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.platform.SilentPlatformServices
 
 /**
  * How a Styles row behaves once it's open.
@@ -37,7 +41,7 @@ class StylesRowTest : UiTest() {
     /** The Styles page over [saved], every row built. */
     private fun open(saved: MutableStateFlow<SavedStyles?>) {
         val viewModel = stylesViewModel(saved)
-        showcase.show { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
+        showcase.show { DiceFiveTheme { CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { StylesScreen(viewModel = viewModel, onBack = {}) } } }
         // Long enough for every row to build every tile.
         compose.mainClock.advanceTimeBy(10_000)
         compose.waitForIdle()
@@ -47,7 +51,7 @@ class StylesRowTest : UiTest() {
     fun `picking a style keeps the row's other tiles built - and picking each cup shakes and tips it through without breaking the row`() = uiTest {
         // Everything earned, so the row has more than one style to pick between.
         val achievements = AchievementsState(unlockedAt = Achievement.entries.associateWith { 0L })
-        val unlockedDice = DiceStyles.families.filter { it.unlock.isMet(achievements) }
+        val unlockedDice = DiceStyles.families.filter { it.unlock.isMet(StyleAccess(achievements)) }
         assertTrue(unlockedDice.size >= 2, "needs two unlocked dice styles to pick between")
         val saved = MutableStateFlow<SavedStyles?>(
             SavedStyles(unlockedDice[0].colours.first().style.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements),
@@ -67,7 +71,7 @@ class StylesRowTest : UiTest() {
         // Every cup, the chest included: its shake starts painting its hoard, which Robolectric can't - see TreasureChestCup.
         open(MutableStateFlow(SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements)))
         val allBuilt = compose.onAllNodes(tiles).fetchSemanticsNodes().size
-        for (cup in DiceCupStyles.families.filter { it.unlock.isMet(achievements) }) {
+        for (cup in DiceCupStyles.families.filter { it.unlock.isMet(StyleAccess(achievements)) }) {
             val name = getString(cup.name)
             val tile = compose.onAllNodes(tiles and SemanticsMatcher("starts with $name") { node ->
                 node.config.getOrNull(SemanticsProperties.ContentDescription)?.singleOrNull()?.startsWith(name) == true

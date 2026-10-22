@@ -2,6 +2,7 @@ package net.zodac.dicefive.ui.game
 
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.flowOf
 import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.InMemoryAchievementStore
@@ -28,6 +29,7 @@ fun gameViewModel(
     standardPerfectPlay: (suspend () -> StandardPerfectPlayTable?)? = null,
     localHour: () -> Int = { 14 },
     tutorial: TutorialScript? = null,
+    ownsAllStyles: Boolean = false,
 ) = GameViewModel(
     scoreRepository,
     settingsRepository,
@@ -39,4 +41,5 @@ fun gameViewModel(
     standardPerfectPlay,
     localHour,
     tutorial,
+    flowOf(ownsAllStyles),
 )

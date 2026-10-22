@@ -62,6 +62,20 @@ class GameTableSettingsTest {
         assertEquals("googly_ivory", locked.tableSettings.value?.visualTheme?.diceStyle?.id)
     }
 
+    @Test
+    fun `an owner of every style has a locked pick drawn - and earns Fresh Coat Of Paint with it`() = runTest {
+        val settings = SettingsRepository(InMemoryPreferences())
+        settings.setDiceStyleId("googly_ivory")
+        val achievements = InMemoryAchievementStore()
+        val viewModel = gameViewModel(settingsRepository = settings, achievementsRepository = achievements, aiDispatcher = testDispatcher, ownsAllStyles = true)
+        advanceUntilIdle()
+        assertEquals("googly_ivory", viewModel.tableSettings.value?.visualTheme?.diceStyle?.id)
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+        advanceUntilIdle()
+        assertTrue(achievements.current().isUnlocked(Achievement.FRESH_COAT_OF_PAINT))
+    }
+
     /** Every golden egg draw comes up, and every other draw is the lowest it can be. */
     private object GoldenEveryTime : Random() {
         override fun nextBits(bitCount: Int): Int = 0

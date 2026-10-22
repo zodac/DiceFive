@@ -3,7 +3,6 @@ package net.zodac.dicefive.ui.style
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontFamily
-import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.DefaultStyleIds
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.DieColour
@@ -254,11 +253,13 @@ data class StyleColour<out T : TableArt>(
     val style: T,
     /**
      * A secret achievement that alone unlocks this colour, on top of its family's own lock: until it's
-     * earned the colour isn't offered on the Styles screen at all, and a saved pick of it draws the default.
+     * earned (or every style is owned) the colour isn't offered on the Styles screen at all, and a saved pick of it
+     * draws the default.
      */
     val secretAchievement: Achievement? = null,
 ) {
-    fun isAvailable(achievements: AchievementsState): Boolean = secretAchievement == null || achievements.isUnlocked(secretAchievement)
+    fun isAvailable(access: StyleAccess): Boolean =
+        secretAchievement == null || access.ownsAllStyles || access.achievements.isUnlocked(secretAchievement)
 }
 
 /**
@@ -278,7 +279,7 @@ data class StyleFamily<T : TableArt>(
     fun colourOf(id: String): StyleColour<T>? = colours.firstOrNull { it.style.id == id }
 
     /** The [colours] to offer: all but any secret one not yet earned. */
-    fun availableColours(achievements: AchievementsState): List<StyleColour<T>> = colours.filter { it.isAvailable(achievements) }
+    fun availableColours(access: StyleAccess): List<StyleColour<T>> = colours.filter { it.isAvailable(access) }
 }
 
 /**
@@ -307,27 +308,27 @@ open class StyleCatalog<T : TableArt>(
     fun familyOf(id: String): StyleFamily<T> = families.first { it.colourOf(byId(id).id) != null }
 
     /** Whether the style [id] belongs to has been unlocked - see [StyleUnlock]. */
-    fun isUnlocked(id: String, achievements: AchievementsState): Boolean {
+    fun isUnlocked(id: String, access: StyleAccess): Boolean {
         val family = familyOf(id)
-        return family.unlock.isMet(achievements) && family.colourOf(byId(id).id)?.isAvailable(achievements) != false
+        return family.unlock.isMet(access) && family.colourOf(byId(id).id)?.isAvailable(access) != false
     }
 
     /**
      * What to actually draw for the saved pick [id]: [byId], unless its style is still locked, in
      * which case the [default] - the saved pick itself is left alone, see [StyleUnlock].
      */
-    fun unlockedById(id: String, achievements: AchievementsState): T = if (isUnlocked(id, achievements)) byId(id) else default
+    fun unlockedById(id: String, access: StyleAccess): T = if (isUnlocked(id, access)) byId(id) else default
 
     /**
      * How many of the colours the Styles screen offers in this category are unlocked, out of how many it offers: every
      * colour of every family it shows, less a secret colour ([StyleColour.secretAchievement]) not yet earned, which isn't
      * counted until it is.
      */
-    fun unlockCount(achievements: AchievementsState): UnlockCount {
-        val shown = families.filter { it.unlock.isMet(achievements) || !it.unlock.hiddenWhileLocked }
-        val (unlocked, locked) = shown.partition { it.unlock.isMet(achievements) }
-        val unlockedColours = unlocked.sumOf { it.availableColours(achievements).size }
-        return UnlockCount(unlocked = unlockedColours, total = unlockedColours + locked.sumOf { it.availableColours(achievements).size })
+    fun unlockCount(access: StyleAccess): UnlockCount {
+        val shown = families.filter { it.unlock.isMet(access) || !it.unlock.hiddenWhileLocked }
+        val (unlocked, locked) = shown.partition { it.unlock.isMet(access) }
+        val unlockedColours = unlocked.sumOf { it.availableColours(access).size }
+        return UnlockCount(unlocked = unlockedColours, total = unlockedColours + locked.sumOf { it.availableColours(access).size })
     }
 }
 

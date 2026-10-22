@@ -10,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -84,6 +85,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -135,10 +137,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.navigation.StyleScrollRequest
 import net.zodac.dicefive.navigation.StyleScrollRequests
+import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_ok
 import net.zodac.dicefive.resources.style_variant_colour
@@ -199,6 +201,7 @@ import net.zodac.dicefive.ui.style.LocalDieMotion
 import net.zodac.dicefive.ui.style.ScoreFrame
 import net.zodac.dicefive.ui.style.ScoreFramePreviewColour
 import net.zodac.dicefive.ui.style.ScoreFrames
+import net.zodac.dicefive.ui.style.StyleAccess
 import net.zodac.dicefive.ui.style.StyleCatalog
 import net.zodac.dicefive.ui.style.StyleCatalogs
 import net.zodac.dicefive.ui.style.StyleCategory
@@ -209,6 +212,7 @@ import net.zodac.dicefive.ui.style.UnlockCount
 import net.zodac.dicefive.ui.style.TableArt
 import net.zodac.dicefive.ui.style.TableBackground
 import net.zodac.dicefive.ui.style.TableBackgrounds
+import net.zodac.dicefive.ui.style.access
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import net.zodac.dicefive.ui.theme.GoldAccent
 import org.jetbrains.compose.resources.StringResource
@@ -286,11 +290,16 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
     }
     // Kept across restarts, on this device only (SettingsRepository.unlockedOnlyStyles).
     val unlockedOnly by viewModel.unlockedOnly.collectAsStateWithLifecycle()
+    val platform = LocalPlatformServices.current
+    LaunchedEffect(viewModel) {
+        viewModel.toastMessages.collect { message -> platform.showTransientMessage(message) }
+    }
     StylesScaffold(
         picks = saved,
         focus = focus,
         unlockedOnly = unlockedOnly ?: false,
         onUnlockedOnlyChange = viewModel::setUnlockedOnly,
+        onUnlockedCountTap = viewModel::onUnlockedCountTapped,
         onBack = onBack,
         onSelect = { category -> { id -> viewModel.setStyleId(category, id) } },
         modifier = modifier,
@@ -311,6 +320,7 @@ private fun StylesScaffold(
     driftingDice: Boolean = true,
     unlockedOnly: Boolean = false,
     onUnlockedOnlyChange: (Boolean) -> Unit = {},
+    onUnlockedCountTap: () -> Unit = {},
     pageScale: Float? = null,
     onPageMeasured: ((PageMeasure) -> Unit)? = null,
 ) {
@@ -324,7 +334,7 @@ private fun StylesScaffold(
         // In landscape, as on the Achievements page, the count follows the back arrow and the switch ends level with the cards'
         // end edge, either side of the title; otherwise they're a row over the cards (StylesPage).
         startActions = {
-            if (LocalLandscapePage.current && picks != null) StylesUnlockedCount(picks.achievements, compact = true, modifier = Modifier.padding(start = 8.dp))
+            if (LocalLandscapePage.current && picks != null) StylesUnlockedCount(picks.access, compact = true, onTap = onUnlockedCountTap, modifier = Modifier.padding(start = 8.dp))
         },
         actions = {
             if (LocalLandscapePage.current && picks != null) {
@@ -340,6 +350,7 @@ private fun StylesScaffold(
             onSelect = onSelect,
             unlockedOnly = unlockedOnly,
             onUnlockedOnlyChange = onUnlockedOnlyChange,
+            onUnlockedCountTap = onUnlockedCountTap,
             scale = pageScale,
             onMeasured = onPageMeasured,
         )
@@ -358,6 +369,7 @@ private fun ColumnScope.StylesPage(
     onSelect: (StyleCategory) -> (String) -> Unit,
     unlockedOnly: Boolean,
     onUnlockedOnlyChange: (Boolean) -> Unit,
+    onUnlockedCountTap: () -> Unit,
     scale: Float? = null,
     onMeasured: ((PageMeasure) -> Unit)? = null,
 ) {
@@ -388,7 +400,7 @@ private fun ColumnScope.StylesPage(
         }
         if (!LocalLandscapePage.current) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StylesUnlockedCount(picks.achievements, compact = false, modifier = Modifier.weight(1f))
+                StylesUnlockedCount(picks.access, compact = false, onTap = onUnlockedCountTap, modifier = Modifier.weight(1f))
                 UnlockedOnlySwitch(unlockedOnly, onUnlockedOnlyChange)
             }
         }
@@ -422,11 +434,14 @@ private fun ColumnScope.StylesPage(
 /**
  * How many styles are unlocked, out of how many the page offers, each colour counted as one - see [StyleCatalog.unlockCount].
  * Drawn as the Achievements page's count is: a full-width card over the cards, or [compact] in a landscape app bar.
+ *
+ * [onTap] is a debug build's hidden switch ([StylesViewModel.onUnlockedCountTapped]): a raw gesture, with no ripple and nothing
+ * for TalkBack, as the Achievements page's count is, since in any other build it does nothing.
  */
 @Composable
-private fun StylesUnlockedCount(achievements: AchievementsState, compact: Boolean, modifier: Modifier = Modifier) {
-    val count = remember(achievements) { StyleCategory.entries.map { it.catalog.unlockCount(achievements) }.reduce(UnlockCount::plus) }
-    Card(modifier = modifier) {
+private fun StylesUnlockedCount(access: StyleAccess, compact: Boolean, onTap: () -> Unit, modifier: Modifier = Modifier) {
+    val count = remember(access) { StyleCategory.entries.map { it.catalog.unlockCount(access) }.reduce(UnlockCount::plus) }
+    Card(modifier = modifier.pointerInput(onTap) { detectTapGestures(onTap = { onTap() }) }) {
         Text(
             text = stringResource(Res.string.styles_unlocked_count, count.unlocked, count.total),
             style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
@@ -529,8 +544,8 @@ private val TILE_SPACING = 12.dp
  * The families a row shows, in its order: every unlocked one, then the locked ones - less any
  * secret one, which isn't so much as hinted at until it's earned - each in the catalog's own order.
  */
-private fun <T : TableArt> StyleCatalog<T>.shownFamilies(achievements: AchievementsState): Pair<List<StyleFamily<T>>, List<StyleFamily<T>>> {
-    val (unlocked, locked) = families.partition { it.unlock.isMet(achievements) }
+private fun <T : TableArt> StyleCatalog<T>.shownFamilies(access: StyleAccess): Pair<List<StyleFamily<T>>, List<StyleFamily<T>>> {
+    val (unlocked, locked) = families.partition { it.unlock.isMet(access) }
     return unlocked to locked.filterNot { it.unlock.hiddenWhileLocked }
 }
 
@@ -589,8 +604,8 @@ private fun TileLabel(name: String) {
 }
 
 /** How many tiles [category]'s row has. */
-private fun StyleCategory.tileCount(achievements: AchievementsState): Int {
-    val (unlocked, locked) = catalog.shownFamilies(achievements)
+private fun StyleCategory.tileCount(access: StyleAccess): Int {
+    val (unlocked, locked) = catalog.shownFamilies(access)
     return unlocked.size + locked.size
 }
 
@@ -608,9 +623,9 @@ private fun StyleCategorySection(
     focus: StyleScrollRequest? = null,
     unlockedOnly: Boolean = false,
 ) {
-    val achievements = picks.achievements
+    val access = picks.access
     var gallery by rememberSaveable { mutableStateOf(false) }
-    val count = remember(achievements) { category.catalog.unlockCount(achievements) }
+    val count = remember(access) { category.catalog.unlockCount(access) }
     @Composable
     fun CategoryCard(title: String, content: @Composable ColumnScope.() -> Unit) =
         StyleCategoryCard(title = title, count = count, gallery = gallery, onGalleryChange = { gallery = it }, content = content)
@@ -620,7 +635,7 @@ private fun StyleCategorySection(
             StyleFamilyTiles(
                 catalog = DiceStyles,
                 selectedId = picks.diceStyleId,
-                achievements = achievements,
+                access = access,
                 onSelect = { id ->
                     onSelect(id)
                     roll.start(id)
@@ -642,7 +657,7 @@ private fun StyleCategorySection(
             StyleFamilyTiles(
                 catalog = DiceCupStyles,
                 selectedId = picks.diceCupStyleId,
-                achievements = achievements,
+                access = access,
                 onSelect = { id ->
                     onSelect(id)
                     shake.start(id)
@@ -677,7 +692,7 @@ private fun StyleCategorySection(
             StyleFamilyTiles(
                 catalog = DiceMats,
                 selectedId = picks.diceMatId,
-                achievements = achievements,
+                access = access,
                 onSelect = onSelect,
                 previewSize = DpSize(MAT_PREVIEW_WIDTH, MAT_PREVIEW_HEIGHT),
                 backgroundBrush = { mat -> mat.diceTrayBrush },
@@ -696,7 +711,7 @@ private fun StyleCategorySection(
             StyleFamilyTiles(
                 catalog = TableBackgrounds,
                 selectedId = picks.tableBackgroundId,
-                achievements = achievements,
+                access = access,
                 onSelect = onSelect,
                 previewSize = DpSize(BACKGROUND_PREVIEW_WIDTH, BACKGROUND_PREVIEW_HEIGHT),
                 backgroundBrush = { background -> background.scoreAreaBrush },
@@ -716,7 +731,7 @@ private fun StyleCategorySection(
             StyleFamilyTiles(
                 catalog = ScoreFrames,
                 selectedId = picks.scoreFrameId,
-                achievements = achievements,
+                access = access,
                 onSelect = onSelect,
                 previewSize = DpSize(FRAME_PREVIEW_WIDTH, FRAME_PREVIEW_HEIGHT),
                 backgroundBrush = { SolidColor(MaterialTheme.colorScheme.background) },
@@ -967,7 +982,7 @@ fun StylesWarmUp(picks: SavedStyles?, width: Dp, modifier: Modifier = Modifier, 
         if (PageFit.decode(picks.stylesPageFit) != fit) onPageFit(fit.encode())
         if (!stylesWarmedUp) {
             for (category in StyleCategory.entries) {
-                for (first in 0 until category.tileCount(picks.achievements) step WARM_UP_TILES_PER_PASS) {
+                for (first in 0 until category.tileCount(picks.access) step WARM_UP_TILES_PER_PASS) {
                     pass(WarmUpPass.Tiles(category, first until first + WARM_UP_TILES_PER_PASS))
                 }
             }
@@ -1142,7 +1157,7 @@ private val GALLERY_HIGHLIGHT_RADIUS = 16.dp
 private fun <T : TableArt> StyleFamilyTiles(
     catalog: StyleCatalog<T>,
     selectedId: String,
-    achievements: AchievementsState,
+    access: StyleAccess,
     onSelect: (String) -> Unit,
     previewSize: DpSize,
     backgroundBrush: @Composable (T) -> Brush,
@@ -1157,18 +1172,18 @@ private fun <T : TableArt> StyleFamilyTiles(
     // The styles of this category a banner asked to be shown: scrolled to, and flashed for a moment.
     var flashing by remember { mutableStateOf(false) }
     val focusNames = remember(focus, catalog) { focus?.styles.orEmpty().filter { it.categoryNoun.key == catalog.noun.key }.map { it.name.key }.toSet() }
-    val shownSelectedId = catalog.unlockedById(selectedId, achievements).id
-    val (unlocked, shownLocked) = catalog.shownFamilies(achievements).let { (unlocked, locked) -> unlocked to if (unlockedOnly) emptyList() else locked }
+    val shownSelectedId = catalog.unlockedById(selectedId, access).id
+    val (unlocked, shownLocked) = catalog.shownFamilies(access).let { (unlocked, locked) -> unlocked to if (unlockedOnly) emptyList() else locked }
 
     @Composable
     fun Tile(index: Int) {
         if (index < unlocked.size) {
             StyleFamilyTile(
-                unlocked[index], achievements, shownSelectedId, onSelect, previewSize, backgroundBrush, preview, index,
+                unlocked[index], access, shownSelectedId, onSelect, previewSize, backgroundBrush, preview, index,
                 flashing = flashing && unlocked[index].name.key in focusNames, flashOverArt = flashOverArt, variantNoun = catalog.variantNoun,
             )
         } else {
-            LockedStyleFamilyTile(shownLocked[index - unlocked.size], achievements, previewSize, backgroundBrush, preview, index)
+            LockedStyleFamilyTile(shownLocked[index - unlocked.size], access, previewSize, backgroundBrush, preview, index)
         }
     }
 
@@ -1474,7 +1489,7 @@ private val PLACEHOLDER_CORNER = 16.dp
 @Composable
 private fun <T : TableArt> StyleFamilyTile(
     family: StyleFamily<T>,
-    achievements: AchievementsState,
+    access: StyleAccess,
     selectedId: String,
     onSelect: (String) -> Unit,
     previewSize: DpSize,
@@ -1490,7 +1505,7 @@ private fun <T : TableArt> StyleFamilyTile(
     val selectLabel = stringResource(Res.string.styles_select_action)
     val chooseVariantLabel = stringResource(Res.string.styles_choose_variant_action, familyName, stringResource(variantNoun))
     val picked = colours.firstOrNull { it.style.id == selectedId }
-    val shown = picked ?: colours.firstOrNull { it.isAvailable(achievements) } ?: colours.first()
+    val shown = picked ?: colours.firstOrNull { it.isAvailable(access) } ?: colours.first()
     val hasColours = colours.size > 1
     val shownDescription = if (hasColours) stringResource(Res.string.styles_family_colour_cd, familyName, stringResource(shown.name)) else familyName
     var choosingColour by remember { mutableStateOf(false) }
@@ -1557,7 +1572,7 @@ private fun <T : TableArt> StyleFamilyTile(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     for (colour in colours) {
-                        val available = colour.isAvailable(achievements)
+                        val available = colour.isAvailable(access)
                         val colourDescription = stringResource(Res.string.styles_family_colour_cd, familyName, stringResource(colour.name))
                         val achievementTitle = colour.secretAchievement?.title?.let { stringResource(it) } ?: ""
                         val variantStyleName = stringResource(Res.string.styles_name_with_variant, familyName, stringResource(colour.name))
@@ -1639,7 +1654,7 @@ private fun <T : TableArt> StyleFamilyTile(
 @Composable
 private fun <T : TableArt> LockedStyleFamilyTile(
     family: StyleFamily<T>,
-    achievements: AchievementsState,
+    access: StyleAccess,
     previewSize: DpSize,
     backgroundBrush: @Composable (T) -> Brush,
     preview: @Composable BoxScope.(T) -> Unit,
@@ -1705,7 +1720,7 @@ private fun <T : TableArt> LockedStyleFamilyTile(
             title = null,
             // Backticks mark what to highlight - the gold the rules pages use.
             message = parseInlineMarkup(
-                unlockRequirement(family, achievements),
+                unlockRequirement(family, access),
                 codeStyle = SpanStyle(fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary),
             ),
             confirmLabel = stringResource(Res.string.common_ok),
@@ -1726,16 +1741,16 @@ private fun shortRequirement(family: StyleFamily<*>): String =
     }
 
 /**
- * What it takes to unlock [family], and how far along [achievements] is, as the locked tile's pop-up
+ * What it takes to unlock [family], and how far along [access] is, as the locked tile's pop-up
  * says it - in [parseInlineMarkup]'s markup, with the counts and any achievement's name in backticks
  * so they're highlighted.
  */
 @Composable
-private fun unlockRequirement(family: StyleFamily<*>, achievements: AchievementsState): String =
+private fun unlockRequirement(family: StyleFamily<*>, access: StyleAccess): String =
     when (val unlock = family.unlock) {
         StyleUnlock.Free -> stringResource(Res.string.styles_unlock_free, stringResource(family.name))
         is StyleUnlock.AchievementCount ->
-            pluralStringResource(Res.plurals.styles_unlock_count, unlock.count, unlock.count, stringResource(family.name), achievements.countedUnlocks)
+            pluralStringResource(Res.plurals.styles_unlock_count, unlock.count, unlock.count, stringResource(family.name), access.achievements.countedUnlocks)
         // Never a secret one: its style isn't shown until it's earned (StyleUnlock.hiddenWhileLocked).
         is StyleUnlock.SpecificAchievement -> stringResource(Res.string.styles_unlock_specific, stringResource(unlock.achievement.title), stringResource(family.name))
         is StyleUnlock.AnyAchievement ->

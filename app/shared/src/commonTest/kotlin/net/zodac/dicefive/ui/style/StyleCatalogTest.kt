@@ -44,10 +44,10 @@ class StyleCatalogTest {
     fun `Nat 20 opens D20 white and black - Critical Success opens blue - and a locked pick draws the default elsewhere`() {
         val d20 = DiceStyles.all.filterIsInstance<D20DiceStyle>().associateBy { it.id }
         assertEquals(listOf("d20_white", "d20_black", "d20_blue"), d20.keys.toList())
-        val none = AchievementsState()
-        val nat20 = AchievementsState(mapOf(Achievement.NAT_20 to 0L))
-        val critical = AchievementsState(mapOf(Achievement.CRITICAL_SUCCESS to 0L))
-        val both = AchievementsState(mapOf(Achievement.NAT_20 to 0L, Achievement.CRITICAL_SUCCESS to 0L))
+        val none = StyleAccess(AchievementsState())
+        val nat20 = StyleAccess(AchievementsState(mapOf(Achievement.NAT_20 to 0L)))
+        val critical = StyleAccess(AchievementsState(mapOf(Achievement.CRITICAL_SUCCESS to 0L)))
+        val both = StyleAccess(AchievementsState(mapOf(Achievement.NAT_20 to 0L, Achievement.CRITICAL_SUCCESS to 0L)))
 
         for ((id, style) in d20) {
             assertTrue(!DiceStyles.isUnlocked(id, none), "$id is open before either achievement")
@@ -118,16 +118,16 @@ class StyleCatalogTest {
     @Test
     fun `a secret style is shown locked until its secret achievement unlocks it`() {
         assertTrue(Achievement.BIG_FAN.unlocksStyle)
-        val everythingButBigFan = AchievementsState(Achievement.entries.filter { it != Achievement.BIG_FAN }.associateWith { 0L })
-        val bigFanEarned = AchievementsState(mapOf(Achievement.BIG_FAN to 0L))
+        val everythingButBigFan = StyleAccess(AchievementsState(Achievement.entries.filter { it != Achievement.BIG_FAN }.associateWith { 0L }))
+        val bigFanEarned = StyleAccess(AchievementsState(mapOf(Achievement.BIG_FAN to 0L)))
         assertEquals(TableBackgrounds.default, TableBackgrounds.unlockedById("glitch_screen", everythingButBigFan))
         assertEquals("glitch_screen", TableBackgrounds.unlockedById("glitch_screen", bigFanEarned).id)
     }
 
     @Test
     fun `the unlocked count counts every colour - leaving out a secret one until it's earned`() {
-        val none = AchievementsState()
-        val all = AchievementsState(Achievement.entries.associateWith { 0L })
+        val none = StyleAccess(AchievementsState())
+        val all = StyleAccess(AchievementsState(Achievement.entries.associateWith { 0L }))
         for (catalog in catalogs) {
             val secret = catalog.families.sumOf { family -> family.colours.count { it.secretAchievement != null } }
             val classic = catalog.families.single { it.unlock == StyleUnlock.Free }
@@ -137,7 +137,40 @@ class StyleCatalogTest {
             assertTrue(!catalog.unlockCount(none).complete, catalog.noun.key)
         }
         // Nat 20 unlocks the D20 style and its white and black dice: two more counted, both unlocked.
-        val nat20 = AchievementsState(mapOf(Achievement.NAT_20 to 0L))
+        val nat20 = StyleAccess(AchievementsState(mapOf(Achievement.NAT_20 to 0L)))
         assertEquals(DiceStyles.unlockCount(none) + UnlockCount(2, 2), DiceStyles.unlockCount(nat20))
+    }
+
+    @Test
+    fun `owning every style meets every lock with nothing earned - secret colours included - so every pick is drawn`() {
+        val owner = StyleAccess(AchievementsState(), ownsAllStyles = true)
+        for (catalog in catalogs) {
+            for (family in catalog.families) {
+                assertTrue(family.unlock.isMet(owner), "${family.name.key} is locked for an owner")
+                assertEquals(family.colours, family.availableColours(owner), family.name.key)
+            }
+            for (art in catalog.all) {
+                assertTrue(catalog.isUnlocked(art.id, owner), "${art.id} is locked for an owner")
+                assertEquals(art, catalog.unlockedById(art.id, owner))
+            }
+            assertEquals(UnlockCount(catalog.all.size, catalog.all.size), catalog.unlockCount(owner), catalog.noun.key)
+        }
+        // The kinds of lock there are, each met: a count, any one of two achievements, one achievement, an Easter egg's.
+        val locks = catalogs.flatMap { catalog -> catalog.families.map { it.unlock } }
+        assertTrue(locks.any { it is StyleUnlock.AchievementCount })
+        assertTrue(locks.any { it is StyleUnlock.AnyAchievement })
+        assertTrue(locks.any { it is StyleUnlock.SpecificAchievement })
+        assertTrue(catalogs.any { catalog -> catalog.families.any { family -> family.colours.any { it.secretAchievement != null } } })
+    }
+
+    @Test
+    fun `without the purchase the locks are the achievements' alone`() {
+        val notOwned = StyleAccess(AchievementsState(), ownsAllStyles = false)
+        assertEquals(StyleAccess(AchievementsState()), notOwned)
+        for (catalog in catalogs) {
+            assertTrue(catalog.families.any { !it.unlock.isMet(notOwned) }, catalog.noun.key)
+            assertTrue(!catalog.unlockCount(notOwned).complete, catalog.noun.key)
+        }
+        assertTrue(!DiceStyles.isUnlocked("d20_white", notOwned))
     }
 }

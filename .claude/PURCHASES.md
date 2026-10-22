@@ -1,7 +1,8 @@
 # DiceFive: the "Unlock all styles" purchase
 
-**In progress: the seam is built (Phase 2), nothing is visible yet.** One one-time Google Play purchase that unlocks
-every style without earning it. Android only. This file is the plan, in phases. Resume at the phase marked **Next**.
+**In progress: the seam is built and the product is live in Play Console (Phases 1-3); nothing is visible yet.**
+One one-time Google Play purchase that unlocks every style without earning it. Android only. This file is the plan, in
+phases. Resume at the phase marked **Next**.
 Commits go under `[Purchases]`.
 
 What the player gets:
@@ -87,15 +88,18 @@ app/android/src/play/.../purchases/  PlayBillingStore - the only com.android.bil
 - **No server verification.** There's no backend, the source is public, and it's cosmetic. Optionally verify
   `Purchase.signature` against the app's licence key (Play Console > Monetise with Play > Monetisation setup) on the
   device. A patched APK can unlock styles anyway; that's accepted.
-- **Debug builds**: a superuser switch ("Pretend all styles are owned") swaps in a fake `Store`, for renders, the
-  emulator (it has no Play Store) and screenshots. Never in release (`isDebugBuild`, as the superuser tests pin).
+- **Debug builds**: "pretend all styles are owned" (decided 2026-10-23): tap the Styles page's unlocked count
+  `PRETEND_TAP_TARGET` (5) times, as the Achievements page's superuser mode is entered; a toast says on or off. It's
+  `AppContainer.pretendOwnsAllStyles`, ORed into `ownsAllStyles` only in a debug build, for the process and never
+  written, rather than a fake `Store`: a fake one's `Owned` would have been written to the real cache. Renders pass a
+  `Store` or the flag directly. `PretendOwnsAllStylesTest` pins release builds out.
 
 ### Styles rule change
 
-Today `StyleCatalog.isUnlocked(id, achievements)` and `StyleUnlock.isMet(achievements)` take an `AchievementsState`.
-- Replace that parameter with a small value, e.g. `StyleAccess(achievements, ownsAllStyles)`, so the compiler finds
-  every caller (about 20: `MenuViewModel`, `GameViewModel`, `SettingsViewModel`, `StylesScreen`, `OnlineSync`,
-  `AchievementsViewModel`, ...). `SavedStyles` carries the flag.
+Built (Phase 4). Every lock takes a `StyleAccess(achievements, ownsAllStyles)` (`ui/style/StyleUnlock.kt`) in place of
+the `AchievementsState` it took. `SavedStyles` carries the flag (`SavedStyles.access`), and `savedStylesFlow` must be
+given it, so the menu logo, the game table, the Styles screen and the Fresh Coat check all read
+`AppContainer.ownsAllStyles` (the cached purchase, or a debug build's pretence).
 - With `ownsAllStyles`, every `AchievementCount`, `SpecificAchievement` and `AnyAchievement` lock is met.
 - **Secret colours** (`StyleColour.secretAchievement`, the Easter eggs) are included: `isAvailable` is met with the
   flag too, so they appear on the Styles screen for owners. Their achievements still unlock as normal.
@@ -161,7 +165,7 @@ Decided (2026-10-21):
 - **GitHub release APKs** keep publishing, with no purchase shown (the Play-only gate).
 - **No Restore purchases button on Android** ("Restoring: no button on Android").
 
-### Phase 1: the Google account side, part 1 (maintainer; Next: steps 2, 4 and 6)
+### Phase 1: the Google account side, part 1 (maintainer; done 2026-10-23)
 
 Payments verification can take days, so start early. In order:
 
@@ -210,7 +214,7 @@ closed testing on 2026-10-23 (any track will do; internal testing is the quickes
 - Ship it to the **internal testing** track (by hand, as today). Play wants a bundle containing the BILLING permission
   uploaded to a track before it lets you create products.
 
-### Phase 3: the Google account side, part 2 (maintainer; Next, with Phase 1's steps 2, 4 and 6)
+### Phase 3: the Google account side, part 2 (maintainer; done 2026-10-23)
 
 Once Phase 1's merchant account is active and Phase 2's bundle is on a track (Play enables product setup only after
 a build containing the Billing Library is published to one). Done: 1.0.2 on closed testing; the One-time products
@@ -237,12 +241,12 @@ page opened on 2026-10-23, a day after it was published there.
    once (afterwards debug builds with package `net.zodac.dicefive` can buy too, as license testers).
 3. Optional: install **Play Billing Lab** on the test phone for country overrides.
 
-### Phase 4: entitlement in the styles rules (code)
+### Phase 4: entitlement in the styles rules (code; done 2026-10-23)
 
 The "Styles rule change" section: `StyleAccess`, `SavedStyles`, the reset path, the cached flag read at launch, the
 debug fake store. Unit tests. Nothing visible yet but the superuser switch.
 
-### Phase 5: the UI (code; renders first)
+### Phase 5: the UI (code; renders first; Next)
 
 - Render the top-bar button (`render` skill: phone sizes, 2x font, Arabic, each `StoreState`). Agree the look, then
   build.

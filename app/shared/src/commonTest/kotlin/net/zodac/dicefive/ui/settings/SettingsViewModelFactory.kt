@@ -1,5 +1,6 @@
 package net.zodac.dicefive.ui.settings
 
+import kotlinx.coroutines.flow.flowOf
 import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.InMemoryAchievementStore
@@ -18,4 +19,5 @@ fun settingsViewModel(
     online: OnlineSettingsRepository = OnlineSettingsRepository(InMemoryPreferences()),
     now: () -> Long = ::nowEpochMillis,
     progressTransfer: ProgressTransfer? = null,
-) = SettingsViewModel(settings, achievements, scores, online, now, progressTransfer)
+    ownsAllStyles: Boolean = false,
+) = SettingsViewModel(settings, achievements, scores, online, now, progressTransfer, flowOf(ownsAllStyles))

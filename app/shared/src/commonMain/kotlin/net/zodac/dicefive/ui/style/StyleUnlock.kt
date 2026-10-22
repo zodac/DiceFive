@@ -2,6 +2,7 @@ package net.zodac.dicefive.ui.style
 
 import androidx.compose.runtime.Composable
 import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.styles_reward_hidden_colours
@@ -14,13 +15,15 @@ import org.jetbrains.compose.resources.StringResource
  * What a [StyleFamily] takes to be usable. The lock is on the style as a whole: once it's met, every
  * one of its colours is available.
  *
+ * Owning the "Unlock all styles" purchase ([StyleAccess.ownsAllStyles]) meets every lock.
+ *
  * A saved pick whose style is still locked isn't erased - [StyleCatalog.unlockedById] just draws the
  * category's default in its place. (Resetting the achievements is the exception: Settings also puts
  * every pick that reset locks back to the default, so it can't return on re-earning the style.)
  */
 sealed interface StyleUnlock {
 
-    fun isMet(achievements: AchievementsState): Boolean
+    fun isMet(access: StyleAccess): Boolean
 
     /**
      * Whether a style behind this lock is left off the Styles screen entirely until it's met, rather
@@ -31,7 +34,7 @@ sealed interface StyleUnlock {
 
     /** Available from the start - every category's Classic style. */
     data object Free : StyleUnlock {
-        override fun isMet(achievements: AchievementsState): Boolean = true
+        override fun isMet(access: StyleAccess): Boolean = true
     }
 
     /** Earning at least [count] achievements. */
@@ -40,7 +43,7 @@ sealed interface StyleUnlock {
             require(count > 0) { "An achievement count of $count isn't a lock" }
         }
 
-        override fun isMet(achievements: AchievementsState): Boolean = achievements.countedUnlocks >= count
+        override fun isMet(access: StyleAccess): Boolean = access.ownsAllStyles || access.achievements.countedUnlocks >= count
     }
 
     /** Earning any one of [achievements] - for a style whose colours each have an achievement of their own (see [StyleColour.secretAchievement]). */
@@ -49,16 +52,26 @@ sealed interface StyleUnlock {
             require(achievements.size > 1) { "Any of ${achievements.size} achievements isn't a choice" }
         }
 
-        override fun isMet(achievements: AchievementsState): Boolean = this.achievements.any { achievements.isUnlocked(it) }
+        override fun isMet(access: StyleAccess): Boolean = access.ownsAllStyles || achievements.any { access.achievements.isUnlocked(it) }
     }
 
     /** Earning one particular [achievement]. */
     data class SpecificAchievement(val achievement: Achievement) : StyleUnlock {
-        override fun isMet(achievements: AchievementsState): Boolean = achievements.isUnlocked(achievement)
+        override fun isMet(access: StyleAccess): Boolean = access.ownsAllStyles || access.achievements.isUnlocked(achievement)
 
         override val hiddenWhileLocked: Boolean get() = false
     }
 }
+
+/**
+ * What the style locks are checked against: the [achievements] earned, and whether the "Unlock all styles" purchase is
+ * owned ([net.zodac.dicefive.purchases.PurchasesRepository.ownsAllStyles], or pretended in a debug build), which meets
+ * every lock - [StyleUnlock]s and secret colours ([StyleColour.secretAchievement]) alike.
+ */
+data class StyleAccess(val achievements: AchievementsState, val ownsAllStyles: Boolean = false)
+
+/** What these picks' locks are checked against. */
+val SavedStyles.access: StyleAccess get() = StyleAccess(achievements, ownsAllStyles)
 
 /** A style that earning one particular achievement unlocks, and what it's called: "the 'Irish' dice style". */
 data class StyleReward(val styleName: StringResource, val categoryNoun: StringResource, val hiddenColours: Int = 0) {

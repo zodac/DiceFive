@@ -8,8 +8,12 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import androidx.room.RoomDatabase
@@ -47,12 +51,26 @@ class AppContainer(
     scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 ) {
     /**
+     * Debug builds only: the Styles page's hidden "pretend all styles are owned" switch (see
+     * [net.zodac.dicefive.ui.styles.StylesViewModel.onUnlockedCountTapped]). Kept for the process, never saved.
+     */
+    val pretendOwnsAllStyles = MutableStateFlow(false)
+
+    /**
+     * Whether the "Unlock all styles" purchase unlocks every style: what the store last said
+     * ([PurchasesRepository.ownsAllStyles]), or, in a debug build only, [pretendOwnsAllStyles].
+     */
+    val ownsAllStyles: Flow<Boolean> =
+        combine(purchasesRepository.ownsAllStyles, pretendOwnsAllStyles) { owns, pretend -> owns || (pretend && buildInfo.isDebug) }
+            .distinctUntilChanged()
+
+    /**
      * The saved Styles picks, loaded as soon as the container is built and kept up to date for the
      * life of the process - null only until the first load. The menu's logo needs them at launch
      * anyway, so the Styles screen opens with them already in hand instead of waiting on its own load.
      */
     val savedStyles: StateFlow<SavedStyles?> =
-        savedStylesFlow(settingsRepository, achievementsRepository).stateIn(scope, SharingStarted.Eagerly, null)
+        savedStylesFlow(settingsRepository, achievementsRepository, ownsAllStyles).stateIn(scope, SharingStarted.Eagerly, null)
 
     /** The Statistics screen's sort, loaded with the container so the screen opens already in order - null until then. */
     val statisticsSort: StateFlow<StatisticsSortOrder?> =

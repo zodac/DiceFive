@@ -227,3 +227,10 @@ Nothing guarded, nothing blocked.
 - Déjà Vu compares number *and* colour.
 - Fresh Coat Of Paint counts the style, which is recoloured.
 - How Do You Play This Game? needs the colour boxes zeroed too.
+
+## The "Unlock all styles" purchase (not a mode)
+
+Owning every style (`PURCHASES.md`) changes what a player can pick, not any rule, so no guard:
+- Fresh Coat Of Paint counts a bought style, as `unlockedById` draws it.
+- Eggcellent Discovery: buying gives the Egg dice and the Chicken cup early, so the 1-in-500 golden egg can come
+  sooner. It still needs the roll; the gold Egg colour itself is bought outright.

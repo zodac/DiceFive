@@ -78,8 +78,10 @@ import net.zodac.dicefive.ui.style.GameVisualTheme
 import net.zodac.dicefive.ui.style.GoldenEggDiceStyle
 import net.zodac.dicefive.ui.style.PIP_FACES
 import net.zodac.dicefive.ui.style.ScoreFrames
+import net.zodac.dicefive.ui.style.StyleAccess
 import net.zodac.dicefive.ui.style.StyleCategory
 import net.zodac.dicefive.ui.style.TableBackgrounds
+import net.zodac.dicefive.ui.style.access
 
 /**
  * A configured-but-not-yet-started player slot on the setup screen. Slot 1
@@ -182,6 +184,8 @@ class GameViewModel(
      * no saved game, scores, achievements or settings.
      */
     private val tutorial: TutorialScript? = null,
+    /** Whether the purchase unlocks every style ([AppContainer.ownsAllStyles]). */
+    private val ownsAllStyles: Flow<Boolean> = flowOf(false),
 ) : ViewModel() {
 
     private val _setup = MutableStateFlow(GameSetupState())
@@ -409,13 +413,13 @@ class GameViewModel(
      * they're normally long since in.
      */
     val tableSettings: StateFlow<TableSettings?> = run {
-        val visualTheme = savedStylesFlow(settingsRepository, achievementsRepository).map { saved ->
+        val visualTheme = savedStylesFlow(settingsRepository, achievementsRepository, ownsAllStyles).map { saved ->
             GameVisualTheme(
-                diceStyle = DiceStyles.unlockedById(saved.diceStyleId, saved.achievements),
-                diceCupStyle = DiceCupStyles.unlockedById(saved.diceCupStyleId, saved.achievements),
-                background = TableBackgrounds.unlockedById(saved.tableBackgroundId, saved.achievements),
-                mat = DiceMats.unlockedById(saved.diceMatId, saved.achievements),
-                frame = ScoreFrames.unlockedById(saved.scoreFrameId, saved.achievements),
+                diceStyle = DiceStyles.unlockedById(saved.diceStyleId, saved.access),
+                diceCupStyle = DiceCupStyles.unlockedById(saved.diceCupStyleId, saved.access),
+                background = TableBackgrounds.unlockedById(saved.tableBackgroundId, saved.access),
+                mat = DiceMats.unlockedById(saved.diceMatId, saved.access),
+                frame = ScoreFrames.unlockedById(saved.scoreFrameId, saved.access),
             )
         }.distinctUntilChanged()
         combine(
@@ -1180,9 +1184,9 @@ class GameViewModel(
             val hasZodacAsPlayerTwo = players.size == 2 && playerTwo?.type == PlayerType.HUMAN && playerTwo.name == ZODAC_PLAYER_NAME
             val isLuckOfTheIrish = game?.isLuckOfTheIrish == true
             // A pick whose style is still locked can't count, since the default is drawn in its place.
-            val achievements = achievementsRepository.current()
+            val access = StyleAccess(achievementsRepository.current(), ownsAllStyles.first())
             val playedNonDefaultStyle = StyleCategory.entries.any { category ->
-                category.catalog.unlockedById(category.savedId(settingsRepository).first(), achievements).id != category.catalog.default.id
+                category.catalog.unlockedById(category.savedId(settingsRepository).first(), access).id != category.catalog.default.id
             }
             val context = GameStartContext(
                 playedNonDefaultStyle = playedNonDefaultStyle,
@@ -1518,6 +1522,7 @@ class GameViewModel(
                     settingsRepository = container.settingsRepository,
                     inProgressGameRepository = container.inProgressGameRepository,
                     achievementsRepository = container.achievementsRepository,
+                    ownsAllStyles = container.ownsAllStyles,
                     random = container.diceRandom,
                     isDebugBuild = container.buildInfo.isDebug,
                     standardPerfectPlay = container::standardPerfectPlayTable,
@@ -1533,6 +1538,7 @@ class GameViewModel(
                     settingsRepository = container.settingsRepository,
                     inProgressGameRepository = container.inProgressGameRepository,
                     achievementsRepository = container.achievementsRepository,
+                    ownsAllStyles = container.ownsAllStyles,
                     tutorial = script,
                 )
             }

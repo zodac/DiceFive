@@ -1,6 +1,7 @@
 package net.zodac.dicefive
 
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +18,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DiceMats
 import net.zodac.dicefive.ui.style.DiceStyles
@@ -50,7 +53,7 @@ class StylesPageFitTest : UiTest() {
         compose.setContent {
             DiceFiveTheme {
                 if (open) {
-                    StylesScreen(viewModel = viewModel, onBack = {})
+                    CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { StylesScreen(viewModel = viewModel, onBack = {}) }
                 } else {
                     // As the menu runs it, saving what it measured with the picks.
                     val picks by saved.collectAsState()

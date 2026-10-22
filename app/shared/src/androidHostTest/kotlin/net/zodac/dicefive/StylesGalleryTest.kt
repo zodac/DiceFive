@@ -32,6 +32,9 @@ import net.zodac.dicefive.ui.style.DiceStyles
 import net.zodac.dicefive.ui.style.TableBackgrounds
 import net.zodac.dicefive.ui.styles.StylesScreen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
+import androidx.compose.runtime.CompositionLocalProvider
+import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.platform.SilentPlatformServices
 
 /** The screen this class's tests are drawn on. */
 private val SCREEN = TestScreen(411, 891)
@@ -57,7 +60,7 @@ class StylesGalleryTest : UiTest() {
             SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements),
         )
         val viewModel = stylesViewModel(saved)
-        compose.setContent { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
+        compose.setContent { DiceFiveTheme { CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { StylesScreen(viewModel = viewModel, onBack = {}) } } }
         // Long enough for every row to build every tile.
         compose.mainClock.advanceTimeBy(10_000)
         compose.waitForIdle()

@@ -41,6 +41,17 @@ class ResetStylesTest {
     }
 
     @Test
+    fun `resetting achievements keeps every pick of a player who owns every style - the purchase isn't reset`() = runTest {
+        val settings = SettingsRepository(InMemoryPreferences())
+        settings.setDiceStyleId("frosted_ice")
+        settings.setTableBackgroundId("glitch_screen")
+        settingsViewModel(settings = settings, ownsAllStyles = true).resetAchievements()
+        advanceUntilIdle()
+        assertEquals("frosted_ice", settings.diceStyleId.first())
+        assertEquals("glitch_screen", settings.tableBackgroundId.first())
+    }
+
+    @Test
     fun `the picks a reset puts back are this device's only - the cloud save's copy wins over them`() = runTest {
         val settings = SettingsRepository(InMemoryPreferences(), now = { 50L })
         settings.setDiceStyleId("frosted_ice")

@@ -5,8 +5,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -21,6 +23,7 @@ import net.zodac.dicefive.ui.style.DiceCupStyle
 import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DiceStyle
 import net.zodac.dicefive.ui.style.DiceStyles
+import net.zodac.dicefive.ui.style.access
 
 /** The dice and cup the menu's logo is drawn with - the player's own picks from the Styles screen. */
 data class LogoStyles(val dice: DiceStyle, val cup: DiceCupStyle)
@@ -34,6 +37,8 @@ class MenuViewModel(
     settingsRepository: SettingsRepository,
     /** The app's own copy of the saved picks ([AppContainer.savedStyles]); without one, they're read from [settingsRepository]. */
     savedStyles: StateFlow<SavedStyles?>? = null,
+    /** Whether the purchase unlocks every style ([AppContainer.ownsAllStyles]). */
+    ownsAllStyles: Flow<Boolean> = flowOf(false),
 ) : ViewModel() {
 
     /**
@@ -44,13 +49,13 @@ class MenuViewModel(
         savedStyles.map { it?.let(::logoStylesOf) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, savedStyles.value?.let(::logoStylesOf))
     } else {
-        savedStylesFlow(settingsRepository, achievementsRepository).map(::logoStylesOf)
+        savedStylesFlow(settingsRepository, achievementsRepository, ownsAllStyles).map(::logoStylesOf)
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
     }
 
     private fun logoStylesOf(saved: SavedStyles): LogoStyles = LogoStyles(
-        DiceStyles.unlockedById(saved.diceStyleId, saved.achievements),
-        DiceCupStyles.unlockedById(saved.diceCupStyleId, saved.achievements),
+        DiceStyles.unlockedById(saved.diceStyleId, saved.access),
+        DiceCupStyles.unlockedById(saved.diceCupStyleId, saved.access),
     )
 
     private val achievementUnlocker = AchievementUnlocker(achievementsRepository)
@@ -61,7 +66,7 @@ class MenuViewModel(
 
     companion object {
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
-            initializer { MenuViewModel(container.achievementsRepository, container.settingsRepository, container.savedStyles) }
+            initializer { MenuViewModel(container.achievementsRepository, container.settingsRepository, container.savedStyles, container.ownsAllStyles) }
         }
     }
 }

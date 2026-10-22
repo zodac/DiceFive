@@ -29,10 +29,14 @@ import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DiceMats
 import net.zodac.dicefive.ui.style.DiceStyles
 import net.zodac.dicefive.ui.style.ScoreFrames
+import net.zodac.dicefive.ui.style.StyleAccess
 import net.zodac.dicefive.ui.style.TableBackgrounds
 import net.zodac.dicefive.ui.style.UnlockCount
 import net.zodac.dicefive.ui.styles.StylesScreen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
+import androidx.compose.runtime.CompositionLocalProvider
+import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.platform.SilentPlatformServices
 
 /**
  * The Styles screen's words: its title and categories, and how a style - locked, or in several colours - is named and what a tap is called.
@@ -52,7 +56,7 @@ class StylesTextTest : UiTest() {
             SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements),
         )
         val viewModel = stylesViewModel(saved, settings)
-        showcase.show { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
+        showcase.show { DiceFiveTheme { CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { StylesScreen(viewModel = viewModel, onBack = {}) } } }
         compose.mainClock.advanceTimeBy(10_000)
         compose.waitForIdle()
     }
@@ -90,7 +94,7 @@ class StylesTextTest : UiTest() {
         show(achievements)
         val counts = listOf(
             "Dice" to DiceStyles, "Dice Cup" to DiceCupStyles, "Mat" to DiceMats, "Background" to TableBackgrounds, "Frame" to ScoreFrames,
-        ).map { (title, catalog) -> title to catalog.unlockCount(achievements) }
+        ).map { (title, catalog) -> title to catalog.unlockCount(StyleAccess(achievements)) }
         val total = counts.map { it.second }.reduce(UnlockCount::plus)
         compose.onNodeWithText("${total.unlocked} of ${total.total} unlocked").assertExists()
 

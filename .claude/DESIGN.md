@@ -356,6 +356,9 @@ will map to Play Games.
   - On the Achievements screen, tapping the count banner `SUPERUSER_TAP_TARGET` times turns on long-press editing:
     - a long press on a row locks, unlocks or steps it (in-memory, never written);
     - a long press on the banner toggles everything.
+  - On the Styles page, tapping the unlocked count `PRETEND_TAP_TARGET` times turns "pretend all styles are owned" on
+    or off (`AppContainer.pretendOwnsAllStyles`), with a toast: for the process, never written. Turning it on blocks
+    online mirroring, as superuser mode does.
 - **Untested automatically.** Let's Finish This (leave and resume), and the end-to-end settings read behind the style
   achievements.
 
@@ -399,7 +402,10 @@ screen) of `StyleColour`s.
 - **Locks.** Every other family is locked behind an achievement count (`StyleUnlock.AchievementCount`) or a specific
   achievement (`SpecificAchievement`, `AnyAchievement`).
   - A colour can also be secret (`StyleColour.secretAchievement`): not offered at all until earned.
-  - A locked saved pick draws the default but stays saved. Resetting achievements resets the picks it locks.
+  - Every lock takes a `StyleAccess`: the achievements, and `ownsAllStyles`, the "Unlock all styles" purchase
+    (`PURCHASES.md`), which meets every lock and secret colour.
+  - A locked saved pick draws the default but stays saved. Resetting achievements resets the picks it locks; an
+    owner's are kept.
   - Which styles and colours are locked, and how locks look, is in `UI_SCREENS.md`, "Style locks".
 - **Tricolour** draws a die in the player's style recoloured (`DiceStyle.recoloured`). Its pips and held ring always
   use the palette's readable colours.

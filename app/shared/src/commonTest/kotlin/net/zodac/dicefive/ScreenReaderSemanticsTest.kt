@@ -25,6 +25,9 @@ import net.zodac.dicefive.ui.game.UndoButton
 import net.zodac.dicefive.ui.statistics.PlayerStatsCard
 import net.zodac.dicefive.ui.styles.StylesScreen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
+import androidx.compose.runtime.CompositionLocalProvider
+import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.platform.SilentPlatformServices
 
 /**
  * What a screen reader gets from the Styles, Statistics and turn-timer changes: a style tile that is
@@ -62,7 +65,7 @@ class ScreenReaderSemanticsTest : UiTest() {
     @Test
     fun `a style tile is a radio button saying its place in the row - the picked one selected - a locked one saying how to unlock it`() = uiTest {
         val viewModel = stylesViewModel()
-        compose.setContent { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
+        compose.setContent { DiceFiveTheme { CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { StylesScreen(viewModel = viewModel, onBack = {}) } } }
 
         val radios = compose.onAllNodes(hasRole(Role.RadioButton)).fetchSemanticsNodes()
         assertTrue(radios.isNotEmpty())
