@@ -19,63 +19,43 @@ check() {
     fi
 }
 
-sectioned='## Shared
+notes='
 
-- New mode for both apps
+## Gameplay
 
-## Android
+- New mode
 
 ### Fixes
 - Back gesture on the scorecard
+'
 
-## iOS
+printf '%s\n' "${notes}" > "${RELEASE_NOTES_FILE}"
+check "extract is the whole file, headings included, without the blank lines around it" '## Gameplay
 
-- Sounds play on the silent switch'
-
-printf '%s\n' "${sectioned}" > "${RELEASE_NOTES_FILE}"
-check "extract android is Shared then Android" '- New mode for both apps
+- New mode
 
 ### Fixes
-- Back gesture on the scorecard' "$("${script}" extract android)"
-check "extract ios is Shared then iOS" '- New mode for both apps
-
-- Sounds play on the silent switch' "$("${script}" extract ios)"
+- Back gesture on the scorecard' "$("${script}" extract)"
 
 cp "${RELEASE_NOTES_FILE}" "${work}/released.md"
-"${script}" clear android "${work}/released.md"
-check "clear android empties Shared and Android, keeps iOS" '## Shared
+"${script}" clear "${work}/released.md"
+check "clear empties the file" '' "$(cat "${RELEASE_NOTES_FILE}")"
+check "extract after clear has no notes" '' "$("${script}" extract)"
 
-## Android
-
-## iOS
-
-- Sounds play on the silent switch' "$(cat "${RELEASE_NOTES_FILE}")"
-check "extract after clear has only the other platform's notes" '' "$("${script}" extract android)"
-
-printf '%s\n' "${sectioned}" > "${RELEASE_NOTES_FILE}"
+printf '%s\n' "${notes}" > "${RELEASE_NOTES_FILE}"
 cp "${RELEASE_NOTES_FILE}" "${work}/released.md"
-printf '%s\n' "${sectioned/- New mode for both apps/- New mode for both apps
-- Written during the release}" > "${RELEASE_NOTES_FILE}"
-"${script}" clear android "${work}/released.md" 2> /dev/null
-check "clear keeps a section changed during the release" '## Shared
-
-- New mode for both apps
-- Written during the release
-
-## Android
-
-## iOS
-
-- Sounds play on the silent switch' "$(cat "${RELEASE_NOTES_FILE}")"
-
-printf '%s\n' 'Plain notes, no headings' > "${RELEASE_NOTES_FILE}"
-check "text without headings is Shared" 'Plain notes, no headings' "$("${script}" extract ios)"
+printf '%s\n- Written during the release\n' "${notes}" > "${RELEASE_NOTES_FILE}"
+"${script}" clear "${work}/released.md" 2> /dev/null
+check "clear keeps a file changed during the release" "$(printf '%s\n- Written during the release\n' "${notes}")" \
+    "$(cat "${RELEASE_NOTES_FILE}")"
 
 : > "${RELEASE_NOTES_FILE}"
-check "an empty file has no notes" '' "$("${script}" extract android)"
+check "an empty file has no notes" '' "$("${script}" extract)"
 
 rm -f "${RELEASE_NOTES_FILE}"
-check "a missing file has no notes" '' "$("${script}" extract android)"
+check "a missing file has no notes" '' "$("${script}" extract)"
+
+check "an unknown command is refused" 2 "$("${script}" publish 2> /dev/null; echo $?)"
 
 if [[ "${failures}" -gt 0 ]]; then
     echo "${failures} failed"

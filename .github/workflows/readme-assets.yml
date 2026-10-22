@@ -25,6 +25,7 @@ on:
     branches: [main]
     paths:
       # What android-release.yml releases...
+      - "VERSION"
       - "app/**"
       - "gradle/**"
       - "build.gradle.kts"
@@ -37,8 +38,6 @@ on:
       - "!app/**/src/androidHostTest/**"
       - "!app/**/src/androidTest/**"
       - "!app/**/*.md"
-      - "!app/ios/**"
-      - "!app/shared/src/iosMain/**"
       # ...and how the images are made (after the exclusions, which would otherwise drop the generator tests).
       - "app/android/src/test/kotlin/net/zodac/dicefive/store/**"
       - "scripts/generate-store-assets.sh"
@@ -88,7 +87,7 @@ jobs:
       # ones at 1280px, both twice the width the README shows them at; the GIF is the script's, at 1024x500.
       - name: Shrink them for the README
         run: |
-          out="assets/$(tr -d '[:space:]' < app/android/VERSION)"
+          out="assets/$(tr -d '[:space:]' < VERSION)"
           mkdir readme-assets
           cp "$out/feature-graphic.gif" readme-assets/feature-graphic.gif
           for shot in "$out"/phone/*.png; do

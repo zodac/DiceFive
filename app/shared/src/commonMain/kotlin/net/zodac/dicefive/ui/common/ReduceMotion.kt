@@ -6,8 +6,8 @@ import androidx.compose.runtime.compositionLocalOf
 import net.zodac.dicefive.data.settings.AnimationLevel
 
 /**
- * Whether to show as little motion as possible: the system asks apps for less (Android's "Remove animations",
- * iOS's Reduce Motion - [net.zodac.dicefive.platform.PlatformServices.reduceMotion]) or the player has set the
+ * Whether to show as little motion as possible: the system asks apps for less (Android's "Remove animations" -
+ * [net.zodac.dicefive.platform.PlatformServices.reduceMotion]) or the player has set the
  * app's own "Animations" to Off. Provided once at the root. When it's true, decoration stops moving
  * (looping glows, drifting dice, twinkling stars, the cup's sway, fireworks, page fades), the cup doesn't shake
  * but snaps tipped as the roll lands, and the dice snap straight to their result, so neither scoring nor a CPU

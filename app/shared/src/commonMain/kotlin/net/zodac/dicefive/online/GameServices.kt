@@ -5,8 +5,8 @@ import androidx.compose.ui.graphics.ImageBitmap
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * What the shared game needs from a platform's online game service - Google Play Games on Android, Game Center
- * on iOS - and nothing that names either. Each platform implements it once; [NoGameServices] is the version for
+ * What the shared game needs from a platform's online game service - Google Play Games on Android - and
+ * nothing that names it. Each platform implements it once; [NoGameServices] is the version for
  * previews, tests and builds with no service. See `.claude/PLAY_GAMES.md`.
  *
  * Local storage stays the source of truth: the game never waits on, or reads from, an implementation. Every call
@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface GameServices {
 
-    /** "Google Play Games" / "Game Center": shown in Settings, never hard-coded in shared UI. */
+    /** "Google Play Games": shown in Settings, never hard-coded in shared UI. */
     val serviceName: String
 
     val state: StateFlow<GameServicesState>

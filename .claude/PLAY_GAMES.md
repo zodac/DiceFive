@@ -1,9 +1,8 @@
 # DiceFive: Google Play Games Services
 
 **Built on Android; release remaining (see "Release").** Sign-in, achievements mirrored both ways, a leaderboard per
-mode, cloud save across devices, and Play Games Sidekick, each checked by the maintainer on real phones. Game Center
-(iOS) comes later through the same seam. This file is the one source on the subject: where another doc disagrees,
-follow this one.
+mode, cloud save across devices, and Play Games Sidekick, each checked by the maintainer on real phones. This file is the one source on the subject:
+where another doc disagrees, follow this one.
 
 ## What Google provides
 
@@ -27,7 +26,7 @@ One SDK: `com.google.android.gms:play-services-games-v2` (v22.1.0; v1 is frozen)
 ```
 app/shared/.../online/   GameServices (interface, GameServicesState, OnlineAccount, LocalGameServices), NoGameServices,
                          OnlineSync (reconciler), CloudSave + CloudSaveMerge (pure), CloudSaveCodec, CloudSaveStore,
-                         OnlineSettingsRepository  - nothing here names Google or Apple
+                         OnlineSettingsRepository  - nothing here names Google
 app/shared/.../ui/settings/OnlineAccountCard.kt   labelled by GameServices.serviceName
 app/android/src/play/.../online/  PlayGamesServices, PlayGamesIds, PlayGamesAchievements, res/values/games-ids.xml
                          - the only gms.games imports, in the play flavour alone
@@ -202,12 +201,7 @@ The code is done. The rest is the maintainer's, in Play Console:
 - **Testers must be PGS testers** until publishing.
 - **The data safety form** must declare Play Games and cloud save (draft answers: `PUBLISHING.md`, "Data safety").
 
-## Later: iOS
-
-`GameCenterServices`: `authenticateHandler`, `GKAchievement` (`percentComplete`, `isHidden`), `GKLeaderboard` per key,
-and the same blob. Game Center **can** reset achievements, so the reset rules become `GameServices` properties
-(`canResetAchievements`), never `if (iOS)`. `GKAccessPoint` raises the same placement question as Sidekick. Play work
-is committed as `[Play Games]`, iOS work as `[iOS]`.
+Play work is committed as `[Play Games]`.
 
 [Sign-in](https://developer.android.com/games/pgs/android/android-signin) ·
 [Achievements](https://developer.android.com/games/pgs/achievements) ·

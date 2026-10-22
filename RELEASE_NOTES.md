@@ -1,5 +1,0 @@
-## Shared
-
-## Android
-
-## iOS

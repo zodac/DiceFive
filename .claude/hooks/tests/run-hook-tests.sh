@@ -49,7 +49,7 @@ expect_notes() { if [ "$(cat "$notes" 2> /dev/null || echo '<absent>')" = "$2" ]
 expect_ask "Edit RELEASE_NOTES.md" "$(file_tool_output Edit "$notes")"
 expect_ask "Write RELEASE_NOTES.md" "$(file_tool_output Write "$notes")"
 expect_ask "MultiEdit RELEASE_NOTES.md" "$(file_tool_output MultiEdit "$notes")"
-expect_silent "Edit another file whose text mentions it" "$(file_tool_output Edit "$CLAUDE_PROJECT_DIR/CLAUDE.md")"
+expect_silent "Edit another file whose text mentions it" "$(file_tool_output Edit "$CLAUDE_PROJECT_DIR/.claude/CLAUDE.md")"
 expect_silent "Write RELEASE_NOTES.md.bak" "$(file_tool_output Write "$CLAUDE_PROJECT_DIR/RELEASE_NOTES.md.bak")"
 
 # ---- Bash: mentioning is fine, changing is not ----

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Tests for scripts/normalize-audio.sh: both apps' copies of every clip in app/audio/ exist, keep their source's
-# length (the shake window is timed to the clips, so an iOS clip padded by AAC's encoder delay would drift), and peak
-# near the target level. Needs ffmpeg and python3. Run from anywhere: scripts/tests/normalize-audio-test.sh
+# Tests for scripts/normalize-audio.sh: the app's copy of every clip in app/audio/ exists, keeps its source's
+# length (the shake window is timed to the clips), and peaks near the target level. Needs ffmpeg and python3. Run from anywhere: scripts/tests/normalize-audio-test.sh
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -10,7 +9,7 @@ work="$(mktemp -d)"
 trap 'rm -rf "${work}"' EXIT
 failures=0
 
-# Lengths may differ by a single AAC frame's rounding at most; peaks by what lossy coding moves them.
+# Lengths may differ by a frame's rounding at most; peaks by what lossy coding moves them.
 MAX_LENGTH_DIFF_SECONDS=0.005
 TARGET_PEAK_DB=-0.8
 MAX_PEAK_DIFF_DB=1.5
@@ -33,20 +32,18 @@ check() {
 }
 
 sources=("$root"/app/audio/*.ogg)
-for format in ogg m4a; do
-    "$script" "$format" "$work/$format" "${sources[@]}"
-    for source in "${sources[@]}"; do
-        name="$(basename "$source" .ogg)"
-        out="$work/$format/$name.$format"
-        check "$format: $name exists" test -s "$out"
-        [ -s "$out" ] || continue
-        check "$format: $name keeps its length ($(duration "$source")s)" \
-            within "$(duration "$out")" "$(duration "$source")" "$MAX_LENGTH_DIFF_SECONDS"
-        check "$format: $name peaks near ${TARGET_PEAK_DB} dB" within "$(peak "$out")" "$TARGET_PEAK_DB" "$MAX_PEAK_DIFF_DB"
-    done
+"$script" "$work/out" "${sources[@]}"
+for source in "${sources[@]}"; do
+    name="$(basename "$source" .ogg)"
+    out="$work/out/$name.ogg"
+    check "$name exists" test -s "$out"
+    [ -s "$out" ] || continue
+    check "$name keeps its length ($(duration "$source")s)" \
+        within "$(duration "$out")" "$(duration "$source")" "$MAX_LENGTH_DIFF_SECONDS"
+    check "$name peaks near ${TARGET_PEAK_DB} dB" within "$(peak "$out")" "$TARGET_PEAK_DB" "$MAX_PEAK_DIFF_DB"
 done
 
-check "an unknown format is refused" bash -c "! '$script' wav '$work/wav' '${sources[0]}' 2> /dev/null"
+check "no sources is refused" bash -c "! '$script' '$work/none' 2> /dev/null"
 
 if [[ "${failures}" -gt 0 ]]; then
     echo "${failures} failed"

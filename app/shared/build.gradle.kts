@@ -1,10 +1,9 @@
 import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-// The game's platform-neutral code, as a Kotlin Multiplatform library: everything in commonMain is
-// compiled once per target - Android (consumed by :app:android, which builds the APK) and iOS. Nothing in
-// commonMain may touch Android or the JVM; the iOS targets are what enforce that, since they have
-// neither. See .claude/IOS_SUPPORT.md.
+// The game's platform-neutral code, as a Kotlin Multiplatform library with one target, Android (consumed by
+// :app:android, which builds the APK). Platform code lives in androidMain, behind the expect/actual and
+// PlatformServices seams; commonMain stays free of Android APIs so another target can be added beside it.
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     // AGP 9's Android target for a KMP library - the plain com.android.library plugin can't be
@@ -60,17 +59,6 @@ kotlin {
         }
     }
 
-    // Compiled on every host, so a JVM-only API slipping into commonMain fails the build here, not
-    // months later on a Mac. Linking and running these needs macOS - see gradle.properties.
-    listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
-        // The framework the Xcode app (app/ios) links, through embedAndSignAppleFrameworkForXcode. Static, so the
-        // app carries a single binary and nothing extra to embed or sign.
-        target.binaries.framework {
-            baseName = "Shared"
-            isStatic = true
-        }
-    }
-
     compilerOptions {
         // As in :app:android - any compiler warning fails the build rather than piling up unread.
         allWarningsAsErrors = true
@@ -111,10 +99,6 @@ kotlin {
             // against is a subset of it).
             implementation(libs.androidx.navigation.compose)
         }
-        iosMain.dependencies {
-            // Android opens the database on the framework's own SQLite; iOS has none to offer.
-            implementation(libs.androidx.sqlite.bundled)
-        }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
@@ -147,15 +131,14 @@ room {
 
 dependencies {
     // Room's compiler runs once per target, generating each one's AppDatabaseConstructor.
-    listOf("kspAndroid", "kspIosArm64", "kspIosSimulatorArm64").forEach { add(it, libs.androidx.room.compiler) }
+    add("kspAndroid", libs.androidx.room.compiler)
 }
 
 // CI, the dependency-update script and day-to-day habit all run `./gradlew testDebugUnitTest` (the
 // name :app:android's unit tests have). A KMP library's JVM tests have another name, so this answers to
-// that one too - and also compiles both iOS targets, the check that commonMain stays
-// platform-neutral - rather than every one of those callers having to learn the new task names.
+// that one too, rather than every one of those callers having to learn the new task name.
 tasks.register("testDebugUnitTest") {
     group = "verification"
-    description = "Runs the shared module's tests on the JVM and compiles its iOS targets."
-    dependsOn("testAndroidHostTest", "compileKotlinIosArm64", "compileKotlinIosSimulatorArm64", "compileTestKotlinIosSimulatorArm64")
+    description = "Runs the shared module's tests on the JVM."
+    dependsOn("testAndroidHostTest")
 }

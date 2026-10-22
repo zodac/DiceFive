@@ -11,8 +11,7 @@ import kotlinx.coroutines.IO
 /**
  * The scores database - the Leaderboard and Statistics screens' shared table, plus Statistics'
  * dismissals. Room's multiplatform build: each platform opens it with its own
- * [RoomDatabase.Builder] (on Android, the framework's SQLite; on iOS, the bundled driver) and
- * finishes it with [buildAppDatabase].
+ * [RoomDatabase.Builder] (on Android, the framework's SQLite) and finishes it with [buildAppDatabase].
  *
  * Every schema change needs a version bump and a migration in [MIGRATIONS]; the exported schemas in app/shared/schemas/
  * are what a migration test compares against.

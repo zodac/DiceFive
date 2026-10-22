@@ -119,8 +119,6 @@ The sole holder can relicense later.
   `VerifyAssetSourcesTask`). Change both together.
 
 **Still open:**
-- **iOS licences.** Before an iOS release, generate iOS's own report and apply the copyleft guard to its dependencies
-  (`IOS_SUPPORT.md`).
 - **AI authorship.** Copyright in AI-generated material is unsettled. Worth a lawyer's view if the app earns real money.
 - **The copyright line is a pseudonym**: "Copyright 2026 zodac.net" (in `LICENSE`, `README.md` and
   `asset-sources.json`).

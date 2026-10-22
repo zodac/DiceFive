@@ -16,8 +16,7 @@ failure stops what follows.
   --console=plain 2>&1 | grep -v -E '^> Task|^$'
 ```
 
-- The root `testDebugUnitTest` runs both test suites and compiles `app/shared` for iOS (both targets plus the iOS
-  test code). It is the only task that catches Kotlin/Native-only failures, such as a `commonTest` name with a comma.
+- The root `testDebugUnitTest` runs both modules' test suites.
 - `app/android` has two flavours, `play` and `github` (`.claude/DESIGN.md`, "Distribution"). Its `testDebugUnitTest`,
   `lintDebug` and `compileDebugAndroidTestKotlin` run both (`testPlayDebugUnitTest`, `testGithubDebugUnitTest`, ...),
   so `src/test` runs twice, once in each app, with `src/testPlay` and `src/testGithub` once in their own.
@@ -38,7 +37,6 @@ failure stops what follows.
 | One in the github app (`src/testGithub`, or `src/test` as the github app runs it) | `./gradlew -q :app:android:testGithubDebugUnitTest --tests '*GithubFlavourTest'` |
 | One shared test (`commonTest`, `androidHostTest`) on the JVM | `./gradlew -q :app:shared:testAndroidHostTest --tests '*GameEngineTest'` |
 | One test method | `--tests '*BoardSemanticsTest.on a phone*'` |
-| iOS compile only | `./gradlew -q :app:shared:compileKotlinIosSimulatorArm64 :app:shared:compileTestKotlinIosSimulatorArm64` |
 | Lint per module | `./gradlew -q :app:shared:lint :app:android:lintPlayDebug :app:android:lintGithubDebug` |
 | Regenerate Hard AI's perfect-play table (after any change to how Standard scores; about 20s) | `./gradlew :app:shared:testAndroidHostTest --tests '*StandardPerfectPlayTableTest*' -PregeneratePerfectPlayTable` |
 
@@ -53,7 +51,7 @@ can't count on the classes before it in the same JVM. The configuration cache is
 
 ## Where tests live
 
-- Pure logic and view models go in `app/shared/src/commonTest`: JVM now, compiled for iOS.
+- Pure logic and view models go in `app/shared/src/commonTest`, run on the JVM.
 - JVM-only tests that read resource files from disk go in `app/shared/src/androidHostTest`.
 - Anything that needs Android, a resolved string or a rendered screen goes in `app/android/src/test`, under Robolectric
   (SDK 36, native graphics, set in `robolectric.properties`). What only one app has goes in `src/testPlay` (Play Games,
@@ -63,8 +61,6 @@ can't count on the classes before it in the same JVM. The configuration cache is
 
 ## Traps
 
-- **No commas, parentheses, `.`, `:`, `/`, `<`, `>`, `[` or `]` in backticked `commonTest` names.** Kotlin/Native
-  rejects them. Use " - ".
 - **A screen test** (`GameScreen`) needs `LocalPlatformServices provides SilentPlatformServices`. Step both
   `compose.mainClock` and the paused main looper (`ShadowLooper.idleMainLooper`), because the view model's coroutines
   delay on the looper. `GameScreenCupGateTest.waitFor` is the pattern.

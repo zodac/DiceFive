@@ -431,11 +431,10 @@ screen) of `StyleColour`s.
   - A roll with every die held (What Was The Point Of That?) shakes with `empty_cup_shake` and lands with no
     `mat_landing`.
   - The choice is `shakeSound`/`landingSounds` (`ui/game/RollSounds.kt`).
-  - The sources are `app/audio/*.ogg`, shared by both apps.
+  - The sources are `app/audio/*.ogg`.
   - They're peak-normalised to -0.8 dBFS by ffmpeg at build time (`scripts/normalize-audio.sh`): never `res/raw/`,
-    never hand-adjusted. Android packages Ogg copies (`NormalizeOggAudioTask`); iOS bundles AAC `.m4a` copies (an
-    Xcode build phase in `app/ios/project.yml`). `scripts/tests/normalize-audio-test.sh` checks both keep each
-    clip's length (the shake window is timed to them) and peak.
+    never hand-adjusted. Android packages Ogg copies (`NormalizeOggAudioTask`). `scripts/tests/normalize-audio-test.sh`
+    checks they keep each clip's length (the shake window is timed to them) and peak.
   - The app has one player (`rememberAppSoundEffects`, provided at `DiceFiveApp` as `LocalSoundEffects`). With sound
     on it loads its clips off the main thread a second after launch; otherwise on its first sound. It's held in the
     background and released with the app, so a sound started on one screen carries on to the next.
@@ -534,11 +533,10 @@ Two apps from one source, one per way the app reaches players: product flavours 
 
 ## Release pipeline
 
-- **Version.** Each app has its own: `app/android/VERSION` and `app/ios/VERSION` (`IOS_SUPPORT.md`).
-  - Android's is the single source: `versionName` is its contents, and `versionCode` is
-    `major*10000 + minor*100 + patch`.
-  - `scripts/set-version.sh <android|ios> X.Y.Z` writes one, and `scripts/bump-patch-version.sh <android|ios>`
-    bumps its patch.
+- **Version.** `VERSION` at the repo root, the one app's single source: `versionName` is its contents, and
+  `versionCode` is `major*10000 + minor*100 + patch`.
+  - `scripts/set-version.sh X.Y.Z` writes it, and `scripts/bump-patch-version.sh` bumps its patch. The `android-v` tag
+    prefix leaves room for another app.
   - Debug builds are signed with the repo's `app/android/debug.keystore`, so every debug APK shares one SHA-1 (which
     has no Play Games credential, as the key is public: `PLAY_GAMES.md`, "Play Console"). Built with `-PdevStamp`,
     one also takes the minute it was built as its `versionCode` (`<version>-dev<minute>`), so each installs over the
@@ -546,25 +544,20 @@ Two apps from one source, one per way the app reaches players: product flavours 
     and lint runs stay up to date. The minute is read through a `ValueSource` when the build runs, never while the
     script is evaluated, or the configuration cache would hand every build the same one.
 - **On every push to `main` that changes what Android ships**, `.github/workflows/android-release.yml` runs:
-  - parallel jobs: Android tests (a runner per flavour), shared tests with the iOS compile, lint, the Baseline Profile
+  - parallel jobs: Android tests (a runner per flavour), shared tests, lint, the Baseline Profile
     (generated fresh on an emulator from the play app, and given to both; see `EMULATOR.md`), and the github APK plus
     the play App Bundle;
   - then a `release` job that publishes GitHub release `android-v<version>` (plain `v<version>` up to 1.0.1) once every check has passed, with
     `DiceFive-<version>.apk` (github), `.aab` (play), `-mapping.txt` (the APK's) and `-play-mapping.txt` (the bundle's);
-  - then a commit that bumps the patch and empties `RELEASE_NOTES.md`'s Shared and Android sections (`[Release] Bump
-    Android version to X [skip ci]`).
+  - then a commit that bumps the patch and empties `RELEASE_NOTES.md` (`[Release] Bump Android version to X
+    [skip ci]`).
 - **Beside it, not part of it**, `readme-assets.yml` renders the README's feature graphic and screenshots from the
   same push and replaces the files on the `readme-assets` release (`STORE_ASSETS.md`, "The README's images").
-- **iOS** has the same flow in `ios-release.yml`: iOS tests and the IPA (plus the simulator screen tour from 1.0.0,
-  or with the `force_screenshots` dispatch input), then GitHub release `ios-v<version>` (a pre-release below 1.0.0,
-  never "Latest") and a bump of `app/ios/VERSION`. A change to the shared code releases
-  both apps; the two release jobs share a `version-bump` concurrency group, so their bump commits don't collide.
 - **Release description.** `RELEASE_NOTES.md` (the maintainer's), then "## Changes since X" from
   `scripts/release-changelog.sh`, grouped by each commit's `[Category]`.
-  - The notes have three sections, headed `## Shared`, `## Android` and `## iOS`. A platform's release takes Shared
-    plus its own, then empties those two; the other platform's waits for its release (`scripts/release-notes.sh`,
-    tested by `scripts/tests/release-notes-test.sh`).
-  - The changelog is per app: commits since that app's previous tag, leaving out the other app's own code.
+  - The notes are the whole file, as written; it's kept blank between releases. A release takes it all, then empties
+    it (`scripts/release-notes.sh`, tested by `scripts/tests/release-notes-test.sh`).
+  - The changelog lists the commits since the previous `android-v` tag (plain `v` up to 1.0.1).
 - **Signing.** Four `ANDROID_RELEASE_*` env vars (repo secrets in CI); without them the build is unsigned. The keystore
   (alias `upload`) is the Play upload key, and signs both the bundle and the github APK.
 - **`PROGRESS_FILE_KEY`** (a repo secret): the github APK's progress file key ("Distribution"). The apk job fails

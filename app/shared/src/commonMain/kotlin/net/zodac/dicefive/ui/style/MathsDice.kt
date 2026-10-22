@@ -180,7 +180,7 @@ class MathsDiceStyle(
 /** Each of [formula]'s runs laid out in its font at [LAYOUT_EM_PX] - once per face, not per frame. */
 @Composable
 private fun rememberFormulaLayouts(formula: Formula): List<TextLayoutResult> {
-    // Keyed on the fonts themselves: where a font resource loads asynchronously (iOS), the first
+    // Keyed on the fonts themselves: where a font resource loads asynchronously, the first
     // composition gets a stand-in, and the formula is laid out again once the real font arrives.
     val mainFont = Font(Res.font.dicefive_maths_regular)
     val italicFont = Font(Res.font.dicefive_maths_italic)

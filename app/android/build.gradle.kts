@@ -13,9 +13,8 @@ plugins {
     alias(libs.plugins.androidx.baselineprofile)
 }
 
-// Single source of truth for the app version - bump this module's VERSION file to release a new one (iOS has its own,
-// app/ios/VERSION).
-val appVersionName = file("VERSION").readText().trim()
+// Single source of truth for the app version - bump the repo root's VERSION file to release a new one.
+val appVersionName = rootProject.file("VERSION").readText().trim()
 val appVersionCode = appVersionName.split(".").map { it.toInt() }
     .let { (major, minor, patch) ->
         // Two digits each for minor and patch, so a part of 100 or more would collide with the next minor/major
@@ -318,7 +317,7 @@ for (check in listOf("test%sDebugUnitTest", "lint%sDebug", "lint%sRelease", "com
 }
 
 // ── Audio loudness normalisation ──────────────────────────────────────────────
-// The sound effects' sources are app/audio/*.ogg, shared with the iOS app. scripts/normalize-audio.sh brings every
+// The sound effects' sources are app/audio/*.ogg. scripts/normalize-audio.sh brings every
 // clip to the same peak level (its header says why) and writes the copies this module packages into a build/ dir,
 // registered as an extra generated res source set below. Never src/main/res/raw/: that stays empty, so `git status`
 // only ever shows edits to the original clips, never the machine-generated, gain-adjusted bytes in the APK.
@@ -343,7 +342,7 @@ abstract class NormalizeOggAudioTask @Inject constructor(
         rawDir.deleteRecursively()
         execOperations.exec {
             commandLine(
-                listOf(script.get().asFile.absolutePath, "ogg", rawDir.absolutePath) +
+                listOf(script.get().asFile.absolutePath, rawDir.absolutePath) +
                     sourceFiles.files.sortedBy { it.name }.map { it.absolutePath },
             )
         }
@@ -394,8 +393,7 @@ androidComponents {
 // README there. That folder is the one place a new third-party asset has to be recorded.
 // The hand-written licence records - asset sources, asset/library entries and license texts - live in
 // app/licensing/, beside both modules rather than in this one: they cover app/shared's font and icons
-// too, and an iOS build will need the same records. This module is just the one that generates the
-// Android report from them.
+// too. This module is just the one that generates the Android report from them.
 val licensingDir: Directory = rootProject.layout.projectDirectory.dir("app/licensing")
 
 aboutLibraries {
@@ -670,7 +668,7 @@ val verifyAssetSources = tasks.register<VerifyAssetSourcesTask>("verifyAssetSour
         include("*/res/**", "*/assets/**")
         exclude("*/res/values*/**")
     })
-    // The sound effects, shared with the iOS app.
+    // The sound effects.
     assetFiles.from(rootProject.fileTree("app/audio") { include("*.ogg") })
     // values*/ holds the shared UI's strings - the app's own text, as with res/values*/ above, not a
     // bundled asset with a source to record.

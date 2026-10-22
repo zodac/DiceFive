@@ -10,7 +10,7 @@ name: Update dependencies
 # both designed around here:
 #   - It may not change files under .github/workflows/. So no version the update moves lives in a
 #     workflow: the JDK comes from the Gradle toolchain file and the SDK packages from
-#     app/android/build.gradle.kts, both read at run time (below, and in android-release.yml), and the actionlint
+#     app/android/build.gradle.kts, both read at run time (.github/actions/build-setup), and the actionlint
 #     image is pinned in .github/scripts/lint_workflows.sh (the NDK, like the SDK packages, comes from
 #     app/android/build.gradle.kts). The one thing left in workflow files is
 #     the actions' own versions (`uses: …@vN`, or a commit pin `@<sha> # vX.Y.Z`): the script runs with --no-workflow-edits, so newer
@@ -44,55 +44,12 @@ jobs:
         with:
           ref: main
 
-      # The Java version is owned by the Gradle toolchain (gradle/gradle-daemon-jvm.properties), which
-      # Gradle would download itself; installing the same JDK here just saves it that download.
-      - name: Read the Java version from the Gradle toolchain
-        id: java
-        run: echo "version=$(grep -oP '^toolchainVersion=\K[0-9]+' gradle/gradle-daemon-jvm.properties)" >> "$GITHUB_OUTPUT"
-
-      - name: Set up JDK
-        uses: actions/setup-java@v6
+      # The JDK and SDK packages app/android/build.gradle.kts builds against, ffmpeg (normalizeOggAudio) and Gradle.
+      # A newer platform or NDK the script tries is installed by the script itself.
+      - name: Set up the build
+        uses: ./.github/actions/build-setup
         with:
-          distribution: temurin
-          java-version: ${{ steps.java.outputs.version }}
-
-      # The packages app/android/build.gradle.kts builds against. A newer platform or NDK the script
-      # tries is installed by the script itself.
-      - name: Install required Android SDK packages
-        run: |
-          ANDROID_CLI="$ANDROID_HOME/cmdline-tools/latest/bin/android"
-          read -ra packages <<< "$(.github/scripts/android_sdk_packages.sh)"
-          if [ -x "$ANDROID_CLI" ]; then
-            "$ANDROID_CLI" sdk install --sdk="$ANDROID_HOME" "${packages[@]}"
-          else
-            # The runner's cmdline-tools predate the android CLI, so sdkmanager is the only installer.
-            SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-            # yes always exits non-zero here (sdkmanager stops reading, so yes hits a broken pipe), which
-            # `shell: bash`'s pipefail would take as the step failing; only sdkmanager's own status counts.
-            { yes 2>/dev/null || true; } | "$SDKMANAGER" --licenses > /dev/null
-            "$SDKMANAGER" "${packages[@]}"
-          fi
-
-      # normalizeOggAudio shells out to ffmpeg, which ubuntu-latest runners don't ship.
-      - name: Install ffmpeg
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
-
-      # The unit-test run also compiles app/shared for iOS (the check that its common code stays
-      # platform-neutral), which needs the Kotlin/Native toolchain - a few hundred MB that Gradle
-      # otherwise downloads into ~/.konan on every run. setup-gradle doesn't cache it. Keyed on the
-      # version catalog, where the Kotlin version lives; a partial match still restores the last
-      # toolchain, so only a Kotlin bump downloads a new one.
-      - name: Cache Kotlin/Native toolchain
-        uses: actions/cache@v6
-        with:
-          path: ~/.konan
-          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
-          restore-keys: konan-${{ runner.os }}-
+          ffmpeg: "true"
 
       # Builds and tests on every Gradle-side change, steps a breaking bump back down, and exits
       # non-zero if the build still fails or pinned values disagree across files - which stops the
@@ -186,12 +143,3 @@ jobs:
         run: |
           gh workflow run android-release.yml --ref main
           echo "Started android-release.yml on main - see the Actions tab for the release run." >> "$GITHUB_STEP_SUMMARY"
-
-      # The same for the iOS release, which the new versions have to pass too.
-      - name: Release the update on iOS
-        if: steps.changes.outputs.changed == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh workflow run ios-release.yml --ref main
-          echo "Started ios-release.yml on main - see the Actions tab for the iOS release run." >> "$GITHUB_STEP_SUMMARY"

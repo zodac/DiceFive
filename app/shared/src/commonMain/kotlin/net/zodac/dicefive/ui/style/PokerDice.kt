@@ -130,7 +130,7 @@ class PokerDiceStyle(
 /** The rank [text] laid out once in the bundled serif at [RANK_LAYOUT_PX], to be scaled to the die. */
 @Composable
 private fun rememberRankLayout(text: String): TextLayoutResult {
-    // Keyed on the font itself: where it loads asynchronously (iOS), it's laid out again once it arrives.
+    // Keyed on the font itself: where it loads asynchronously, it's laid out again once it arrives.
     val font = Font(Res.font.dicefive_maths_regular)
     val measurer = rememberTextMeasurer(cacheSize = 0)
     val density = LocalDensity.current

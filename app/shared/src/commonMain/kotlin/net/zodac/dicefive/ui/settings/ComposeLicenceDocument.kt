@@ -47,11 +47,10 @@ import net.zodac.dicefive.ui.common.stringResource
 /**
  * The licence report in plain Compose: one card per licence - its name, what uses it, a "Show
  * licence text" toggle, and every item under it - then one for the notices, with tappable links and
- * each card's text selectable on its own (a selection doesn't run on into the next card). What iOS
- * shows, and what previews show; Android draws each card as a platform TextView instead (see
+ * each card's text selectable on its own (a selection doesn't run on into the next card). What
+ * previews show; Android draws each card as a platform TextView instead (see
  * TextViewLicenceDocument in :app:android), because Compose's selection can't span rows and its links
- * misbehave inside a SelectionContainer on Android. Whether iOS needs a native text view too is an
- * open question in .claude/IOS_SUPPORT.md.
+ * misbehave inside a SelectionContainer on Android.
  */
 @Composable
 internal fun ComposeLicenceDocument(report: LicenseReport, scroll: LicenceScroll, modifier: Modifier = Modifier) {

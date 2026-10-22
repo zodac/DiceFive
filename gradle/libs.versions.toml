@@ -18,9 +18,6 @@ jetbrainsNavigation = "2.9.2"
 jetbrainsNavigationEvent = "1.1.0"
 navigationCompose = "2.10.2"
 room = "2.8.5"
-# Room's own SQLite interfaces are this version - the bundled driver (iOS) matches it.
-# @update follows room: androidx.room:room-runtime -> androidx.sqlite:sqlite
-sqlite = "2.6.2"
 datastore = "1.2.1"
 # DataStore's own file layer, already in the APK through it; the cloud save gzips with it too. Keep it at the
 # version DataStore resolves to, so declaring it adds nothing.
@@ -53,7 +50,6 @@ androidx-room-runtime = { group = "androidx.room", name = "room-runtime", versio
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-datastore-preferences-core = { group = "androidx.datastore", name = "datastore-preferences-core", version.ref = "datastore" }
 okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
-androidx-sqlite-bundled = { group = "androidx.sqlite", name = "sqlite-bundled", version.ref = "sqlite" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }

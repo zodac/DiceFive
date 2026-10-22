@@ -26,7 +26,6 @@ pass, a TalkBack pass and a Play listing.
    - a new `<Language>TextTest` like `SpanishTextTest`.
 7. **A device pass**, with TalkBack.
 8. **The store listing** (`PUBLISHING.md`), under the banned-words rule.
-9. **iOS** (later): `CFBundleLocalizations` in Info.plist, and `InfoPlist.strings` per language (`IOS_SUPPORT.md`).
 
 **Process that worked.**
 - **Settle the glossary first.**
@@ -89,9 +88,4 @@ pass, a TalkBack pass and a Play listing.
   - `androidResources { generateLocaleConfig = true }` gives the per-app language setting on 13+.
   - `res/resources.properties` sets `unqualifiedResLocale=en-GB`.
   - Each language has `res/values-xx/strings.xml` with just `app_name`.
-- **iOS** (needs a Mac).
-  - Declare `CFBundleLocalizations`, with `CFBundleDevelopmentRegion` en.
-  - Fix plural alignment: Compose on iOS reads `NSLocale.preferredLanguages`, and `alignPlatformLanguage` is a no-op.
-    Check it by hand ("21 solo games played" on a Russian iPhone).
-  - Direction and dates already follow the strings.
 - **Play Store**: a listing per locale (`PUBLISHING.md`).

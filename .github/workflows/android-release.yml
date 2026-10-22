@@ -1,20 +1,19 @@
 name: Android release
 
 # Every push to main that changes what the Android app ships (see the paths filter below) builds, tests,
-# and publishes a GitHub Release android-v<version> for the version currently in app/android/VERSION, then commits
+# and publishes a GitHub Release android-v<version> for the version currently in VERSION, then commits
 # that file bumped to the next patch version back to main (e.g. 1.0.1 -> 1.0.2) so development always
 # continues one patch ahead of the last release. That bump-commit is pushed with the default GITHUB_TOKEN,
-# which GitHub does not use to re-trigger workflows, so this can't loop. iOS has its own version and
-# releases (ios-release.yml); a change to the shared code releases both.
+# which GitHub does not use to re-trigger workflows, so this can't loop.
 #
-# For a minor/major bump, edit app/android/VERSION by hand (or run scripts/set-version.sh android) and
+# For a minor/major bump, edit VERSION by hand (or run scripts/set-version.sh) and
 # push that - the next run releases that version, then resumes patch-bumping from it (1.1.0 -> 1.1.1 -> ...).
 #
-# The release's description is RELEASE_NOTES.md's Shared and Android sections (the maintainer's own
-# summary, written before pushing; scripts/release-notes.sh) followed by every commit since the
+# The release's description is RELEASE_NOTES.md, all of it (the maintainer's own summary, written
+# before pushing; scripts/release-notes.sh), followed by every commit since the
 # previous release, grouped by the "[Category]" at the start of its subject line
 # (scripts/release-changelog.sh; the format is enforced locally by .githooks/commit-msg). The bump
-# commit afterwards also empties those two sections, ready for the next release's notes.
+# commit afterwards also empties that file, ready for the next release's notes.
 #
 # Every release attaches its build assets: the signed github APK (for sideloading; an app of its own,
 # net.zodac.dicefive.github, with progress files and no Play Games), the signed play App Bundle (.aab) for
@@ -23,10 +22,9 @@ name: Android release
 # Play App Signing upload key - Play re-signs the bundle with its own key.
 #
 # The checks run side by side, each on a runner of its own - the app's Robolectric tests, the shared
-# module's tests with its iOS compile, lint, and the Baseline Profile,
-# which stops itself if a check fails. The signed APK is built with that profile once it and every check
-# have passed, and the release itself is made only once all of that has. Each job sets itself up
-# through .github/actions/build-setup.
+# module's tests, lint, and the Baseline Profile, which stops itself if a check fails. The signed APK is
+# built with that profile once it and every check have passed, and the release itself is made only once
+# all of that has. Each job sets itself up through .github/actions/build-setup.
 #
 # Only a push that touches what ships triggers a release: app sources and resources (VERSION
 # included), and the Gradle build. Docs, CI, tooling, test code and Markdown files don't build a new
@@ -35,6 +33,7 @@ on:
   push:
     branches: [main]
     paths:
+      - "VERSION"
       - "app/**"
       - "gradle/**"
       - "build.gradle.kts"
@@ -50,9 +49,6 @@ on:
       - "!app/**/src/androidHostTest/**"
       - "!app/**/src/androidTest/**"
       - "!app/**/*.md"
-      # ...and the iOS app and iOS-only shared code, which ios-release.yml releases.
-      - "!app/ios/**"
-      - "!app/shared/src/iosMain/**"
   # Lets a release for the VERSION currently on main be triggered on demand
   # (Actions tab, or `gh workflow run android-release.yml`) instead of only ever
   # firing from a push - useful when a push-triggered run failed partway
@@ -82,7 +78,7 @@ jobs:
       - name: Read version
         id: version
         run: |
-          version="$(tr -d '[:space:]' < app/android/VERSION)"
+          version="$(tr -d '[:space:]' < VERSION)"
           echo "name=$version" >> "$GITHUB_OUTPUT"
 
   # app:android's unit tests - Robolectric, so the slowest of the checks. One runner per flavour, side by side: each
@@ -150,8 +146,7 @@ jobs:
       - name: Run app unit tests
         run: ./gradlew :app:android:test${{ matrix.flavour }}DebugUnitTest --console=plain
 
-  # app:shared's tests on the JVM, and its compile for both iOS targets (the check that its common code
-  # stays platform-neutral) - see the testDebugUnitTest task in app/shared/build.gradle.kts.
+  # app:shared's tests on the JVM - see the testDebugUnitTest task in app/shared/build.gradle.kts.
   shared-tests:
     runs-on: ubuntu-latest
     steps:
@@ -160,10 +155,8 @@ jobs:
 
       - name: Set up the build
         uses: ./.github/actions/build-setup
-        with:
-          kotlin-native: "true"
 
-      - name: Run shared tests and the iOS compile
+      - name: Run shared tests
         run: ./gradlew :app:shared:testDebugUnitTest --console=plain
 
   # Deprecation gates. Any compile already fails on a deprecated API (the Kotlin DEPRECATION flag in
@@ -461,11 +454,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    # Shared with ios-release.yml's release job: a change to the shared code releases both apps, and their
-    # version-bump commits must reach main one after the other.
-    concurrency:
-      group: version-bump
-      cancel-in-progress: false
     steps:
       # Full history and tags: the release description lists every commit since the previous
       # release's tag, which a shallow clone wouldn't have.
@@ -480,20 +468,20 @@ jobs:
           name: release-files
           path: release-files/
 
-      # RELEASE_NOTES.md's Shared and Android sections (skipped if empty; scripts/release-notes.sh), then
-      # the grouped commit list. A copy of the notes is kept aside so the bump step below can tell whether
-      # those sections on main are still the text this release shipped with.
+      # RELEASE_NOTES.md (skipped if empty; scripts/release-notes.sh), then the grouped commit list. A
+      # copy of the notes is kept aside so the bump step below can tell whether the file on main is still
+      # the text this release shipped with.
       - name: Compose release description
         id: notes
         run: |
           body="$RUNNER_TEMP/release-body.md"
           if [[ -f RELEASE_NOTES.md ]]; then cp RELEASE_NOTES.md "$RUNNER_TEMP/released-notes.md"; fi
-          notes="$(./scripts/release-notes.sh extract android)"
+          notes="$(./scripts/release-notes.sh extract)"
           {
             if [[ -n "$notes" ]]; then
               printf '%s\n\n' "$notes"
             fi
-            ./scripts/release-changelog.sh android "${{ needs.version.outputs.name }}"
+            ./scripts/release-changelog.sh "${{ needs.version.outputs.name }}"
           } > "$body"
           cat "$body"
           echo "path=$body" >> "$GITHUB_OUTPUT"
@@ -508,20 +496,19 @@ jobs:
 
       # Only reached once everything above has succeeded, so a failed build
       # never bumps the version. Re-syncs with the current main tip first in
-      # case it moved during this run (the other app's bump among them).
+      # case it moved during this run.
       #
-      # RELEASE_NOTES.md's Shared and Android sections are emptied for the next release - each only if it
-      # still holds exactly what this release shipped with. If notes for the next release were pushed while
-      # this run was going, they're left alone; so is the iOS section.
+      # RELEASE_NOTES.md is emptied for the next release - only if it still holds exactly what this release
+      # shipped with. If notes for the next release were pushed while this run was going, they're left alone.
       - name: Bump version for next development iteration
         run: |
           git fetch origin main
           git checkout main
           git reset --hard origin/main
-          ./scripts/bump-patch-version.sh android
-          ./scripts/release-notes.sh clear android "$RUNNER_TEMP/released-notes.md"
+          ./scripts/bump-patch-version.sh
+          ./scripts/release-notes.sh clear "$RUNNER_TEMP/released-notes.md"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add app/android/VERSION RELEASE_NOTES.md
-          git commit -m "[Release] Bump Android version to $(cat app/android/VERSION) [skip ci]"
+          git add VERSION RELEASE_NOTES.md
+          git commit -m "[Release] Bump Android version to $(cat VERSION) [skip ci]"
           git push origin main

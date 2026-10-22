@@ -1,7 +1,7 @@
 # DiceFive: the "Unlock all styles" purchase
 
-**Planned, not built.** One one-time Google Play purchase that unlocks every style without earning it. Android only
-(the shared seam lets iOS add StoreKit later). This file is the plan, in phases. Resume at the phase marked **Next**.
+**Planned, not built.** One one-time Google Play purchase that unlocks every style without earning it. Android only.
+This file is the plan, in phases. Resume at the phase marked **Next**.
 Commits go under `[Purchases]` (add the category to the `commit` skill when work starts).
 
 What the player gets:
@@ -45,12 +45,12 @@ products" to "one-time products" in 2025 and moves menus often.
 
 ```
 app/shared/.../purchases/  Store (interface, StoreState), NoStore, PurchasesRepository (the cached entitlement),
-                           ProductKey - nothing here names Google or Apple
+                           ProductKey - nothing here names Google
 app/android/.../purchases/ PlayBillingStore - the only com.android.billingclient imports
 ```
 
 - **Mirrors the Play Games seam** (`PLAY_GAMES.md`, "Architecture"): an interface in shared, a no-op default
-  (`NoStore`, also iOS's until StoreKit), the Play implementation built in `MainActivity` and re-attached across
+  (`NoStore`), the Play implementation built in `MainActivity` and re-attached across
   configuration changes, provided through a `LocalStore` composition local.
 - **Play-only, same gate as Play Games**: a release build uses Play Billing only when installed by Play
   (`com.android.vending`), a debug build always, neither without the Play Store. Otherwise `NoStore`: no button.
@@ -127,8 +127,6 @@ Today `StyleCatalog.isUnlocked(id, achievements)` and `StyleUnlock.isMet(achieve
 Settings gets nothing. The launch and `ON_RESUME` queries restore a purchase on a reinstall or a new phone, and Google
 doesn't ask for a control. A player who bought on another Play Store account switches account in the Play Store and
 reopens the app.
-- iOS needs one (App Store review), so it comes with StoreKit: a `Store.needsRestoreControl` property, false for
-  `PlayBillingStore`, never `if (iOS)` ("Later: iOS").
 
 ### Strings
 
@@ -258,13 +256,6 @@ On a real phone signed in to Play as a license tester (the emulator has no Play 
 
 Closed test with real (non-tester) accounts too: a tester's behaviour differs from a real buyer's, and real testers on
 a track **are charged**. Then the staged rollout as for Play Games (`PLAY_GAMES.md`, "Release").
-
-## Later: iOS
-
-StoreKit 2 behind the same `Store` seam: a non-consumable with the same product id, `Transaction.currentEntitlements`
-for restore, and the paid Apple Developer Program (`IOS_SUPPORT.md`, Phase 6). App Store review **requires** a visible
-Restore Purchases control, so iOS adds the Settings row behind `Store.needsRestoreControl`: re-query, then "All styles
-restored", "No purchases found" or "Couldn't reach the App Store".
 
 [Billing release notes](https://developer.android.com/google/play/billing/release-notes) ·
 [Integrate](https://developer.android.com/google/play/billing/integrate) ·

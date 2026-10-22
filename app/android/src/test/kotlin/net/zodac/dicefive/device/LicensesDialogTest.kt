@@ -301,7 +301,7 @@ class LicensesDialogTest {
         assertEquals(Layout.DIR_LEFT_TO_RIGHT, layout.getParagraphDirection(0))
         assertEquals(0f, layout.getLineLeft(0), 0.5f)
 
-        // The list iOS and previews draw, given Android's real reports.
+        // The list previews draw, given Android's real reports.
         val platform = object : PlatformServices by SilentPlatformServices {
             override suspend fun loadLicenceReports() = AndroidPlatformServices(application).loadLicenceReports()
         }

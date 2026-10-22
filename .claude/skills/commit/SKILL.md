@@ -28,7 +28,6 @@ commit**, and tell the user so they can rename it before it spreads.
 | `[Gameplay]`     | The in-game screen - dice, cup, scorecard, player tabs - and rules      |
 | `[Game Over]`    | The end-of-game results page and its celebration                        |
 | `[Icon]`         | The app's launcher icon                                                 |
-| `[iOS]`          | iOS-only work - `iosMain`, the iOS app and its platform services        |
 | `[Leaderboard]`  | The Leaderboard (scores) screen and the score records behind it         |
 | `[Performance]`  | Start-up, loading, storage and frame cost across the app                |
 | `[Play Games]`   | Google Play Games Services - sign-in, online sync, cloud save, Sidekick |

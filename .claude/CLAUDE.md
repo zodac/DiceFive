@@ -2,7 +2,7 @@
 
 ## The project
 
-A local (no netplay) five-dice scorecard game for Android, with iOS to follow. Its tagline: "Roll five dice, fill your
+A local (no netplay) five-dice scorecard game for Android. Its tagline: "Roll five dice, fill your
 scorecard, and outscore friends or AI. Fully offline, unless you sign in to Google Play Games."
 
 - **Players.** 1-4 per game: solo, pass-and-play, or CPU opponents (Easy/Medium/Hard).
@@ -13,21 +13,22 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
   - Accessible: TalkBack and large fonts are first-class.
   - Smooth: 60fps minimum unless the player picks a lower Animations level.
   - Small APK.
-  - Shared code, ready for an iOS app.
+  - Kotlin/Compose Multiplatform for segregation: shared code in `app/shared`, Android's platform code apart from it
+    (`MULTIPLATFORM.md`).
 - **Google Play Games Services** (`PLAY_GAMES.md`) is built on Android: sign-in, achievements, leaderboards, cloud save
   and Sidekick. Its Play Console release remains.
-- **Planned, not built.** The iOS app (`IOS_SUPPORT.md`), an "Unlock all styles" purchase on Android, the app's only
-  purchase (`PURCHASES.md`), and possibly ads (`PUBLISHING.md`).
+- **Planned, not built.** An "Unlock all styles" purchase on Android, the app's only purchase (`PURCHASES.md`), and
+  possibly ads (`PUBLISHING.md`).
 - **Audience.** `README.md` is the public, player-facing description; keep it true to the app.
 
 ## Repo metadata
 
 | | |
 |---|---|
-| Repo | `github.com/zodac/DiceFive`, default branch `main`. Every push to `main` that changes what an app ships cuts a GitHub release for that app (`android-v*` Android, `v*` up to 1.0.1; `ios-v*` iOS; `DESIGN.md`, "Release pipeline") |
+| Repo | `github.com/zodac/DiceFive`, default branch `main`. Every push to `main` that changes what an app ships cuts a GitHub release for that app (`android-v*` Android, `v*` up to 1.0.1; `DESIGN.md`, "Release pipeline") |
 | Package | `net.zodac.dicefive` (Kotlin root package; the play app's `applicationId`; the github APK is `net.zodac.dicefive.github`) |
-| Version | One per app: `app/android/VERSION` (released from 1.0.0) and `app/ios/VERSION` (pre-releases below 1.0.0). Never hand-edit for a debug install |
-| Platforms | Android minSdk 26, targetSdk/compileSdk 37 (`app/android/build.gradle.kts`); iOS compiles but no app yet |
+| Version | `VERSION` at the repo root (released from 1.0.0). Never hand-edit for a debug install |
+| Platforms | Android minSdk 26, targetSdk/compileSdk 37 (`app/android/build.gradle.kts`) |
 | Stack | Kotlin Multiplatform, Compose Multiplatform, Material 3 (dark only), Navigation Compose, MVVM (`ViewModel` + `StateFlow`), Room (scores), DataStore (everything else) |
 | Versions | `gradle/libs.versions.toml`, bumped monthly by CI (an entry tied to another is marked `# @update`); sandbox pins in `sandbox/Dockerfile` |
 | Languages | English (`en-GB` base, British spelling), Spanish, Arabic (RTL) - all player text in Compose resources (`I18N.md`) |
@@ -37,8 +38,9 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 ## Code standards
 
 - **Layout.**
-  - `app/shared` holds the game, UI and persistence. It must compile for iOS: no Android or JVM APIs, resources
-    through `Res.*`, devices through `platform/PlatformServices`.
+  - `app/shared` holds the game, UI and persistence. `commonMain` stays platform-neutral: no Android or JVM APIs,
+    resources through `Res.*`, devices through `platform/PlatformServices`. Nothing compiles it for another target,
+    so this is kept by hand.
   - `app/android` is the APK shell and Android's platform code (`device/`). Two flavours (`DESIGN.md`,
     "Distribution"): `play` (Google Play, Play Games in `src/play`) and `github` (the GitHub APK, progress files in
     `src/github`).
@@ -84,8 +86,7 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
   - `.claude/hooks/guard-release-notes.sh` backs this up: an edit waits for a permission prompt, and a shell change is
     undone. The prompt is a backstop, not permission.
   - Only the release workflow empties it. Hook tests: `.claude/hooks/tests/run-hook-tests.sh`.
-  - It has `## Shared`, `## Android` and `## iOS` sections; each platform's release uses Shared plus its own
-    (`DESIGN.md`, "Release pipeline").
+  - It's blank between releases; all of it becomes the Android release's notes (`DESIGN.md`, "Release pipeline").
 - **Commits**: the subject is `[Category] Short description` (`.githooks/commit-msg`). Use the `commit` skill; the
   category list lives there.
 - **After a requested code change is verified** (it compiles and the relevant tests pass), build and send the debug
@@ -103,7 +104,6 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 | `benchmark` | Measuring frame cost without a device |
 | `emulator` | Sandbox emulator: seeing the real app, the Baseline Profile journey |
 | `store-assets` | Generating and reviewing the Play Store graphics and video |
-| `ios-build` | The iOS app's CI results: the IPA to sideload (`ios-v*` releases), simulator screenshots, iOS test failures |
 
 ## Reference docs (read the one for an area before changing it)
 
@@ -125,8 +125,4 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 | `.claude/PUBLISHING.md` | Play Store submission checklist, the app's licence and third-party licence scope |
 | `.claude/PLAY_GAMES.md` | Anything touching Google Play Games Services: sign-in, achievement mirror, leaderboards, cloud save, Sidekick |
 | `.claude/PURCHASES.md` | The planned "Unlock all styles" purchase: Play Billing, the entitlement, the Styles button, the maintainer's Play Console steps, in phases |
-| `.claude/IOS_SUPPORT.md` | Module layout and platform seams, KMP gotchas, the phased iOS roadmap (Mac-less: CI builds, sideloaded) |
-
-## Pending
-
-- **The iOS app.** Follow the roadmap in `.claude/IOS_SUPPORT.md`; the phase marked **Next** is where to resume.
+| `.claude/MULTIPLATFORM.md` | Module layout and platform seams, KMP gotchas |

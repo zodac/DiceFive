@@ -11,7 +11,7 @@ for particular screens:
 Code comments that cite one of those sections under `UI.md` now find it in the companion file.
 
 All UI is shared Compose Multiplatform code in `app/shared/src/commonMain/kotlin/net/zodac/dicefive/ui/`; the paths
-below are relative to it. It must stay platform-neutral: no Android or JVM API (the iOS compile fails), resources
+below are relative to it. It must stay platform-neutral: no Android or JVM API (nothing enforces it; `MULTIPLATFORM.md`), resources
 through `Res.*`, and device work through `PlatformServices`.
 
 **In one line**: everything outside the game board is stock Material 3 wearing a brand-seeded palette. The board owns
@@ -211,8 +211,7 @@ are the patterns). Real TalkBack speech can't be checked here, so the report say
 ### Known gaps (say so rather than claim coverage)
 
 - **Rules notation.** "3x"/"5x" are read as written. "pts" is spoken "points", and the example dice are read in full.
-- **System reduced motion** is honoured on Android only. On iOS, `reduceMotion()` returns false until it's wired up.
-  None of it has been seen on a device.
+- **System reduced motion** has not been seen on a device.
 - **Large fonts** have never been checked on a device. `ShrinkThenWrapTextTest` pins the sizes chosen.
   - What adapts:
     - other `maxLines = 1` sites allow two lines;
@@ -265,8 +264,6 @@ The process and its coroutines stay alive when the app is in the background. **N
   - the shake sensor and the logo's pupil sensor;
   - the reduced-motion observer.
 - The app has no services, receivers or background work.
-- **iOS**: pause, resume and cancel do nothing yet (`AVAudioPlayer.pause()` is the fix), and `TransientMessageHost`
-  still uses `delay`.
 
 ## Reduced motion
 
@@ -300,7 +297,7 @@ in Settings, between the switches and the resets.
 - The cap skips whole refreshes: a 60 cap gives 45 on 90Hz. So a capped level also asks the window for the lowest
   refresh rate of at least 60Hz (`preferRefreshRateFor`, `RefreshRateTest`). Never below 60Hz, so touch stays
   responsive.
-- Only the player's level caps frames. iOS doesn't cap yet.
+- Only the player's level caps frames.
 - **The 60fps floor holds for High and Medium**; 30fps happens only when the player picks Low or Off.
 
 **Two sources, one switch.** `LocalReduceMotion` (provided once in `DiceFiveApp`, beside `LocalAnimationLevel`) is
