@@ -31,7 +31,8 @@
 #                   release build's native symbol tables (see "0b. NDK")
 #                 - sandbox/Dockerfile's Android cmdline-tools download (URL + sha1, from Google's own SDK
 #                   repository manifest) and the Playwright CLI pin used for `install-deps`
-#                 - GitHub Actions `uses:` references (keeping the pin style: `@v4` stays a major tag) -
+#                 - GitHub Actions `uses:` references, in the workflows and .github/actions (keeping the pin
+#                   style: `@v4` stays a major tag, a commit pin `@<sha> # v1.2.3` moves to the new release's commit) -
 #                   or, with --no-workflow-edits, only reported
 #                 - The actionlint image pinned in .github/scripts/lint_workflows.sh
 #                 - ImageMagick's AppImage (version + sha256), pinned in .github/scripts/install_imagemagick.sh
@@ -1809,24 +1810,32 @@ update_apt_packages() {
 }
 
 # ── 11. GitHub Actions ────────────────────────────────────────────────────────
-# Collects every `uses: owner/repo[/path]@ref` in the workflows and moves it to the action's latest
-# stable release, keeping the existing pin style: a floating major tag (`@v4`) becomes the newer
-# major tag (`@v5`, once that tag is confirmed to exist), a full tag stays a full tag. Never moves a
-# reference backwards. Best-effort: actions that cannot be resolved are warned and left unchanged.
-# Under --no-workflow-edits the newer versions are only reported (record_note), never written.
+# Collects every `uses: owner/repo[/path]@ref` in the workflows and the repo's own composite actions
+# (.github/actions/*/action.yml) and moves it to the action's latest stable release, keeping the existing
+# pin style: a floating major tag (`@v4`) becomes the newer major tag (`@v5`, once that tag is confirmed
+# to exist), a full tag stays a full tag, and a commit pin (`@<40-hex sha> # v1.2.3`, the version in its
+# comment) becomes the new release's commit with its tag in the comment. Never moves a reference
+# backwards. Best-effort: actions that cannot be resolved are warned and left unchanged.
+# Under --no-workflow-edits the newer versions are only reported (record_note), never written - the
+# composite actions too, as the same action is often also named in a workflow, and the two must agree.
+
+ACTIONS_DIR=".github/actions"
 
 update_github_actions() {
     echo
     echo "🔍 Updating GitHub Actions versions..."
 
-    if [[ ! -d "${WORKFLOWS_DIR}" ]]; then
-        warn "No workflows directory at ${WORKFLOWS_DIR}, skipping"
+    local action_files=()
+    mapfile -t action_files < <(ls "${WORKFLOWS_DIR}"/*.yml "${ACTIONS_DIR}"/*/action.yml 2>/dev/null || true)
+    if [[ "${#action_files[@]}" -eq 0 ]]; then
+        warn "No workflows or composite actions found, skipping"
         return 0
     fi
 
+    # One line per reference: `owner/repo[/path]@ref`, then ` # vX.Y.Z` for a commit pin.
     local action_refs=()
     mapfile -t action_refs < <(
-        grep -rhoP 'uses:\s+\K[A-Za-z0-9._-]+/[A-Za-z0-9._-]+(/[A-Za-z0-9._/-]+)?@\S+' "${WORKFLOWS_DIR}"/*.yml \
+        grep -hoP 'uses:\s+\K[A-Za-z0-9._-]+/[A-Za-z0-9._-]+(/[A-Za-z0-9._/-]+)?@\S+(\s+#\s*v?[0-9][0-9.]*)?' "${action_files[@]}" \
             | sort -u || true
     )
 
@@ -1835,11 +1844,21 @@ update_github_actions() {
         return 0
     fi
 
-    for ref in "${action_refs[@]}"; do
-        local action current repo latest target
+    for entry in "${action_refs[@]}"; do
+        local ref action current repo latest target pinned_sha="" new_sha=""
+        ref="${entry%%[[:space:]]*}"
         action="${ref%@*}"
         current="${ref#*@}"
         repo=$(cut -d/ -f1,2 <<< "${action}")
+
+        if [[ "${current}" =~ ^[0-9a-f]{40}$ ]]; then
+            if [[ "${entry}" != *"#"* ]]; then
+                warn "${action} is pinned to commit ${current} with no '# vX.Y.Z' comment naming its version, skipping"
+                continue
+            fi
+            pinned_sha="${current}"
+            current=$(sed -E 's/.*#[[:space:]]*//' <<< "${entry}")
+        fi
 
         latest=$(latest_stable_github_release "${repo}" || true)
         if [[ -z "${latest}" ]]; then
@@ -1848,7 +1867,7 @@ update_github_actions() {
         fi
 
         target="${latest}"
-        if [[ "${current}" =~ ^v[0-9]+$ ]]; then
+        if [[ -z "${pinned_sha}" && "${current}" =~ ^v[0-9]+$ ]]; then
             local major_tag
             major_tag="v$(major_of "${latest#v}")"
             if github_curl -o /dev/null "https://api.github.com/repos/${repo}/git/ref/tags/${major_tag}" 2>/dev/null; then
@@ -1863,19 +1882,31 @@ update_github_actions() {
             continue
         fi
 
+        if [[ -n "${pinned_sha}" ]]; then
+            new_sha=$(github_curl "https://api.github.com/repos/${repo}/commits/${target}" | jq -r '.sha // empty') || new_sha=""
+            if ! [[ "${new_sha}" =~ ^[0-9a-f]{40}$ ]]; then
+                warn "Could not resolve ${repo}@${target} to a commit, leaving ${action} at ${current}"
+                continue
+            fi
+        fi
+
         if [[ "${NO_WORKFLOW_EDITS}" == "true" ]]; then
             echo "  ${action}: ${current} → ${target} available (not applied: --no-workflow-edits)"
-            record_note "GitHub Action ${action}: ${current} → ${target}"
+            record_note "GitHub Action ${action}: ${current} → ${target}${new_sha:+ (commit ${new_sha})}"
             continue
         fi
         echo "  ${action}: ${current} → ${target}"
-        for workflow in "${WORKFLOWS_DIR}"/*.yml; do
-            sed -i -E "s#${action//./\\.}@${current//./\\.}([[:space:]]|$)#${action}@${target}\\1#g" "${workflow}"
+        for file in "${action_files[@]}"; do
+            if [[ -n "${pinned_sha}" ]]; then
+                sed -i -E "s~${action//./\\.}@${pinned_sha}([[:space:]]+#[[:space:]]*)${current//./\\.}([[:space:]]|$)~${action}@${new_sha}\1${target}\2~g" "${file}"
+            else
+                sed -i -E "s#${action//./\\.}@${current//./\\.}([[:space:]]|$)#${action}@${target}\1#g" "${file}"
+            fi
         done
         record_update "GitHub Action ${action}: ${current} → ${target}"
     done
 
-    ok "GitHub Actions processed in ${WORKFLOWS_DIR}"
+    ok "GitHub Actions processed in ${WORKFLOWS_DIR} and ${ACTIONS_DIR}"
 }
 
 # ── 11b. actionlint image (.github/scripts/lint_workflows.sh) ─────────────────
