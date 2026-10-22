@@ -43,7 +43,7 @@
 #                   is not on compileSdk's API level (when Google publishes an image for it) or its
 #                   system image has disappeared from Google's SDK manifest
 #                 - a real build (assembleDebug, unit tests, instrumented-test compile, lint - the CI
-#                   gates) whenever a Gradle input changed,
+#                   gates - and both flavours' R8 release builds) whenever a Gradle input changed,
 #                   so a bump that breaks the build is caught here rather than on the next push to main
 #
 #               Also proven by a build rather than looked up (see their sections): compileSdk, and the
@@ -488,12 +488,15 @@ BUILD_LOG="${WORK_DIR}/gradle-build.log"
 
 # The same gates CI applies (.github/workflows/android-release.yml): the debug build, the unit tests, the
 # instrumented tests compiling, and lint - so a bump that, say, deprecates an API only a test uses is
-# caught here rather than on the next push. No JAVA_HOME juggling: the Gradle toolchain
+# caught here rather than on the next push. Plus both flavours' release builds (unsigned here), the only
+# ones R8 shrinks: a bump that R8 can't build with otherwise first fails in the release's apk job, after
+# it is on main. No JAVA_HOME juggling: the Gradle toolchain
 # (gradle/gradle-daemon-jvm.properties) decides which JDK the build runs and compiles on, and Gradle
 # fetches it if this machine lacks it. Extra Gradle arguments may be passed.
 run_gradle_build() {
     ./gradlew --no-daemon --console=plain "${@}" \
-        assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lintDebug > "${BUILD_LOG}" 2>&1
+        assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lintDebug \
+        :app:android:assembleGithubRelease :app:android:bundlePlayRelease > "${BUILD_LOG}" 2>&1
 }
 
 # Prints the "What went wrong" part of the last build's output (or its tail, if there is none).
@@ -2257,7 +2260,7 @@ verify_build() {
         return 0
     fi
     if [[ "${SKIP_BUILD}" == "true" ]]; then
-        warn "Gradle inputs changed but --skip-build was given - run './gradlew assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lintDebug' before committing"
+        warn "Gradle inputs changed but --skip-build was given - run './gradlew assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lintDebug :app:android:assembleGithubRelease :app:android:bundlePlayRelease' before committing"
         return 0
     fi
 

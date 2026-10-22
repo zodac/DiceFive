@@ -141,10 +141,13 @@ jobs:
 
       # The release workflow's gates, run on exactly the tree that would be committed, whatever the
       # script touched (it only builds when a Gradle input changed): the debug build, unit tests, the
-      # instrumented tests compiling, and lint - with the deprecation checks the build carries.
+      # instrumented tests compiling, and lint - with the deprecation checks the build carries - and both
+      # flavours' release builds, unsigned, so a bump R8 can't build with never reaches main.
       - name: Build, test and lint
         if: steps.changes.outputs.changed == 'true'
-        run: ./gradlew assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lintDebug --console=plain
+        run: |
+          ./gradlew assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lintDebug \
+            :app:android:assembleGithubRelease :app:android:bundlePlayRelease --console=plain
 
       # Also exercises a freshly bumped actionlint image before it is committed.
       - name: Lint workflows
