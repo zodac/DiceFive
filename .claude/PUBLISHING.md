@@ -86,7 +86,7 @@ until the player signs in.
     Apache-2.0 text once.
   - Sounds are credited (`app/licensing/asset-sources.json`).
   - Optional: link a hosted copy.
-- **Allowing a new licence.** Read it before adding it to `allowedLicenses` (`app/android/build.gradle.kts`).
+- **Allowing a new licence.** Read it before adding it to `LicencePolicy` (`build-logic/.../LicencePolicy.kt`).
   - LGPL, MPL and EPL can be workable, but carry real obligations (LGPL relinking is awkward with R8).
   - GPL and AGPL would force the whole app open.
 

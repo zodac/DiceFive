@@ -16,7 +16,9 @@ failure stops what follows.
   --console=plain 2>&1 | grep -v -E '^> Task|^$'
 ```
 
-- The root `testDebugUnitTest` runs both modules' test suites.
+- The root `testDebugUnitTest` runs both modules' test suites: `:app:shared`'s as Android runs them (`commonTest`
+  and `androidHostTest`; compiled for the JVM too), and `:app:android`'s. `:app:shared:jvmTest` runs `commonTest` on
+  the JVM: monthly in CI, and by hand after changing a `commonTest` UI test or the harness.
 - `app/android` has two flavours, `play` and `github` (`.claude/DESIGN.md`, "Distribution"). Its `testDebugUnitTest`,
   `lintDebug` and `compileDebugAndroidTestKotlin` run both (`testPlayDebugUnitTest`, `testGithubDebugUnitTest`, ...),
   so `src/test` runs twice, once in each app, with `src/testPlay` and `src/testGithub` once in their own.
@@ -33,42 +35,51 @@ failure stops what follows.
 
 | What | Command |
 |---|---|
-| One Robolectric class (`app/android/src/test`, or `src/testPlay`) | `./gradlew -q :app:android:testPlayDebugUnitTest --tests '*BoardSemanticsTest'` |
+| One shared test as Android runs it (`commonTest`, `androidHostTest`; Robolectric for the UI) | `./gradlew -q :app:shared:testAndroidHostTest --tests '*BoardSemanticsTest'` |
+| One shared test on the JVM target (`commonTest`; not in the gate) | `./gradlew -q :app:shared:jvmTest --tests '*GameEngineTest'` |
+| One app test (`app/android/src/test`, or `src/testPlay`) | `./gradlew -q :app:android:testPlayDebugUnitTest --tests '*MainActivitySmokeTest'` |
 | One in the github app (`src/testGithub`, or `src/test` as the github app runs it) | `./gradlew -q :app:android:testGithubDebugUnitTest --tests '*GithubFlavourTest'` |
-| One shared test (`commonTest`, `androidHostTest`) on the JVM | `./gradlew -q :app:shared:testAndroidHostTest --tests '*GameEngineTest'` |
-| One test method | `--tests '*BoardSemanticsTest.on a phone*'` |
+| One test method | `--tests '*BoardSemanticsTest.a score box*'` |
 | Lint per module | `./gradlew -q :app:shared:lint :app:android:lintPlayDebug :app:android:lintGithubDebug` |
 | Regenerate Hard AI's perfect-play table (after any change to how Standard scores; about 20s) | `./gradlew :app:shared:testAndroidHostTest --tests '*StandardPerfectPlayTableTest*' -PregeneratePerfectPlayTable` |
 
 Failures and `println` output are in `app/android/build/test-results/test{Play,Github}DebugUnitTest/TEST-*.xml` and
-`app/shared/build/test-results/testAndroidHostTest/TEST-*.xml`. Grep for `<failure`; output is under `system-out`.
+`app/shared/build/test-results/{testAndroidHostTest,jvmTest}/TEST-*.xml`. Grep for `<failure`; output is under `system-out`.
 Add `--rerun` to re-run a test Gradle thinks is up to date. Otherwise it serves the old result - from the build cache too
 (`FROM-CACHE`), even for source you put back as it was - and a scratch render keeps the old PNG, so check its timestamp.
 Always `--rerun` when proving a guard can fail.
 
-The Robolectric classes run in two JVMs (`maxParallelForks` in `app/android/build.gradle.kts`), so a test
-can't count on the classes before it in the same JVM. The configuration cache is on (`gradle.properties`).
+`:app:android`'s classes run in two JVMs (`maxParallelForks` in `app/android/build.gradle.kts`), so a test can't count
+on the classes before it in the same JVM; nor can a shared one on what another class left behind. The configuration cache is on (`gradle.properties`).
 
 ## Where tests live
 
-- Pure logic and view models go in `app/shared/src/commonTest`, run on the JVM.
-- JVM-only tests that read resource files from disk go in `app/shared/src/androidHostTest`.
-- Anything that needs Android, a resolved string or a rendered screen goes in `app/android/src/test`, under Robolectric
-  (SDK 36, native graphics, set in `robolectric.properties`). What only one app has goes in `src/testPlay` (Play Games,
-  Sidekick, the Play Console sheets) or `src/testGithub` (progress files on Android).
-- `Res` is internal to `:app:shared`. An `:app:android` test therefore reaches strings through a public composable,
-  or reads English from disk (`englishText()`).
+The tiers, and why a test isn't in the one above it, are in `.claude/MULTIPLATFORM.md`, "Tests". In short:
+
+- **`app/shared/src/commonTest`**, for both targets, is the default: logic, view models, and UI. A UI test extends
+  `UiTest`, runs each test in `uiTest { }` (`uiTest(TestScreen(360, 800))` for a screen size) and drives `compose` as
+  an Android test's rule. Robolectric draws it on Android (SDK 36, native graphics, `robolectric.properties`), Compose's
+  desktop runtime on the JVM. `Res` resolves in both.
+- **`app/shared/src/androidHostTest`**: a shared test that holds only on Android - another language (`@Config`), an
+  Android API, or a desktop harness limit; it says which. And the checks that read the source tree from disk (the i18n
+  guards, the perfect-play table).
+- **`app/android/src/test`**: the app itself - `MainActivity`, `device/`, the manifest, Room on Android's SQLite, the
+  store-asset generators. What only one app has goes in `src/testPlay` (Play Games, Sidekick, the Play Console sheets)
+  or `src/testGithub` (progress files on Android).
 
 ## Traps
 
-- **A screen test** (`GameScreen`) needs `LocalPlatformServices provides SilentPlatformServices`. Step both
-  `compose.mainClock` and the paused main looper (`ShadowLooper.idleMainLooper`), because the view model's coroutines
-  delay on the looper. `GameScreenCupGateTest.waitFor` is the pattern.
+- **A screen test** (`GameScreen`) needs `LocalPlatformServices provides SilentPlatformServices`. Under Robolectric,
+  step both `compose.mainClock` and the paused main looper (`ShadowLooper.idleMainLooper`), because the view model's
+  coroutines delay on the looper. `GameScreenCupGateTest.waitFor` is the pattern.
+- **The desktop harness** (a `commonTest` UI test on the JVM) draws every frame in software, and a composition's own
+  coroutines (`delayWhileResumed` in an effect or a gesture) wait in real time there, not on the test clock. A test that
+  depends on either belongs in `androidHostTest`.
 - **View-model tests** run on a `StandardTestDispatcher`, which must also be passed as `aiDispatcher` (`gameViewModel()`
   requires it). Use `advanceTimeBy` + `runCurrent` for timers. In a timed game, `advanceUntilIdle` plays every turn out
   through timeouts.
-- **Nothing real by default.** The test `gameViewModel()`s deal seeded dice and read a 2pm clock (`TEST_LOCAL_HOUR` on
-  Android), so no result depends on when it runs - Rolling The Midnight Dice unlocks from midnight to 6am. Pass
+- **Nothing real by default.** The test `gameViewModel()`s deal seeded dice and read a 2pm clock (`TEST_LOCAL_HOUR` for a
+  screen test), so no result depends on when it runs - Rolling The Midnight Dice unlocks from midnight to 6am. Pass
   `localHour` to test the time of day.
 - **Only do what the UI allows.** The engine throws on impossible actions.
 - **Pick dice that tell the rules apart.** Use `LoadedDice` or `ScriptedDice` (`commonTest/.../TestDice.kt`), and work
@@ -76,8 +87,9 @@ can't count on the classes before it in the same JVM. The configuration cache is
   a roll makes - Unlucky Dice's odds and shuffle too (`AchievementTrackerTest`'s Bad Omen).
 - **Process-wide memories.** A screen that remembers its place for the process (`AchievementsScrollMemory`,
   `RulesPageMemory`, the Scores warm-up) has a reset; call it before opening that screen.
-- **Fakes.** `InMemoryPreferences`, `InMemoryScoreDao` and `InMemoryAchievementStore` (commonTest) are the shared ones;
-  reuse them rather than writing another. `:app:android` can't see them and keeps its own few (`TestRepositories.kt`).
+- **Fakes.** `InMemoryPreferences`, `InMemoryScoreDao` and `InMemoryAchievementStore` (commonTest) are the shared ones,
+  with `UiTestSupport.kt`'s view models and `inMemoryAppContainer()`; reuse them rather than writing another.
+  `:app:android` can't see them.
 - **Prove a guard can fail.** Remove the fix, watch the test fail, then put it back. Do this one guard at a time.
 - **Cached formatters leak between tests in one JVM.** Run a locale test on its own when checking that it can fail.
 - **Semantics-cleared text can't be found.** Use `useUnmergedTree = true`, or say in the report that it is untested.

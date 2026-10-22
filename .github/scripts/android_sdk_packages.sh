@@ -5,7 +5,7 @@
 # Description:  Prints the Android SDK packages this project builds against, space-separated and ready
 #               to hand to `android sdk install`: the platform for compileSdk (+ compileSdkMinor), the
 #               build-tools for buildToolsVersion and the NDK for ndkVersion, all read from
-#               app/android/build.gradle.kts. The workflows call this instead of pinning the packages
+#               gradle/android-sdk.properties. The workflows call this instead of pinning the packages
 #               themselves, so a compileSdk, build-tools or NDK change never has to edit a workflow file (which the monthly dependency update, pushing
 #               with GITHUB_TOKEN, is not allowed to do).
 #
@@ -24,14 +24,14 @@
 # ------------------------------------------------------------------------------
 set -euo pipefail
 
-build_file="app/android/build.gradle.kts"
+sdk_file="gradle/android-sdk.properties"
 
-api=$(grep -oP '^\s*compileSdk\s*=\s*\K[0-9]+' "${build_file}" | head -1 || true)
-minor=$(grep -oP '^\s*compileSdkMinor\s*=\s*\K[0-9]+' "${build_file}" | head -1 || true)
-build_tools=$(grep -oP '^\s*buildToolsVersion\s*=\s*"\K[^"]+' "${build_file}" | head -1 || true)
-ndk=$(grep -oP '^\s*ndkVersion\s*=\s*"\K[^"]+' "${build_file}" | head -1 || true)
+api=$(grep -oP '^compileSdk=\K[0-9]+' "${sdk_file}" | head -1 || true)
+minor=$(grep -oP '^compileSdkMinor=\K[0-9]+' "${sdk_file}" | head -1 || true)
+build_tools=$(grep -oP '^buildToolsVersion=\K\S+' "${sdk_file}" | head -1 || true)
+ndk=$(grep -oP '^ndkVersion=\K\S+' "${sdk_file}" | head -1 || true)
 if [[ -z "${api}" || -z "${build_tools}" || -z "${ndk}" ]]; then
-    echo "Could not read compileSdk / buildToolsVersion / ndkVersion from ${build_file}" >&2
+    echo "Could not read compileSdk / buildToolsVersion / ndkVersion from ${sdk_file}" >&2
     exit 1
 fi
 

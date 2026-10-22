@@ -8,9 +8,11 @@ import androidx.room.RoomRawQuery
  * otherwise need Robolectric or an on-device instrumented test (neither
  * available in this sandbox; see .claude/DESIGN.md's Verification section).
  * The DAO's own `@Query` SQL is deliberately simple (ORDER BY/LIMIT/OFFSET).
+ *
+ * Starts with [initial]'s rows, for a screen test that only reads them.
  */
-class InMemoryScoreDao : ScoreDao {
-    private val entries = mutableListOf<ScoreEntry>()
+class InMemoryScoreDao(initial: List<ScoreEntry> = emptyList()) : ScoreDao {
+    private val entries = initial.toMutableList()
     fun rows(): List<ScoreEntry> = entries.toList()
     /** By [DismissedPlayerStats.playerKey], as the real table is. */
     private val dismissed = mutableMapOf<String, DismissedPlayerStats>()

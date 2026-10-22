@@ -57,5 +57,5 @@ what the plugin can't discover for itself:
 
 **Adding an asset**: add its `asset-sources.json` entry. If it's third-party, also add a
 `libraries/` entry per source (license SPDX id, copyright/credit line as `description`, source URL as
-`website`). If its license isn't already allowed, `allowedLicensesMap` in `app/android/build.gradle.kts`
+`website`). If its license isn't already allowed, `ALLOWED_FOR` in build-logic's `LicencePolicy.kt`
 needs it too (scoped to that entry), plus its text under `licenses/`.

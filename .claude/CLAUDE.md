@@ -13,8 +13,8 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
   - Accessible: TalkBack and large fonts are first-class.
   - Smooth: 60fps minimum unless the player picks a lower Animations level.
   - Small APK.
-  - Kotlin/Compose Multiplatform for segregation: shared code in `app/shared`, Android's platform code apart from it
-    (`MULTIPLATFORM.md`).
+  - Kotlin/Compose Multiplatform for segregation: shared code in `app/shared` (Android and JVM targets), Android's
+    platform code apart from it (`MULTIPLATFORM.md`).
 - **Google Play Games Services** (`PLAY_GAMES.md`) is built on Android: sign-in, achievements, leaderboards, cloud save
   and Sidekick. Its Play Console release remains.
 - **Planned, not built.** An "Unlock all styles" purchase on Android, the app's only purchase (`PURCHASES.md`), and
@@ -28,7 +28,7 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 | Repo | `github.com/zodac/DiceFive`, default branch `main`. Every push to `main` that changes what an app ships cuts a GitHub release for that app (`android-v*` Android, `v*` up to 1.0.1; `DESIGN.md`, "Release pipeline") |
 | Package | `net.zodac.dicefive` (Kotlin root package; the play app's `applicationId`; the github APK is `net.zodac.dicefive.github`) |
 | Version | `VERSION` at the repo root (released from 1.0.0). Never hand-edit for a debug install |
-| Platforms | Android minSdk 26, targetSdk/compileSdk 37 (`app/android/build.gradle.kts`) |
+| Platforms | Android minSdk 26, targetSdk/compileSdk 37 (`gradle/android-sdk.properties`). The shared code also targets the JVM (desktop), with no app yet |
 | Stack | Kotlin Multiplatform, Compose Multiplatform, Material 3 (dark only), Navigation Compose, MVVM (`ViewModel` + `StateFlow`), Room (scores), DataStore (everything else) |
 | Versions | `gradle/libs.versions.toml`, bumped monthly by CI (an entry tied to another is marked `# @update`); sandbox pins in `sandbox/Dockerfile` |
 | Languages | English (`en-GB` base, British spelling), Spanish, Arabic (RTL) - all player text in Compose resources (`I18N.md`) |
@@ -39,20 +39,22 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 
 - **Layout.**
   - `app/shared` holds the game, UI and persistence. `commonMain` stays platform-neutral: no Android or JVM APIs,
-    resources through `Res.*`, devices through `platform/PlatformServices`. Nothing compiles it for another target,
-    so this is kept by hand.
+    resources through `Res.*`, devices through `platform/PlatformServices`. The JVM target's compile catches an
+    Android API there; `CommonCodeIsPlatformNeutralTest` catches a JDK one.
   - `app/android` is the APK shell and Android's platform code (`device/`). Two flavours (`DESIGN.md`,
     "Distribution"): `play` (Google Play, Play Games in `src/play`) and `github` (the GitHub APK, progress files in
     `src/github`).
   - `app/baselineprofile` is the profile journey; `app/licensing` holds the licence records.
-  - The package map is in `README.md`.
+  - `build-logic/` holds the convention plugins (SDK levels, Java version, the strict rules) and the custom tasks.
+  - The package map is in `MULTIPLATFORM.md`, "Layout".
 - **Warnings are errors** throughout: Kotlin `allWarningsAsErrors`, lint `warningsAsErrors`, deprecations included.
 - **Pure core.** The game logic (`model/`, `game/`) is pure and unit-tested. Every per-mode rule is a `GameMode`
   field, never `if (mode == X)`.
 - **Behaviour comes with tests.** A change comes with tests of its behaviour, and spoken text is asserted word for
   word.
 - **Dependencies.** Keep them lean (APK size matters; `kotlinx.serialization` and `kotlinx-datetime` were dropped for
-  it). Any new library must pass the build's licence guard.
+  it). Any new library the APK ships must pass the build's licence guard; one that isn't in the APK (test, build-only)
+  isn't checked.
 - **Style.**
   - Match the surrounding code's comment density and idiom.
   - Doc comments state rules, not guessed rationale.

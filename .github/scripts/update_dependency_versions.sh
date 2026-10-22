@@ -26,7 +26,7 @@
 #                   fallback in sandbox/emulator.sh), which follows compileSdk: the newest stable Google
 #                   APIs system image of the same API level (Google publishes none for minor releases
 #                   like 37.2, so it matches the level, e.g. 37.0)
-#                 - the Android NDK (`ndkVersion` in app/android/build.gradle.kts and the `ndk;…` package in
+#                 - the Android NDK (`ndkVersion` in gradle/android-sdk.properties and the `ndk;…` package in
 #                   sandbox/Dockerfile): the newest stable NDK in Google's SDK manifest that extracts the
 #                   release build's native symbol tables (see "0b. NDK")
 #                 - sandbox/Dockerfile's Android cmdline-tools download (URL + sha1, from Google's own SDK
@@ -60,7 +60,7 @@
 #
 # Java:         ONE Java version, owned by the Gradle toolchain: `toolchainVersion` in
 #               gradle/gradle-daemon-jvm.properties. Gradle runs itself on that JDK, compiles and tests
-#               with it, and the app is compiled FOR it (app/android/build.gradle.kts reads it) - and Gradle
+#               with it, and the app is compiled FOR it (build-logic reads it) - and Gradle
 #               downloads it wherever it is missing, so builds never depend on the installed java. The
 #               sandbox's JDK stage follows it (a head start, so nothing needs downloading there; the
 #               guard at the end fails the run if the two disagree), and the workflows' setup-java reads
@@ -126,12 +126,24 @@ VERSION_CATALOG="./gradle/libs.versions.toml"
 GRADLE_WRAPPER_PROPERTIES="./gradle/wrapper/gradle-wrapper.properties"
 SETTINGS_GRADLE="./settings.gradle.kts"
 APP_BUILD_GRADLE="./app/android/build.gradle.kts"
+# The Android SDK levels and tools (compileSdk, compileSdkMinor, buildToolsVersion, ndkVersion): plain name=value lines.
+ANDROID_SDK_PROPERTIES="./gradle/android-sdk.properties"
 
 # Everything the final build depends on. Hashed before and after the updates, so the (slow) Gradle
 # build only runs when one of them actually changed.
 GRADLE_DAEMON_JVM_PROPERTIES="./gradle/gradle-daemon-jvm.properties"
 GRADLE_INPUTS=("${VERSION_CATALOG}" "${GRADLE_WRAPPER_PROPERTIES}" "${SETTINGS_GRADLE}" "${APP_BUILD_GRADLE}"
-               "${GRADLE_DAEMON_JVM_PROPERTIES}")
+               "${GRADLE_DAEMON_JVM_PROPERTIES}" "${ANDROID_SDK_PROPERTIES}")
+
+# One value from gradle/android-sdk.properties, or nothing.
+sdk_property() {
+    grep -oP "^${1}=\K\S+" "${ANDROID_SDK_PROPERTIES}" 2>/dev/null | head -1 || true
+}
+
+# Sets one value in gradle/android-sdk.properties.
+set_sdk_property() {
+    sed -i -E "s|^(${1}=).*|\1${2}|" "${ANDROID_SDK_PROPERTIES}"
+}
 
 GOOGLE_MAVEN="https://dl.google.com/android/maven2"
 MAVEN_CENTRAL="https://repo1.maven.org/maven2"
@@ -515,12 +527,12 @@ show_build_failure() {
 # newer stable Android platform (newest first), install it, set compileSdk, and build + unit-test the
 # project exactly as committed; the first that passes is kept, and written into sandbox/Dockerfile's
 # SDK package install + its check (the workflows pin no platform - .github/scripts/android_sdk_packages.sh
-# reads it from app/android/build.gradle.kts at run time). Runs FIRST, before any dependency moves, so a failure is the platform's alone - and so the
+# reads it from gradle/android-sdk.properties at run time). Runs FIRST, before any dependency moves, so a failure is the platform's alone - and so the
 # catalog step then vets libraries against the new value.
 #
 # Minor SDK releases (36.1, 37.2) are platforms in their own right - each its own SDK package, adding
 # APIs - so a platform is identified as API.MINOR throughout ("36" is 36.0): compileSdk carries the API
-# level and compileSdkMinor the minor (the line is omitted for .0). Only compileSdk has a minor;
+# level and compileSdkMinor the minor (0 for a base release). Only compileSdk has a minor;
 # targetSdk and minSdk are whole API levels in AGP's DSL. Package names differ by era - android-36 for
 # a base release before API 37, android-37.0 from API 37, android-36.1 / android-37.2 for minors - so
 # the name is always taken from the manifest, never built. Canary/preview platforms (which Google also
@@ -532,7 +544,7 @@ show_build_failure() {
 
 # compileSdk's API level alone (what AndroidX's minCompileSdk is compared with).
 read_compile_sdk() {
-    grep -oP '^\s*compileSdk\s*=\s*\K[0-9]+' "${APP_BUILD_GRADLE}" | head -1 || true
+    sdk_property compileSdk
 }
 
 # compileSdk as API.MINOR (compileSdkMinor defaults to 0).
@@ -540,7 +552,7 @@ read_compile_sdk_version() {
     local api minor
     api=$(read_compile_sdk)
     [[ -n "${api}" ]] || return 0
-    minor=$(grep -oP '^\s*compileSdkMinor\s*=\s*\K[0-9]+' "${APP_BUILD_GRADLE}" | head -1 || true)
+    minor=$(sdk_property compileSdkMinor)
     echo "${api}.${minor:-0}"
 }
 
@@ -567,19 +579,11 @@ stable_android_platforms() {
     ' <<< "${manifest}" | sort -V -r -k1,1 | awk '!seen[$1]++'
 }
 
-# Writes API.MINOR into app/android/build.gradle.kts: compileSdk = API, and compileSdkMinor = MINOR (the line
-# added after compileSdk if missing, removed for a .0 release). app/shared/build.gradle.kts reads these
-# same two lines (and minSdk) rather than declaring its own, so this one edit moves both modules.
+# Writes API.MINOR into gradle/android-sdk.properties: compileSdk=API and compileSdkMinor=MINOR. Every module
+# (build-logic's AndroidSdk) reads them from there, so this one edit moves them all.
 set_compile_sdk() {
-    local api="${1%%.*}" minor="${1#*.}"
-    sed -i -E "s|^([[:space:]]*compileSdk[[:space:]]*=[[:space:]]*)[0-9]+|\\1${api}|" "${APP_BUILD_GRADLE}"
-    if [[ "${minor}" == "0" ]]; then
-        sed -i -E '/^[[:space:]]*compileSdkMinor[[:space:]]*=/d' "${APP_BUILD_GRADLE}"
-    elif grep -qE '^[[:space:]]*compileSdkMinor[[:space:]]*=' "${APP_BUILD_GRADLE}"; then
-        sed -i -E "s|^([[:space:]]*compileSdkMinor[[:space:]]*=[[:space:]]*)[0-9]+|\\1${minor}|" "${APP_BUILD_GRADLE}"
-    else
-        sed -i -E "s|^([[:space:]]*)(compileSdk[[:space:]]*=[[:space:]]*[0-9]+)[[:space:]]*$|\\1\\2\\n\\1compileSdkMinor = ${minor}|" "${APP_BUILD_GRADLE}"
-    fi
+    set_sdk_property compileSdk "${1%%.*}"
+    set_sdk_property compileSdkMinor "${1#*.}"
 }
 
 update_compile_sdk() {
@@ -589,7 +593,7 @@ update_compile_sdk() {
     local current
     current=$(read_compile_sdk_version)
     if [[ -z "${current}" ]]; then
-        warn "Could not read compileSdk from ${APP_BUILD_GRADLE}, skipping"
+        warn "Could not read compileSdk from ${ANDROID_SDK_PROPERTIES}, skipping"
         return 0
     fi
     echo "  Current: compileSdk ${current}"
@@ -608,8 +612,8 @@ update_compile_sdk() {
         return 0
     fi
 
-    local candidate backup="${WORK_DIR}/app-build.gradle.kts.orig"
-    cp "${APP_BUILD_GRADLE}" "${backup}"
+    local candidate backup="${WORK_DIR}/android-sdk.properties.orig"
+    cp "${ANDROID_SDK_PROPERTIES}" "${backup}"
 
     for candidate in "${candidates[@]}"; do
         read -r version package <<< "${candidate}"
@@ -624,7 +628,7 @@ update_compile_sdk() {
         if run_gradle_build; then
             # The sandbox's platform pin, whatever era its name is from (android-35, android-37.0,
             # android-36.1). The workflows pin none - they ask .github/scripts/android_sdk_packages.sh,
-            # which reads app/android/build.gradle.kts.
+            # which reads gradle/android-sdk.properties.
             sed -i -E "s#platforms([;/])android-[0-9]+(\\.[0-9]+)?([^0-9.a-z-]|$)#platforms\\1${package}\\3#g" "${SANDBOX_DOCKERFILE}"
             PROJECT_COMPILE_SDK="${version%%.*}"
             record_update "compileSdk: ${current} → ${version}"
@@ -633,7 +637,7 @@ update_compile_sdk() {
         fi
         warn "The build fails with compileSdk ${version}:"
         show_build_failure
-        cp "${backup}" "${APP_BUILD_GRADLE}"
+        cp "${backup}" "${ANDROID_SDK_PROPERTIES}"
     done
 
     echo "  compileSdk=${current} (no newer platform builds)"
@@ -647,8 +651,8 @@ update_compile_sdk() {
 # than `ndkVersion` (newest first, majors included), install it, set it, and run the strip and
 # symbol-extraction tasks; the first that runs clean and writes the symbol files is kept, and written
 # into sandbox/Dockerfile's NDK layer (the workflows pin none - .github/scripts/android_sdk_packages.sh
-# reads it from app/android/build.gradle.kts at run time). The full build gates still run at the end
-# (verify_build), since app/android/build.gradle.kts has then changed.
+# reads it from gradle/android-sdk.properties at run time). The full build gates still run at the end
+# (verify_build), since gradle/android-sdk.properties has then changed.
 #
 # NDK packages are named by their full version (ndk;30.0.16248370). Betas and release candidates sit on
 # a non-stable channel and carry a <preview> revision; neither is ever taken.
@@ -657,7 +661,7 @@ NDK_PROOF_TASKS=(:app:android:stripDebugDebugSymbols :app:android:extractRelease
 NDK_SYMBOLS_DIR="./app/android/build/intermediates/native_symbol_tables/release"
 
 read_ndk_version() {
-    grep -oP '^\s*ndkVersion\s*=\s*"\K[^"]+' "${APP_BUILD_GRADLE}" | head -1 || true
+    sdk_property ndkVersion
 }
 
 # Echoes every stable NDK version in the SDK manifest, newest first.
@@ -700,7 +704,7 @@ update_ndk() {
     local current
     current=$(read_ndk_version)
     if [[ -z "${current}" ]]; then
-        warn "Could not read ndkVersion from ${APP_BUILD_GRADLE}, skipping"
+        warn "Could not read ndkVersion from ${ANDROID_SDK_PROPERTIES}, skipping"
         return 0
     fi
     echo "  Current: ndkVersion ${current}"
@@ -724,7 +728,7 @@ update_ndk() {
             warn "Could not install ndk;${version}, skipping it"
             continue
         fi
-        sed -i -E "s|^([[:space:]]*ndkVersion[[:space:]]*=[[:space:]]*\")[^\"]+|\\1${version}|" "${APP_BUILD_GRADLE}"
+        set_sdk_property ndkVersion "${version}"
         echo "    Extracting the release symbol tables..."
         if prove_ndk; then
             sed -i -E "s#ndk([;/])[0-9]+\\.[0-9]+\\.[0-9]+#ndk\\1${version}#g" "${SANDBOX_DOCKERFILE}"
@@ -734,7 +738,7 @@ update_ndk() {
         fi
         warn "NDK ${version} does not extract the symbol tables:"
         show_build_failure
-        sed -i -E "s|^([[:space:]]*ndkVersion[[:space:]]*=[[:space:]]*\")[^\"]+|\\1${current}|" "${APP_BUILD_GRADLE}"
+        set_sdk_property ndkVersion "${current}"
     done
 
     echo "  ndkVersion=${current} (no newer NDK extracts the symbols)"
@@ -1038,7 +1042,7 @@ update_playwright() {
 # above them move together or not at all.
 #
 # The SDK *packages* installed with it (`platforms;android-N`, `build-tools;X.Y.Z`) are NOT bumped here:
-# they must match compileSdk and buildToolsVersion in app/android/build.gradle.kts, which move in their own
+# they must match compileSdk and buildToolsVersion in gradle/android-sdk.properties, which move in their own
 # sections (or not at all), as does the NDK. verify_version_sync checks they still agree.
 
 update_android_cmdline_tools() {
@@ -1568,7 +1572,7 @@ update_version_catalog() {
     if [[ -z "${PROJECT_COMPILE_SDK}" ]]; then
         # Without it no library candidate can be vetted, and an unvetted AndroidX bump is exactly the
         # thing that breaks the build - so skip the catalog rather than guess.
-        warn "Could not read compileSdk from ${APP_BUILD_GRADLE}, skipping the version catalog"
+        warn "Could not read compileSdk from ${ANDROID_SDK_PROPERTIES}, skipping the version catalog"
         return 0
     fi
     echo "  Project: compileSdk ${PROJECT_COMPILE_SDK}"
@@ -2005,20 +2009,20 @@ update_imagemagick() {
 # Values pinned in more than one place that must say the same thing - a drift between them is a
 # broken setup rather than a stale one:
 #   - JDK major: the Gradle toolchain and the sandbox's jdk stage
-#   - Android platform: app compileSdk + compileSdkMinor, and `platforms;android-…` in sandbox/Dockerfile,
+#   - Android platform: compileSdk + compileSdkMinor (gradle/android-sdk.properties), and `platforms;android-…` in sandbox/Dockerfile,
 #     compared as API.MINOR (android-36 = 36.0), so a minor-release mismatch is caught
 #   - Emulator API: `ENV EMULATOR_API` in sandbox/Dockerfile and the fallback in sandbox/emulator.sh, and
 #     its API level against compileSdk's (the emulator follows it - see sync_emulator_api)
-#   - Build-tools: app buildToolsVersion, and `build-tools;X` / `build-tools/X` in sandbox/Dockerfile
+#   - Build-tools: buildToolsVersion (gradle/android-sdk.properties), and `build-tools;X` / `build-tools/X` in sandbox/Dockerfile
 #     (AGP enforces a minimum build-tools and silently fetches it over the network when the installed
 #     one is lower, so a stale pin still "works" - which is exactly why it needs a check)
-#   - NDK: app ndkVersion, and `ndk;X` / `ndk/X` in sandbox/Dockerfile (a mismatch only warns, at
+#   - NDK: ndkVersion (gradle/android-sdk.properties), and `ndk;X` / `ndk/X` in sandbox/Dockerfile (a mismatch only warns, at
 #     release time, and ships an App Bundle without native symbols)
 #   - Followed version catalog entries (`# @update follows|matches`): each at the version its leader
 #     calls for
 # The workflows are scanned too, so a pin re-added to one is held to the same value - but they are meant
 # to pin none of these: they read the JDK from the toolchain and the SDK packages from
-# app/android/build.gradle.kts at run time, so that the monthly update (pushing with GITHUB_TOKEN, which may not
+# gradle/android-sdk.properties at run time, so that the monthly update (pushing with GITHUB_TOKEN, which may not
 # edit workflow files) never needs to change one. A divergence is a HARD failure, not a warning.
 
 SYNC_FAILED=0
@@ -2070,7 +2074,7 @@ verify_version_sync() {
     # ── Android platform (as API.MINOR, so 37.0 and 37.2 are told apart) ──
     entries=()
     v=$(read_compile_sdk_version)
-    entries+=("${v} (${APP_BUILD_GRADLE} compileSdk + compileSdkMinor)")
+    entries+=("${v} (${ANDROID_SDK_PROPERTIES} compileSdk + compileSdkMinor)")
     for f in "${SANDBOX_DOCKERFILE}" "${WORKFLOWS_DIR}"/*.yml; do
         while IFS= read -r v; do
             [[ "${v}" == *.* ]] || v="${v}.0"
@@ -2081,8 +2085,8 @@ verify_version_sync() {
 
     # ── Build-tools ──
     entries=()
-    v=$(grep -oP '^\s*buildToolsVersion\s*=\s*"\K[^"]+' "${APP_BUILD_GRADLE}" | head -1 || true)
-    entries+=("${v} (${APP_BUILD_GRADLE} buildToolsVersion)")
+    v=$(sdk_property buildToolsVersion)
+    entries+=("${v} (${ANDROID_SDK_PROPERTIES} buildToolsVersion)")
     for f in "${SANDBOX_DOCKERFILE}" "${WORKFLOWS_DIR}"/*.yml; do
         while IFS= read -r v; do
             entries+=("${v} (${f})")
@@ -2093,7 +2097,7 @@ verify_version_sync() {
     # ── NDK ──
     entries=()
     v=$(read_ndk_version)
-    entries+=("${v} (${APP_BUILD_GRADLE} ndkVersion)")
+    entries+=("${v} (${ANDROID_SDK_PROPERTIES} ndkVersion)")
     for f in "${SANDBOX_DOCKERFILE}" "${WORKFLOWS_DIR}"/*.yml; do
         while IFS= read -r v; do
             entries+=("${v} (${f})")
@@ -2184,7 +2188,7 @@ check_emulator_image() {
     elif [[ "${api%%.*}" == "${compile_major}" ]]; then
         ok "Emulator API level in sync with compileSdk → ${compile_major}"
     elif [[ -n "$(newest_emulator_image_for "${compile_major}")" ]]; then
-        err "Emulator API DIVERGED from compileSdk: ${SANDBOX_DOCKERFILE} EMULATOR_API=${api}, ${APP_BUILD_GRADLE} compileSdk=${compile_major}, and android-$(newest_emulator_image_for "${compile_major}") is published - run this script to move it"
+        err "Emulator API DIVERGED from compileSdk: ${SANDBOX_DOCKERFILE} EMULATOR_API=${api}, ${ANDROID_SDK_PROPERTIES} compileSdk=${compile_major}, and android-$(newest_emulator_image_for "${compile_major}") is published - run this script to move it"
         SYNC_FAILED=1
     else
         warn "Emulator API ${api} is behind compileSdk ${compile_major}, but Google has not published a stable Google APIs x86_64 image for API ${compile_major} yet"
@@ -2433,7 +2437,7 @@ try_jdk_major_upgrade() {
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
-for f in "${SANDBOX_DOCKERFILE}" "${VERSION_CATALOG}" "${GRADLE_WRAPPER_PROPERTIES}" "${SETTINGS_GRADLE}" "${APP_BUILD_GRADLE}"; do
+for f in "${SANDBOX_DOCKERFILE}" "${VERSION_CATALOG}" "${GRADLE_WRAPPER_PROPERTIES}" "${SETTINGS_GRADLE}" "${APP_BUILD_GRADLE}" "${ANDROID_SDK_PROPERTIES}"; do
     if [[ ! -f "${f}" ]]; then
         echo "❌ Required file not found: ${f} (run this from the repository root)"
         exit 1

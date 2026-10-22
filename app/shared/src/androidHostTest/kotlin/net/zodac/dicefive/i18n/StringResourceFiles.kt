@@ -5,9 +5,9 @@ import javax.xml.parsers.DocumentBuilderFactory
 import org.w3c.dom.Element
 
 /**
- * Reads the string resources from disk, for the i18n guards. `:app:shared`'s host tests are plain
- * JVM, so they can't resolve a resource through `Res`; the files are read directly instead (the
- * working directory is the module). See `.claude/I18N.md`, "Traps already hit".
+ * Reads the string resources from disk, for the i18n guards: they check every language's file as written, which `Res`
+ * (one language at a time, as resolved) can't give them. The working directory is the module. See `.claude/I18N.md`,
+ * "Traps already hit".
  */
 internal object StringResourceFiles {
 

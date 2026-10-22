@@ -1,0 +1,236 @@
+package net.zodac.dicefive
+
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasAnyChild
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.unit.dp
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.platform.SilentPlatformServices
+import net.zodac.dicefive.ui.rules.RulesScreen
+import net.zodac.dicefive.ui.rules.resetRulesPageMemory
+import net.zodac.dicefive.ui.theme.DiceFiveTheme
+
+/**
+ * The Rules page row scrolls, and nothing on screen says how far - so it's the semantics that tell a
+ * TalkBack user there are more tabs than the ones in view, as "Tab, 1 of 6" rather than just "Tab".
+ * The group row above it says the same of its own three.
+ */
+class RulesScreenAccessibilityTest : UiTest() {
+
+    private val isTab = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
+
+    /** A page's title - which now reads the same as its tab. */
+    private val isHeading = SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)
+
+    private val showcase = Showcase { compose }
+
+    /** A fresh Rules screen - each call starts again on the first page of the first group. */
+    private fun showRules() = showcase.show {
+        resetRulesPageMemory()
+        CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {
+            DiceFiveTheme { RulesScreen(onBack = {}) }
+        }
+    }
+
+    /** Each tab row (the tab's nearest collection - not the pager below them, which is one of its own) and its tabs, in order. */
+    private fun tabRows(): Map<SemanticsNode, List<SemanticsNode>> {
+        val rowOf = compose.onAllNodes(isTab).fetchSemanticsNodes().associateWith { tab ->
+            generateSequence(tab.parent) { it.parent }.first { SemanticsProperties.CollectionInfo in it.config }
+        }
+        // By id: a node fetched twice is two objects.
+        val rows = rowOf.values.associateBy { it.id }
+        return rowOf.keys.groupBy { rowOf.getValue(it).id }.mapKeys { (id, _) -> rows.getValue(id) }
+    }
+
+    private fun openGroup(name: String) {
+        compose.onNodeWithText(name).performClick()
+        compose.waitForIdle()
+    }
+
+    private fun openPage(name: String) {
+        compose.onNodeWithText(name).performScrollTo().performClick()
+        compose.waitForIdle()
+    }
+
+    @Test
+    fun theTabRowsSayHowManyTabsEachHasAndWhereEachTabIsAndEveryPageCanBeReachedByTabSwipeOrChevron() = uiTest {
+        showRules()
+        // The edge chevrons are not extra TalkBack stops: every clickable node is a tab, the app bar's back arrow or How to
+        // Play's Start Tutorial - the chevrons only repeat what the tabs (and their "1 of 6") already give TalkBack, so
+        // they're kept out of it.
+        val tabs = compose.onAllNodes(isTab).fetchSemanticsNodes().size
+        assertEquals(tabs + 2, compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.OnClick)).fetchSemanticsNodes().size)
+
+        // The footer says which page, and is announced when it changes.
+        compose.onNodeWithText("1 of 5").assertIsDisplayed()
+        openPage("Tie Breaks")
+        assertEquals(LiveRegionMode.Polite, compose.onNodeWithContentDescription("Gameplay, page 5 of 5").fetchSemanticsNode().config[SemanticsProperties.LiveRegion])
+
+        // Swiping past a group's last page carries on into the next group: the page itself, not the page row, which holds
+        // a "Tie Breaks" too.
+        compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange) and hasAnyChild(hasText("Tie Breaks")))
+            .performTouchInput { swipeLeft() }
+        compose.waitForIdle()
+        compose.onNodeWithText("Modes").assertIsSelected()
+        compose.onNodeWithText("Overview").assertIsSelected()
+        compose.onNode(hasContentDescription("Modes, page 1 of 7")).assertExists()
+
+        // Each tab row announces how many tabs it has.
+        openGroup("Modifiers")
+        val rows = tabRows()
+        assertEquals(2, rows.size)
+        rows.forEach { (row, rowTabs) -> assertEquals(rowTabs.size, row.config[SemanticsProperties.CollectionInfo].columnCount) }
+        assertEquals(listOf(3, 6), rows.values.map { it.size })
+
+        // Tapping the end chevron scrolls the tabs. It has no semantics node of its own, so it's tapped where it sits: over
+        // the page row's end.
+        compose.onNodeWithText("Unlucky Dice").assertIsNotDisplayed()
+        compose.onNode(hasAnyChild(isTab and hasText("Overview"))).performTouchInput { click(centerRight - Offset(24.dp.toPx(), 0f)) }
+        compose.waitForIdle()
+        compose.onNodeWithText("Overview").assertIsNotDisplayed()
+        // Still on the group's first page: the chevron took the tap and scrolled the tabs, rather than the tap falling
+        // through to a tab under it (which would also have scrolled the row, by selecting it).
+        compose.onNodeWithText("Overview").assertIsSelected()
+
+        // A group tab opens its first page.
+        openGroup("Modes")
+        compose.onNodeWithText("Modes").assertIsSelected()
+        compose.onNodeWithText("Overview").assertIsSelected()
+        compose.onAllNodesWithText("Game Modes")[0].assertIsDisplayed()
+        // Each tab announces its own position in its row.
+        tabRows().values.forEach { rowTabs ->
+            val positions = rowTabs.map { it.config[SemanticsProperties.CollectionItemInfo].columnIndex }
+            assertEquals(positions.indices.toList(), positions)
+        }
+
+        // An offscreen tab can be reached and opens its page - the tab, not the page's title, which reads the same.
+        compose.onNode(isTab and hasText("Quickfire")).performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNode(isTab and hasText("Quickfire")).assertIsSelected()
+        compose.onNode(isHeading and hasText("Quickfire")).assertIsDisplayed()
+    }
+
+    @Test
+    fun eachPagesExamplesAndPointsAreSpokenInFullAndItsLastLineScrollsClearOfTheFooter() = uiTest {
+        showRules()
+        // An example dice row is spoken with which dice count and what it scores: one stop for the category - its name,
+        // what it takes and the example - not five bare dice.
+        openPage("Lower Section")
+        compose.onNodeWithText("Total of all five dice, if at least three dice are the same", substring = true)
+            .assertContentDescriptionEquals(
+                "Total of all five dice, if at least three dice are the same",
+                "Example: 5, 5, 5, 2, 6. The 2 and 6 don't count. Scores 23 points.",
+            )
+
+        // Points are spoken in full, not as "pts".
+        openPage("Upper Section")
+        compose.onNodeWithText("Score 63pts or more", substring = true)
+            .assertContentDescriptionEquals(
+                "Score 63 points or more across the whole section and you earn a bonus 35 points! That's an average of three of each number.",
+            )
+
+        // A long page scrolls its last line clear of the footer. The joker rule's last paragraph ends its page - scrolled
+        // right to the end, as a player would, it must finish above the footer that floats over the pages, not stay behind
+        // it. (Not performScrollTo, which stops as soon as the line is inside the scroll area - and that area deliberately
+        // runs on under the footer.)
+        openPage("5x & Joker")
+        val page = compose.onNode(hasScrollAction() and hasAnyChild(hasText("5x and the Joker Rule")))
+        repeat(5) { page.performTouchInput { swipeUp() } }
+        compose.waitForIdle()
+        val lastLineBottom = compose.onNodeWithText("you still get the", substring = true).fetchSemanticsNode().boundsInRoot.bottom
+        val footerTop = compose.onNode(hasContentDescription(", page ", substring = true)).fetchSemanticsNode().boundsInRoot.top
+        assertTrue(lastLineBottom <= footerTop, "last line ends at $lastLineBottom, footer starts at $footerTop")
+
+        // A coloured example die is spoken with its colour.
+        openGroup("Modes")
+        openPage("Tricolour")
+        compose.onNodeWithText("Three of one colour and two of another", substring = true)
+            .assertContentDescriptionEquals("Three of one colour and two of another", "Example: red 1, red 4, red 6, blue 2, blue 5. Scores 25 points.")
+
+        // Hit List's examples say what the targets' tile shows.
+        compose.onNodeWithText("Hit List").performScrollTo().performClick()
+        compose.mainClock.advanceTimeBy(3000)
+        compose.onNode(hasContentDescription("Example target: 4, 1, 3, 2, any. Worth 20 points.")).assertExists()
+        compose.onNode(hasContentDescription("Its tile shows hit, 0 of 4 in place.", substring = true)).assertExists()
+        compose.onNode(hasContentDescription("Example roll: 4, 1, 5, 6, 2. Held: 4, 1 and 2. Its tile shows partial hit, 3 of 4 rolled, 2 in place.")).assertExists()
+        compose.onNode(hasContentDescription("Example: 4, 1, 6, 2, 5. The 6 and 5 don't count. Scores 10 points. Its tile shows partial hit, 3 of 4 rolled, 3 in place.")).assertExists()
+        assertEquals(2, compose.onAllNodes(hasContentDescription("Its tile shows exact hit.", substring = true)).fetchSemanticsNodes().size)
+        compose.onNode(hasContentDescription("The Alibi lights up.", substring = true)).assertExists()
+
+        // The example turn timer is described, not announced as a live countdown: the game's badge is a live region in its
+        // last seconds, but here no turn is running, so nothing is announced.
+        openGroup("Modifiers")
+        openPage("Turn Timer")
+        val timer = compose.onNodeWithContentDescription("Example: the turn timer, turning red with 4 seconds left").fetchSemanticsNode()
+        assertTrue(SemanticsProperties.LiveRegion !in timer.config)
+        assertTrue(compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.LiveRegion)).fetchSemanticsNodes()
+            .none { it.config.getOrElse(SemanticsProperties.ContentDescription) { emptyList() }.any { d -> "running out" in d } })
+    }
+
+    /**
+     * A tab row that scrolls itself on every selection (as Material's re-centring did) takes a tap while it's scrolling as
+     * "stop", not as a tap on the tab - so a second tap soon after the first went nowhere. Real touches, 50ms apart.
+     */
+    private fun tapTwice(first: SemanticsMatcher, second: SemanticsMatcher) {
+        compose.mainClock.autoAdvance = false
+        showRules()
+        compose.mainClock.advanceTimeBy(500)
+        compose.tapTab(compose.onNode(first))
+        compose.mainClock.advanceTimeBy(50)
+        compose.tapTab(compose.onNode(second))
+        compose.mainClock.advanceTimeBy(2_000)
+    }
+
+    @Test
+    fun aSecondGroupTapSoonAfterTheFirstStillLandsAndATabSnapsToItsPageWithoutPassingThroughTheOnesBetween() = uiTest {
+        tapTwice(isTab and hasText("Modes"), isTab and hasText("Modifiers"))
+        compose.onNode(isTab and hasText("Modifiers")).assertIsSelected()
+
+        showRules()
+        compose.mainClock.advanceTimeBy(500)
+        compose.onNodeWithText("Modes").performTouchInput { click() }
+        compose.mainClock.advanceTimeBy(50)
+        // Off the row's end, so tapped through TalkBack's action; with the clock held, nothing may wait for idle.
+        compose.onNodeWithText("Quickfire").performSemanticsAction(SemanticsActions.OnClick)
+        // A frame or two: no slide through Third Wind, 7 Dice Stud and Hit List to get there.
+        compose.mainClock.advanceTimeByFrame()
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNode(isHeading and hasText("Quickfire")).assertIsDisplayed()
+        listOf("Third Wind", "7 Dice Stud", "Hit List").forEach { compose.onAllNodes(isHeading and hasText(it)).assertCountEquals(0) }
+    }
+
+    /** On a phone-width screen: at the default 320dp, Lower Section shows only a sliver, under the row's end chevron. */
+    @Test
+    fun aSecondPageTapSoonAfterTheFirstStillLands() = uiTest(TestScreen(360, 800)) {
+        tapTwice(isTab and hasText("Lower Section"), isTab and hasText("Upper Section"))
+
+        compose.onNode(isTab and hasText("Upper Section")).assertIsSelected()
+    }
+}

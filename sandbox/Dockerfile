@@ -330,8 +330,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
 # manifest. `platform-tools`, `platforms;android-37.2` and `build-tools;36.0.0` are
 # pinned to match this project's compileSdk + compileSdkMinor (37.2 - a minor SDK
 # release is its own platform package, and from API 37 even the base release is
-# named with a minor, android-37.0) and its `android.buildToolsVersion`
-# (app/android/build.gradle.kts) — keep
+# named with a minor, android-37.0) and its `buildToolsVersion`
+# (gradle/android-sdk.properties) — keep
 # those three in step if either changes, or a build will reach out to the network for
 # whatever AGP defaults to instead of what is baked in here (the update script's
 # consistency check fails the run if they drift). build-tools is 36.0.0 because AGP
@@ -367,7 +367,7 @@ RUN set -eux; \
 # ── Android NDK (the release build extracts native symbol tables with it) ────────────────────────────
 # Its own layer, for the same reason as the emulator's below: the NDK is about 1 GB, so a bump to the SDK
 # pins above never re-downloads it, and a bump to it re-downloads nothing else. `ndk;30.0.16248370`
-# matches `ndkVersion` in app/android/build.gradle.kts; without it a release build cannot extract the
+# matches `ndkVersion` in gradle/android-sdk.properties; without it a release build cannot extract the
 # symbols (`debugSymbolLevel`) and no build can strip native libraries. .github/scripts/update_dependency_versions.sh
 # moves both together and its consistency check fails the run if they drift. The `test` line is what
 # verifies the install, not the exit code.
@@ -385,7 +385,7 @@ RUN set -eux; \
 # changes, which is how `EMULATOR_API` below moves it.
 #
 # EMULATOR_API is the one place the emulator's Android version is chosen, and it FOLLOWS compileSdk: the
-# API level the app is compiled against (app/android/build.gradle.kts), so the emulator runs the newest
+# API level the app is compiled against (gradle/android-sdk.properties), so the emulator runs the newest
 # Android the project targets. It is written as the image package names it ("37.0": from API 37 even the
 # base release carries a minor; older ones are plain, "34"), and it is the newest stable Google APIs image
 # of compileSdk's API level - Google publishes no image for minor releases such as 37.2, so the emulator

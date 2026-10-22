@@ -1,4 +1,6 @@
 pluginManagement {
+    // The convention plugins and custom tasks every module's build script uses.
+    includeBuild("build-logic")
     repositories {
         google()
         mavenCentral()

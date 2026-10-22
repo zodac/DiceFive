@@ -38,15 +38,19 @@ on:
       - "gradle/**"
       - "build.gradle.kts"
       - "settings.gradle.kts"
+      - "build-logic/**"
       - "gradle.properties"
       # The sound effects' build step (the clips themselves are in app/audio).
       - "scripts/normalize-audio.sh"
       # ...except test code and documentation inside those.
+      # The shared code's JVM target is in no app yet: its own code ships nowhere.
+      - "!app/**/src/jvmMain/**"
       - "!app/**/src/test/**"
       - "!app/**/src/testPlay/**"
       - "!app/**/src/testGithub/**"
       - "!app/**/src/commonTest/**"
       - "!app/**/src/androidHostTest/**"
+      - "!app/**/src/jvmTest/**"
       - "!app/**/src/androidTest/**"
       - "!app/**/*.md"
   # Lets a release for the VERSION currently on main be triggered on demand
@@ -146,7 +150,9 @@ jobs:
       - name: Run app unit tests
         run: ./gradlew :app:android:test${{ matrix.flavour }}DebugUnitTest --console=plain
 
-  # app:shared's tests on the JVM - see the testDebugUnitTest task in app/shared/build.gradle.kts.
+  # app:shared's tests as Android runs them (commonTest and androidHostTest, under Robolectric for the UI), and their
+  # compile for the JVM target - see the testDebugUnitTest task in app/shared/build.gradle.kts. Run on the JVM monthly
+  # (update-dependencies.yml) until an app for another platform ships, when they belong here too.
   shared-tests:
     runs-on: ubuntu-latest
     steps:
@@ -159,8 +165,8 @@ jobs:
       - name: Run shared tests
         run: ./gradlew :app:shared:testDebugUnitTest --console=plain
 
-  # Deprecation gates. Any compile already fails on a deprecated API (the Kotlin DEPRECATION flag in
-  # app/android/build.gradle.kts) or a build-script warning (org.gradle.kotlin.dsl.allWarningsAsErrors in
+  # Deprecation gates. Any compile already fails on a deprecated API (allWarningsAsErrors, from build-logic's
+  # StrictChecks.kt) or a build-script warning (org.gradle.kotlin.dsl.allWarningsAsErrors in
   # gradle.properties); this extends that to the instrumented-test code, which nothing else here
   # compiles, and runs lint, where Deprecated / ObsoleteSdkInt findings are errors - on the release builds too
   # (lintRelease), whose own source sets and manifests the debug lint never sees.

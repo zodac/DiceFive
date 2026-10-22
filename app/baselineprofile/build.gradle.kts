@@ -1,34 +1,18 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.util.Properties
-
 plugins {
-    alias(libs.plugins.android.test)
+    // The app's platform and Java version, and the strict compiler and lint rules: build-logic's
+    // AndroidTestConventionPlugin.
+    id("dicefive.android.test")
     alias(libs.plugins.androidx.baselineprofile)
 }
 
-// Same Java version as the app - see the comment on javaVersion in app/android/build.gradle.kts.
-val javaVersion: Int = Properties()
-    .apply { rootProject.file("gradle/gradle-daemon-jvm.properties").inputStream().use(::load) }
-    .getProperty("toolchainVersion").trim().toInt()
-
 android {
     namespace = "net.zodac.dicefive.baselineprofile"
-    // Same platform as the app (android-37.2) - see compileSdkMinor in app/android/build.gradle.kts.
-    compileSdk = 37
-    compileSdkMinor = 2
-
     defaultConfig {
         minSdk = 28 // Baseline Profile generation needs API 28+
-        targetSdk = 37
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // The journey runs the play flavour (Journeys.PACKAGE); the release workflow gives its profile to the github
         // APK too, whose code is the same less Play Games.
         missingDimensionStrategy("distribution", "play")
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.toVersion(javaVersion)
-        targetCompatibility = JavaVersion.toVersion(javaVersion)
     }
 
     targetProjectPath = ":app:android"
@@ -39,13 +23,6 @@ android {
         jniLibs {
             keepDebugSymbols += setOf("**/libbenchmarkNative.so", "**/libtracing_perfetto.so")
         }
-    }
-}
-
-kotlin {
-    jvmToolchain(javaVersion)
-    compilerOptions {
-        jvmTarget = JvmTarget.fromTarget(javaVersion.toString())
     }
 }
 

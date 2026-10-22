@@ -10,9 +10,9 @@ name: Update dependencies
 # both designed around here:
 #   - It may not change files under .github/workflows/. So no version the update moves lives in a
 #     workflow: the JDK comes from the Gradle toolchain file and the SDK packages from
-#     app/android/build.gradle.kts, both read at run time (.github/actions/build-setup), and the actionlint
+#     gradle/android-sdk.properties, both read at run time (.github/actions/build-setup), and the actionlint
 #     image is pinned in .github/scripts/lint_workflows.sh (the NDK, like the SDK packages, comes from
-#     app/android/build.gradle.kts). The one thing left in workflow files is
+#     gradle/android-sdk.properties). The one thing left in workflow files is
 #     the actions' own versions (`uses: …@vN`, or a commit pin `@<sha> # vX.Y.Z`): the script runs with --no-workflow-edits, so newer
 #     ones are only listed in the run summary, to apply by running the script locally.
 #   - A push made with it never triggers other workflows (which is what stops android-release.yml's own
@@ -44,7 +44,7 @@ jobs:
         with:
           ref: main
 
-      # The JDK and SDK packages app/android/build.gradle.kts builds against, ffmpeg (normalizeOggAudio) and Gradle.
+      # The JDK and SDK packages the build builds against (gradle/android-sdk.properties), ffmpeg (normalizeOggAudio) and Gradle.
       # A newer platform or NDK the script tries is installed by the script itself.
       - name: Set up the build
         uses: ./.github/actions/build-setup
@@ -143,3 +143,11 @@ jobs:
         run: |
           gh workflow run android-release.yml --ref main
           echo "Started android-release.yml on main - see the Actions tab for the release run." >> "$GITHUB_STEP_SUMMARY"
+
+      # The shared tests on the JVM target, which no app ships on yet, so a push only compiles them there
+      # (app/shared/build.gradle.kts): run here instead, so one that comes to depend on Android is caught within a
+      # month. Last, and whether or not anything was updated, so a failure turns the run red without holding back the
+      # updates already committed. Once an app for another platform ships, they belong in android-release.yml.
+      - name: Shared tests on the JVM
+        if: ${{ !cancelled() }}
+        run: ./gradlew :app:shared:jvmTest --console=plain

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sets the app's version, given an exact major.minor.patch value. The VERSION file at the repo root is read
-# directly by the build (app/android/build.gradle.kts), so today this just writes that file - but it's the one
+# directly by the build (build-logic's AppVersion), so today this just writes that file - but it's the one
 # designated place to add any future doc/reference sync, so callers (bump-patch-version.sh, CI, you) never need to
 # know the details.
 #

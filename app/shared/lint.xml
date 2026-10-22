@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Lint's per-path exceptions for :app:shared. The rules themselves are build-logic's (StrictChecks.kt). -->
+<lint>
+    <!-- Room's compiler generates the database and DAO for the JVM target into build/generated/ksp, and that code is
+         meant to call Room's restricted API: it is Room's own. Lint of the JVM target reads it as this module's source;
+         the Android target's lint doesn't. Only there, and only this issue. -->
+    <issue id="RestrictedApi">
+        <ignore path="build/generated/ksp/**" />
+    </issue>
+</lint>

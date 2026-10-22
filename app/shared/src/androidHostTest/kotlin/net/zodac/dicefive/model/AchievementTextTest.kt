@@ -11,8 +11,8 @@ import net.zodac.dicefive.ui.common.isInSoraFont
  * The unlock banner shows a title on one line and never wraps it - see [MAX_ACHIEVEMENT_TITLE_LENGTH].
  * A title that outgrows the cap fails the build here rather than showing up cut off in a real banner.
  *
- * The titles live in `strings.xml`, so this reads every locale's file from disk (`:app:shared`'s host
- * tests can't resolve a resource) and checks each `achievement_*_title` in each, plus that every
+ * The titles live in `strings.xml`, so this reads every locale's file from disk ([StringResourceFiles]) and checks each
+ * `achievement_*_title` in each, plus that every
  * achievement and category has its text in the base locale.
  */
 class AchievementTextTest {

@@ -1,0 +1,104 @@
+package net.zodac.dicefive
+
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import net.zodac.dicefive.model.Die
+import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.ui.game.DiceTray
+import net.zodac.dicefive.ui.theme.DiceFiveTheme
+
+/**
+ * DiceTray's press handling - how a player holds a die - on the real gesture code, under
+ * Robolectric: a tap toggles the die under it, a press that wanders within one column still does,
+ * one that ends in a different column acts on that one, and superuser mode's long press cycles a
+ * held die's face instead of toggling it.
+ *
+ * Android only: on the desktop test harness a composition's coroutines wait in real time, not on the test clock, so
+ * superuser's hold never cycles a face there.
+ */
+class DiceTrayGestureTest : UiTest() {
+
+    private val toggled = mutableListOf<Int>()
+    private val cycled = mutableListOf<Int>()
+
+    private val showcase = Showcase { compose }
+
+    private fun showTray(dice: List<Die> = List(5) { Die(value = it + 1) }, superuserModeActive: Boolean = false) {
+        toggled.clear()
+        cycled.clear()
+        showcase.show {
+            DiceFiveTheme {
+                DiceTray(
+                    dice = dice,
+                    gameMode = GameMode.STANDARD,
+                    enabled = true,
+                    showDice = true,
+                    rolling = false,
+                    onToggleHold = { toggled += it },
+                    modifier = Modifier.width(500.dp).testTag(TRAY),
+                    superuserModeActive = superuserModeActive,
+                    onCycleValue = { cycled += it },
+                )
+            }
+        }
+    }
+
+    /** The x coordinate of the middle of die [index]'s column, in the tray's own pixels. */
+    private fun columnCentre(index: Int, trayWidth: Float): Float = trayWidth * (index + 0.5f) / 5
+
+    @Test
+    fun `a tap toggles the die under it - each of several - a wandering press its own column or where it ends - and superuser's long press cycles`() = uiTest {
+        showTray()
+        compose.onNodeWithTag(TRAY).performTouchInput { click(position = center.copy(x = columnCentre(3, width.toFloat()))) }
+        assertEquals(listOf(3), toggled)
+
+        // Consecutive taps are each handled.
+        showTray()
+        compose.onNodeWithTag(TRAY).performTouchInput {
+            click(position = center.copy(x = columnCentre(0, width.toFloat())))
+            click(position = center.copy(x = columnCentre(2, width.toFloat())))
+        }
+        assertEquals(listOf(0, 2), toggled)
+
+        // A press that wanders but stays within one column still toggles that die.
+        showTray()
+        compose.onNodeWithTag(TRAY).performTouchInput {
+            down(center.copy(x = columnCentre(1, width.toFloat())))
+            moveBy(delta = Offset(10f, 15f))
+            up()
+        }
+        assertEquals(listOf(1), toggled)
+
+        // A press released over a different column acts on that one.
+        showTray()
+        compose.onNodeWithTag(TRAY).performTouchInput {
+            down(center.copy(x = columnCentre(0, width.toFloat())))
+            moveTo(center.copy(x = columnCentre(4, width.toFloat())))
+            up()
+        }
+        assertEquals(listOf(4), toggled)
+
+        // In superuser mode a long press on a held die cycles its face instead of toggling it.
+        showTray(dice = List(5) { Die(value = it + 1, isHeld = it == 2) }, superuserModeActive = true)
+        compose.mainClock.autoAdvance = false
+        compose.onNodeWithTag(TRAY).performTouchInput { down(center.copy(x = columnCentre(2, width.toFloat()))) }
+        compose.mainClock.advanceTimeBy(2_500)
+        compose.onNodeWithTag(TRAY).performTouchInput { up() }
+        compose.mainClock.autoAdvance = true
+        compose.waitForIdle()
+        assertEquals(listOf(2, 2), cycled)
+        assertEquals(emptyList<Int>(), toggled)
+    }
+
+    private companion object {
+        const val TRAY = "tray"
+    }
+}

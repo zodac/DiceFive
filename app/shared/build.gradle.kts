@@ -1,70 +1,23 @@
-import java.util.Properties
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
-// The game's platform-neutral code, as a Kotlin Multiplatform library with one target, Android (consumed by
-// :app:android, which builds the APK). Platform code lives in androidMain, behind the expect/actual and
-// PlatformServices seams; commonMain stays free of Android APIs so another target can be added beside it.
+// The game's platform-neutral code, as a Kotlin Multiplatform library (consumed by :app:android, which builds the APK).
+// Platform code lives in androidMain and jvmMain, behind the expect/actual and PlatformServices seams. commonMain is
+// compiled for both, so an Android API there fails to compile; CommonCodeIsPlatformNeutralTest catches a JDK one, which
+// both targets have. See .claude/MULTIPLATFORM.md.
 plugins {
-    alias(libs.plugins.kotlin.multiplatform)
-    // AGP 9's Android target for a KMP library - the plain com.android.library plugin can't be
-    // combined with Kotlin Multiplatform any more (nor can com.android.application, which is why the
-    // APK is built by the separate :app:android module).
-    alias(libs.plugins.android.kotlin.multiplatform.library)
-    // Without this the KMP library plugin creates no lint tasks for the main code at all - and this
-    // module is most of the app. See the lint block below.
-    alias(libs.plugins.android.lint)
+    // The Android and JVM targets, SDK levels, Java version, and the strict compiler and lint rules: build-logic's
+    // KotlinMultiplatformConventionPlugin. (AGP 9 won't combine Kotlin Multiplatform with com.android.application,
+    // which is why the APK is built by the separate :app:android module.)
+    id("dicefive.kotlin.multiplatform")
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.jetbrains.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.androidx.room)
 }
 
-// The same Java version :app:android compiles for - see the comment on javaVersion in app/android/build.gradle.kts.
-val javaVersion: Int = Properties()
-    .apply { rootProject.file("gradle/gradle-daemon-jvm.properties").inputStream().use(::load) }
-    .getProperty("toolchainVersion").trim().toInt()
-
-// compileSdk (with its minor) and minSdk have one home, app/android/build.gradle.kts - it's where the
-// reasoning for each lives, and the file the dependency-update script and CI's SDK-package script read
-// and bump. This reads them from there, so the two modules can never compile against different SDKs.
-val androidAppBuildScript = rootProject.file("app/android/build.gradle.kts").readText()
-fun androidAppSetting(name: String, default: Int? = null): Int =
-    Regex("""^\s*$name\s*=\s*(\d+)""", RegexOption.MULTILINE).find(androidAppBuildScript)?.groupValues?.get(1)?.toInt()
-        ?: default
-        ?: throw GradleException("app/android/build.gradle.kts has no `$name = <number>` for :app:shared to share")
-
 kotlin {
-    jvmToolchain(javaVersion)
-
     android {
         namespace = "net.zodac.dicefive.shared"
-        compileSdk {
-            version = release(androidAppSetting("compileSdk")) {
-                minorApiLevel = androidAppSetting("compileSdkMinor", default = 0)
-            }
-        }
-        minSdk = androidAppSetting("minSdk")
-        compilerOptions {
-            jvmTarget = JvmTarget.fromTarget(javaVersion.toString())
-        }
-        // commonTest runs on the JVM as Android host tests (no device needed).
-        withHostTest {}
         // Compose Multiplatform resources (composeResources/) ship inside the AAR as Android assets.
         androidResources { enable = true }
-        // The same rules as :app:android's lint - deprecated and obsolete usages are errors.
-        lint {
-            error += setOf("Deprecated", "ObsoleteSdkInt")
-            warningsAsErrors = true
-            disable += setOf("GradleDependency", "AndroidGradlePluginVersion")
-        }
-    }
-
-    compilerOptions {
-        // As in :app:android - any compiler warning fails the build rather than piling up unread.
-        allWarningsAsErrors = true
-        // expect/actual classes are still flagged Beta; Room's multiplatform setup needs one (the
-        // AppDatabaseConstructor its compiler generates), so the warning is noise here.
-        freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
     sourceSets {
@@ -93,6 +46,11 @@ kotlin {
             implementation(libs.jetbrains.navigation.compose)
             implementation(libs.jetbrains.navigationevent.compose)
         }
+        jvmMain.dependencies {
+            // The JVM's number, list and ordinal formatting (ui/common/Formatting.jvm.kt): the ICU Android's own
+            // android.icu repackages, so both platforms format alike.
+            implementation(libs.icu4j)
+        }
         androidMain.dependencies {
             // JetBrains' navigation-compose 2.9 resolves to androidx 2.9 on Android; this keeps the
             // app on the androidx line it already shipped with (the 2.9 API the shared code compiles
@@ -102,13 +60,27 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
+            // The shared UI's tests: runComposeUiTest, on both targets.
+            implementation(libs.jetbrains.compose.ui.test)
         }
         getByName("androidHostTest").dependencies {
             // Android's org.json is a stub on the JVM (every method throws), and AboutLibraries'
             // Android parser - behind parseLicenseReport - uses it.
             implementation(libs.org.json)
+            // commonTest's UI tests run under Robolectric here (see PlatformUiTest.android.kt): a ComponentActivity to host
+            // them, from the test manifest.
+            implementation(libs.robolectric)
+            implementation(libs.androidx.junit)
+            implementation(project.dependencies.platform(libs.androidx.compose.bom))
+            implementation(libs.androidx.ui.test.manifest)
         }
     }
+}
+
+// Compose's multiplatform test API (ComposeUiTest, runComposeUiTest) is all still marked experimental; every UI test
+// uses it.
+kotlin.sourceSets.matching { it.name.endsWith("Test") }.configureEach {
+    languageSettings.optIn("androidx.compose.ui.test.ExperimentalTestApi")
 }
 
 compose.resources {
@@ -132,13 +104,16 @@ room {
 dependencies {
     // Room's compiler runs once per target, generating each one's AppDatabaseConstructor.
     add("kspAndroid", libs.androidx.room.compiler)
+    add("kspJvm", libs.androidx.room.compiler)
 }
 
 // CI, the dependency-update script and day-to-day habit all run `./gradlew testDebugUnitTest` (the
-// name :app:android's unit tests have). A KMP library's JVM tests have another name, so this answers to
-// that one too, rather than every one of those callers having to learn the new task name.
+// name :app:android's unit tests have). A KMP library's tests have other names, so this answers to
+// that one too, rather than every one of those callers having to learn the new task names.
+// The tests run as Android runs them. They are compiled for the JVM target too (so commonTest stays
+// common), but run there (jvmTest) only monthly, in update-dependencies.yml: no desktop app ships yet.
 tasks.register("testDebugUnitTest") {
     group = "verification"
-    description = "Runs the shared module's tests on the JVM."
-    dependsOn("testAndroidHostTest")
+    description = "Runs the shared module's tests as Android runs them, and compiles them for the JVM."
+    dependsOn("testAndroidHostTest", "compileTestKotlinJvm")
 }

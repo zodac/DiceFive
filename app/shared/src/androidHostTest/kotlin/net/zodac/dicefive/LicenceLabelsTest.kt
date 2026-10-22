@@ -1,0 +1,67 @@
+package net.zodac.dicefive
+
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import net.zodac.dicefive.platform.ComponentKind
+import net.zodac.dicefive.platform.LicenseGroup
+import net.zodac.dicefive.platform.LicenseReport
+import net.zodac.dicefive.platform.LicensedComponent
+import net.zodac.dicefive.ui.settings.LicenceLabels
+import net.zodac.dicefive.ui.settings.licenceLabels
+import org.robolectric.annotation.Config
+
+/** The words of a licence list, which Android's list of views gets through [LicenceLabels]: the "Used by" line and the copy menu's text. */
+class LicenceLabelsTest : UiTest() {
+
+    private fun group(name: String, vararg kinds: ComponentKind) =
+        LicenseGroup(name, "text", kinds.mapIndexed { i, kind -> LicensedComponent("c$i", null, kind, website = null, copyright = null) })
+
+    private fun labelsFor(report: LicenseReport): LicenceLabels {
+        var labels: LicenceLabels? by mutableStateOf(null)
+        compose.setContent { labels = licenceLabels(report) }
+        compose.waitForIdle()
+        return labels!!
+    }
+
+    private val report = LicenseReport(
+        groups = listOf(
+            group("Many", *Array(84) { ComponentKind.LIBRARY }),
+            group("One", ComponentKind.LIBRARY),
+            group("Two kinds", ComponentKind.LIBRARY, ComponentKind.FONT),
+            group("Sounds", ComponentKind.SOUND, ComponentKind.SOUND),
+            group("Mixed", ComponentKind.LIBRARY, ComponentKind.LIBRARY, ComponentKind.FONT, ComponentKind.SOUND, ComponentKind.IMAGE),
+        ),
+        notices = emptyList(),
+    )
+
+    private fun assertUsageLines(labels: LicenceLabels) {
+        assertEquals(
+            listOf(
+                "Used by 84 libraries",
+                "Used by 1 library",
+                "Used by 1 library and 1 font",
+                "Used by 2 sounds",
+                "Used by 2 libraries, 1 font, 1 sound and 1 image",
+            ),
+            report.groups.map { labels.usageOf(it) },
+        )
+    }
+
+    @Test
+    fun `a licence says what it is used by - each kind in the singular or plural it needs - and the copy menu has its words`() = uiTest {
+        val labels = labelsFor(report)
+        assertUsageLines(labels)
+        assertEquals(listOf("Copy link", "Copy text", "Link", "Text", "Link copied", "Text copied"), listOf(labels.copyLink, labels.copyText, labels.linkClip, labels.textClip, labels.linkCopied, labels.textCopied))
+        assertEquals(listOf("Show licence text", "Hide licence text", "Notices"), listOf(labels.showText, labels.hideText, labels.noticesTitle))
+    }
+
+    // Like the ordinals, the list follows the strings' language: no German yet, so no "und".
+    @Test
+    @Config(qualifiers = "de")
+    fun `on a phone in a language the app isn't in the usage line stays English`() = uiTest {
+        assertUsageLines(labelsFor(report))
+    }
+}
