@@ -67,9 +67,13 @@ internal object AndroidProgressFiles : ProgressFiles {
         ProgressFileResult.Done(checkNotNull(resolver.openInputStream(uri)) { "No stream for $uri" }.use(::readUpToMax))
     }
 
-    /** Opens a picker with [launch] (null: no Activity to open it from), then [use]s the file picked, off the main thread. */
+    /**
+     * Opens a picker with [launch] (null: no Activity to open it from), then [use]s the file picked, off the main thread.
+     * Fails at once while another call's picker is still open: there's one place for an answer, and it is that call's.
+     */
     private suspend fun withPicked(launch: () -> Unit?, use: (ContentResolver, Uri) -> ProgressFileResult): ProgressFileResult {
         val resolver = resolver ?: return ProgressFileResult.Failed
+        if (picking != null) return ProgressFileResult.Failed
         val picked = CompletableDeferred<Uri?>()
         picking = picked
         try {
