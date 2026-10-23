@@ -96,6 +96,8 @@ class ScoresViewModelTest {
         advanceUntilIdle()
         assertEquals(LeaderboardView.GAME_MODE, viewModel.uiState.value.view)
         assertEquals(LEADERBOARD_MODES.toSet(), viewModel.uiState.value.modeBoards.keys)
+        // All at once, so the view appears whole rather than card by card.
+        assertTrue(viewModel.uiState.value.modeBoardsLoaded)
         // Switching back and forth doesn't read them again.
         viewModel.selectView(LeaderboardView.COMBINED)
         viewModel.selectView(LeaderboardView.GAME_MODE)

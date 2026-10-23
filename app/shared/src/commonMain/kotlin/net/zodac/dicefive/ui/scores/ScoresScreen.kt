@@ -169,6 +169,8 @@ fun ScoresScreen(
         // before a leaderboard that has some.
         if (!state.isLoaded) return@ScreenScaffold
         val landscape = LocalLandscapePage.current
+        // The Game Mode view waits, with the Combined table still up, until every card is read, then replaces it in one frame (or, with an empty table, nothing in between).
+        val shownView = if (state.view == LeaderboardView.GAME_MODE && !state.modeBoardsLoaded) LeaderboardView.COMBINED else state.view
         // The switch is always there: a board with nothing on the Combined table can still have scores on a
         // card (a mode that never counts towards it).
         val viewSwitch = @Composable { switchModifier: Modifier ->
@@ -190,14 +192,14 @@ fun ScoresScreen(
             ) {
                 viewSwitch(Modifier.weight(1f))
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    if (state.view == LeaderboardView.COMBINED) CombinedPagination(state.combined, viewModel)
+                    if (shownView == LeaderboardView.COMBINED) CombinedPagination(state.combined, viewModel)
                 }
             }
         } else {
             viewSwitch(Modifier.fillMaxWidth())
         }
-        when (state.view) {
-            LeaderboardView.COMBINED -> CombinedLeaderboard(state = state, viewModel = viewModel, landscape = landscape)
+        when (shownView) {
+            LeaderboardView.COMBINED -> if (state.view == LeaderboardView.COMBINED || state.combined.entries.isNotEmpty()) CombinedLeaderboard(state = state, viewModel = viewModel, landscape = landscape)
             LeaderboardView.GAME_MODE -> GameModeLeaderboard(state = state, viewModel = viewModel, columns = if (landscape) LANDSCAPE_MODE_COLUMNS else 1)
         }
     }

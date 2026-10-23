@@ -238,6 +238,8 @@ time.
 A `SegmentedChoiceRow` (Combined | Game Mode) at the top, always shown.
 - **`CombinedLeaderboard`** is one table with the podium. Its card is as tall as its rows.
 - **`GameModeLeaderboard`** is a card per mode with a score, in a scrolling page, with **no podium colours**. A card
+- Game Mode's cards are all read in one go the first time it's chosen. The switch moves at once, but the Combined table stays
+  up until the cards are ready and then gives way in one frame (no empty page, no cards appearing one by one).
   lists only games played with no modifier on (`playedUnmodified`), as the Combined table and online boards do.
   - A card is capped at ten rows (`modeCardListHeight`, from `bodyMedium`'s line height) and scrolls inside. Its
     Previous/Next are the list's last item.

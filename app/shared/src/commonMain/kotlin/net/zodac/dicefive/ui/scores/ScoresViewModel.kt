@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -74,6 +76,9 @@ class ScoresViewModel(private val source: LeaderboardSource) : ViewModel() {
      */
     private val loads = HashMap<GameMode?, Job>()
 
+    /** The first read of every card, under way. */
+    private var modeBoardsLoad: Job? = null
+
     init {
         loadPage(0)
     }
@@ -90,8 +95,26 @@ class ScoresViewModel(private val source: LeaderboardSource) : ViewModel() {
 
     fun selectView(view: LeaderboardView) {
         _uiState.update { it.copy(view = view) }
-        if (view == LeaderboardView.GAME_MODE) {
-            for (mode in LEADERBOARD_MODES) if (mode !in _uiState.value.modeBoards) loadModePage(mode, 0)
+        if (view == LeaderboardView.GAME_MODE) loadModeBoards()
+    }
+
+    /** Reads every card not read yet and adds them in one go, so the Game Mode view appears whole rather than card by card. */
+    private fun loadModeBoards() {
+        if (modeBoardsLoad?.isActive == true) return
+        modeBoardsLoad = viewModelScope.launch {
+            val missing = LEADERBOARD_MODES.filter { it !in _uiState.value.modeBoards }
+            if (missing.isEmpty()) return@launch
+            val boards = missing.map { mode ->
+                async {
+                    mode to LeaderboardPage(
+                        entries = source.pageForMode(mode, 0),
+                        pageIndex = 0,
+                        totalCount = source.totalCountForMode(mode),
+                    )
+                }
+            }.awaitAll()
+            // A card already paged meanwhile keeps its page.
+            _uiState.update { it.copy(modeBoards = boards.toMap() + it.modeBoards) }
         }
     }
 
