@@ -48,6 +48,27 @@ class StylesRowTest : UiTest() {
     }
 
     @Test
+    fun `Unlocked only hides the locked tiles without rebuilding the row`() = uiTest {
+        val viewModel = stylesViewModel()
+        showcase.show { DiceFiveTheme { CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { StylesScreen(viewModel = viewModel, onBack = {}) } } }
+        compose.mainClock.advanceTimeBy(10_000)
+        compose.waitForIdle()
+        val before = compose.onAllNodes(tiles).fetchSemanticsNodes().map { it.id }.toSet()
+        // Frame by frame, so a row torn down and faded in again would show as tiles gone partway.
+        compose.mainClock.autoAdvance = false
+        viewModel.setUnlockedOnly(true)
+        compose.mainClock.advanceTimeByFrame()
+        val counts = mutableListOf<Set<Int>>()
+        repeat(10) {
+            counts += compose.onAllNodes(tiles).fetchSemanticsNodes().map { it.id }.toSet()
+            compose.mainClock.advanceTimeByFrame()
+        }
+        compose.mainClock.autoAdvance = true
+        // The same tiles throughout: a rebuilt row would have new ones.
+        assertTrue(counts.all { it == before }, "before $before, then $counts")
+    }
+
+    @Test
     fun `picking a style keeps the row's other tiles built - and picking each cup shakes and tips it through without breaking the row`() = uiTest {
         // Everything earned, so the row has more than one style to pick between.
         val achievements = AchievementsState(unlockedAt = Achievement.entries.associateWith { 0L })

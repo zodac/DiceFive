@@ -169,8 +169,10 @@ it's earned, so the total doesn't hint at it.
   once every one is unlocked. TalkBack reads "Dice, 46 of 96 unlocked" as the heading; the drawn count is hidden.
 
 **Unlocked only** sits beside the count, drawn and placed as the Achievements page's Locked only switch: after the count
-in portrait, at the app bar's end in landscape. On, it hides every locked style; each row is built afresh, opening on
-its pick. It's kept across restarts on this device (`SettingsRepository.unlockedOnlyStyles`), as Locked only is (`lockedOnlyAchievements`); neither goes in the cloud save.
+in portrait, at the app bar's end in landscape. On, it hides every locked style. The rows are kept, not rebuilt (no blink): locked tiles sit after the unlocked ones, so hiding
+them only shortens each row and the unlocked tiles keep their place and scroll. Hidden locked tiles stay composed, out of sight and out of TalkBack's reach (`HiddenTiles`), so turning it off again moves them back
+instead of building them; only tiles not built yet (the page just opened with it on) fill in a few at a time. The switch itself answers the tap at once. Each row's scrollbar keeps its room even when the row fits (`reserveSpace`), so a card never changes height, and is hidden for a few frames
+after the flip, then fades in over 100ms (`settling`); instant under reduced motion. It's kept across restarts on this device (`SettingsRepository.unlockedOnlyStyles`), as Locked only is (`lockedOnlyAchievements`); neither goes in the cloud save.
 
 **Unlock All** (the purchase, `PURCHASES.md`) is a tonal button at the app bar's end, before Unlocked only in
 landscape: the purchase's mark (`UnlockAllStylesIcon`) and "Unlock All". No price: Play's sheet shows it.
@@ -236,10 +238,10 @@ time.
 ## The Leaderboard's two views
 
 A `SegmentedChoiceRow` (Combined | Game Mode) at the top, always shown.
-- **`CombinedLeaderboard`** is one table with the podium. Its card is as tall as its rows.
-- **`GameModeLeaderboard`** is a card per mode with a score, in a scrolling page, with **no podium colours**. A card
 - Game Mode's cards are all read in one go the first time it's chosen. The switch moves at once, but the Combined table stays
   up until the cards are ready and then gives way in one frame (no empty page, no cards appearing one by one).
+- **`CombinedLeaderboard`** is one table with the podium. Its card is as tall as its rows.
+- **`GameModeLeaderboard`** is a card per mode with a score, in a scrolling page, with **no podium colours**. A card
   lists only games played with no modifier on (`playedUnmodified`), as the Combined table and online boards do.
   - A card is capped at ten rows (`modeCardListHeight`, from `bodyMedium`'s line height) and scrolls inside. Its
     Previous/Next are the list's last item.

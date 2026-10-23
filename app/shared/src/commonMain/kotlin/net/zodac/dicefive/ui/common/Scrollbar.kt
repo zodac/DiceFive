@@ -1,5 +1,8 @@
 package net.zodac.dicefive.ui.common
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -264,12 +267,22 @@ private fun ScrollState.measuredMaxValue(): Int = if (maxValue == Int.MAX_VALUE)
  * its own row underneath the scrollable content - the usual place for a horizontal scrollbar - so it
  * belongs as an ordinary sibling placed right after the `Row` it measures. It emits no layout node at
  * all (not even a zero-sized one) while there's nothing to scroll, so a category with only one tile
- * doesn't reserve dead space for a bar it isn't showing.
+ * doesn't reserve dead space for a bar it isn't showing - unless [reserveSpace], which keeps the bar's room (drawn
+ * empty) so the content around it doesn't move as the bar comes and goes. While [settling] the bar is hidden, then fades in.
  */
 @Composable
-fun HorizontalScrollbar(scrollState: ScrollState, modifier: Modifier = Modifier) {
+fun HorizontalScrollbar(scrollState: ScrollState, modifier: Modifier = Modifier, reserveSpace: Boolean = false, settling: Boolean = false) {
     val showScrollbar by remember(scrollState) { derivedStateOf { scrollState.measuredMaxValue() > 0 && (scrollState.canScrollForward || scrollState.canScrollBackward) } }
-    if (!showScrollbar) return
+    // Hidden at once while [settling], then faded back in: the bar follows the content once it has stopped changing,
+    // not on every frame it does.
+    val fadedIn by animateFloatAsState(
+        targetValue = if (settling) 0f else 1f,
+        animationSpec = if (settling || LocalReduceMotion.current) snap() else tween(durationMillis = BAR_FADE_IN_MILLIS),
+        label = "scrollbarFadeIn", // i18n: not translated - an animation label, not shown
+    )
+    // Not [fadedIn] alone: it lags the flip by a frame, which would draw the bar once, in its new size, before hiding it.
+    val alpha = if (settling) 0f else fadedIn
+    if (!showScrollbar && !reserveSpace) return
 
     val thumbColor = MaterialTheme.colorScheme.primary
     val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
@@ -279,7 +292,8 @@ fun HorizontalScrollbar(scrollState: ScrollState, modifier: Modifier = Modifier)
             .fillMaxWidth()
             .height(SCROLLBAR_THICKNESS),
     ) {
-        drawRoundRect(color = trackColor, cornerRadius = CornerRadius(size.height / 2))
+        if (!showScrollbar) return@Canvas
+        drawRoundRect(color = trackColor, cornerRadius = CornerRadius(size.height / 2), alpha = alpha)
 
         // Exact, not estimated: a ScrollState already knows its full scrollable extent up front,
         // unlike a LazyColumn which only measures items as they're scrolled into view.
@@ -295,9 +309,13 @@ fun HorizontalScrollbar(scrollState: ScrollState, modifier: Modifier = Modifier)
             topLeft = Offset(thumbOffsetX, 0f),
             size = Size(thumbWidth, size.height),
             cornerRadius = CornerRadius(size.height / 2),
+            alpha = alpha,
         )
     }
 }
+
+/** How long a row's scrollbar takes to fade in once its content has settled - see [HorizontalScrollbar]. */
+private const val BAR_FADE_IN_MILLIS = 100
 
 /**
  * [HorizontalScrollbar] for a [androidx.compose.foundation.lazy.LazyRow] - the Styles screen's tile

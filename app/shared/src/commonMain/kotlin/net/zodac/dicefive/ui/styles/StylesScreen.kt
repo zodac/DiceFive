@@ -122,6 +122,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
@@ -304,7 +305,11 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
         }
     }
     // Kept across restarts, on this device only (SettingsRepository.unlockedOnlyStyles).
-    val unlockedOnly by viewModel.unlockedOnly.collectAsStateWithLifecycle()
+    val savedUnlockedOnly by viewModel.unlockedOnly.collectAsStateWithLifecycle()
+    // The switch answers a tap at once, not once the setting has been written and read back.
+    var tappedUnlockedOnly by remember { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(savedUnlockedOnly) { tappedUnlockedOnly = null }
+    val unlockedOnly = tappedUnlockedOnly ?: savedUnlockedOnly
     val platform = LocalPlatformServices.current
     LaunchedEffect(viewModel) {
         viewModel.toastMessages.collect { message -> platform.showTransientMessage(message) }
@@ -324,7 +329,7 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
         picks = saved,
         focus = focus,
         unlockedOnly = unlockedOnly ?: false,
-        onUnlockedOnlyChange = viewModel::setUnlockedOnly,
+        onUnlockedOnlyChange = { tappedUnlockedOnly = it; viewModel.setUnlockedOnly(it) },
         onUnlockedCountTap = viewModel::onUnlockedCountTapped,
         storeState = storeState,
         onBuy = store::buy,
@@ -1269,7 +1274,11 @@ private fun <T : TableArt> StyleFamilyTiles(
     var flashing by remember { mutableStateOf(false) }
     val focusNames = remember(focus, catalog) { focus?.styles.orEmpty().filter { it.categoryNoun.key == catalog.noun.key }.map { it.name.key }.toSet() }
     val shownSelectedId = catalog.unlockedById(selectedId, access).id
-    val (unlocked, shownLocked) = catalog.shownFamilies(access).let { (unlocked, locked) -> unlocked to if (unlockedOnly) emptyList() else locked }
+    val (unlocked, allLocked) = catalog.shownFamilies(access)
+    // Every tile the row can hold, locked ones last: hiding them only shortens what's shown (the end of the run), so
+    // the unlocked tiles keep their index, their composition and the row its scroll.
+    val allFamilies = remember(unlocked, allLocked) { unlocked + allLocked }
+    val shownCount = if (unlockedOnly) unlocked.size else allFamilies.size
 
     @Composable
     fun Tile(index: Int) {
@@ -1279,26 +1288,24 @@ private fun <T : TableArt> StyleFamilyTiles(
                 flashing = flashing && unlocked[index].name.key in focusNames, flashOverArt = flashOverArt, variantNoun = catalog.variantNoun,
             )
         } else {
-            LockedStyleFamilyTile(shownLocked[index - unlocked.size], access, previewSize, backgroundBrush, preview, index)
+            LockedStyleFamilyTile(allLocked[index - unlocked.size], access, previewSize, backgroundBrush, preview, index)
         }
     }
 
     // StylesWarmUp's pass: just these tiles, side by side, drawn once - see StylesWarmUp.
     if (warmUp != null) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            for (index in warmUp) if (index < unlocked.size + shownLocked.size) Tile(index)
+            for (index in warmUp) if (index < shownCount) Tile(index)
         }
         return
     }
 
-    // Built afresh when locked styles are hidden or shown again, opening on its pick as the page does.
-    key(unlockedOnly) {
-        val families = remember(unlocked, shownLocked) { unlocked + shownLocked }
+    run {
         // Opens with the current pick in the middle. Only the pick the row opened with: the build below
         // is keyed on it, so following a later pick would throw away every other tile and build them all
         // again, flashing the whole row each time a new style was picked.
         // Or, arriving from a styles banner, with the style it unlocked there instead.
-        val pickedIndex = remember(families.size) {
+        val pickedIndex = remember(allFamilies.size) {
             unlocked.indexOfFirst { it.name.key in focusNames }.takeIf { it >= 0 }
                 ?: unlocked.indexOfFirst { it.colourOf(shownSelectedId) != null }.coerceAtLeast(0)
         }
@@ -1306,8 +1313,8 @@ private fun <T : TableArt> StyleFamilyTiles(
 
         // The card's width, for spacing the tiles: the row and the gallery space them alike (TileSpacing).
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val spacing = remember(maxWidth, previewSize.width, families.size) {
-                TileSpacing.of(width = maxWidth - TILES_SIDE_PADDING * 2, slot = previewSize.width, count = families.size)
+            val spacing = remember(maxWidth, previewSize.width, shownCount) {
+                TileSpacing.of(width = maxWidth - TILES_SIDE_PADDING * 2, slot = previewSize.width, count = shownCount)
             }
             Column {
 
@@ -1320,7 +1327,7 @@ private fun <T : TableArt> StyleFamilyTiles(
                 // row's cache window was meant to do this, but built nothing ahead of time: every tile was still
                 // built on the frame it scrolled in.) What isn't on screen is held still (see TileSlot), so a
                 // tile costs nothing once built.
-                val buildOrder = remember(families.size, pickedIndex) { families.indices.sortedBy { abs(it - pickedIndex) } }
+                val buildOrder = remember(allFamilies.size, pickedIndex) { allFamilies.indices.sortedBy { abs(it - pickedIndex) } }
                 val reach = previewSize.width + spacing.gap
                 val windowWidth = LocalWindowInfo.current.containerSize.width
                 // The pick and as many either side as can show beside it, centred in the row.
@@ -1341,22 +1348,35 @@ private fun <T : TableArt> StyleFamilyTiles(
                 val opening = remember(buildOrder) { buildOrder.take(openingTiles) }
                 var firstBuilt by remember(buildOrder) { mutableIntStateOf(if (reduceMotion) opening.min() else pickedIndex) }
                 var lastBuilt by remember(buildOrder) { mutableIntStateOf(if (reduceMotion) opening.max() else pickedIndex) }
-                val openingBuilt = remember(buildOrder) { derivedStateOf { lastBuilt - firstBuilt + 1 >= min(openingTiles, families.size) } }
+                // The row's bar hides for a few frames after Unlocked only is flipped, then fades in - see HorizontalScrollbar.
+                var barSeenUnlockedOnly by remember { mutableStateOf(unlockedOnly) }
+                LaunchedEffect(unlockedOnly) {
+                    if (unlockedOnly != barSeenUnlockedOnly) {
+                        repeat(BAR_SETTLE_FRAMES) { withFrameNanos { } }
+                        barSeenUnlockedOnly = unlockedOnly
+                    }
+                }
+                val openingBuilt = remember(buildOrder, shownCount) { derivedStateOf { lastBuilt - firstBuilt + 1 >= min(openingTiles, shownCount) } }
                 val lifecycle = LocalLifecycleOwner.current.lifecycle
-                LaunchedEffect(buildOrder) {
+                var openingDone by remember(buildOrder) { mutableStateOf(false) }
+                LaunchedEffect(buildOrder, unlockedOnly) {
                     fun buildNext(index: Int) {
                         if (index < firstBuilt) firstBuilt = index else if (index > lastBuilt) lastBuilt = index
                     }
-                    val rest = buildOrder.drop(openingTiles)
-                    // The pick is built already; then a tile either side of what's built, a frame at a time (all
-                    // already built under reduced motion).
-                    for (pair in opening.drop(1).chunked(2).takeUnless { reduceMotion }.orEmpty()) {
-                        withFrameNanos { }
-                        pair.forEach(::buildNext)
+                    if (!openingDone) {
+                        // The pick is built already; then a tile either side of what's built, a frame at a time (all
+                        // already built under reduced motion).
+                        for (pair in opening.drop(1).chunked(2).takeUnless { reduceMotion }.orEmpty()) {
+                            withFrameNanos { }
+                            pair.forEach { if (it < shownCount) buildNext(it) }
+                        }
+                        if (!reduceMotion) lifecycle.delayWhileResumed(PAGE_CONTENT_FADE_IN_MILLIS.toLong())
+                        repeat(buildStagger) { withFrameNanos { } }
+                        openingDone = true
                     }
-                    if (!reduceMotion) lifecycle.delayWhileResumed(PAGE_CONTENT_FADE_IN_MILLIS.toLong())
-                    repeat(buildStagger) { withFrameNanos { } }
-                    for (index in rest) {
+                    // Nearest the pick first - and so, with the unbroken run, the unlocked end's neighbours before the far locked ones.
+                    for (index in buildOrder.drop(openingTiles).ifEmpty { buildOrder }) {
+                        if (index >= shownCount || index in firstBuilt..lastBuilt) continue
                         buildNext(index)
                         repeat(TILE_BUILD_FRAMES) { withFrameNanos { } }
                     }
@@ -1366,7 +1386,7 @@ private fun <T : TableArt> StyleFamilyTiles(
                 LaunchedEffect(gallery) {
                     if (gallery) {
                         firstBuilt = 0
-                        lastBuilt = families.lastIndex
+                        lastBuilt = allFamilies.lastIndex
                     }
                 }
 
@@ -1416,8 +1436,8 @@ private fun <T : TableArt> StyleFamilyTiles(
 
                 // Each tile's composition, movable between the row and the gallery - see the doc comment. Handed
                 // the tile to draw each time, so it draws with the current pick, not the one it was first built with.
-                val slots = remember(families) {
-                    families.map { movableContentOf { tile: @Composable () -> Unit -> TileSlot(tile) } }
+                val slots = remember(allFamilies) {
+                    allFamilies.map { movableContentOf { tile: @Composable () -> Unit -> TileSlot(tile) } }
                 }
 
                 if (gallery) {
@@ -1427,10 +1447,10 @@ private fun <T : TableArt> StyleFamilyTiles(
                         spacing = spacing,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .semantics { collectionInfo = CollectionInfo(rowCount = 1, columnCount = families.size) }
+                            .semantics { collectionInfo = CollectionInfo(rowCount = 1, columnCount = shownCount) }
                             .padding(start = TILES_SIDE_PADDING, top = 6.dp, end = TILES_SIDE_PADDING, bottom = 12.dp),
                     ) {
-                        for (index in families.indices) {
+                        for (index in 0 until shownCount) {
                             slots[index] { Tile(index) }
                         }
                     }
@@ -1440,25 +1460,36 @@ private fun <T : TableArt> StyleFamilyTiles(
                             .fillMaxWidth()
                             .alpha(rowAlpha)
                             // Its place in a row of this many, as a lazy row would say it.
-                            .semantics { collectionInfo = CollectionInfo(rowCount = 1, columnCount = families.size) }
+                            .semantics { collectionInfo = CollectionInfo(rowCount = 1, columnCount = shownCount) }
                             .horizontalScroll(scrollState)
                             .padding(horizontal = TILES_SIDE_PADDING, vertical = 6.dp),
                         horizontalArrangement = Arrangement.spacedBy(spacing.gap),
                     ) {
                         if (firstBuilt > 0) PlaceholderRun(firstBuilt, previewSize, spacing.gap)
-                        for (index in firstBuilt..lastBuilt) {
+                        for (index in firstBuilt..minOf(lastBuilt, shownCount - 1)) {
                             // Each tile in its preview's width, as in the gallery: a wider name spills into the gaps.
                             Box(modifier = Modifier.width(previewSize.width).wrapContentWidth(unbounded = true)) {
                                 slots[index] { Tile(index) }
                             }
                         }
-                        if (lastBuilt < families.lastIndex) PlaceholderRun(families.lastIndex - lastBuilt, previewSize, spacing.gap)
+                        if (lastBuilt < shownCount - 1) PlaceholderRun(shownCount - 1 - lastBuilt, previewSize, spacing.gap)
                     }
 
                     HorizontalScrollbar(
                         scrollState = scrollState,
+                        // Its room is kept even when the row fits, so a card doesn't change height as tiles come and go.
+                        reserveSpace = true,
+                        settling = unlockedOnly != barSeenUnlockedOnly,
                         modifier = Modifier.padding(start = TILES_SIDE_PADDING, end = TILES_SIDE_PADDING, bottom = 10.dp),
                     )
+                }
+
+                // The locked tiles hidden by Unlocked only stay composed, out of sight (and out of reach of TalkBack), so showing
+                // them again moves them back into place instead of building them - see HiddenTiles.
+                if (shownCount <= lastBuilt) {
+                    HiddenTiles(modifier = Modifier.clearAndSetSemantics {}, tileWidth = previewSize.width) {
+                        for (index in shownCount..lastBuilt) slots[index] { Tile(index) }
+                    }
                 }
             }
         }
@@ -1480,6 +1511,19 @@ internal data class TileSpacing(val columns: Int, val gap: Dp) {
             val gap = if (columns > 1) minOf(TILE_SPACING, (width - slot * columns) / (columns - 1)) else TILE_SPACING
             return TileSpacing(columns, gap)
         }
+    }
+}
+
+/**
+ * Tiles kept composed but not shown: measured at a preview's [tileWidth], then placed in no room at all and clipped, so
+ * nothing is drawn, none takes space, and each reads as off screen (see [TileSlot]), holding still.
+ */
+@Composable
+private fun HiddenTiles(tileWidth: Dp, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Layout(content = content, modifier = modifier.clipToBounds()) { measurables, constraints ->
+        val width = tileWidth.roundToPx()
+        val placeables = measurables.map { it.measure(Constraints(maxWidth = width, maxHeight = constraints.maxHeight)) }
+        layout(0, 0) { placeables.forEach { it.place(0, 0) } }
     }
 }
 
@@ -1519,6 +1563,9 @@ private val GALLERY_MIN_TILE_SPACING = 4.dp
 // four dice or cups fit across a 360dp phone's gallery (20dp page padding each side), and still wide
 // enough for the longest name to spill into.
 private val TILES_SIDE_PADDING = 8.dp
+
+// Frames a row's scrollbar stays hidden after Unlocked only is flipped, while the tiles settle.
+private const val BAR_SETTLE_FRAMES = 3
 
 // How many frames apart a row builds its tiles after the page opens - see StyleFamilyTiles.
 private const val TILE_BUILD_FRAMES = 4
