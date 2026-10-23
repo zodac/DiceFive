@@ -1,4 +1,4 @@
-[← Back to Documentation](./)
+[← Back to Documentation](./index.md)
 
 # Privacy Policy
 

@@ -21,8 +21,8 @@
 # ------------------------------------------------------------------------------
 set -euo pipefail
 
-IMAGEMAGICK_VERSION="7.1.2-32"
-IMAGEMAGICK_SHA256="d456cab221b5fc1c396768a026d0a33ee8665f7119c7fea7151b960c69058b21"
+IMAGEMAGICK_VERSION="7.1.2-34"
+IMAGEMAGICK_SHA256="6e9edfd35d5f30b57c27533afe003d6085faaf8607b207426f398d11751acf93"
 
 dir="${RUNNER_TEMP}/imagemagick"
 mkdir -p "${dir}/bin"

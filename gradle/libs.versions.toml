@@ -18,11 +18,11 @@ jetbrainsNavigation = "2.9.2"
 jetbrainsNavigationEvent = "1.1.0"
 navigationCompose = "2.10.2"
 room = "2.8.5"
-datastore = "1.2.1"
+datastore = "1.3.0"
 # DataStore's own file layer, already in the APK through it; the cloud save gzips with it too. Keep it at the
 # version DataStore resolves to, so declaring it adds nothing.
 # @update follows datastore: androidx.datastore:datastore-core-okio -> com.squareup.okio:okio
-okio = "3.9.1"
+okio = "3.17.0"
 junit = "4.13.2"
 androidxJunit = "1.3.0"
 espresso = "3.7.0"
@@ -37,7 +37,7 @@ playGames = "22.1.0"
 playBilling = "9.1.0"
 # ICU for the shared code's JVM target (app/shared/src/jvmMain): the same number, list and ordinal formatting Android's
 # android.icu (a repackaged ICU) gives the app. Never in the APK.
-icu4j = "78.3"
+icu4j = "79.1"
 # Not used by the app: Play Games' play-services-base still asks for fragment 1.1.0, which Play Console reports as
 # outdated, so the Android module raises it to this through a constraint.
 fragment = "1.9.1"

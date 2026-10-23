@@ -79,7 +79,7 @@
 #             (the -trixie tag matches this base's glibc exactly).
 FROM eclipse-temurin:25.0.4.1_1-jdk AS jdk
 FROM maven:3.10.0-eclipse-temurin-25 AS maven
-FROM node:26.12.0-trixie AS node
+FROM node:26.12.1-trixie AS node
 
 # ── Runtime base ─────────────────────────────────────────────────────────────
 FROM debian:13.7
@@ -159,7 +159,7 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
 # BEGIN DEBIAN PACKAGES
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -yqq --no-install-recommends \
-        ca-certificates="20250419" \
+        ca-certificates="20250419+deb13u1" \
         curl="8.14.1-2+deb13u7" \
         gnupg="2.4.7-21+deb13u1" \
         libatomic1="14.2.0-19"
@@ -191,11 +191,11 @@ RUN install -m 0755 -d /etc/apt/keyrings \
 # BEGIN DEBIAN PACKAGES
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -yqq --no-install-recommends \
-        docker-ce="5:29.9.1-1~debian.13~trixie" \
-        docker-ce-cli="5:29.9.1-1~debian.13~trixie" \
-        containerd.io="2.4.2-2~debian.13~trixie" \
-        docker-buildx-plugin="0.38.0-1~debian.13~trixie" \
-        docker-compose-plugin="5.6.0-1~debian.13~trixie"
+        docker-ce="5:29.9.2-1~debian.13~trixie" \
+        docker-ce-cli="5:29.9.2-1~debian.13~trixie" \
+        containerd.io="2.4.2-3~debian.13~trixie" \
+        docker-buildx-plugin="0.38.1-1~debian.13~trixie" \
+        docker-compose-plugin="5.6.1-1~debian.13~trixie"
 # END DEBIAN PACKAGES
 
 # ── JDK 25 / Maven / Node (copied from the toolchain stages above) ───────────
@@ -308,7 +308,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
         python3-pip="25.1.1+dfsg-1" \
         python3-venv="3.13.5-1" \
         sudo="1.9.16p2-3+deb13u2" \
-        tzdata="2026c-0+deb13u1" \
+        tzdata="2026e-0+deb13u1" \
         unzip="6.0-29+deb13u1"
 # END DEBIAN PACKAGES
 
@@ -436,8 +436,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
 # together, and its consistency check fails the run if they drift. Extracted rather than mounted (no FUSE
 # in a container); its AppRun runs the tool named by the link it was called through, so the `magick` link
 # is `magick`. Its own layer near the end, so a bump never re-downloads the Android layers above.
-ENV IMAGEMAGICK_VERSION=7.1.2-32
-ENV IMAGEMAGICK_SHA256=d456cab221b5fc1c396768a026d0a33ee8665f7119c7fea7151b960c69058b21
+ENV IMAGEMAGICK_VERSION=7.1.2-34
+ENV IMAGEMAGICK_SHA256=6e9edfd35d5f30b57c27533afe003d6085faaf8607b207426f398d11751acf93
 RUN set -eux; \
     curl -fsSL -o /tmp/magick.AppImage \
         "https://github.com/ImageMagick/ImageMagick/releases/download/${IMAGEMAGICK_VERSION}/ImageMagick-${IMAGEMAGICK_VERSION}-gcc-x86_64.AppImage"; \
