@@ -83,6 +83,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -353,6 +354,8 @@ fun AchievementsScreen(
     LaunchedEffect(Unit) {
         AchievementScrollRequests.requests.collect { request ->
             snapshotFlow { state }.first { it.isLoaded }
+            // The groups below are those of the composition that drew the loaded state, a frame later than the state itself.
+            withFrameNanos { }
             // The filtered groups are what its index is counted in; an unlocked row isn't in them while only the locked are shown.
             val flatIndex = flatIndexOf(currentGroups, request.achievementId, columns)
             if (flatIndex != null) {
@@ -368,10 +371,13 @@ fun AchievementsScreen(
                     listState.scrollToItem(flatIndex, centeredOffset)
                 }
                 highlightedAchievementId = request.achievementId
+                // Taken before the flash's hold, not after: leaving the screen part-way through it mustn't leave the request to replay on the next visit.
+                AchievementScrollRequests.consumePending()
                 lifecycle.delayWhileResumed(ROW_FLASH_HOLD_MILLIS)
                 if (highlightedAchievementId == request.achievementId) highlightedAchievementId = null
+            } else {
+                AchievementScrollRequests.consumePending()
             }
-            AchievementScrollRequests.consumePending()
         }
     }
 
