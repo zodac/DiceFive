@@ -30,8 +30,8 @@
 #                   release build's native symbol tables (see "0b. NDK")
 #                 - sandbox/Dockerfile's Android cmdline-tools download (URL + sha1, from Google's own SDK
 #                   repository manifest) and the Playwright CLI pin used for `install-deps`
-#                 - GitHub Actions `uses:` references, in the workflows and .github/actions (keeping the pin
-#                   style: `@v4` stays a major tag, a commit pin `@<sha> # v1.2.3` moves to the new release's commit) -
+#                 - GitHub Actions `uses:` references, in the workflows and .github/actions (always pinned to a
+#                   commit, `@<sha> # v1.2.3`: a floating `@v4` is converted, a commit pin moves to the new release's commit) -
 #                   or, with --no-workflow-edits, only reported
 #                 - The actionlint image pinned in .github/scripts/lint_workflows.sh
 #                 - ImageMagick's AppImage (version + sha256), pinned in .github/scripts/install_imagemagick.sh
@@ -1772,10 +1772,10 @@ update_apt_packages() {
 # ── 10. GitHub Actions ────────────────────────────────────────────────────────
 # Collects every `uses: owner/repo[/path]@ref` in the workflows and the repo's own composite actions
 # (.github/actions/*/action.yml) and moves it to the action's latest stable release, keeping the existing
-# pin style: a floating major tag (`@v4`) becomes the newer major tag (`@v5`, once that tag is confirmed
-# to exist), a full tag stays a full tag, and a commit pin (`@<40-hex sha> # v1.2.3`, the version in its
-# comment) becomes the new release's commit with its tag in the comment. Never moves a reference
-# backwards. Best-effort: actions that cannot be resolved are warned and left unchanged.
+# pin style: every reference ends up a commit pin (`@<40-hex sha> # v1.2.3`, the full version in its
+# comment). A floating tag (`@v4`, `@v4.1.0`) is converted to the commit of the latest release (or of the
+# tag it names, when that is already the newest), and a commit pin moves to the new release's commit with
+# its tag in the comment. Never moves a reference backwards. Best-effort: actions that cannot be resolved are warned and left unchanged.
 # Under --no-workflow-edits the newer versions are only reported (record_note), never written - the
 # composite actions too, as the same action is often also named in a workflow, and the two must agree.
 
@@ -1827,27 +1827,20 @@ update_github_actions() {
         fi
 
         target="${latest}"
-        if [[ -z "${pinned_sha}" && "${current}" =~ ^v[0-9]+$ ]]; then
-            local major_tag
-            major_tag="v$(major_of "${latest#v}")"
-            if github_curl -o /dev/null "https://api.github.com/repos/${repo}/git/ref/tags/${major_tag}" 2>/dev/null; then
-                target="${major_tag}"
-            else
-                warn "${repo} has no ${major_tag} tag, pinning ${action} to the full tag ${latest}"
-            fi
-        fi
-
-        if [[ "${current}" == "${target}" ]] || ! version_gt "${target#v}" "${current#v}"; then
-            echo "  ${action}@${current} (already up-to-date)"
-            continue
-        fi
-
         if [[ -n "${pinned_sha}" ]]; then
-            new_sha=$(github_curl "https://api.github.com/repos/${repo}/commits/${target}" | jq -r '.sha // empty') || new_sha=""
-            if ! [[ "${new_sha}" =~ ^[0-9a-f]{40}$ ]]; then
-                warn "Could not resolve ${repo}@${target} to a commit, leaving ${action} at ${current}"
+            if [[ "${current}" == "${target}" ]] || ! version_gt "${target#v}" "${current#v}"; then
+                echo "  ${action}@${current} (already up-to-date)"
                 continue
             fi
+        elif [[ "${current}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] && version_gt "${current#v}" "${latest#v}"; then
+            # A full tag already past the latest release: keep its version, only pin it to a commit.
+            target="${current}"
+        fi
+
+        new_sha=$(github_curl "https://api.github.com/repos/${repo}/commits/${target}" | jq -r '.sha // empty') || new_sha=""
+        if ! [[ "${new_sha}" =~ ^[0-9a-f]{40}$ ]]; then
+            warn "Could not resolve ${repo}@${target} to a commit, leaving ${action} at ${current}"
+            continue
         fi
 
         if [[ "${NO_WORKFLOW_EDITS}" == "true" ]]; then
@@ -1860,7 +1853,7 @@ update_github_actions() {
             if [[ -n "${pinned_sha}" ]]; then
                 sed -i -E "s~${action//./\\.}@${pinned_sha}([[:space:]]+#[[:space:]]*)${current//./\\.}([[:space:]]|$)~${action}@${new_sha}\1${target}\2~g" "${file}"
             else
-                sed -i -E "s#${action//./\\.}@${current//./\\.}([[:space:]]|$)#${action}@${target}\1#g" "${file}"
+                sed -i -E "s~${action//./\\.}@${current//./\\.}([[:space:]]|$)~${action}@${new_sha} # ${target}\1~g" "${file}"
             fi
         done
         record_update "GitHub Action ${action}: ${current} → ${target}"

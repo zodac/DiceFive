@@ -13,7 +13,7 @@ name: Update dependencies
 #     gradle/android-sdk.properties, both read at run time (.github/actions/build-setup), and the actionlint
 #     image is pinned in .github/scripts/lint_workflows.sh (the NDK, like the SDK packages, comes from
 #     gradle/android-sdk.properties). The one thing left in workflow files is
-#     the actions' own versions (`uses: …@vN`, or a commit pin `@<sha> # vX.Y.Z`): the script runs with --no-workflow-edits, so newer
+#     the actions' own versions (each a commit pin, `@<sha> # vX.Y.Z`): the script runs with --no-workflow-edits, so newer
 #     ones are only listed in the run summary, to apply by running the script locally.
 #   - A push made with it never triggers other workflows (which is what stops android-release.yml's own
 #     version-bump commit from looping). So after pushing, this starts android-release.yml explicitly - a
@@ -40,7 +40,7 @@ jobs:
     timeout-minutes: 180
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
 
