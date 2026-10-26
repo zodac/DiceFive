@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performSemanticsAction
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -66,6 +67,30 @@ class StylesRowTest : UiTest() {
         compose.mainClock.autoAdvance = true
         // The same tiles throughout: a rebuilt row would have new ones.
         assertTrue(counts.all { it == before }, "before $before, then $counts")
+    }
+
+    @Test
+    fun `Unlocked only collapses the locked tiles in place - unlocked ones stay put, nothing locked is reachable - and turning it off brings them back`() = uiTest {
+        val viewModel = stylesViewModel()
+        showcase.show { DiceFiveTheme { CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { StylesScreen(viewModel = viewModel, onBack = {}) } } }
+        compose.mainClock.advanceTimeBy(10_000)
+        compose.waitForIdle()
+        fun tilePositions() = compose.onAllNodes(tiles).fetchSemanticsNodes().map { it.positionInRoot }
+        fun reachable() = compose.onRoot().fetchSemanticsNode().let { root ->
+            generateSequence(listOf(root)) { level -> level.flatMap { it.children }.takeIf { it.isNotEmpty() } }.sumOf { it.size }
+        }
+        val positionsOff = tilePositions()
+        val nodesOff = reachable()
+        viewModel.setUnlockedOnly(true)
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
+        assertEquals(positionsOff, tilePositions(), "the unlocked tiles moved")
+        assertTrue(reachable() < nodesOff, "the locked tiles are still reachable")
+        viewModel.setUnlockedOnly(false)
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
+        assertEquals(positionsOff, tilePositions())
+        assertEquals(nodesOff, reachable(), "the locked tiles didn't all come back")
     }
 
     @Test

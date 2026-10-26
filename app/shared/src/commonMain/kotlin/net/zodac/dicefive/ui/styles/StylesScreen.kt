@@ -98,6 +98,7 @@ import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
@@ -1472,12 +1473,22 @@ private fun <T : TableArt> StyleFamilyTiles(
                             .semantics { collectionInfo = CollectionInfo(rowCount = 1, columnCount = shownCount) }
                             .horizontalScroll(scrollState)
                             .padding(horizontal = TILES_SIDE_PADDING, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.gap),
                     ) {
-                        if (firstBuilt > 0) PlaceholderRun(firstBuilt, previewSize, spacing.gap)
-                        for (index in firstBuilt..minOf(lastBuilt, shownCount - 1)) {
+                        // The gap after a tile is its own padding, so a hidden tile (no room, no gap) leaves the shown ones as they were.
+                        if (firstBuilt > 0) Box(modifier = Modifier.padding(end = spacing.gap)) { PlaceholderRun(firstBuilt, previewSize, spacing.gap) }
+                        for (index in firstBuilt..lastBuilt) {
                             // Each tile in its preview's width, as in the gallery: a wider name spills into the gaps.
-                            Box(modifier = Modifier.width(previewSize.width).wrapContentWidth(unbounded = true)) {
+                            // Hidden by Unlocked only, a built tile stays here, composed but taking no room, so showing it again
+                            // changes its size only, with no move to another parent (see HiddenTiles, for the gallery).
+                            val tileModifier = if (index < shownCount) {
+                                Modifier
+                                    .padding(end = if (index < shownCount - 1) spacing.gap else 0.dp)
+                                    .width(previewSize.width)
+                                    .wrapContentWidth(unbounded = true)
+                            } else {
+                                Modifier.collapsed(previewSize.width)
+                            }
+                            Box(modifier = tileModifier) {
                                 slots[index] { Tile(index) }
                             }
                         }
@@ -1492,9 +1503,9 @@ private fun <T : TableArt> StyleFamilyTiles(
                     )
                 }
 
-                // The locked tiles hidden by Unlocked only stay composed, out of sight (and out of reach of TalkBack), so showing
+                // The gallery's hidden tiles stay composed, out of sight (and out of reach of TalkBack), so showing
                 // them again moves them back into place instead of building them - see HiddenTiles.
-                if (shownCount <= lastBuilt) {
+                if (gallery && shownCount <= lastBuilt) {
                     HiddenTiles(modifier = Modifier.clearAndSetSemantics {}, tileWidth = previewSize.width) {
                         for (index in shownCount..lastBuilt) slots[index] { Tile(index) }
                     }
@@ -1521,6 +1532,18 @@ internal data class TileSpacing(val columns: Int, val gap: Dp) {
         }
     }
 }
+
+/**
+ * A tile kept composed but not shown, in place: measured at [tileWidth], then given no room at all and clipped, so
+ * nothing is drawn, it takes no space, and it reads as off screen (see [TileSlot]) and to a screen reader as absent.
+ */
+private fun Modifier.collapsed(tileWidth: Dp): Modifier = this
+    .clipToBounds()
+    .clearAndSetSemantics {}
+    .layout { measurable, constraints ->
+        val placeable = measurable.measure(Constraints(maxWidth = tileWidth.roundToPx(), maxHeight = constraints.maxHeight))
+        layout(0, 0) { placeable.place(0, 0) }
+    }
 
 /**
  * Tiles kept composed but not shown: measured at a preview's [tileWidth], then placed in no room at all and clipped, so
