@@ -192,9 +192,10 @@ private fun <T> SegmentedSetting(
     compactGlyph: (T) -> ImageVector?,
 ) {
     // No visible label: the icon names the setting and the options sit beside it. The icon carries the label for a
-    // screen reader, which hears it before the options.
+    // screen reader, which hears it before the options. The 40dp segmented control sits in a 48dp tap target, so 9dp
+    // each side puts it 13dp from the card's edge, as a [SwitchSetting]'s 30dp switch track is in its 56dp row.
     Row(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
