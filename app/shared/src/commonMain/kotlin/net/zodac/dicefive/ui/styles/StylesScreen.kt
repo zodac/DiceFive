@@ -1360,14 +1360,6 @@ private fun <T : TableArt> StyleFamilyTiles(
                 val opening = remember(buildOrder) { buildOrder.take(openingTiles) }
                 var firstBuilt by remember(buildOrder) { mutableIntStateOf(if (reduceMotion) opening.min() else pickedIndex) }
                 var lastBuilt by remember(buildOrder) { mutableIntStateOf(if (reduceMotion) opening.max() else pickedIndex) }
-                // The row's bar hides for a few frames after Unlocked only is flipped, then fades in - see HorizontalScrollbar.
-                var barSeenUnlockedOnly by remember { mutableStateOf(unlockedOnly) }
-                LaunchedEffect(unlockedOnly) {
-                    if (unlockedOnly != barSeenUnlockedOnly) {
-                        repeat(BAR_SETTLE_FRAMES) { withFrameNanos { } }
-                        barSeenUnlockedOnly = unlockedOnly
-                    }
-                }
                 val openingBuilt = remember(buildOrder, shownCount) { derivedStateOf { lastBuilt - firstBuilt + 1 >= min(openingTiles, shownCount) } }
                 val lifecycle = LocalLifecycleOwner.current.lifecycle
                 var openingDone by remember(buildOrder) { mutableStateOf(false) }
@@ -1491,7 +1483,6 @@ private fun <T : TableArt> StyleFamilyTiles(
                         scrollState = scrollState,
                         // Its room is kept even when the row fits, so a card doesn't change height as tiles come and go.
                         reserveSpace = true,
-                        settling = unlockedOnly != barSeenUnlockedOnly,
                         modifier = Modifier.padding(start = TILES_SIDE_PADDING, end = TILES_SIDE_PADDING, bottom = 10.dp),
                     )
                 }
@@ -1575,9 +1566,6 @@ private val GALLERY_MIN_TILE_SPACING = 4.dp
 // four dice or cups fit across a 360dp phone's gallery (20dp page padding each side), and still wide
 // enough for the longest name to spill into.
 private val TILES_SIDE_PADDING = 8.dp
-
-// Frames a row's scrollbar stays hidden after Unlocked only is flipped, while the tiles settle.
-private const val BAR_SETTLE_FRAMES = 3
 
 // How many frames apart a row builds its tiles after the page opens - see StyleFamilyTiles.
 private const val TILE_BUILD_FRAMES = 4

@@ -171,8 +171,8 @@ it's earned, so the total doesn't hint at it.
 **The Unlocked switch** (labelled "All" while off, "Unlocked" while on) sits beside the count, drawn and placed as the Achievements page's switch (labelled "All" / "Unearned"): after the count
 in portrait, at the app bar's end in landscape. On, it hides every locked style. The rows are kept, not rebuilt (no blink): locked tiles sit after the unlocked ones, so hiding
 them only shortens each row and the unlocked tiles keep their place and scroll. Hidden locked tiles stay composed, out of sight and out of TalkBack's reach (`HiddenTiles`), so turning it off again moves them back
-instead of building them; only tiles not built yet (the page just opened with it on) fill in a few at a time. The switch itself answers the tap at once. Each row's scrollbar keeps its room even when the row fits (`reserveSpace`), so a card never changes height, and is hidden for a few frames
-after the flip, then fades in over 100ms (`settling`); instant under reduced motion. It's kept across restarts on this device (`SettingsRepository.unlockedOnlyStyles`), as the Unearned switch is (`lockedOnlyAchievements`); neither goes in the cloud save.
+instead of building them; only tiles not built yet (the page just opened with it on) fill in a few at a time. The switch itself answers the tap at once. Each row's scrollbar keeps its room even when the row fits (`reserveSpace`), so a card never changes height; it follows the tiles on the same
+frame (no hide or fade), so the tiles and the bar never come back at different times. It's kept across restarts on this device (`SettingsRepository.unlockedOnlyStyles`), as the Unearned switch is (`lockedOnlyAchievements`); neither goes in the cloud save.
 
 **Unlock All** (the purchase, `PURCHASES.md`) is a tonal button at the app bar's end, before the Unlocked switch in
 landscape: the purchase's mark (`UnlockAllStylesIcon`) and "Unlock All". No price: Play's sheet shows it.
