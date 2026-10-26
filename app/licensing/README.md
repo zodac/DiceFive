@@ -25,11 +25,17 @@ what the plugin can't discover for itself:
 - `mathjax-fonts-OFL.txt` - the same for the MathJax TeX fonts (the Maths and Poker dice's faces): the
   copyright and Reserved Font Name notice from the fonts' own name table, and the full OFL. Shown in
   the dialog as `libraries/mathjax-fonts.json`.
-- `sources/` - the untouched MathJax originals (`MathJax_Main-Regular.otf`, `MathJax_Math-Italic.otf`).
+- `andika-OFL.txt` - the same for the Andika font (the D20 dice's numbers): the copyright and Reserved Font
+  Name notice from the font's own name table, and the full OFL. Shown in the dialog as
+  `libraries/andika-font.json`.
+- `sources/` - the untouched originals: MathJax's (`MathJax_Main-Regular.otf`, `MathJax_Math-Italic.otf`) and
+  Andika's (`Andika-Bold.ttf`).
   They don't ship: `scripts/subset-maths-fonts.sh` cuts them down to the characters the dice draw and
   renames them `dicefive_maths_regular.otf` and `dicefive_maths_italic.otf` ("DiceFive Maths"), as the
   OFL requires of a modified font with a Reserved Font Name. `MathsFontCoverageTest` fails if a die
   draws a character the cut-down fonts lack, or if they keep a MathJax name.
+  `scripts/subset-d20-font.sh` likewise cuts Andika down to the digits, with its crossed seven as the 7, and
+  renames it `dicefive_d20.ttf` ("DiceFive D20"); `D20FontCoverageTest` guards it.
 
 - `asset-sources.json` - where every bundled asset file came from: each file under any of
   `app/android`'s source sets' `res/` (except `values*/`) and `assets/`, the sound effects in `app/audio/`, and under

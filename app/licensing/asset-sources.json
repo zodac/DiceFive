@@ -131,6 +131,14 @@
     "copyright": "Copyright 2026 zodac.net",
     "license": "LicenseRef-DiceFive-AllRightsReserved"
   },
+  "app/shared/src/commonMain/composeResources/font/dicefive_d20.ttf": {
+    "description": "DiceFive D20: Andika Bold, for the D20 dice's numbers - its 1 has a foot and its 7 is crossed, so neither reads as the other. Modified, a modification the OFL permits: cut down to the digits 0-9, the crossed seven (Andika's seven.Bar) made the 7, and renamed, as the OFL requires of a modified font with a Reserved Font Name, by scripts/subset-d20-font.sh from the original kept in app/licensing/sources/ (ofl/andika/Andika-Bold.ttf in github.com/google/fonts)",
+    "source": "https://github.com/google/fonts/blob/main/ofl/andika/Andika-Bold.ttf",
+    "license": "OFL-1.1",
+    "libraries": [
+      "andika-font"
+    ]
+  },
   "app/shared/src/commonMain/composeResources/font/dicefive_maths_italic.otf": {
     "description": "DiceFive Maths Italic: MathJax_Math Italic (Computer Modern math italic, as in Wikipedia's formulas) for the Maths dice's x, e and π - modified, a modification the OFL permits: cut down to those characters and renamed, as the OFL requires of a modified font with a Reserved Font Name, by scripts/subset-maths-fonts.sh from the original kept in app/licensing/sources/ (fonts/HTML-CSS/TeX/otf/MathJax_Math-Italic.otf in MathJax 2.7.9)",
     "source": "https://cdn.jsdelivr.net/npm/mathjax@2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Math-Italic.otf",

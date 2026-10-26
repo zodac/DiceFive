@@ -107,6 +107,9 @@ The sole holder can relicense later.
   carve-out.
 - **The MathJax TeX fonts** (the Maths and Poker dice) are OFL, with Reserved Font Names. They ship cut down, so
   renamed "DiceFive Maths" (`scripts/subset-maths-fonts.sh`; `MathsFontCoverageTest` guards the names).
+- **Andika** (the D20 dice's numbers) is OFL, with Reserved Font Names "Andika" and "SIL". It ships cut down to the
+  digits, with its crossed 7, so renamed "DiceFive D20" (`scripts/subset-d20-font.sh`; `D20FontCoverageTest` guards
+  the names).
 - **The OFL forbids selling the font on its own.** Bundling it in a paid app is fine.
 - **Audio.**
   - CC0 needs nothing.

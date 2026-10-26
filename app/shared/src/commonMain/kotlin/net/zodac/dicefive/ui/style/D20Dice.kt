@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.style
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -31,8 +32,11 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.dicefive_d20
 import net.zodac.dicefive.ui.game.DICE_TOSS_MILLIS
 import net.zodac.dicefive.ui.theme.GoldAccent
+import org.jetbrains.compose.resources.Font
 
 /** A point or direction in the D20's own 3D space. */
 internal data class Vec3(val x: Float, val y: Float, val z: Float) {
@@ -210,7 +214,8 @@ private fun silhouetteShape(outline: List<Offset>): Shape = GenericShape { size,
  * faces towards you shaded and their numbers foreshortened as they turn away. Only its front face
  * is ever the roll, though. In every mode but D20 a roll only lands on 1-6, so it's a six-sided die
  * that looks like a D20; in D20 mode it lands on any of the twenty. The rolled number is printed as large as its facet holds and at full
- * strength, the rest faded back, so the roll reads at a glance. 6 and 9 are underlined, as on real dice.
+ * strength, the rest faded back, so the roll reads at a glance. 6 and 9 are underlined, as on real dice, and the numbers are set in
+ * Andika's digits (1 with a foot, 7 crossed) so none reads as another.
  */
 class D20DiceStyle(
     override val id: String,
@@ -259,7 +264,10 @@ class D20DiceStyle(
         // each had its own to fill on the first roll, which was the lag.
         val measurer = sharedMeasurer(LocalFontFamilyResolver.current, LocalDensity.current, LocalLayoutDirection.current)
         // No colour in the style (it's applied as the number is drawn), so fading a number doesn't make it a new layout.
-        val style = TextStyle(fontSize = 40.sp, fontWeight = FontWeight.Black)
+        // The numbers are set in DiceFive D20 (Andika's digits: a 1 with a foot, a 7 with a bar), so a 1 never reads as a 7.
+        // Keyed on the font itself: where a font resource loads asynchronously, the first composition gets a stand-in.
+        val font = Font(Res.font.dicefive_d20)
+        val style = remember(font) { TextStyle(fontFamily = FontFamily(font), fontSize = 40.sp, fontWeight = FontWeight.Bold) }
 
         Canvas(modifier = modifier.dieShadow(shape)) {
             val scale = size.minDimension / 2f / D20.circumradius

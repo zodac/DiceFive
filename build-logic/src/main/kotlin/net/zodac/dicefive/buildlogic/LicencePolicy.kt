@@ -17,7 +17,7 @@ object LicencePolicy {
     val ALLOWED_FOR: Map<String, List<String>> = mapOf(
         // The SIL Open Font License is copyleft on the font alone (a modified Sora must stay OFL and can't be sold by
         // itself) and places no conditions on the app it's bundled in.
-        "OFL-1.1" to listOf("sora", "mathjax-fonts"),
+        "OFL-1.1" to listOf("sora", "mathjax-fonts", "andika-font"),
         // The sound effects' Freesound sources (see app/licensing/asset-sources.json). CC0 asks for nothing; CC-BY asks
         // for a credit, a link to the source and license, and a note of any changes - all in its libraries/ entry.
         // Neither places any condition on the app itself. (Never CC-BY-SA - adaptations must stay under it - nor
