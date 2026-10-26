@@ -11,13 +11,13 @@ alphabetical order.
   card, so a ladder reads as a ladder.
 - **Never split the list** into locked and unlocked parts, add a "hide unlocked" filter, or sort it alphabetically.
 - The unlocked/total count sits centred above the list. In landscape, where the list has two cards to a row, it moves
-  into the app bar after the back arrow, with Locked only at the bar's end (see `UI.md`, "Landscape pages").
+  into the app bar after the back arrow, with the Unearned switch at the bar's end (see `UI.md`, "Landscape pages").
 
 **Category headers** are `stickyHeader`s styled as a plain `Card`. A bare `Surface` has square corners.
 - Up and down arrows jump to the previous or next header (`animateScrollToItem`). The arrow with nowhere to go is
   greyed, not removed.
 - They're stock `IconButton`s, so the header is 48dp tall.
-- Each header carries its category's earned/total (`3/12`), counted over the whole category even while "Locked only"
+- Each header carries its category's earned/total (`3/12`), counted over the whole category even while the Unearned switch is on
   hides rows. The label is `onSurface`, and the whole header turns brand gold (`primary`) once every one is earned.
   TalkBack reads "Milestones, 3 of 12 unlocked" as the heading; the drawn count is hidden from it. Easter Eggs have no
   count, as their total is a secret.
@@ -168,13 +168,13 @@ it's earned, so the total doesn't hint at it.
 - Each category's title carries its own `46/96` before the gallery toggle. Title and count turn brand gold (`primary`)
   once every one is unlocked. TalkBack reads "Dice, 46 of 96 unlocked" as the heading; the drawn count is hidden.
 
-**Unlocked only** sits beside the count, drawn and placed as the Achievements page's Locked only switch: after the count
+**The Unlocked switch** (labelled "All" while off, "Unlocked" while on) sits beside the count, drawn and placed as the Achievements page's switch (labelled "All" / "Unearned"): after the count
 in portrait, at the app bar's end in landscape. On, it hides every locked style. The rows are kept, not rebuilt (no blink): locked tiles sit after the unlocked ones, so hiding
 them only shortens each row and the unlocked tiles keep their place and scroll. Hidden locked tiles stay composed, out of sight and out of TalkBack's reach (`HiddenTiles`), so turning it off again moves them back
 instead of building them; only tiles not built yet (the page just opened with it on) fill in a few at a time. The switch itself answers the tap at once. Each row's scrollbar keeps its room even when the row fits (`reserveSpace`), so a card never changes height, and is hidden for a few frames
-after the flip, then fades in over 100ms (`settling`); instant under reduced motion. It's kept across restarts on this device (`SettingsRepository.unlockedOnlyStyles`), as Locked only is (`lockedOnlyAchievements`); neither goes in the cloud save.
+after the flip, then fades in over 100ms (`settling`); instant under reduced motion. It's kept across restarts on this device (`SettingsRepository.unlockedOnlyStyles`), as the Unearned switch is (`lockedOnlyAchievements`); neither goes in the cloud save.
 
-**Unlock All** (the purchase, `PURCHASES.md`) is a tonal button at the app bar's end, before Unlocked only in
+**Unlock All** (the purchase, `PURCHASES.md`) is a tonal button at the app bar's end, before the Unlocked switch in
 landscape: the purchase's mark (`UnlockAllStylesIcon`) and "Unlock All". No price: Play's sheet shows it.
 - For sale: enabled. A tap opens a dialog first (the mark, "Unlock all styles", what it unlocks, and that every style
   can be earned for free, so paying is a shortcut and a way to support DiceFive); its Continue opens Play's sheet,

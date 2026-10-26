@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.styles
 
 import net.zodac.dicefive.ui.common.DIALOG_ICON_SIZE
+import net.zodac.dicefive.ui.common.FilterSwitchLabel
 import net.zodac.dicefive.ui.common.FilterSwitchState
 import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.rememberFilterSwitchState
@@ -155,6 +156,7 @@ import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.resources.common_cancel
 import net.zodac.dicefive.resources.common_ok
+import net.zodac.dicefive.resources.filter_all
 import net.zodac.dicefive.resources.style_variant_colour
 import net.zodac.dicefive.resources.styles_all_unlocked
 import net.zodac.dicefive.resources.styles_category_background
@@ -571,7 +573,7 @@ private fun UnlockedOnlySwitch(unlockedOnly: Boolean, enabled: Boolean, onChange
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        // One target for the label and switch, read as "Unlocked only, switch, on". No ripple, as on the Achievements page.
+        // One target for the label and switch, read as "All, switch, off" or "Unlocked, switch, on". No ripple, as on the Achievements page.
         modifier = Modifier.toggleable(
             value = unlockedOnly,
             enabled = enabled,
@@ -581,11 +583,7 @@ private fun UnlockedOnlySwitch(unlockedOnly: Boolean, enabled: Boolean, onChange
             onValueChange = onChange,
         ),
     ) {
-        Text(
-            text = stringResource(Res.string.styles_unlocked_only),
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.widthIn(max = 104.dp),
-        )
+        FilterSwitchLabel(unlockedOnly, off = stringResource(Res.string.filter_all), on = stringResource(Res.string.styles_unlocked_only))
         Switch(checked = unlockedOnly, onCheckedChange = null, enabled = enabled)
     }
 }

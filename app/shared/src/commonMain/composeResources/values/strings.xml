@@ -1195,7 +1195,8 @@
     <string name="styles_gallery_cd">%1$s gallery</string>
     <string name="styles_unlocked_count">%1$d of %2$d unlocked</string>
     <string name="styles_category_count">%1$d/%2$d</string>
-    <string name="styles_unlocked_only">Unlocked only</string>
+    <string name="filter_all">All</string>
+    <string name="styles_unlocked_only">Unlocked</string>
     <!-- The "Unlock all styles" purchase, in the Styles page's app bar (ui/styles/StylesScreen.kt). The price is Play's, on its own purchase sheet. -->
     <!-- The button's label, beside the purchase's icon (a palette with an open padlock). -->
     <string name="styles_unlock_all">Unlock All</string>
@@ -1337,7 +1338,7 @@
     <string name="achievements_unlocked_count">%1$d of %2$d unlocked</string>
     <string name="achievements_category_count">%1$d/%2$d</string>
     <string name="achievements_all_unlocked">Everything's unlocked. Nothing left to chase!</string>
-    <string name="achievements_locked_only">Locked only</string>
+    <string name="achievements_unearned_only">Unearned</string>
     <!-- The arrows on a category's header, which jump to the neighbouring one. -->
     <string name="achievements_previous_category_cd">Previous category</string>
     <string name="achievements_next_category_cd">Next category</string>

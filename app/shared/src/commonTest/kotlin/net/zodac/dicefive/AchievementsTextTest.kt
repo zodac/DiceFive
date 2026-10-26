@@ -186,12 +186,12 @@ class AchievementsTextTest : UiTest() {
     }
 
     @Test
-    fun `Locked only is one switch - it hides what is unlocked - and is still on when the page is opened again`() = uiTest {
+    fun `The Unearned switch is one switch - it hides what is unlocked - and is still on when the page is opened again`() = uiTest {
         val store = InMemoryAchievementStore(AchievementsState(unlockedAt = mapOf(Achievement.THE_JOURNEY_BEGINS to 0L)))
         val settings = SettingsRepository(InMemoryPreferences())
         showAchievements(achievementsViewModel(store = store, settings = settings))
-        // Its label and switch are one target, read as "Locked only, switch" and whether it's on.
-        val lockedOnly = compose.onNode(hasText("Locked only") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
+        // Its label and switch are one target, read as "All, switch" or "Unearned, switch" and whether it's on.
+        val lockedOnly = compose.onNode(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
         lockedOnly.assertIsOff()
         compose.onNodeWithText("The Journey Begins").assertExists()
 

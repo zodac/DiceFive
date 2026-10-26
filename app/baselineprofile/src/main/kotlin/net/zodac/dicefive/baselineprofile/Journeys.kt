@@ -730,14 +730,14 @@ internal fun MacrobenchmarkScope.visitScoreScreens() {
 }
 
 /**
- * The Achievements page: scrolled, then the "Locked only" switch on and off, and the Collection's Tally
+ * The Achievements page: scrolled, then the "Unearned" switch on and off, and the Collection's Tally
  * long-pressed for the scores it still lacks (the page has them locked, as [resetAchievements] left them, and
  * the Leaderboard has none of the scores it wants).
  */
 internal fun MacrobenchmarkScope.visitAchievements() {
     openFromMenu("Achievements")
     scrollDown(2)
-    tapText("Locked only")
+    tapText("All")
     // Category by category until Tally's row is on screen.
     // The scroll to a category goes on after the tap has returned, so each hop is given a moment to show it.
     var hops = 0
@@ -750,7 +750,7 @@ internal fun MacrobenchmarkScope.visitAchievements() {
     } while (!device.wait(Until.hasObject(missing), CLOSE_WAIT_MS) && ++pressed < CLOSE_ATTEMPTS)
     await(missing, "Tally's missing scores")
     closeDialog(By.text("Done"), "the missing scores' Done button")
-    tapText("Locked only")
+    tapText("Unearned")
     backToMenu()
 }
 

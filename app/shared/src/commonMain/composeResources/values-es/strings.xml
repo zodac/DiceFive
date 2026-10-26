@@ -941,7 +941,8 @@
     <string name="styles_gallery_cd">Galería de %1$s</string>
     <string name="styles_unlocked_count">%1$d de %2$d desbloqueados</string>
     <string name="styles_category_count">%1$d/%2$d</string>
-    <string name="styles_unlocked_only">Solo desbloqueados</string>
+    <string name="filter_all">Todos</string>
+    <string name="styles_unlocked_only">Desbloqueados</string>
     <string name="styles_unlock_all">Desbloquear todo</string>
     <string name="styles_unlock_all_spoken">Desbloquear todos los estilos</string>
     <string name="styles_payment_pending">Pago pendiente</string>
@@ -1040,7 +1041,7 @@
     <string name="achievements_unlocked_count">%1$d de %2$d desbloqueados</string>
     <string name="achievements_category_count">%1$d/%2$d</string>
     <string name="achievements_all_unlocked">¡Todo desbloqueado! No queda nada por conseguir.</string>
-    <string name="achievements_locked_only">Solo pendientes</string>
+    <string name="achievements_unearned_only">Pendientes</string>
     <string name="achievements_previous_category_cd">Categoría anterior</string>
     <string name="achievements_next_category_cd">Categoría siguiente</string>
     <string name="achievements_hidden_description">???</string>

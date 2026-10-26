@@ -378,9 +378,9 @@ Examples:
   - Settings: switches, resets and About on the left; Animations and Orientation, then Licences, on the right. The
     version is the last thing on the page in either orientation, at its foot (not pinned).
   - Achievements: two cards to a row (a tooltip row's card sized by the `Box` around it), the count after the back arrow
-    and Locked only at the app bar's end. Positions count rows of two (`flatIndexOf`, `indexOfKey`), and the scroll position is remembered by key.
+    and the Unearned switch at the app bar's end. Positions count rows of two (`flatIndexOf`, `indexOfKey`), and the scroll position is remembered by key.
   - Leaderboard: the view switch and Combined's page controls share a row over a 640dp table; mode cards two to a row.
-  - Statistics and Styles: two cards to a row. Styles' count and Unlocked only sit in the app bar as Achievements' do.
+  - Statistics and Styles: two cards to a row. Styles' count and the Unlocked switch sit in the app bar as Achievements' do.
   - Rules: the group and page tabs share a row, text at most 640dp wide.
   - Game Over: the results beside the buttons.
 

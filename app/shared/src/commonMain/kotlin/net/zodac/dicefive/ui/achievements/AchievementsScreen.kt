@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.achievements
 import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
 import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LocalLandscapePage
+import net.zodac.dicefive.ui.common.FilterSwitchLabel
 import net.zodac.dicefive.ui.common.rememberFilterSwitchState
 import androidx.compose.runtime.SideEffect
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -117,8 +118,9 @@ import net.zodac.dicefive.resources.achievements_reward_locked
 import net.zodac.dicefive.resources.achievements_reward_show_action
 import net.zodac.dicefive.resources.achievements_reward_unlocked
 import net.zodac.dicefive.resources.achievements_title
+import net.zodac.dicefive.resources.achievements_unearned_only
+import net.zodac.dicefive.resources.filter_all
 import net.zodac.dicefive.resources.achievements_unlocked_at
-import net.zodac.dicefive.resources.achievements_locked_only
 import net.zodac.dicefive.resources.achievements_category_count
 import net.zodac.dicefive.resources.achievements_unlocked_count
 import net.zodac.dicefive.ui.common.accessibleCombinedClickable
@@ -405,7 +407,7 @@ fun AchievementsScreen(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            // One target for the label and switch, read as "Locked only, switch, on".
+            // One target for the label and switch, read as "All, switch, off" or "Unearned, switch, on".
             // No ripple: it drew as a pale rectangle over the label, and the switch already shows the change.
             modifier = Modifier.toggleable(
                 value = onlyLocked,
@@ -418,11 +420,7 @@ fun AchievementsScreen(
                 scope.launch { listState.scrollToItem(0) }
             },
         ) {
-            Text(
-                text = stringResource(Res.string.achievements_locked_only),
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.widthIn(max = 104.dp),
-            )
+            FilterSwitchLabel(onlyLocked, off = stringResource(Res.string.filter_all), on = stringResource(Res.string.achievements_unearned_only))
             Switch(checked = onlyLocked, onCheckedChange = null, enabled = filterSwitch.enabled)
         }
     }

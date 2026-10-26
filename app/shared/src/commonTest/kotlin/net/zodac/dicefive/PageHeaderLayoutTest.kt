@@ -122,7 +122,7 @@ class PageHeaderLayoutTest : UiTest() {
     }
 
     @Test
-    fun `in landscape Achievements has its count left of the title and Locked only right of it - both inside the list's column`() = uiTest(TestScreen(1280, 800, 2f)) {
+    fun `in landscape Achievements has its count left of the title and its switch right of it - both inside the list's column`() = uiTest(TestScreen(1280, 800, 2f)) {
         compose.setContent {
             CompositionLocalProvider(
                 LocalAppContainer provides inMemoryAppContainer(),
@@ -136,13 +136,13 @@ class PageHeaderLayoutTest : UiTest() {
         val back = compose.onNodeWithContentDescription("Back").getBoundsInRoot()
         val title = compose.onNodeWithText("Achievements").getBoundsInRoot()
         val count = compose.onNodeWithText(" unlocked", substring = true).getBoundsInRoot()
-        val lockedOnly = compose.onNode(hasText("Locked only") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
+        val lockedOnly = compose.onNode(hasText("All") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
             .getBoundsInRoot()
         assertNear(list.left + ARROW_HALF, (back.left + back.right) / 2, "back arrow's centre")
         assertTrue(count.left >= back.right, "the count follows the back arrow")
         assertTrue(count.right < title.left, "the count is left of the title")
-        assertTrue(lockedOnly.left > title.right, "Locked only is right of the title")
-        assertNear(list.right, lockedOnly.right, "Locked only's end")
+        assertTrue(lockedOnly.left > title.right, "The switch is right of the title")
+        assertNear(list.right, lockedOnly.right, "The switch's end")
     }
 
     private companion object {

@@ -106,23 +106,27 @@ class StylesTextTest : UiTest() {
     }
 
     @Test
-    fun `Unlocked only is one switch - on it hides every locked style but keeps the unlocked ones - and stays on when the page is opened again`() = uiTest {
+    fun `The Unlocked switch is one switch - on it hides every locked style but keeps the unlocked ones - and stays on when the page is opened again`() = uiTest {
         show(AchievementsState())
-        val switch = compose.onNodeWithText("Unlocked only").fetchSemanticsNode().config
+        // The label is "All" while it's off and "Unlocked" while it's on.
+        val switch = compose.onNodeWithText("All").fetchSemanticsNode().config
         assertEquals(Role.Switch, switch[SemanticsProperties.Role])
         assertEquals(ToggleableState.Off, switch[SemanticsProperties.ToggleableState])
         compose.onAllNodesWithContentDescription("Frosted").onFirst().assertExists()
 
-        compose.onNodeWithText("Unlocked only").performClick()
+        val widthOff = compose.onNodeWithText("All").fetchSemanticsNode().size.width
+        compose.onNodeWithText("All").performClick()
         compose.mainClock.advanceTimeBy(10_000)
         compose.waitForIdle()
-        assertEquals(ToggleableState.On, compose.onNodeWithText("Unlocked only").fetchSemanticsNode().config[SemanticsProperties.ToggleableState])
+        assertEquals(ToggleableState.On, compose.onNodeWithText("Unlocked").fetchSemanticsNode().config[SemanticsProperties.ToggleableState])
+        // The label holds the longer word's width either way, so nothing beside it moves.
+        assertEquals(widthOff, compose.onNodeWithText("Unlocked").fetchSemanticsNode().size.width)
         assertEquals(0, compose.onAllNodesWithContentDescription("Frosted").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodes(hasStateDescription("Locked")).fetchSemanticsNodes().size)
         compose.onAllNodesWithContentDescription("Classic", substring = true).onFirst().assertExists()
 
         show(AchievementsState())
-        assertEquals(ToggleableState.On, compose.onNodeWithText("Unlocked only").fetchSemanticsNode().config[SemanticsProperties.ToggleableState])
+        assertEquals(ToggleableState.On, compose.onNodeWithText("Unlocked").fetchSemanticsNode().config[SemanticsProperties.ToggleableState])
         assertEquals(0, compose.onAllNodesWithContentDescription("Frosted").fetchSemanticsNodes().size)
     }
 }
