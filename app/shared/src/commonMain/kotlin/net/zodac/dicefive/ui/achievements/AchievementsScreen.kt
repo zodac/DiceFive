@@ -1,5 +1,7 @@
 package net.zodac.dicefive.ui.achievements
 
+import net.zodac.dicefive.ui.common.FittedCountText
+import net.zodac.dicefive.ui.common.percentOf
 import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
 import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LocalLandscapePage
@@ -123,7 +125,9 @@ import net.zodac.dicefive.resources.achievements_unearned_only
 import net.zodac.dicefive.resources.filter_all
 import net.zodac.dicefive.resources.achievements_unlocked_at
 import net.zodac.dicefive.resources.achievements_category_count
-import net.zodac.dicefive.resources.achievements_unlocked_count
+import net.zodac.dicefive.resources.achievements_earned_count
+import net.zodac.dicefive.resources.achievements_earned_count_short
+import net.zodac.dicefive.resources.achievements_earned_percent
 import net.zodac.dicefive.ui.common.accessibleCombinedClickable
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.AppTooltip
@@ -417,10 +421,11 @@ fun AchievementsScreen(
                 )
             },
         ) {
-            Text(
-                text = stringResource(Res.string.achievements_unlocked_count, state.unlockedCount, state.totalCount),
+            FittedCountText(
+                full = stringResource(Res.string.achievements_earned_count, state.unlockedCount, state.totalCount),
+                short = stringResource(Res.string.achievements_earned_count_short, state.unlockedCount, state.totalCount),
+                percent = stringResource(Res.string.achievements_earned_percent, percentOf(state.unlockedCount, state.totalCount)),
                 style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = if (compact) 4.dp else 12.dp).then(if (compact) Modifier else Modifier.fillMaxWidth()),
             )
         }
@@ -588,7 +593,7 @@ private fun GroupHeader(text: String, counts: Pair<Int, Int>?, onPrevious: (() -
         Row(verticalAlignment = Alignment.CenterVertically) {
             val complete = counts != null && counts.first == counts.second
             val color = if (complete) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-            val spokenCount = counts?.let { stringResource(Res.string.achievements_unlocked_count, it.first, it.second) }
+            val spokenCount = counts?.let { stringResource(Res.string.achievements_earned_count, it.first, it.second) }
             Text(
                 text = text.uppercase(),
                 style = MaterialTheme.typography.labelSmall,

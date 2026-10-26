@@ -1033,6 +1033,8 @@
     <string name="styles_frame_preview_name">أنت</string>
     <string name="styles_gallery_cd">معرض %1$s</string>
     <string name="styles_unlocked_count">%1$d من %2$d مفتوحة</string>
+    <string name="styles_unlocked_count_short">%1$d من %2$d</string>
+    <string name="styles_unlocked_percent">%1$d%%</string>
     <string name="styles_category_count">%2$d/%1$d</string>
     <string name="filter_all">الكل</string>
     <string name="styles_unlocked_only">المفتوحة</string>
@@ -1155,7 +1157,9 @@
         <item quantity="other">لُعبت %1$d لعبة.</item>
     </plurals>
     <string name="achievements_title">الإنجازات</string>
-    <string name="achievements_unlocked_count">%1$d من %2$d مفتوحة</string>
+    <string name="achievements_earned_count">%1$d من %2$d مكسوبة</string>
+    <string name="achievements_earned_count_short">%1$d من %2$d</string>
+    <string name="achievements_earned_percent">%1$d%%</string>
     <!-- Digits and "/" form one left-to-right run, so the total is written first to read "earned of total" from the right. -->
     <string name="achievements_category_count">%2$d/%1$d</string>
     <string name="achievements_all_unlocked">كل شيء مفتوح. لم يبقَ شيء تطارده!</string>

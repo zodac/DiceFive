@@ -77,10 +77,10 @@ class AchievementsTextTest : UiTest() {
         showAchievements(viewModel)
         compose.onNodeWithText("Achievements").assertExists()
         compose.onNodeWithText("0 of ", substring = true).assertExists()
-        compose.onNodeWithText(" unlocked", substring = true).assertExists()
+        compose.onNodeWithText(" earned", substring = true).assertExists()
         // A category header is read with how many of its achievements are earned (its drawn count is hidden from TalkBack so it is not said twice).
         val milestones = Achievement.entries.count { it.category == AchievementCategory.MILESTONES }
-        compose.onNodeWithContentDescription("Milestones, 0 of $milestones unlocked").assertExists()
+        compose.onNodeWithContentDescription("Milestones, 0 of $milestones earned").assertExists()
         // A hidden achievement's description is three question marks until it is earned - all in Miscellaneous, further
         // down the list: scroll to the first.
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("???"))

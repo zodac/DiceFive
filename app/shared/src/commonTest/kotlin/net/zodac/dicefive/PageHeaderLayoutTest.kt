@@ -135,7 +135,7 @@ class PageHeaderLayoutTest : UiTest() {
         val list = compose.onNode(hasScrollAction()).getBoundsInRoot()
         val back = compose.onNodeWithContentDescription("Back").getBoundsInRoot()
         val title = compose.onNodeWithText("Achievements").getBoundsInRoot()
-        val count = compose.onNodeWithText(" unlocked", substring = true).getBoundsInRoot()
+        val count = compose.onNodeWithText(" earned", substring = true).getBoundsInRoot()
         val lockedOnly = compose.onNode(hasText("All") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
             .getBoundsInRoot()
         assertNear(list.left + ARROW_HALF, (back.left + back.right) / 2, "back arrow's centre")

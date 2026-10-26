@@ -1,5 +1,7 @@
 package net.zodac.dicefive.ui.styles
 
+import net.zodac.dicefive.ui.common.FittedCountText
+import net.zodac.dicefive.ui.common.percentOf
 import net.zodac.dicefive.ui.common.DIALOG_ICON_SIZE
 import net.zodac.dicefive.ui.common.FilterSwitchLabel
 import net.zodac.dicefive.ui.common.FilterSwitchState
@@ -192,6 +194,8 @@ import net.zodac.dicefive.resources.styles_unlock_count
 import net.zodac.dicefive.resources.styles_unlock_free
 import net.zodac.dicefive.resources.styles_unlock_specific
 import net.zodac.dicefive.resources.styles_unlocked_count
+import net.zodac.dicefive.resources.styles_unlocked_count_short
+import net.zodac.dicefive.resources.styles_unlocked_percent
 import net.zodac.dicefive.resources.styles_unlocked_only
 import net.zodac.dicefive.ui.common.accessibleCombinedClickable
 import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
@@ -501,10 +505,11 @@ private fun ColumnScope.StylesPage(
 private fun StylesUnlockedCount(access: StyleAccess, compact: Boolean, onTap: () -> Unit, modifier: Modifier = Modifier) {
     val count = remember(access) { StyleCategory.entries.map { it.catalog.unlockCount(access) }.reduce(UnlockCount::plus) }
     Card(modifier = modifier.pointerInput(onTap) { detectTapGestures(onTap = { onTap() }) }) {
-        Text(
-            text = stringResource(Res.string.styles_unlocked_count, count.unlocked, count.total),
+        FittedCountText(
+            full = stringResource(Res.string.styles_unlocked_count, count.unlocked, count.total),
+            short = stringResource(Res.string.styles_unlocked_count_short, count.unlocked, count.total),
+            percent = stringResource(Res.string.styles_unlocked_percent, percentOf(count.unlocked, count.total)),
             style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = if (compact) 4.dp else 12.dp).then(if (compact) Modifier else Modifier.fillMaxWidth()),
         )
     }

@@ -38,7 +38,7 @@ class AchievementsLandscapeTest : UiTest() {
                 DiceFiveTheme { AchievementsScreen(viewModel = viewModel, onBack = {}) }
             }
         }
-        compose.waitUntil(timeoutMillis = 10_000) { shows("unlocked") }
+        compose.waitUntil(timeoutMillis = 10_000) { shows("earned") }
     }
 
     private fun shows(text: String) = compose.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty()

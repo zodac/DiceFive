@@ -1194,6 +1194,9 @@
     <!-- A switch at the end of a category's title: on, every tile of the category shows at once. %1$s is the category. -->
     <string name="styles_gallery_cd">%1$s gallery</string>
     <string name="styles_unlocked_count">%1$d of %2$d unlocked</string>
+    <!-- The count when "unlocked" doesn't fit the card, then the percentage when even this doesn't. %1$d, %2$d: the count and the total; %% is a literal percent sign. -->
+    <string name="styles_unlocked_count_short">%1$d of %2$d</string>
+    <string name="styles_unlocked_percent">%1$d%%</string>
     <string name="styles_category_count">%1$d/%2$d</string>
     <string name="filter_all">All</string>
     <string name="styles_unlocked_only">Unlocked</string>
@@ -1334,8 +1337,11 @@
 
     <!-- Achievements (ui/achievements/*) -->
     <string name="achievements_title">Achievements</string>
-    <!-- The card at the top: achievements unlocked, of all there are. -->
-    <string name="achievements_unlocked_count">%1$d of %2$d unlocked</string>
+    <!-- The card at the top: achievements earned, of all there are. -->
+    <string name="achievements_earned_count">%1$d of %2$d earned</string>
+    <!-- The count when "earned" doesn't fit the card, then the percentage when even this doesn't. %%  is a literal percent sign. -->
+    <string name="achievements_earned_count_short">%1$d of %2$d</string>
+    <string name="achievements_earned_percent">%1$d%%</string>
     <string name="achievements_category_count">%1$d/%2$d</string>
     <string name="achievements_all_unlocked">Everything's unlocked. Nothing left to chase!</string>
     <string name="achievements_unearned_only">Unearned</string>
