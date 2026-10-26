@@ -154,7 +154,7 @@
     <string name="achievement_five_x_title">5x!</string>
     <string name="achievement_five_x_description">Score your first 5x</string>
     <string name="achievement_spotless_title">Spotless</string>
-    <string name="achievement_spotless_description">Finish a game without a zero on your scorecard</string>
+    <string name="achievement_spotless_description">Finish a game with no zeros and the upper section bonus</string>
     <string name="achievement_straight_talker_title">Straight Talker</string>
     <string name="achievement_straight_talker_description">Score both straights in the same game</string>
     <string name="achievement_upper_class_title">Upper Class</string>

@@ -455,7 +455,12 @@ object AchievementEngine {
             !state.gameMode.scoresHeldDiceOnly
         val noZeroes = anyHuman { player -> player.allScores.none { it == 0 } }
         // Nor on a card of targets (Hit List), where a partial hit leaves a zero only now and then.
-        award(Achievement.SPOTLESS, singleScoreCard && state.gameMode.hasStandardCard && noZeroes)
+        // The upper section bonus must be reached too, on the same card as the clean sheet.
+        award(
+            Achievement.SPOTLESS,
+            singleScoreCard && state.gameMode.hasStandardCard &&
+                anyHuman { player -> player.allScores.none { it == 0 } && player.upperSectionBonus > 0 },
+        )
         award(Achievement.THIRD_TIMES_THE_CHARM, state.gameMode == GameMode.THIRD_WIND && noZeroes)
         // The best is off the Leaderboard, so a game that isn't on it has nothing to compare with.
         award(

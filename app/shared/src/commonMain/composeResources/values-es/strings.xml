@@ -86,7 +86,7 @@
     <string name="achievement_five_x_title">¡5x!</string>
     <string name="achievement_five_x_description">Anota tu primer 5x</string>
     <string name="achievement_spotless_title">Impecable</string>
-    <string name="achievement_spotless_description">Termina una partida sin ningún cero en tu tarjeta</string>
+    <string name="achievement_spotless_description">Termina una partida sin ceros y con la bonificación de la sección superior</string>
     <string name="achievement_straight_talker_title">Escalera doble</string>
     <string name="achievement_straight_talker_description">Anota las dos escaleras en la misma partida</string>
     <string name="achievement_upper_class_title">Clase alta</string>

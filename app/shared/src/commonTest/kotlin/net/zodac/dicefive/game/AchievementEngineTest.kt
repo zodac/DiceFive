@@ -54,6 +54,10 @@ class AchievementEngineTest {
         )
     }
 
+    /** A Standard card with no zero and the upper bonus reached (the six upper boxes score 15 each, 90 over 63). */
+    private val spotlessCard: Map<ScoreCategory, Int> =
+        GameMode.STANDARD.categories.associateWith { 10 } + PlayerState.UPPER_CATEGORIES.associateWith { 15 }
+
     private fun bot(total: Int, gameMode: GameMode = GameMode.STANDARD, fiveOfAKindBonusCount: Int = 0) =
         player(name = "Bot", type = PlayerType.AI, total = total, gameMode = gameMode, fiveOfAKindBonusCount = fiveOfAKindBonusCount)
 
@@ -248,8 +252,12 @@ class AchievementEngineTest {
         assertFalse(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in unlocked(finishedGame(player(total = 35, overrides = mapOf(ScoreCategory.FIVES to 5)))))
 
         // Spotless and How Do You Play This Game are mutually exclusive.
-        val spotless = unlocked(finishedGame(player(total = 250, overrides = GameMode.STANDARD.categories.associateWith { 10 })))
+        val spotless = unlocked(finishedGame(player(total = 250, overrides = spotlessCard)))
         assertTrue(Achievement.SPOTLESS in spotless)
+
+        // No zero but the upper section short of its bonus (6 x 10 = 60) is not Spotless.
+        val noBonus = unlocked(finishedGame(player(total = 250, overrides = GameMode.STANDARD.categories.associateWith { 10 })))
+        assertFalse(Achievement.SPOTLESS in noBonus)
         assertFalse(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in spotless)
 
         // Low Rolls is a range but Extreme Low Rolls is exactly 5.
@@ -1032,7 +1040,7 @@ class AchievementEngineTest {
         val oneZero = thirdWindPlayer { category, slot -> if (category == ScoreCategory.LARGE_STRAIGHT && slot == 2) 0 else 10 }
         assertFalse(Achievement.THIRD_TIMES_THE_CHARM in unlocked(finishedGame(oneZero)))
 
-        val standard = unlocked(finishedGame(player(total = 250, overrides = GameMode.STANDARD.categories.associateWith { 10 })))
+        val standard = unlocked(finishedGame(player(total = 250, overrides = spotlessCard)))
         assertTrue(Achievement.SPOTLESS in standard)
         assertFalse(Achievement.THIRD_TIMES_THE_CHARM in standard)
     }

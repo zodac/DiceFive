@@ -103,7 +103,7 @@
     <string name="achievement_five_x_title">5x!</string>
     <string name="achievement_five_x_description">سجّل أول 5x لك</string>
     <string name="achievement_spotless_title">سجل نظيف</string>
-    <string name="achievement_spotless_description">أنهِ لعبة دون أي صفر في بطاقة نتائجك</string>
+    <string name="achievement_spotless_description">أنهِ لعبة دون أي صفر مع مكافأة القسم العلوي</string>
     <string name="achievement_straight_talker_title">صاحب التسلسلات</string>
     <string name="achievement_straight_talker_description">سجّل التسلسلين الصغير والكبير في اللعبة نفسها</string>
     <string name="achievement_upper_class_title">علوّ المقام</string>
