@@ -87,8 +87,8 @@ class AchievementEngineTest {
         GameState(gameMode = players.first().gameMode, players = players.toList(), isGameOver = false)
 
     /** What the mid-game pass unlocks for [players] part-way through a game. */
-    private fun unlockedMidGame(vararg players: PlayerState) =
-        AchievementEngine.evaluateInProgress(inProgress(*players), AchievementsState(), NOW).newlyUnlocked
+    private fun unlockedMidGame(vararg players: PlayerState, growingFlowerpotInPlay: Boolean = false) =
+        AchievementEngine.evaluateInProgress(inProgress(*players), AchievementsState(), NOW, growingFlowerpotInPlay = growingFlowerpotInPlay).newlyUnlocked
 
     // ---- Who wins, and who earns ----------------------------------------------------------------
 
@@ -784,9 +784,16 @@ class AchievementEngineTest {
     }
 
     /** Player 1 part-way through a game in [mode], having rolled [rolls] times, as [evaluateInProgress] sees it after a roll. */
-    private fun greenfingersAfter(rolls: Int, mode: GameMode = GameMode.STANDARD, vararg others: PlayerState): Boolean {
+    private fun greenfingersAfter(rolls: Int, mode: GameMode = GameMode.STANDARD, vararg others: PlayerState, growingFlowerpot: Boolean = true): Boolean {
         val me = midGamePlayer(emptyMap(), gameMode = mode).copy(rollCount = rolls)
-        return Achievement.GREENFINGERS in unlockedMidGame(if (mode == GameMode.QUICKFIRE) me.copy(disabledCategories = QUICKFIRE_OFF) else me, *others)
+        val players = arrayOf(if (mode == GameMode.QUICKFIRE) me.copy(disabledCategories = QUICKFIRE_OFF) else me, *others)
+        return Achievement.GREENFINGERS in unlockedMidGame(*players, growingFlowerpotInPlay = growingFlowerpot)
+    }
+
+    @Test
+    fun `a full bloom earns Greenfingers only on the Flowerpot that grows its plant`() {
+        assertTrue(greenfingersAfter(39))
+        assertFalse(greenfingersAfter(39, growingFlowerpot = false))
     }
 
     @Test

@@ -73,10 +73,14 @@ class GameAchievementsWiringTest {
         players: Int = 1,
         isDebugBuild: Boolean = false,
         scoreRepository: ScoreRepository = ScoreRepository(InMemoryScoreDao()),
+        settingsRepository: SettingsRepository = SettingsRepository(InMemoryPreferences()),
+        ownsAllStyles: Boolean = false,
         setUp: GameViewModel.() -> Unit = {},
     ): Table {
         val store = InMemoryAchievementStore()
         val viewModel = gameViewModel(
+            settingsRepository = settingsRepository,
+            ownsAllStyles = ownsAllStyles,
             aiDispatcher = testDispatcher,
             scoreRepository = scoreRepository,
             achievementsRepository = store,
@@ -584,9 +588,22 @@ class GameAchievementsWiringTest {
         }
     }
 
+    /** Settings with the Flowerpot that grows its plant picked as the cup (a style that needs [started]'s `ownsAllStyles`). */
+    private suspend fun flowerpotSettings() = SettingsRepository(InMemoryPreferences()).apply { setDiceCupStyleId("flowerpot_terracotta") }
+
+    @Test
+    fun `a full bloom on any cup but the growing Flowerpot never unlocks Greenfingers`() = runTest {
+        val table = started(LoadedDice(3))
+        table.viewModel.playEveryTurnButTheLast { 3 }
+        repeat(3) { table.viewModel.rollDice() }
+        advanceUntilIdle()
+        assertFalse(Achievement.GREENFINGERS in table.unlocked, "GREENFINGERS needs the Flowerpot, got ${table.unlocked}")
+    }
+
     @Test
     fun `using every roll of every turn unlocks Greenfingers on the game's very last roll - one turn scored early keeps it locked`() = runTest {
-        val table = started(LoadedDice(3))
+        val table = started(LoadedDice(3), settingsRepository = flowerpotSettings(), ownsAllStyles = true)
+        advanceUntilIdle()
         table.viewModel.playEveryTurnButTheLast { 3 }
         repeat(2) { table.viewModel.rollDice() }
         advanceUntilIdle()
@@ -596,7 +613,8 @@ class GameAchievementsWiringTest {
         assertEquals(false, table.viewModel.game.value?.isGameOver, "the last box is still to fill")
         assertTrue(Achievement.GREENFINGERS in table.unlocked, "GREENFINGERS should pop on the 39th roll, got ${table.unlocked}")
 
-        val early = started(LoadedDice(3))
+        val early = started(LoadedDice(3), settingsRepository = flowerpotSettings(), ownsAllStyles = true)
+        advanceUntilIdle()
         early.viewModel.playEveryTurnButTheLast { turn -> if (turn == 5) 2 else 3 }
         repeat(3) { early.viewModel.rollDice() }
         early.viewModel.commitScore(GameMode.STANDARD.categories.first { early.viewModel.game.value?.currentPlayer?.isOpen(it) != false })

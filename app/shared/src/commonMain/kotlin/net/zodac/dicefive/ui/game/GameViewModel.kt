@@ -71,6 +71,7 @@ import net.zodac.dicefive.model.takeNameWidth
 import net.zodac.dicefive.ui.achievements.AchievementUnlocker
 import net.zodac.dicefive.ui.style.ChickenDiceCupStyle
 import net.zodac.dicefive.ui.style.EggDiceStyle
+import net.zodac.dicefive.ui.style.FlowerpotDiceCupStyle
 import net.zodac.dicefive.ui.style.GoldenEggDiceStyle
 import net.zodac.dicefive.ui.style.PIP_FACES
 import net.zodac.dicefive.ui.style.StyleAccess
@@ -744,7 +745,7 @@ class GameViewModel(
             unlockAchievements(tracker.onRoll(state, rolled))
             announceRollAchievementsOnceLanded(
                 // Greenfingers blooms on a roll, not a score: on the game's very last roll, before its last box is filled.
-                bloomed = _game.value?.players?.firstOrNull()?.hasGrownSunflower == true,
+                bloomed = growsFlowerpot() && _game.value?.players?.firstOrNull()?.hasGrownSunflower == true,
             )
         }
     }
@@ -935,6 +936,9 @@ class GameViewModel(
         return dice is EggDiceStyle && dice.id != GoldenEggDiceStyle.id && theme.diceCupStyle is ChickenDiceCupStyle &&
             state.gameMode.dieValues.last <= PIP_FACES
     }
+
+    /** Whether the cup picked is the Flowerpot that grows its plant, not one of its fixed-stage pots - [Achievement.GREENFINGERS]'s cup. */
+    private fun growsFlowerpot(): Boolean = (tableSettings.value?.visualTheme?.diceCupStyle as? FlowerpotDiceCupStyle)?.growsPlant == true
 
     private fun onHumanAction(undoable: Boolean = true, transform: (GameState) -> GameState) {
         val state = _game.value ?: return
@@ -1199,7 +1203,7 @@ class GameViewModel(
         if (state.isGameOver || tutorial != null) return
 
         viewModelScope.launch {
-            achievementUnlocker.apply { stored -> AchievementEngine.evaluateInProgress(state, stored, nowEpochMillis(), tracker.timedOutZeroes) }
+            achievementUnlocker.apply { stored -> AchievementEngine.evaluateInProgress(state, stored, nowEpochMillis(), tracker.timedOutZeroes, growsFlowerpot()) }
         }
     }
 
@@ -1208,7 +1212,7 @@ class GameViewModel(
         previousBestScore: Int?,
         previousLeaderboard: LeaderboardTotals,
     ) {
-        val context = tracker.endOfGameContext(previousBestScore, previousLeaderboard)
+        val context = tracker.endOfGameContext(previousBestScore, previousLeaderboard).copy(growingFlowerpotInPlay = growsFlowerpot())
         achievementUnlocker.apply { stored -> AchievementEngine.evaluate(state, context, stored, nowEpochMillis()) }
     }
 

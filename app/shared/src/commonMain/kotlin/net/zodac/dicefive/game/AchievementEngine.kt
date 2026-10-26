@@ -60,6 +60,8 @@ data class GameAchievementContext(
     /** Each number (1-6) player 1 scored a 5x of this game, as the [AchievementCounter.SCORED_5X] counter counts one -
      * [Achievement.FULL_SET]'s. */
     val fiveOfAKindNumbers: Set<Int> = emptySet(),
+    /** Whether the cup in play is the Flowerpot that grows its plant - [Achievement.GREENFINGERS] needs it. */
+    val growingFlowerpotInPlay: Boolean = false,
 )
 
 /**
@@ -251,6 +253,7 @@ object AchievementEngine {
         before: AchievementsState,
         now: Long,
         timedOutZeroes: List<ScoreCategory> = emptyList(),
+        growingFlowerpotInPlay: Boolean = false,
     ): AchievementUpdate {
         if (state.isGameOver) return AchievementUpdate()
 
@@ -258,7 +261,7 @@ object AchievementEngine {
         if (state.players.firstOrNull()?.type != PlayerType.HUMAN) return AchievementUpdate()
         val humans = listOf(state.players.first())
 
-        return update(earnedDuringPlay(state.players, humans, timedOutZeroes), emptyMap(), before, now)
+        return update(earnedDuringPlay(state.players, humans, timedOutZeroes, growingFlowerpotInPlay), emptyMap(), before, now)
     }
 
     /**
@@ -348,7 +351,12 @@ object AchievementEngine {
      * complete card, "Cold Dice" needs a score that can no longer climb, and anything about
      * winning needs a result.
      */
-    private fun earnedDuringPlay(players: List<PlayerState>, humans: List<PlayerState>, timedOutZeroes: List<ScoreCategory>): Set<Achievement> {
+    private fun earnedDuringPlay(
+        players: List<PlayerState>,
+        humans: List<PlayerState>,
+        timedOutZeroes: List<ScoreCategory>,
+        growingFlowerpotInPlay: Boolean,
+    ): Set<Achievement> {
         val earned = mutableSetOf<Achievement>()
 
         fun award(achievement: Achievement, condition: Boolean) {
@@ -408,8 +416,8 @@ object AchievementEngine {
         award(Achievement.FULL_TABLE, players.size == FULL_TABLE_SIZE)
 
         // Easter eggs. A roll can't be undone, so a bloom is final. A mode without 3 rolls a turn
-        // can't earn it - see growsSunflower.
-        award(Achievement.GREENFINGERS, anyHuman { it.hasGrownSunflower })
+        // can't earn it - see growsSunflower. Nor can a game on any cup but the Flowerpot that grows.
+        award(Achievement.GREENFINGERS, growingFlowerpotInPlay && anyHuman { it.hasGrownSunflower })
 
         return earned
     }
@@ -422,7 +430,7 @@ object AchievementEngine {
         leaderboard: LeaderboardTotals,
     ): Set<Achievement> {
         val players = state.players
-        val earned = earnedDuringPlay(players, humans, context.playerOneTimedOutZeroes).toMutableSet()
+        val earned = earnedDuringPlay(players, humans, context.playerOneTimedOutZeroes, context.growingFlowerpotInPlay).toMutableSet()
         // A turn timed out before it was rolled is a zero for nothing (see GameAchievementContext.playerOneTimeouts).
         val noTimeouts = context.playerOneTimeouts == 0
         val multiplayer = players.size > 1

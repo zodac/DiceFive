@@ -1213,6 +1213,9 @@ class FlowerpotDiceCupStyle(
 ) : DiceCupStyle {
     override val shape: CupShape = CupShape.SQUAT
 
+    /** Whether this is the empty pot that grows its plant through a game, not one that holds a fixed stage. */
+    val growsPlant: Boolean get() = fixedStage == null
+
     // A sunflower grown this game, not one the pot always has.
     override fun showsOffWhenSpent(growth: FlowerpotGrowth): Boolean = fixedStage == null && growth.stage == FLOWERPOT_FULL_BLOOM
 
