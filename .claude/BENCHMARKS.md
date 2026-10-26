@@ -76,6 +76,10 @@ Each of these fixed a reported stutter. New work must keep them.
   - Statistics reads every player in three queries (`ScoreDao.playerRecords`), not two more per player.
   - Statistics finds whether every card fits open from the real list laid out with them open, which builds only the
     cards on screen, rather than from a hidden copy with every card open.
+  - A Statistics card's open content is built ahead (`OpenAhead`): each closed card on screen builds it, unseen and
+    taking no room, one card a frame while the page is still (cover gone, not scrolling, no card moving). A tap then
+    only gives it its room. Built on the tap, its first text layout held the opening's first frame. A card that scrolls
+    away takes what it built with it; building every card's would undo the lazy list.
 - **The Rules screen.**
   - A tab snaps to its page (`scrollToPage`) without building the pages between.
   - A page builds its first screenful, then the rest over the following frames (`rememberShownBlocks`).
@@ -136,6 +140,10 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
   - Statistics' read: 7 at 30 players, 24 at 150, 35-42 at 400 with two queries a player. Now 2.7, 8 and 22.
   - Statistics with 12 players (not all fitting open): 72-87 then 19-25, behind the page cover. Now 31-35 then 22-25.
   - Leaderboard reads are under 1 a page, 2-4 for all seven cards.
+  - Opening a Statistics card: 14-17 on the tap frame, ~63% of it first text layout, then ~1 a frame. Built ahead,
+    2-2.4. Building ahead costs 17-26 a card, on every other frame once the page is still (seven cards on a 411x891dp
+    screen). Closing is 2-4, then ~1, and ~3 when a card moves into view below. A card moves on a 300ms eased tween: the
+    default spring took ~30 frames, its last dozen a pixel or so each.
 - **Pages.** Styles opens at ~42-44 the first time after launch, then 16-24. A tile scrolling in costs ~0.6. Settings'
   first frame is ~26-30. A Rules tap frame is ~6-8.
 

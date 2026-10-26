@@ -3,12 +3,14 @@ package net.zodac.dicefive
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.scores.InMemoryScoreDao
 import net.zodac.dicefive.data.scores.PlayerModeTotals
@@ -18,6 +20,7 @@ import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.ui.statistics.BUILT_AHEAD_TAG
 import net.zodac.dicefive.ui.statistics.StatisticsScreen
 import net.zodac.dicefive.ui.statistics.StatisticsSort
 import net.zodac.dicefive.ui.statistics.StatisticsViewModel
@@ -61,6 +64,20 @@ class StatisticsDefaultExpansionTest : UiTest() {
         compose.onNodeWithContentDescription("Player2. Best score 200.").performClick()
         compose.waitForIdle()
         compose.onAllNodesWithText("Overview").assertCountEquals(2)
+    }
+
+    @Test
+    fun `closed cards on screen have their open content built ahead - taking no room and silent - and a tap shows it`() = uiTest {
+        showPlayers(4)
+        val builtAhead = compose.onAllNodesWithTag(BUILT_AHEAD_TAG, useUnmergedTree = true).fetchSemanticsNodes()
+        assertTrue(builtAhead.isNotEmpty())
+        assertTrue(builtAhead.all { it.size.height == 0 })
+        compose.onAllNodesWithText("Overview").assertCountEquals(1)
+
+        compose.onNodeWithContentDescription("Player2. Best score 200.").performClick()
+        compose.waitForIdle()
+        compose.onAllNodesWithText("Overview").assertCountEquals(2)
+        compose.onAllNodesWithTag(BUILT_AHEAD_TAG, useUnmergedTree = true).assertCountEquals(builtAhead.size - 1)
     }
 
     @Test

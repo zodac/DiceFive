@@ -289,6 +289,8 @@ will map to Play Games.
     builds only the cards on screen, and they fit if it has nothing to scroll; more than 12
     players skip the measure and don't fit). Otherwise all start closed but the top card of each column (the first
     one in portrait, the first two in landscape), which always open. Opening a card never closes another.
+  - **A closed card's open content is built ahead** while the page is still, one card on screen a frame, and kept
+    built, unseen, silent and taking no room (`OpenAhead`, `BENCHMARKS.md`); opening only gives it its room.
   - **Sort** (`StatisticsSort`): a button at the app bar's end opens a menu of Name, First played, Highest score,
     Highest average and Most games. The one in use is marked with an arrow, up for ascending and down for descending;
     picking it reverses it, picking another starts it in its own direction (A to Z and oldest first for Name and First
