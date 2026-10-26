@@ -5,8 +5,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
@@ -106,6 +106,9 @@ import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.TwoPanes
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
+
+/** How far the About and Licences row is lifted into the gap above it, and the version below it with it. */
+private val LINKS_RAISE = (-8).dp
 
 /** A setting's label: bodyLarge on one line when it fits, stepped down to [MIN_READABLE_FONT_SIZE] on a
  * narrow screen, and wrapped to a second line (the row grows) rather than shrunk further. */
@@ -422,8 +425,10 @@ fun SettingsScreen(
             choicesCard()
             resetsCard()
             // Side by side, each taking half the width, so a label that wraps at a large font stays inside its half.
+            // Raised into the page's gap above it: a button's 48dp touch target has air round its text, which the gap
+            // would otherwise double. The target stays whole, and inside the gap.
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                modifier = Modifier.fillMaxWidth().offset(y = LINKS_RAISE),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -432,13 +437,14 @@ fun SettingsScreen(
             }
         }
 
-        // The version, last on the page: at its foot when everything fits, after the rest when it scrolls.
-        Spacer(modifier = Modifier.weight(1f))
+        // The version, last on the page, just below the links.
         FooterPill(
             stringResource(Res.string.settings_version, LocalAppContainer.current.buildInfo.versionName),
             // Raw taps, not clickable, and no ripple: the "Are You A Developer?" easter egg. A clickable would give
             // TalkBack a "double tap to activate" on a label that does nothing anyone could use - as AppLogo's dice.
-            modifier = Modifier.pointerInput(Unit) { detectTapGestures { viewModel.onVersionTapped() } },
+            modifier = Modifier
+                .offset(y = if (LocalLandscapePage.current) 0.dp else LINKS_RAISE * 2)
+                .pointerInput(Unit) { detectTapGestures { viewModel.onVersionTapped() } },
         )
     }
 
