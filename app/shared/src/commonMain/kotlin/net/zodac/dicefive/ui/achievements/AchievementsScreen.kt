@@ -104,6 +104,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.model.AchievementVisibility
@@ -187,6 +188,18 @@ private fun indexOfKey(groups: List<AchievementGroup>, key: Any?, columns: Int):
         index += 1 + rowCount(group.items.size, columns)
     }
     return (key as? String)?.let { flatIndexOf(groups, it, columns) }
+}
+
+/**
+ * Where the list stays put when the filter is flipped: [anchorId] if [shown] still has it, or else the achievement in
+ * [shown] nearest to it in the full list [all] (the later one when two are as near). Null if [shown] is empty.
+ */
+internal fun nearestShownAchievementId(all: List<AchievementGroup>, shown: List<AchievementGroup>, anchorId: String): String? {
+    val ids = all.flatMap { group -> group.items.map { it.achievement.id } }
+    val shownIds = shown.flatMap { group -> group.items.map { it.achievement.id } }.toSet()
+    val anchor = ids.indexOf(anchorId)
+    if (anchor == -1) return shownIds.firstOrNull()
+    return ids.withIndex().filter { it.value in shownIds }.minWithOrNull(compareBy({ abs(it.index - anchor) }, { -it.index }))?.value
 }
 
 /** A rough stand-in for an achievement row's real height, close enough to centre a long press's
@@ -305,6 +318,15 @@ fun AchievementsScreen(
     val scope = rememberCoroutineScope()
     val currentGroups by rememberUpdatedState(groups)
     var restoredScroll by remember { mutableStateOf(false) }
+    // The row at the top when the filter was flipped, and how far down it sat, for keeping the list where it was once the filter has applied.
+    var filterAnchor by remember { mutableStateOf<Pair<String, Int>?>(null) }
+    LaunchedEffect(onlyLocked) {
+        val (anchorId, offset) = filterAnchor ?: return@LaunchedEffect
+        filterAnchor = null
+        val target = nearestShownAchievementId(fullGroups, currentGroups, anchorId) ?: return@LaunchedEffect
+        val index = flatIndexOf(currentGroups, target, columns) ?: return@LaunchedEffect
+        listState.scrollToItem(index, if (target == anchorId) offset else 0)
+    }
     val listLoaded = state.isLoaded
     LaunchedEffect(listLoaded) {
         if (listLoaded && !restoredScroll) {
@@ -416,8 +438,12 @@ fun AchievementsScreen(
                 indication = null,
                 role = Role.Switch,
             ) {
+                // The first row on show (not a header or the tail): the list is put back at it, or the nearest one left.
+                filterAnchor = listState.layoutInfo.visibleItemsInfo
+                    .filter { info -> (info.key as? String)?.let { key -> !key.startsWith("group-") && key != "empty" && key != "tail-space" } == true }
+                    .minByOrNull { info -> info.offset }
+                    ?.let { info -> info.key as String to -info.offset }
                 viewModel.setLockedOnly(it)
-                scope.launch { listState.scrollToItem(0) }
             },
         ) {
             FilterSwitchLabel(onlyLocked, off = stringResource(Res.string.filter_all), on = stringResource(Res.string.achievements_unearned_only))

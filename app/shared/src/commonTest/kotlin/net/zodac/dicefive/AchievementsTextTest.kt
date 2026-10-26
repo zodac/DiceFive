@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasContentDescription
@@ -210,5 +211,23 @@ class AchievementsTextTest : UiTest() {
         compose.waitForIdle()
         lockedOnly.assertIsOff()
         compose.onNodeWithText("The Journey Begins").assertExists()
+    }
+
+    @Test
+    fun `Flipping the switch keeps the list where it was`() = uiTest {
+        val store = InMemoryAchievementStore(AchievementsState(unlockedAt = mapOf(Achievement.THE_JOURNEY_BEGINS to 0L)))
+        showAchievements(achievementsViewModel(store = store, settings = SettingsRepository(InMemoryPreferences())))
+        val switch = compose.onNode(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Grand Tour"))
+        compose.waitForIdle()
+        compose.onNodeWithText("Grand Tour").assertIsDisplayed()
+
+        switch.performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Grand Tour").assertIsDisplayed()
+
+        switch.performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Grand Tour").assertIsDisplayed()
     }
 }
