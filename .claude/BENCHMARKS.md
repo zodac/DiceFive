@@ -50,6 +50,18 @@ Each of these fixed a reported stutter. New work must keep them.
     pass at a time.
   - `GameWarmUpTest` holds the sizes to the game's: no surface is painted on opening or on the first roll. A
     change to the game's layout that the warm-up doesn't share fails it.
+  - Continue has no setup form, so `SavedGameWarmUp` does the same for the saved game on the menu, 1.2s after it
+    settles (after the Styles warm-up starts). `GameWarmUpTest` holds it too.
+- **Build a page behind the page cover** (`UI.md`, "Component conventions"). A page's first frames (composition, first
+  paint, data arriving) are its costliest. They now land while the cover is opaque, and only one page is ever drawn at
+  a time. Before, a 350ms cross-fade drew both pages every frame and started only after the next page's first frame.
+  Measured 2026-10-27, desktop JVM, real `MainActivity` (compose and layout of the opening frame, ms):
+  - The first opening after launch: Setup 117-138, Rules 85, Achievements 55-60, Settings 56-59, Start Game 51, Styles
+    31-41. Later openings: 5-20. All of these now land with the cover at full strength; the fade-in frames are under
+    5, apart from Styles' tile building.
+  - Continue used to make two navigations, the board arriving part-way through two overlapping cross-fades. It now
+    opens the game under one cover.
+  - Going back isn't covered. Back to a game is 18-25 then 9-16 over two frames, back to the menu 8-11 then 4-10.
 - **The Styles page.**
   - Each tile's preview is drawn in its own offscreen layer.
   - Rows are plain `Row`s built deterministically: the tiles on screen at open, then one every `TILE_BUILD_FRAMES`

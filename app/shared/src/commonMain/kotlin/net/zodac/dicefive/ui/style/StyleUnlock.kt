@@ -73,6 +73,16 @@ data class StyleAccess(val achievements: AchievementsState, val ownsAllStyles: B
 /** What these picks' locks are checked against. */
 val SavedStyles.access: StyleAccess get() = StyleAccess(achievements, ownsAllStyles)
 
+/** The table art a game is drawn in for these picks: each one, or its default while it's locked. */
+val SavedStyles.visualTheme: GameVisualTheme
+    get() = GameVisualTheme(
+        diceStyle = DiceStyles.unlockedById(diceStyleId, access),
+        diceCupStyle = DiceCupStyles.unlockedById(diceCupStyleId, access),
+        background = TableBackgrounds.unlockedById(tableBackgroundId, access),
+        mat = DiceMats.unlockedById(diceMatId, access),
+        frame = ScoreFrames.unlockedById(scoreFrameId, access),
+    )
+
 /** A style that earning one particular achievement unlocks, and what it's called: "the 'Irish' dice style". */
 data class StyleReward(val styleName: StringResource, val categoryNoun: StringResource, val hiddenColours: Int = 0) {
     /** What it's called in a sentence, in the player's language. */

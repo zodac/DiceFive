@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.achievements
 
 import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
+import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import androidx.compose.runtime.SideEffect
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -437,8 +438,9 @@ fun AchievementsScreen(
         },
     ) {
         // Nothing but the title bar until the unlocks and scores are read: drawn any sooner, the
-        // page says "0 of 0 unlocked" and "Everything's unlocked" before the real list arrives.
-        if (!state.isLoaded) return@ScreenScaffold
+        // page says "0 of 0 unlocked" and "Everything's unlocked" before the real list arrives. The page cover
+        // is kept up over it meanwhile.
+        if (!state.isLoaded) return@ScreenScaffold HoldPageCover()
         val pageColumns = if (LocalLandscapePage.current) LANDSCAPE_COLUMNS else 1
         SideEffect { columns = pageColumns }
 

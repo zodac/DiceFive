@@ -49,6 +49,7 @@ import net.zodac.dicefive.ui.common.DriftState
 import net.zodac.dicefive.ui.common.LocalAnimationLevel
 import net.zodac.dicefive.ui.common.LocalDriftState
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.rememberPageCover
 import net.zodac.dicefive.ui.game.LeaveGameConfirmation
 import net.zodac.dicefive.ui.game.LeaveGameConfirmationDialog
 import net.zodac.dicefive.ui.game.LocalLeaveGameConfirmation
@@ -148,6 +149,8 @@ fun DiceFiveApp(
                     // long press, handled above the NavHost, can navigate the same controller the
                     // NavHost itself renders from.
                     val navController = rememberNavController()
+                    // Likewise the page cover, so a banner opens its page the way the pages open each other.
+                    val pageCover = rememberPageCover()
                     // A game left part-way through is saved as it was left, for another device's Continue.
                     LaunchedEffect(navController) {
                         navController.currentBackStackEntryFlow.map { it.destination.route }.leaving(Screen.PLAY_GAME)
@@ -168,7 +171,7 @@ fun DiceFiveApp(
                             // it composes, and the request's replay is what lets it still catch this.
                             AchievementScrollRequests.request(AchievementScrollRequest(achievement.id, animate = alreadyOnAchievements))
                             if (!alreadyOnAchievements) {
-                                navController.navigate(Screen.ACHIEVEMENTS)
+                                pageCover.change(reduceMotion) { navController.navigate(Screen.ACHIEVEMENTS) }
                             }
                         },
                         onStylesSelected = { styles ->
@@ -176,11 +179,11 @@ fun DiceFiveApp(
                             // Before navigating, for the same reason as the achievement request above.
                             StyleScrollRequests.request(StyleScrollRequest(styles, animate = alreadyOnStyles))
                             if (!alreadyOnStyles) {
-                                navController.navigate(Screen.STYLES)
+                                pageCover.change(reduceMotion) { navController.navigate(Screen.STYLES) }
                             }
                         },
                     ) {
-                        DiceFiveNavHost(navController = navController)
+                        DiceFiveNavHost(navController = navController, cover = pageCover)
                     }
                     LeaveGameConfirmationDialog(leaveConfirmation)
                 }

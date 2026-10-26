@@ -1,5 +1,6 @@
 package net.zodac.dicefive.ui.scores
 
+import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.background
@@ -166,8 +167,8 @@ fun ScoresScreen(
 
     ScreenScaffold(title = stringResource(Res.string.scores_title), onBack = onBack, modifier = modifier, driftingDice = driftingDice, wide = true) {
         // Nothing but the title bar until the scores are read, so "No scores yet" never flashes up
-        // before a leaderboard that has some.
-        if (!state.isLoaded) return@ScreenScaffold
+        // before a leaderboard that has some - and the page cover kept up over it meanwhile.
+        if (!state.isLoaded) return@ScreenScaffold HoldPageCover()
         val landscape = LocalLandscapePage.current
         // The Game Mode view waits, with the Combined table still up, until every card is read, then replaces it in one frame (or, with an empty table, nothing in between).
         val shownView = if (state.view == LeaderboardView.GAME_MODE && !state.modeBoardsLoaded) LeaderboardView.COMBINED else state.view

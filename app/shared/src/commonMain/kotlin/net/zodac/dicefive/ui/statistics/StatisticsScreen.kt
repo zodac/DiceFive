@@ -121,6 +121,7 @@ import net.zodac.dicefive.resources.stats_win_streak
 import net.zodac.dicefive.resources.stats_win_streak_value
 import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
 import net.zodac.dicefive.ui.common.DiceFiveDialog
+import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.LocalReduceMotion
@@ -171,8 +172,8 @@ fun StatisticsScreen(
         },
     ) {
         // Nothing but the title bar until the stats are read, so "No stats yet" never flashes up
-        // before the player cards.
-        if (!state.isLoaded || sortOrder == null) return@ScreenScaffold
+        // before the player cards - and the page cover kept up over it meanwhile.
+        if (!state.isLoaded || sortOrder == null) return@ScreenScaffold HoldPageCover()
         if (state.players.isEmpty()) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Text(

@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.styles
 
 import net.zodac.dicefive.ui.common.DIALOG_ICON_SIZE
+import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.animation.core.Animatable
@@ -387,9 +388,10 @@ private fun StylesScaffold(
         onTitleCrowded = { if (offerUnlockAll) compactUnlockAll = true },
     ) {
         // Nothing until the saved picks have loaded, so each row can open scrolled to its real pick.
-        // They're normally in already (AppContainer.savedStyles), so the page has them from its first frame.
+        // They're normally in already (AppContainer.savedStyles), so the page has them from its first frame; if
+        // not, the page cover is kept up over it meanwhile.
         StylesPage(
-            picks = picks ?: return@ScreenScaffold,
+            picks = picks ?: return@ScreenScaffold HoldPageCover(),
             focus = focus,
             onSelect = onSelect,
             unlockedOnly = unlockedOnly,

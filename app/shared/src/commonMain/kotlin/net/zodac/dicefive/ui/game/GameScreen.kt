@@ -37,6 +37,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
@@ -62,6 +63,7 @@ import androidx.compose.ui.unit.offset
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.game.ProjectedHand
 import net.zodac.dicefive.game.TutorialStep
 import net.zodac.dicefive.model.GameMode
@@ -81,6 +83,8 @@ import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
 import net.zodac.dicefive.ui.common.BackArrow
 import net.zodac.dicefive.ui.common.BackHandler
 import net.zodac.dicefive.ui.common.BrandBackdrop
+import net.zodac.dicefive.ui.common.HoldPageCover
+import net.zodac.dicefive.ui.common.LocalPageCover
 import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.LocalAnimationLevel
 import net.zodac.dicefive.ui.common.LocalReduceMotion
@@ -92,6 +96,7 @@ import net.zodac.dicefive.ui.style.GameVisualTheme
 import net.zodac.dicefive.ui.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.style.LocalOnRabbitSeen
+import net.zodac.dicefive.ui.style.visualTheme
 
 /** How long the cup shakes before the roll result is revealed - purely a presentation delay. Shared
  * by every roll: a tap here, and an AI's in [GameViewModel]. */
@@ -132,9 +137,9 @@ fun GameScreen(
     // Kept as a State and read only by the timer itself, so its tick each second recomposes the timer, not the board.
     val turnSecondsRemaining = viewModel.turnSecondsRemaining.collectAsStateWithLifecycle()
     val table by viewModel.tableSettings.collectAsStateWithLifecycle()
-    // Until the game (and below, the table's settings) load, just the page the board is drawn on - the backdrop
-    // the screen before it hands over on, too - rather than nothing, which showed whatever was behind for a frame.
-    val currentState = state ?: return BrandBackdrop(modifier = modifier, showDice = false) {}
+    // Until the game (and below, the table's settings) load, just the page the board is drawn on, rather than nothing,
+    // which showed whatever was behind for a frame - and the page cover kept up over it meanwhile.
+    val currentState = state ?: return BrandBackdrop(modifier = modifier, showDice = false) { HoldPageCover() }
     val leaveConfirmation = LocalLeaveGameConfirmation.current
     // Whether Game Over's "Review Scorecards" button has been tapped - reset the moment the game
     // stops being over (Play Again starts a fresh one), so a stale review doesn't reappear the
@@ -158,10 +163,11 @@ fun GameScreen(
         onPauseOrDispose { viewModel.setForeground(false) }
     }
 
-    // The leave-game confirmation freezes the turn timer and CPU turns while it is up, however it was asked for.
-    val leaveConfirmationShowing = leaveConfirmation.isShowing
-    DisposableEffect(viewModel, leaveConfirmationShowing) {
-        viewModel.setHeld(leaveConfirmationShowing)
+    // The leave-game confirmation freezes the turn timer and CPU turns while it is up, however it was asked for, and so
+    // does a change of page: the board is in full view before a CPU moves or the timer counts.
+    val held = leaveConfirmation.isShowing || LocalPageCover.current?.changing == true
+    DisposableEffect(viewModel, held) {
+        viewModel.setHeld(held)
         onDispose { viewModel.setHeld(false) }
     }
 
@@ -185,7 +191,7 @@ fun GameScreen(
 
     // A single injection point for the pluggable dice/cup/background art and the table's settings -
     // see GameViewModel.tableSettings. Nothing's drawn until they've loaded, rather than the defaults.
-    val tableSettings = table ?: return BrandBackdrop(modifier = modifier, showDice = false) {}
+    val tableSettings = table ?: return BrandBackdrop(modifier = modifier, showDice = false) { HoldPageCover() }
     val soundEnabled = tableSettings.soundEnabled
     val vibrationEnabled = tableSettings.vibrationEnabled
     val reduceMotion = LocalReduceMotion.current
@@ -351,6 +357,24 @@ fun GameWarmUp(viewModel: GameViewModel, modifier: Modifier = Modifier) {
     val theme = table?.visualTheme
     if (theme == null || !setupRestored) return
     val game = remember(setup) { viewModel.previewGame() }
+    GameArtWarmUp(theme, game, GAME_WARM_UP_DELAY_MILLIS, modifier)
+}
+
+/**
+ * [GameWarmUp] for the game Continue resumes, which opens with no setup form to draw it under: placed on the menu, under
+ * its opaque page, it draws the saved game ([loadGame], read once there's [hasInProgressGame]) in the player's [picks].
+ * Nothing without a saved game.
+ */
+@Composable
+fun SavedGameWarmUp(picks: SavedStyles?, hasInProgressGame: Boolean, loadGame: suspend () -> GameState?, modifier: Modifier = Modifier) {
+    val game by produceState<GameState?>(null, hasInProgressGame) { value = if (hasInProgressGame) loadGame() else null }
+    val theme = remember(picks) { picks?.visualTheme }
+    GameArtWarmUp(theme ?: return, game ?: return, SAVED_GAME_WARM_UP_DELAY_MILLIS, modifier)
+}
+
+/** Draws [game]'s art in [theme] for [GameWarmUp], [delayMillis] after the screen it's under settles. */
+@Composable
+private fun GameArtWarmUp(theme: GameVisualTheme, game: GameState, delayMillis: Long, modifier: Modifier) {
     val window = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
     val key = GameWarmUpKey(theme, game.gameMode, game.categories, window, density.density, density.fontScale)
@@ -360,7 +384,7 @@ fun GameWarmUp(viewModel: GameViewModel, modifier: Modifier = Modifier) {
     LaunchedEffect(key) {
         current = null
         // Restarted by each change to the form, so a few quick taps through the modes draw only the last.
-        lifecycle.delayWhileResumed(GAME_WARM_UP_DELAY_MILLIS)
+        lifecycle.delayWhileResumed(delayMillis)
         // Each die has a face of its own for each value (naturalPatternSeed): turned round a value a pass, every die shows every one.
         val values = game.gameMode.dieValues.toList()
         val faces = values.indices.map { turn -> GameWarmUpPass.Dice(game.dice.indices.map { values[(it + turn) % values.size] }) }
@@ -429,8 +453,11 @@ private data class GameWarmUpKey(
 // What GameWarmUp last drew for, for the life of the process. Main thread only.
 private var gameWarmedUp: GameWarmUpKey? = null
 
-// Long enough for the setup screen's own entrance (the page cross-fade) to be over.
+// Long enough for the setup screen's own entrance (the page cover's fade) to be over.
 private const val GAME_WARM_UP_DELAY_MILLIS = 600L
+
+// On the menu, later than the Styles page's warm-up starts (600ms), so the two don't begin on the same frame.
+private const val SAVED_GAME_WARM_UP_DELAY_MILLIS = 1200L
 
 @Composable
 private fun InProgressGame(

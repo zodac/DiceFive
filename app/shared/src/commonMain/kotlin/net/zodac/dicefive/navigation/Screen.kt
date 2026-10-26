@@ -6,7 +6,6 @@ object Screen {
 
     const val PLAY_GRAPH = "play"
     const val PLAY_SETUP = "play/setup"
-    const val PLAY_SETUP_ROUTE = "$PLAY_SETUP?resume={resume}"
     const val PLAY_GAME = "play/game"
 
     const val SCORES = "scores"
@@ -16,6 +15,4 @@ object Screen {
     const val STYLES = "styles"
     const val RULES = "rules"
     const val TUTORIAL = "tutorial"
-
-    fun playSetup(resume: Boolean) = "$PLAY_SETUP?resume=$resume"
 }

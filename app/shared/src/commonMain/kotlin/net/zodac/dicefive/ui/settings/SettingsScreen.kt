@@ -99,6 +99,7 @@ import net.zodac.dicefive.resources.settings_vibration
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.FittedSegmentedChoiceRow
 import net.zodac.dicefive.ui.common.FooterPill
+import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
@@ -278,8 +279,9 @@ fun SettingsScreen(
         wide = true,
     ) {
         // Nothing but the title bar until the saved switches are back, rather than drawing them in
-        // their default positions and then flipping the ones the player has changed.
-        val toggles = loadedToggles ?: return@ScreenScaffold
+        // their default positions and then flipping the ones the player has changed. The page cover is
+        // kept up over it meanwhile.
+        val toggles = loadedToggles ?: return@ScreenScaffold HoldPageCover()
         val services = LocalGameServices.current
         val accountKey = (services.state.collectAsStateWithLifecycle().value as? GameServicesState.SignedIn)?.account?.accountKey
         val online = LocalAppContainer.current.onlineSettingsRepository

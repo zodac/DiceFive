@@ -20,8 +20,9 @@ What the app does and why. The interface is in `UI.md` (plus `UI_BOARD.md` and `
 NavHost(start = "menu")
   "menu"         MenuScreen - Play (New Game | Continue), Achievements, Styles, Leaderboard, Statistics, Rules, Settings
   "play" graph   one GameViewModel scoped to the graph (no player lists through nav args), shared by:
-    "play/setup"   GameSetupScreen (optional `resume` argument resumes the saved game)
-    "play/game"    GameScreen, then GameOverScreen and the scorecard review
+    "play/setup"   GameSetupScreen
+    "play/game"    GameScreen, then GameOverScreen and the scorecard review (Continue comes straight here and loads
+                   the saved game)
   "scores"  ScoresScreen (the Leaderboard)   "statistics"  "achievements"  "styles"  "rules"
   "tutorial"     GameScreen on a GameViewModel of its own, playing TutorialScript.STANDARD (Rules' How to Play page, or New Game)
   "settings"     SettingsScreen (About and Licences open from links at its foot)

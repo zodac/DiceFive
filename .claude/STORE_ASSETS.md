@@ -81,6 +81,10 @@ still refreshes the images.
   shots under the introduction and the tablet ones in a collapsed section. A failed run leaves the previous images up.
 - **Renaming, adding or dropping a screen** means changing `README.md` too. A dropped file stays on the release until
   it's deleted there by hand.
+- **Why release assets, though a click downloads the image.** GitHub serves a release asset as an attachment, so
+  clicking a README image downloads it instead of opening a viewer. The gallery view needs the image in the repo
+  (an orphan branch, rejected: it bloats a clone) or in GitHub's `user-attachments` store (only a browser upload in the
+  web editor creates those, so CI can't refresh them). Download-on-click is accepted.
 - **"Immutable releases" must stay off** in the repo's settings, or the files can't be replaced and the tag name is
   lost for good.
 

@@ -143,7 +143,25 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
 - **Back navigation is on screen** (the top app bar) for sub-screens.
   - The menu has **no `BackHandler`**, and gets no quit button or exit confirmation; Android guidance discourages both.
   - The one exception is `GameScreen`'s `BackHandler`, which confirms before leaving a game in progress.
-- **Screen transitions** are 350ms fades, set once on the `NavHost`. Navigation Compose's 700ms default felt sluggish.
+- **Opening a page goes through the page cover** (`PageCover`, `ui/common/PageCover.kt`), never the `NavHost`'s own
+  transitions (all `None`). The page in front fades out over 150ms to the bare backdrop, its drifting dice still moving.
+  The next page is built behind it, and the cover fades away over 200ms once that page has settled.
+  - Settled means: nothing holds the cover, at least two frames have passed, and two frames in a row came at the
+    screen's own pace (measured during the fade-out, so a 30fps Animations level counts) or steadily (Styles' costly
+    frames). It waits at most 400ms after the last hold, 3s in all, with a spinner after 500ms.
+  - A page that shows only its title bar until its data loads composes `HoldPageCover()` there (Leaderboard,
+    Statistics, Achievements, Settings, Styles, New Game, and the game until its state and table load). A warm-up's
+    hidden copy of a page is under `LocalPageCover provides null`, so it never holds the cover.
+  - While it's up the cover takes every touch, says nothing to TalkBack (the spinner is cleared too: it's a merge
+    boundary `clearAndSetSemantics` doesn't reach), and holds the game's clocks (`GameViewModel.setHeld`).
+  - A change asked for while one runs is ignored. One asked for from a page that a back press has left in the
+    meantime is dropped.
+  - Every page is opened this way: the menu's buttons, Start Game, the tutorial, and a banner's long press.
+  - **Going back is never covered**: the system's back, a page's back arrow, leaving a game and Back to Menu show the
+    page they return to at once (the maintainer's choice). Back to a game is a couple of frames' work: its state is in
+    the view model and its art is already painted.
+  - Continue opens `play/game` directly, with no setup page between. The game screen loads the saved game, as it
+    does after the process is ended in the background, and goes back to the menu if there's none.
 
 ### Open M3 departures
 
@@ -322,12 +340,13 @@ Examples:
 - the rabbit appears without a rise;
 - the dice aren't tossed: they stay put through the shake and snap to their results. The board cup stands while the
   roll is in it, then is simply tipped;
-- page and banner fades are off: a banner burst is all there at once, and a progress count doesn't climb;
+- page and banner fades are off: the page cover goes up and comes down without fading, a banner burst is all there at
+  once, and a progress count doesn't climb;
 - scores appear rather than count up, and there are no fireworks;
 - **game pacing**: scoring doesn't wait for a toss, and neither does the CPU (`GamePacing.diceAnimated`), which also
   drops `RELEASE_GAP_MS`;
-- **loading**: the Styles page builds every on-screen tile in its first frame, and continuing a game shows only the
-  plain backdrop (a spinner after `RESUME_SPINNER_DELAY_MILLIS`).
+- **loading**: the Styles page builds every on-screen tile in its first frame, and a page that's slow to load shows the
+  still page cover (a spinner after `PageCover.SPINNER_DELAY_MILLIS`).
 
 **Audio and haptics are not motion, and stay.** The shake sound (~400ms), the shake buzz (336ms) and the landing sound
 (~490ms) are timed to the `CUP_SHAKE_MILLIS` window, and for a TalkBack user they *are* the roll.

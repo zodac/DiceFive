@@ -105,6 +105,7 @@ import net.zodac.dicefive.resources.setup_unlucky_odds_value
 import net.zodac.dicefive.resources.setup_unlucky_title
 import net.zodac.dicefive.ui.common.ChoicePicker
 import net.zodac.dicefive.ui.common.FittedSegmentedChoiceRow
+import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.MIN_READABLE_FONT_SIZE
 import net.zodac.dicefive.ui.common.ModifierCustomValue
@@ -158,8 +159,9 @@ fun GameSetupScreen(
     ScreenScaffold(title = stringResource(Res.string.setup_title), onBack = onBack, modifier = modifier, wide = true) {
         // Nothing but the title bar until the saved choices are back: drawing the form any sooner
         // shows the defaults (Standard mode, 2 players) for a few frames before they switch to
-        // the last game's - and a Start Game tapped in that window would play the defaults.
-        if (!setupRestored) return@ScreenScaffold
+        // the last game's - and a Start Game tapped in that window would play the defaults. The page
+        // cover is kept up over it meanwhile.
+        if (!setupRestored) return@ScreenScaffold HoldPageCover()
 
         val playerCards = @Composable {
             PlayerCards(setup = setup, activeSlots = activeSlots, duplicateNameSlots = duplicateNameSlots, namesMustBeUnique = namesMustBeUnique, defaultName = defaultName, viewModel = viewModel)

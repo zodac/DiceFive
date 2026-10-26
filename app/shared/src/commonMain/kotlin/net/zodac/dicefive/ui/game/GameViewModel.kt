@@ -70,18 +70,12 @@ import net.zodac.dicefive.model.sanitizePlayerName
 import net.zodac.dicefive.model.takeNameWidth
 import net.zodac.dicefive.ui.achievements.AchievementUnlocker
 import net.zodac.dicefive.ui.style.ChickenDiceCupStyle
-import net.zodac.dicefive.ui.style.DiceCupStyles
-import net.zodac.dicefive.ui.style.DiceMats
-import net.zodac.dicefive.ui.style.DiceStyles
 import net.zodac.dicefive.ui.style.EggDiceStyle
-import net.zodac.dicefive.ui.style.GameVisualTheme
 import net.zodac.dicefive.ui.style.GoldenEggDiceStyle
 import net.zodac.dicefive.ui.style.PIP_FACES
-import net.zodac.dicefive.ui.style.ScoreFrames
 import net.zodac.dicefive.ui.style.StyleAccess
 import net.zodac.dicefive.ui.style.StyleCategory
-import net.zodac.dicefive.ui.style.TableBackgrounds
-import net.zodac.dicefive.ui.style.access
+import net.zodac.dicefive.ui.style.visualTheme
 
 /**
  * A configured-but-not-yet-started player slot on the setup screen. Slot 1
@@ -227,8 +221,9 @@ class GameViewModel(
     }
 
     /**
-     * Holds the game's clocks while a dialog over it (the leave-game confirmation) is up, exactly as
-     * if the game were off screen - see [setForeground]. Released when the dialog closes.
+     * Holds the game's clocks while a dialog over it (the leave-game confirmation) is up, or the page cover
+     * while a page opens, exactly as if the game were off screen - see [setForeground]. Released when the
+     * dialog closes or the cover clears.
      */
     fun setHeld(value: Boolean) {
         held = value
@@ -413,15 +408,7 @@ class GameViewModel(
      * they're normally long since in.
      */
     val tableSettings: StateFlow<TableSettings?> = run {
-        val visualTheme = savedStylesFlow(settingsRepository, achievementsRepository, ownsAllStyles).map { saved ->
-            GameVisualTheme(
-                diceStyle = DiceStyles.unlockedById(saved.diceStyleId, saved.access),
-                diceCupStyle = DiceCupStyles.unlockedById(saved.diceCupStyleId, saved.access),
-                background = TableBackgrounds.unlockedById(saved.tableBackgroundId, saved.access),
-                mat = DiceMats.unlockedById(saved.diceMatId, saved.access),
-                frame = ScoreFrames.unlockedById(saved.scoreFrameId, saved.access),
-            )
-        }.distinctUntilChanged()
+        val visualTheme = savedStylesFlow(settingsRepository, achievementsRepository, ownsAllStyles).map { it.visualTheme }.distinctUntilChanged()
         combine(
             visualTheme,
             settingsRepository.soundEnabled,
