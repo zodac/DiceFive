@@ -181,6 +181,21 @@ ok()   { echo "  ✅ ${*}"; }
 warn() { echo "  ⚠️  ${*}" >&2; }
 err()  { echo "  ❌ ${*}" >&2; }
 
+# A category prints its heading when it starts, then only what it changed (changed, in green);
+# run_section adds "No changes" when it changed nothing.
+if [[ -t 1 || -n "${GITHUB_ACTIONS:-}" ]]; then GREEN=$'[32m' RESET=$'[0m'; else GREEN="" RESET=""; fi
+SECTION_CHANGES=0
+
+section() { SECTION_CHANGES=0; echo "${*}"; }
+changed() { SECTION_CHANGES=$((SECTION_CHANGES + 1)); echo "  ${GREEN}${*}${RESET}"; }
+run_section() {
+    local failure="${1}"
+    shift
+    SECTION_CHANGES=0
+    "${@}" || warn "${failure}"
+    [[ "${SECTION_CHANGES}" -gt 0 ]] || echo "  No changes"
+}
+
 # ── curl wrappers ─────────────────────────────────────────────────────────────
 
 curl_get() { curl -fsSL --connect-timeout 10 --max-time 60 "${@}"; }
@@ -591,7 +606,7 @@ set_compile_sdk() {
 
 update_compile_sdk() {
     echo
-    echo "🔍 Checking for a newer Android platform (compileSdk)..."
+    section "🔍 Checking for a newer Android platform (compileSdk)..."
 
     local current
     current=$(read_compile_sdk_version)
@@ -599,7 +614,6 @@ update_compile_sdk() {
         warn "Could not read compileSdk from ${ANDROID_SDK_PROPERTIES}, skipping"
         return 0
     fi
-    echo "  Current: compileSdk ${current}"
 
     local candidates=() version package platforms
     platforms=$(stable_android_platforms)
@@ -607,7 +621,6 @@ update_compile_sdk() {
         [[ -n "${version}" ]] && version_gt "${version}" "${current}" && candidates+=("${version} ${package}")
     done <<< "${platforms}"
     if [[ "${#candidates[@]}" -eq 0 ]]; then
-        echo "  compileSdk=${current} (already the newest stable platform)"
         return 0
     fi
     if [[ "${SKIP_BUILD}" == "true" ]]; then
@@ -635,7 +648,7 @@ update_compile_sdk() {
             sed -i -E "s#platforms([;/])android-[0-9]+(\\.[0-9]+)?([^0-9.a-z-]|$)#platforms\\1${package}\\3#g" "${SANDBOX_DOCKERFILE}"
             PROJECT_COMPILE_SDK="${version%%.*}"
             record_update "compileSdk: ${current} → ${version}"
-            ok "compileSdk ${current} → ${version}: the build and unit tests pass on it (targetSdk is not moved - see above)"
+            changed "compileSdk ${current} → ${version}: the build and unit tests pass on it (targetSdk is not moved - see above)"
             return 0
         fi
         warn "The build fails with compileSdk ${version}:"
@@ -702,7 +715,7 @@ prove_ndk() {
 
 update_ndk() {
     echo
-    echo "🔍 Checking for a newer Android NDK..."
+    section "🔍 Checking for a newer Android NDK..."
 
     local current
     current=$(read_ndk_version)
@@ -710,14 +723,12 @@ update_ndk() {
         warn "Could not read ndkVersion from ${ANDROID_SDK_PROPERTIES}, skipping"
         return 0
     fi
-    echo "  Current: ndkVersion ${current}"
 
     local candidates=() version
     while IFS= read -r version; do
         [[ -n "${version}" ]] && version_gt "${version}" "${current}" && candidates+=("${version}")
     done < <(stable_ndk_versions)
     if [[ "${#candidates[@]}" -eq 0 ]]; then
-        echo "  ndkVersion=${current} (already the newest stable NDK)"
         return 0
     fi
     if [[ "${SKIP_BUILD}" == "true" ]]; then
@@ -736,7 +747,7 @@ update_ndk() {
         if prove_ndk; then
             sed -i -E "s#ndk([;/])[0-9]+\\.[0-9]+\\.[0-9]+#ndk\\1${version}#g" "${SANDBOX_DOCKERFILE}"
             record_update "NDK: ${current} → ${version}"
-            ok "NDK ${current} → ${version}: it strips and extracts the native symbol tables"
+            changed "NDK ${current} → ${version}: it strips and extracts the native symbol tables"
             return 0
         fi
         warn "NDK ${version} does not extract the symbol tables:"
@@ -790,7 +801,7 @@ latest_temurin_jdk_tag() {
 
 update_java() {
     echo
-    echo "🔍 Fetching latest Java versions..."
+    section "🔍 Fetching latest Java versions..."
 
     local current_tag major
     current_tag=$(grep -oP '^FROM eclipse-temurin:\K\S+(?= AS jdk)' "${SANDBOX_DOCKERFILE}" | head -1 || true)
@@ -801,7 +812,6 @@ update_java() {
     # The toolchain owns the major; the sandbox follows it (and is realigned here if it drifted).
     major=$(read_toolchain_version)
     [[ -n "${major}" ]] || major=$(major_of "${current_tag}")
-    echo "  Current: toolchain JDK ${major}, sandbox ${current_tag}"
 
     # Newer LTS majors: candidates for step 2, which only adopts one the project builds on.
     local lts
@@ -835,15 +845,11 @@ update_java() {
     elif version_gt "${latest_cmp%_*}" "${current_cmp%_*}"; then
         newer=true
     fi
-    if [[ "${newer}" != "true" ]]; then
-        echo "  eclipse-temurin=${current_tag} (already up-to-date)"
-    else
-        echo "  eclipse-temurin: ${current_tag} → ${jdk_tag}"
+    if [[ "${newer}" == "true" ]]; then
+        changed "eclipse-temurin: ${current_tag} → ${jdk_tag}"
         sed -i "s|^FROM eclipse-temurin:[^ ]* AS jdk|FROM eclipse-temurin:${jdk_tag} AS jdk|" "${SANDBOX_DOCKERFILE}"
         record_update "Sandbox JDK image: ${current_tag} → ${jdk_tag}"
     fi
-
-    ok "Java processed (jdk: ${jdk_tag})"
 }
 
 # ── 2. Node (sandbox/Dockerfile node stage) ───────────────────────────────────
@@ -854,7 +860,7 @@ update_java() {
 
 update_node() {
     echo
-    echo "🔍 Fetching latest Node.js version..."
+    section "🔍 Fetching latest Node.js version..."
 
     local current current_major
     current=$(grep -oP '^FROM node:\K[0-9.]+(?=-trixie AS node)' "${SANDBOX_DOCKERFILE}" | head -1 || true)
@@ -863,7 +869,6 @@ update_node() {
         return 0
     fi
     current_major=$(major_of "${current}")
-    echo "  Current: ${current} (major ${current_major})"
 
     local latest
     latest=$(curl_get "https://nodejs.org/dist/index.json" \
@@ -885,7 +890,6 @@ update_node() {
         warn "node:${trixie_tag} not on Docker Hub, skipping Node update"
         return 0
     fi
-    echo "  node:${trixie_tag} confirmed on Docker Hub"
 
     sed -i "s|^FROM node:[0-9.]*-trixie AS node|FROM node:${trixie_tag} AS node|" "${SANDBOX_DOCKERFILE}"
     [[ "${current}" != "${latest}" ]] && record_update "Sandbox Node: ${current} → ${latest}"
@@ -893,8 +897,6 @@ update_node() {
     local latest_major
     latest_major=$(major_of "${latest}")
     sed -i -E "s|^(#[[:space:]]+Node )[0-9]+( +—)|\\1${latest_major}\\2|" "${SANDBOX_DOCKERFILE}"
-
-    ok "Node processed → ${latest}"
 }
 
 # ── 3. sandbox/Dockerfile runtime base image ──────────────────────────────────
@@ -911,7 +913,7 @@ update_node() {
 
 update_sandbox_base() {
     echo
-    echo "🔍 Fetching latest Debian version (within the current major)..."
+    section "🔍 Fetching latest Debian version (within the current major)..."
 
     local current major
     current=$(grep -oP '^FROM debian:\K[0-9]+\.[0-9]+' "${SANDBOX_DOCKERFILE}" | head -1 || true)
@@ -920,7 +922,6 @@ update_sandbox_base() {
         return 0
     fi
     major="${current%%.*}"
-    echo "  Current: ${current} (major ${major})"
 
     local latest
     latest=$(curl_get "https://hub.docker.com/v2/repositories/library/debian/tags?name=${major}.&page_size=100" \
@@ -938,16 +939,12 @@ update_sandbox_base() {
         return 0
     fi
 
-    if [[ "${current}" == "${latest}" ]]; then
-        echo "  debian=${latest} (already up-to-date)"
-    else
-        echo "  debian: ${current} → ${latest}"
+    if [[ "${current}" != "${latest}" ]]; then
+        changed "debian: ${current} → ${latest}"
         record_update "Sandbox Debian base: ${current} → ${latest}"
     fi
 
     sed -i -E "s|^FROM debian:[0-9]+\.[0-9]+|FROM debian:${latest}|" "${SANDBOX_DOCKERFILE}"
-
-    ok "sandbox Debian base processed → ${latest}"
 }
 
 # ── 4. Playwright CLI pin (sandbox/Dockerfile) ────────────────────────────────
@@ -957,7 +954,7 @@ update_sandbox_base() {
 
 update_playwright() {
     echo
-    echo "🔍 Fetching latest Playwright version..."
+    section "🔍 Fetching latest Playwright version..."
 
     local current latest
     current=$(grep -oP 'playwright@\K[0-9][^ ]*' "${SANDBOX_DOCKERFILE}" | head -1 || true)
@@ -977,15 +974,11 @@ update_playwright() {
         return 0
     fi
 
-    if [[ "${current}" == "${latest}" ]]; then
-        echo "  playwright=${latest} (already up-to-date)"
-    else
-        echo "  playwright: ${current} → ${latest}"
+    if [[ "${current}" != "${latest}" ]]; then
+        changed "playwright: ${current} → ${latest}"
         sed -i -E "s|playwright@[0-9][^ ]*|playwright@${latest}|g" "${SANDBOX_DOCKERFILE}"
         record_update "Sandbox Playwright: ${current} → ${latest}"
     fi
-
-    ok "Playwright processed → ${latest}"
 }
 
 # ── 5. Android cmdline-tools (sandbox/Dockerfile) ─────────────────────────────
@@ -1000,7 +993,7 @@ update_playwright() {
 
 update_android_cmdline_tools() {
     echo
-    echo "🔍 Fetching latest Android cmdline-tools..."
+    section "🔍 Fetching latest Android cmdline-tools..."
 
     local current_url
     current_url=$(grep -oP 'commandlinetools-linux-[0-9]+_latest\.zip' "${SANDBOX_DOCKERFILE}" | head -1 || true)
@@ -1038,8 +1031,6 @@ update_android_cmdline_tools() {
     fi
 
     if [[ "${current_url}" == "${url}" ]]; then
-        echo "  cmdline-tools=${url} (revision ${revision}, already up-to-date)"
-        ok "Android cmdline-tools processed"
         return 0
     fi
 
@@ -1048,15 +1039,13 @@ update_android_cmdline_tools() {
         return 0
     fi
 
-    echo "  cmdline-tools: ${current_url} → ${url} (revision ${revision})"
+    changed "cmdline-tools: ${current_url} → ${url} (revision ${revision})"
     record_update "Sandbox Android cmdline-tools: ${current_url} → ${url} (revision ${revision})"
     sed -i -E \
         -e "s|commandlinetools-linux-[0-9]+_latest\.zip|${url}|g" \
         -e "s|echo \"[0-9a-f]{40}  /tmp/cmdline-tools\.zip\"|echo \"${sha1}  /tmp/cmdline-tools.zip\"|" \
         -e "s|\(tool revision [0-9.]+\)|(tool revision ${revision})|" \
         "${SANDBOX_DOCKERFILE}"
-
-    ok "Android cmdline-tools processed → revision ${revision}"
 }
 
 # ── Gradle change tracking ────────────────────────────────────────────────────
@@ -1116,7 +1105,7 @@ set_gradle_version() {
     case "${kind}" in
         wrapper) set_wrapper_version "${version}" ;;
         plugin)  set_settings_plugin_version "${key}" "${version}" ;;
-        catalog) set_catalog_version "${key}" "${version}" && sync_catalog_followers quiet ;;
+        catalog) set_catalog_version "${key}" "${version}" && sync_catalog_followers ;;
         *) return 1 ;;
     esac
 }
@@ -1130,7 +1119,7 @@ set_gradle_version() {
 
 update_gradle_wrapper() {
     echo
-    echo "🔍 Fetching latest Gradle version..."
+    section "🔍 Fetching latest Gradle version..."
 
     local current
     current=$(grep -oP '^distributionUrl=.*gradle-\K[0-9.]+(?=-(bin|all)\.zip)' "${GRADLE_WRAPPER_PROPERTIES}" || true)
@@ -1138,7 +1127,6 @@ update_gradle_wrapper() {
         warn "No distributionUrl in ${GRADLE_WRAPPER_PROPERTIES}, skipping"
         return 0
     fi
-    echo "  Current: ${current}"
 
     local all_versions latest
     all_versions=$(curl_get "https://services.gradle.org/versions/all" \
@@ -1152,20 +1140,16 @@ update_gradle_wrapper() {
     fi
 
     if ! version_gt "${latest}" "${current}"; then
-        echo "  gradle=${latest} (already up-to-date)"
-        ok "Gradle wrapper processed"
         return 0
     fi
 
-    echo "  gradle: ${current} → ${latest}"
+    changed "gradle: ${current} → ${latest}"
     if ! set_wrapper_version "${latest}"; then
         warn "Skipping the Gradle update"
         return 0
     fi
     # A here-string, not a pipe: a pipe would run record_gradle_change in a subshell and lose the record.
     record_gradle_change wrapper gradle "${current}" "${latest}" <<< "${all_versions}"
-
-    ok "Gradle wrapper processed → ${latest}"
 }
 
 # ── 7. settings.gradle.kts plugins ────────────────────────────────────────────
@@ -1175,7 +1159,7 @@ update_gradle_wrapper() {
 
 update_settings_plugins() {
     echo
-    echo "🔍 Updating plugin versions in ${SETTINGS_GRADLE}..."
+    section "🔍 Updating plugin versions in ${SETTINGS_GRADLE}..."
 
     local lines=() line
     mapfile -t lines < <(grep -oP 'id\("[^"]+"\)\s+version\s+"[^"]+"' "${SETTINGS_GRADLE}" || true)
@@ -1195,15 +1179,12 @@ update_settings_plugins() {
             continue
         fi
         if ! version_gt "${latest}" "${current}"; then
-            echo "  ${id}=${current} (already up-to-date)"
             continue
         fi
-        echo "  ${id}: ${current} → ${latest}"
+        changed "${id}: ${current} → ${latest}"
         set_settings_plugin_version "${id}" "${latest}"
         record_gradle_change plugin "${id}" "${current}" "${latest}" <<< "${versions}"
     done
-
-    ok "Settings plugins processed"
 }
 
 # ── 8. Gradle version catalog ─────────────────────────────────────────────────
@@ -1433,19 +1414,17 @@ catalog_followers_fit() {
     return 0
 }
 
-# Sets every followed entry to the version its leader now calls for. ${1}=quiet prints only changes.
+# Sets every followed entry to the version its leader now calls for.
 sync_catalog_followers() {
-    local quiet="${1:-}" ref want
+    local ref want
     for ref in "${CATALOG_REFS[@]}"; do
         case "${CATALOG_RULE[${ref}]:-}" in follows|matches) ;; *) continue ;; esac
         want=$(catalog_follower_version "${ref}")
         if [[ -z "${want}" ]]; then
             warn "${ref}: no version found to go with ${CATALOG_LEADER[${ref}]} ${CATALOG_VERSION[${CATALOG_LEADER[${ref}]}]:-}, left at ${CATALOG_VERSION[${ref}]}"
         elif [[ "${want}" != "${CATALOG_VERSION[${ref}]}" ]]; then
-            echo "  ${ref}: ${CATALOG_VERSION[${ref}]} → ${want} (${CATALOG_RULE[${ref}]} ${CATALOG_LEADER[${ref}]})"
+            changed "${ref}: ${CATALOG_VERSION[${ref}]} → ${want} (${CATALOG_RULE[${ref}]} ${CATALOG_LEADER[${ref}]})"
             set_catalog_version "${ref}" "${want}"
-        elif [[ "${quiet}" != "quiet" ]]; then
-            echo "  ${ref}=${want} (${CATALOG_RULE[${ref}]} ${CATALOG_LEADER[${ref}]})"
         fi
     done
 }
@@ -1519,7 +1498,7 @@ catalog_candidate_fits() {
 
 update_version_catalog() {
     echo
-    echo "🔍 Updating the Gradle version catalog (${VERSION_CATALOG})..."
+    section "🔍 Updating the Gradle version catalog (${VERSION_CATALOG})..."
 
     PROJECT_COMPILE_SDK=$(read_compile_sdk)
     if [[ -z "${PROJECT_COMPILE_SDK}" ]]; then
@@ -1528,7 +1507,6 @@ update_version_catalog() {
         warn "Could not read compileSdk from ${ANDROID_SDK_PROPERTIES}, skipping the version catalog"
         return 0
     fi
-    echo "  Project: compileSdk ${PROJECT_COMPILE_SDK}"
 
     parse_version_catalog
 
@@ -1539,7 +1517,7 @@ update_version_catalog() {
         local current="${CATALOG_VERSION[${ref}]}"
         local coords="${CATALOG_COORDS[${ref}]:-}"
         case "${CATALOG_RULE[${ref}]:-}" in
-            hold)            echo "  ${ref}=${current} (held)"; continue ;;
+            hold)            continue ;;
             follows|matches) continue ;;  # set by sync_catalog_followers, once every leader is
             *) ;;
         esac
@@ -1571,11 +1549,10 @@ update_version_catalog() {
         done <<< "${newest_first}"
 
         if [[ -z "${chosen}" ]]; then
-            echo "  ${ref}=${current} (up-to-date)"
             continue
         fi
 
-        echo "  ${ref}: ${current} → ${chosen}"
+        changed "${ref}: ${current} → ${chosen}"
         set_catalog_version "${ref}" "${chosen}"
         record_gradle_change catalog "${ref}" "${current}" "${chosen}" <<< "${candidate_versions}"
     done
@@ -1583,8 +1560,6 @@ update_version_catalog() {
     # Not recorded as Gradle changes of their own: verify_build takes back and steps down leaders only,
     # and every follower moves with its leader (set_gradle_version).
     sync_catalog_followers
-
-    ok "Version catalog processed"
 }
 
 # ── 9. Debian (apt) packages ─────────────────────────────────────────────────
@@ -1623,10 +1598,9 @@ update_apt_packages() {
     section_count=$(grep -c "${start_marker}" "${dockerfile}")
 
     echo
-    echo "🔍 Updating ${label} packages in ${dockerfile} (${section_count} section(s))..."
+    section "🔍 Updating ${label} packages in ${dockerfile} (${section_count} section(s))..."
 
     for ((section = 1; section <= section_count; section++)); do
-        echo "  --- Section ${section}/${section_count}"
 
         # Resolve the FROM image that immediately precedes this section
         local base_image
@@ -1639,7 +1613,6 @@ update_apt_packages() {
             warn "Could not determine base image for section ${section}, skipping"
             continue
         fi
-        echo "    Base image: ${base_image}"
 
         if ! docker pull "${base_image}" >/dev/null 2>&1; then
             warn "Could not pull ${base_image}, skipping section ${section}"
@@ -1692,7 +1665,6 @@ update_apt_packages() {
         # requiring exact versions that may no longer be in the apt cache.
         local temp_image=""
         if [[ -n "${first_missing}" ]]; then
-            echo "    '${first_missing}' not in default repos, building context image for section ${section}..."
 
             local tmpdir
             tmpdir=$(mktemp -d)
@@ -1751,7 +1723,6 @@ update_apt_packages() {
                 all_found=false
                 break
             fi
-            echo "    ${package}=${apt_versions[${package}]}"
         done
         [[ "${all_found}" == "true" ]] || continue
 
@@ -1762,11 +1733,10 @@ update_apt_packages() {
             sed -i "s|${package}=\"[^\"]*\"|${package}=\"${apt_versions[${package}]}\"|g" "${dockerfile}"
             if [[ "${old_version}" != "${apt_versions[${package}]}" ]]; then
                 record_update "Sandbox ${label,,} package ${package}: ${old_version} → ${apt_versions[${package}]}"
+                changed "${package}: ${old_version} → ${apt_versions[${package}]}"
             fi
         done
     done
-
-    ok "${label} packages processed in ${dockerfile}"
 }
 
 # ── 10. GitHub Actions ────────────────────────────────────────────────────────
@@ -1783,7 +1753,7 @@ ACTIONS_DIR=".github/actions"
 
 update_github_actions() {
     echo
-    echo "🔍 Updating GitHub Actions versions..."
+    section "🔍 Updating GitHub Actions versions..."
 
     local action_files=()
     mapfile -t action_files < <(ls "${WORKFLOWS_DIR}"/*.yml "${ACTIONS_DIR}"/*/action.yml 2>/dev/null || true)
@@ -1829,7 +1799,6 @@ update_github_actions() {
         target="${latest}"
         if [[ -n "${pinned_sha}" ]]; then
             if [[ "${current}" == "${target}" ]] || ! version_gt "${target#v}" "${current#v}"; then
-                echo "  ${action}@${current} (already up-to-date)"
                 continue
             fi
         elif [[ "${current}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] && version_gt "${current#v}" "${latest#v}"; then
@@ -1848,7 +1817,7 @@ update_github_actions() {
             record_note "GitHub Action ${action}: ${current} → ${target}${new_sha:+ (commit ${new_sha})}"
             continue
         fi
-        echo "  ${action}: ${current} → ${target}"
+        changed "${action}: ${current} → ${target}"
         for file in "${action_files[@]}"; do
             if [[ -n "${pinned_sha}" ]]; then
                 sed -i -E "s~${action//./\\.}@${pinned_sha}([[:space:]]+#[[:space:]]*)${current//./\\.}([[:space:]]|$)~${action}@${new_sha}\1${target}\2~g" "${file}"
@@ -1858,8 +1827,6 @@ update_github_actions() {
         done
         record_update "GitHub Action ${action}: ${current} → ${target}"
     done
-
-    ok "GitHub Actions processed in ${WORKFLOWS_DIR} and ${ACTIONS_DIR}"
 }
 
 # ── 10b. actionlint image (.github/scripts/lint_workflows.sh) ─────────────────
@@ -1871,7 +1838,7 @@ LINT_WORKFLOWS_SCRIPT=".github/scripts/lint_workflows.sh"
 
 update_actionlint() {
     echo
-    echo "🔍 Fetching latest actionlint version..."
+    section "🔍 Fetching latest actionlint version..."
 
     local current
     current=$(grep -oP '^ACTIONLINT_IMAGE="rhysd/actionlint:\K[^"]+' "${LINT_WORKFLOWS_SCRIPT}" 2>/dev/null || true)
@@ -1888,7 +1855,6 @@ update_actionlint() {
         return 0
     fi
     if ! version_gt "${latest}" "${current}"; then
-        echo "  actionlint=${current} (already up-to-date)"
         return 0
     fi
     if ! hub_tag_exists "rhysd/actionlint" "${latest}"; then
@@ -1896,10 +1862,9 @@ update_actionlint() {
         return 0
     fi
 
-    echo "  actionlint: ${current} → ${latest}"
+    changed "actionlint: ${current} → ${latest}"
     sed -i "s|^ACTIONLINT_IMAGE=\"rhysd/actionlint:[^\"]*\"|ACTIONLINT_IMAGE=\"rhysd/actionlint:${latest}\"|" "${LINT_WORKFLOWS_SCRIPT}"
     record_update "actionlint: ${current} → ${latest}"
-    ok "actionlint processed → ${latest}"
 }
 
 # ── 10c. ImageMagick (.github/scripts/install_imagemagick.sh + sandbox/Dockerfile) ──
@@ -1913,7 +1878,7 @@ IMAGEMAGICK_SCRIPT=".github/scripts/install_imagemagick.sh"
 
 update_imagemagick() {
     echo
-    echo "🔍 Fetching latest ImageMagick version..."
+    section "🔍 Fetching latest ImageMagick version..."
 
     local current
     current=$(grep -oP '^IMAGEMAGICK_VERSION="\K[^"]+' "${IMAGEMAGICK_SCRIPT}" 2>/dev/null || true)
@@ -1929,7 +1894,6 @@ update_imagemagick() {
         return 0
     fi
     if ! version_gt "${latest}" "${current}"; then
-        echo "  ImageMagick=${current} (already up-to-date)"
         return 0
     fi
 
@@ -1942,13 +1906,12 @@ update_imagemagick() {
         return 0
     fi
 
-    echo "  ImageMagick: ${current} → ${latest}"
+    changed "ImageMagick: ${current} → ${latest}"
     sed -i -e "s|^IMAGEMAGICK_VERSION=\"[^\"]*\"|IMAGEMAGICK_VERSION=\"${latest}\"|" \
         -e "s|^IMAGEMAGICK_SHA256=\"[^\"]*\"|IMAGEMAGICK_SHA256=\"${sha256}\"|" "${IMAGEMAGICK_SCRIPT}"
     sed -i -e "s|^ENV IMAGEMAGICK_VERSION=.*|ENV IMAGEMAGICK_VERSION=${latest}|" \
         -e "s|^ENV IMAGEMAGICK_SHA256=.*|ENV IMAGEMAGICK_SHA256=${sha256}|" "${SANDBOX_DOCKERFILE}"
     record_update "ImageMagick: ${current} → ${latest}"
-    ok "ImageMagick processed → ${latest}"
 }
 
 # ── 10d. Claude model IDs (.claude/settings.json modelSettings) ───────────────
@@ -1960,7 +1923,7 @@ update_imagemagick() {
 
 update_claude_models() {
     echo
-    echo "🔍 Fetching current Claude model IDs..."
+    section "🔍 Fetching current Claude model IDs..."
 
     local keys
     keys=$(jq -r '.modelSettings // {} | keys[]' "${CLAUDE_SETTINGS}" 2>/dev/null || true)
@@ -1993,14 +1956,13 @@ update_claude_models() {
         local current="${key#claude-"${family}"-}" target="claude-${family}-${newest//./-}"
         current="${current//-/.}"
         if [[ "${key}" == "${target}" ]] || [[ "$(printf '%s\n%s\n' "${current}" "${newest}" | sort -V | tail -1)" == "${current}" ]]; then
-            echo "  ${key} (already the newest ${family})"
             continue
         fi
         if jq -e --arg t "${target}" '.modelSettings | has($t)' "${CLAUDE_SETTINGS}" >/dev/null; then
             warn "modelSettings already has ${target}; leaving ${key} for a person to merge"
             continue
         fi
-        echo "  ${key} → ${target}"
+        changed "${key} → ${target}"
         local tmp
         tmp=$(mktemp)
         jq --arg old "${key}" --arg new "${target}" \
@@ -2008,8 +1970,6 @@ update_claude_models() {
             "${CLAUDE_SETTINGS}" > "${tmp}" && mv "${tmp}" "${CLAUDE_SETTINGS}"
         record_update "Claude modelSettings: ${key} → ${target}"
     done <<< "${keys}"
-
-    ok "Claude model IDs processed"
 }
 
 # ── 11. Consistency guard: values that must agree across files ─────────────────
@@ -2054,14 +2014,12 @@ check_group() {
         err "${label} DIVERGED:"
         printf '       %s\n' "${values[@]}" >&2
         SYNC_FAILED=1
-    else
-        ok "${label} in sync → ${distinct}"
     fi
 }
 
 verify_version_sync() {
     echo
-    echo "🔍 Verifying pinned values agree across files..."
+    section "🔍 Verifying pinned values agree across files..."
 
     local entries=() v workflow
 
@@ -2180,9 +2138,7 @@ check_emulator_image() {
     [[ -n "${api}" ]] || { warn "No EMULATOR_API in ${SANDBOX_DOCKERFILE}, skipping the emulator image check"; return 0; }
     apis=$(stable_emulator_image_apis) || { warn "Could not fetch Google's system image manifest, skipping the emulator image check"; return 0; }
 
-    if grep -qx "${api}" <<< "${apis}"; then
-        ok "Emulator image system-images;android-${api};google_apis;x86_64 is still published"
-    else
+    if ! grep -qx "${api}" <<< "${apis}"; then
         err "Emulator image system-images;android-${api};google_apis;x86_64 is no longer a stable image in Google's SDK manifest - run this script, or pick another EMULATOR_API in ${SANDBOX_DOCKERFILE} (and the fallback in ${SANDBOX_EMULATOR_SCRIPT})"
         SYNC_FAILED=1
     fi
@@ -2193,7 +2149,7 @@ check_emulator_image() {
     if [[ -z "${compile_major}" ]]; then
         return 0
     elif [[ "${api%%.*}" == "${compile_major}" ]]; then
-        ok "Emulator API level in sync with compileSdk → ${compile_major}"
+        :  # in sync
     elif [[ -n "$(newest_emulator_image_for "${compile_major}")" ]]; then
         err "Emulator API DIVERGED from compileSdk: ${SANDBOX_DOCKERFILE} EMULATOR_API=${api}, ${ANDROID_SDK_PROPERTIES} compileSdk=${compile_major}, and android-$(newest_emulator_image_for "${compile_major}") is published - run this script to move it"
         SYNC_FAILED=1
@@ -2216,7 +2172,7 @@ newest_emulator_image_for() {
 # the emulator stays where it is (the guard at the end warns until the image is published).
 sync_emulator_api() {
     echo
-    echo "🔍 Matching the sandbox emulator to compileSdk..."
+    section "🔍 Matching the sandbox emulator to compileSdk..."
 
     local compile_major current target
     compile_major=$(read_compile_sdk)
@@ -2229,7 +2185,6 @@ sync_emulator_api() {
         # Same level; a newer image of it (37.0 -> 37.1) is still adopted.
         target=$(newest_emulator_image_for "${compile_major}") || target=""
         if [[ -z "${target}" || "${target}" == "${current}" ]]; then
-            echo "  EMULATOR_API=${current} (already the newest image of API ${compile_major})"
             return 0
         fi
     else
@@ -2243,7 +2198,7 @@ sync_emulator_api() {
     sed -i -E "s|^(ENV EMULATOR_API=)[0-9.]+|\\1${target}|" "${SANDBOX_DOCKERFILE}"
     sed -i -E "s|(EMULATOR_API:-)[0-9.]+|\\1${target}|" "${SANDBOX_EMULATOR_SCRIPT}"
     record_update "Sandbox emulator: android-${current} → android-${target} (follows compileSdk ${compile_major})"
-    ok "Sandbox emulator ${current} → ${target}"
+    changed "Sandbox emulator ${current} → ${target}"
 }
 
 # ── 12. Build verification ────────────────────────────────────────────────────
@@ -2262,7 +2217,7 @@ BUILD_FAILED=0
 verify_build() {
     local before="${1}"
     echo
-    echo "🔍 Verifying the build..."
+    section "🔍 Verifying the build..."
 
     local after
     after=$(gradle_inputs_hash)
@@ -2388,7 +2343,7 @@ try_jdk_major_upgrade() {
     [[ "${#JDK_MAJOR_CANDIDATES[@]}" -gt 0 ]] || return 0
 
     echo
-    echo "🔍 Trying newer JDK majors (adopted only if the build passes on them)..."
+    section "🔍 Trying newer JDK majors (adopted only if the build passes on them)..."
 
     if [[ "${SKIP_BUILD}" == "true" ]]; then
         warn "--skip-build given: no newer JDK can be proven, so none is adopted"
@@ -2421,7 +2376,7 @@ try_jdk_major_upgrade() {
             apply_jdk_major "${new_major}" "${new_tag}" "${old_major}"
             JDK_MAJOR_ADOPTED="${new_major}"
             record_update "JDK (Gradle toolchain, sandbox, CI): ${old_major} → ${new_major}"
-            ok "JDK ${old_major} → ${new_major} (${new_tag}): the build and unit tests pass on it"
+            changed "JDK ${old_major} → ${new_major} (${new_tag}): the build and unit tests pass on it"
             return 0
         fi
         warn "The build fails on JDK ${new_major} - staying on JDK ${old_major}:"
@@ -2443,26 +2398,26 @@ done
 GRADLE_INPUTS_BEFORE=$(gradle_inputs_hash)
 
 # compileSdk first, on the project exactly as committed (see its section for why).
-update_compile_sdk      || warn "compileSdk update failed, continuing..."
-sync_emulator_api       || warn "Sandbox emulator update failed, continuing..."
-update_ndk              || warn "NDK update failed, continuing..."
-update_gradle_wrapper   || warn "Gradle wrapper update failed, continuing..."
-update_settings_plugins || warn "settings.gradle.kts plugin update failed, continuing..."
-update_version_catalog  || warn "Version catalog update failed, continuing..."
+run_section "compileSdk update failed, continuing..." update_compile_sdk
+run_section "Sandbox emulator update failed, continuing..." sync_emulator_api
+run_section "NDK update failed, continuing..." update_ndk
+run_section "Gradle wrapper update failed, continuing..." update_gradle_wrapper
+run_section "settings.gradle.kts plugin update failed, continuing..." update_settings_plugins
+run_section "Version catalog update failed, continuing..." update_version_catalog
 
-update_java                  || warn "Java update failed, continuing..."
-update_node                  || warn "Node update failed, continuing..."
-update_playwright            || warn "Playwright update failed, continuing..."
-update_android_cmdline_tools || warn "Android cmdline-tools update failed, continuing..."
+run_section "Java update failed, continuing..." update_java
+run_section "Node update failed, continuing..." update_node
+run_section "Playwright update failed, continuing..." update_playwright
+run_section "Android cmdline-tools update failed, continuing..." update_android_cmdline_tools
 # Before the apt section below: it resolves package candidates against the Dockerfile's CURRENT
 # base image, so the base itself must already be at its target version by that point.
-update_sandbox_base          || warn "sandbox Debian base update failed, continuing..."
-update_apt_packages "${SANDBOX_DOCKERFILE}" "DEBIAN" || warn "Debian packages update failed for ${SANDBOX_DOCKERFILE}, continuing..."
+run_section "sandbox Debian base update failed, continuing..." update_sandbox_base
+run_section "Debian packages update failed for ${SANDBOX_DOCKERFILE}, continuing..." update_apt_packages "${SANDBOX_DOCKERFILE}" "DEBIAN"
 
-update_github_actions || warn "GitHub Actions update failed, continuing..."
-update_actionlint     || warn "actionlint update failed, continuing..."
-update_imagemagick    || warn "ImageMagick update failed, continuing..."
-update_claude_models  || warn "Claude model ID update failed, continuing..."
+run_section "GitHub Actions update failed, continuing..." update_github_actions
+run_section "actionlint update failed, continuing..." update_actionlint
+run_section "ImageMagick update failed, continuing..." update_imagemagick
+run_section "Claude model ID update failed, continuing..." update_claude_models
 
 # Final checks (NOT best-effort). Both run before either fails the run, so one report covers both.
 # The JDK major trial sits between them: it needs the build's verdict on the current JDK, and the
@@ -2470,6 +2425,7 @@ update_claude_models  || warn "Claude model ID update failed, continuing..."
 verify_build "${GRADLE_INPUTS_BEFORE}"
 try_jdk_major_upgrade
 verify_version_sync
+[[ "${SYNC_FAILED}" -ne 0 ]] || echo "  In sync"
 print_update_summary
 
 if [[ "${SYNC_FAILED}" -ne 0 || "${BUILD_FAILED}" -ne 0 ]]; then
