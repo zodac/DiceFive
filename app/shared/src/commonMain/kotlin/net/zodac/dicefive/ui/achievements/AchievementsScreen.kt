@@ -135,6 +135,7 @@ import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.AppTooltipState
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.ScreenScaffold
+import net.zodac.dicefive.ui.common.categoryHeaderStyle
 import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.localised
@@ -582,7 +583,7 @@ fun AchievementsScreen(
 }
 
 /**
- * A theme's subheader - quiet, since the catalogue's own order is what does the real organising.
+ * A theme's subheader, in [categoryHeaderStyle] as the Styles page's category titles are.
  * Pinned to the top of the list while its category scrolls by, so it's a plain [Card] rather than
  * the bare [Text] this would otherwise be - the same rounded, opaque shape every other surface on
  * this screen uses - since rows now scroll directly underneath it and would show through bare text.
@@ -601,10 +602,10 @@ private fun GroupHeader(text: String, counts: Pair<Int, Int>?, onPrevious: (() -
             val color = if (complete) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             val spokenCount = counts?.let { stringResource(Res.string.achievements_earned_count, it.first, it.second) }
             Text(
-                text = text.uppercase(),
-                style = MaterialTheme.typography.labelSmall,
+                text = text,
+                style = categoryHeaderStyle,
                 color = color,
-                // Said as written, not spelled out as the all-caps it's drawn in, with the count after it.
+                // The count after the label, as one heading.
                 modifier = Modifier.weight(1f).padding(start = 12.dp).semantics {
                     heading()
                     contentDescription = if (spokenCount == null) text else "$text, $spokenCount"
@@ -614,7 +615,7 @@ private fun GroupHeader(text: String, counts: Pair<Int, Int>?, onPrevious: (() -
                 // The heading above already speaks the count.
                 Text(
                     text = stringResource(Res.string.achievements_category_count, counts.first, counts.second),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = categoryHeaderStyle,
                     color = color,
                     modifier = Modifier.padding(horizontal = 8.dp).clearAndSetSemantics { },
                 )

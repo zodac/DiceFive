@@ -208,6 +208,7 @@ import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.PAGE_CONTENT_FADE_IN_MILLIS
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.VerticalScrollbar
+import net.zodac.dicefive.ui.common.categoryHeaderStyle
 import net.zodac.dicefive.ui.common.ambientMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.parseInlineMarkup
@@ -1178,7 +1179,7 @@ private fun StyleCategoryCard(title: String, count: UnlockCount, gallery: Boolea
             val spokenCount = stringResource(Res.string.styles_unlocked_count, count.unlocked, count.total)
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleSmall,
+                style = categoryHeaderStyle,
                 color = colour,
                 modifier = Modifier
                     .weight(1f)
@@ -1192,7 +1193,7 @@ private fun StyleCategoryCard(title: String, count: UnlockCount, gallery: Boolea
             // The heading above already speaks the count.
             Text(
                 text = stringResource(Res.string.styles_category_count, count.unlocked, count.total),
-                style = MaterialTheme.typography.labelMedium,
+                style = categoryHeaderStyle,
                 color = colour,
                 modifier = Modifier.padding(end = 4.dp).clearAndSetSemantics { },
             )

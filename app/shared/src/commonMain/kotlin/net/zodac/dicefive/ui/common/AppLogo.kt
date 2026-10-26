@@ -102,6 +102,11 @@ internal val dialogTitleStyle: TextStyle
         color = MaterialTheme.colorScheme.primary,
     )
 
+/** The style of a category header on the Achievements and Styles pages, and its count: [SoraFontFamily], bold, `titleSmall` size, as written. */
+internal val categoryHeaderStyle: TextStyle
+    @Composable
+    get() = MaterialTheme.typography.titleSmall.copy(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold)
+
 /** Whether `sora.ttf` has a glyph for this character - printable ASCII or Latin-1, as cut (see [SoraFontFamily]). */
 internal fun Char.isInSoraFont(): Boolean = this in ' '..'~' || this in '\u00A0'..'\u00FF'
 

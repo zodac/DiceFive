@@ -18,7 +18,7 @@ alphabetical order.
   greyed, not removed.
 - They're stock `IconButton`s, so the header is 48dp tall.
 - Each header carries its category's earned/total (`3/12`), counted over the whole category even while the Unearned switch is on
-  hides rows. The label is `onSurface`, and the whole header turns brand gold (`primary`) once every one is earned.
+  hides rows. Label and count are `categoryHeaderStyle` (Sora, `titleSmall`, as written), as on the Styles screen. The label is `onSurface`, and the whole header turns brand gold (`primary`) once every one is earned.
   TalkBack reads "Milestones, 3 of 12 unlocked" as the heading; the drawn count is hidden from it. Easter Eggs have no
   count, as their total is a secret.
 - Rows are clipped at the pinned header's bottom (`Modifier.hiddenUnderPinnedHeader`, from `layoutInfo` in the draw
@@ -165,7 +165,8 @@ A lock is on the style (`StyleFamily.unlock`), not the colour: once it's met, al
 it's earned, so the total doesn't hint at it.
 - The unlocked/total count is drawn like the Achievements page's: a full-width card over the cards, or compact after
   the back arrow in landscape.
-- Each category's title carries its own `46/96` before the gallery toggle. Title and count turn brand gold (`primary`)
+- Each category's title carries its own `46/96` before the gallery toggle, both in `categoryHeaderStyle` as on the
+  Achievements page. Title and count turn brand gold (`primary`)
   once every one is unlocked. TalkBack reads "Dice, 46 of 96 unlocked" as the heading; the drawn count is hidden.
 
 **The Unlocked switch** (labelled "All" while off, "Unlocked" while on) sits beside the count, drawn and placed as the Achievements page's switch (labelled "All" / "Unearned"): after the count

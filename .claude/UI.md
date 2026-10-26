@@ -57,6 +57,8 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
   - It's used on:
     - the wordmark, and page and dialog titles;
     - Rules headings, Leaderboard mode-card titles, and unlock-banner titles;
+    - the Achievements and Styles category headers and their counts (`categoryHeaderStyle`), as written, not in
+      capitals;
     - totals-tooltip labels, the New Game player count (`SegmentedChoiceRow(brandFont = true)`) and the User/CPU chips;
     - mode and modifier names and values (pickers, timer lengths, steppers, the stored-rolls cap), and New Game field
       headlines;
