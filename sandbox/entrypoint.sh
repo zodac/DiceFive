@@ -44,7 +44,8 @@ fi
 # also land root-owned if it didn't already exist when the mount was set up.
 # chown the mount points (non-recursive, so existing contents are untouched) so
 # the dev user can write into them. /home/dev/.claude is a bind mount to a
-# project-local directory (see sandbox.sh); the other two are named volumes.
+# project-local directory (see sandbox.sh); ms-playwright is a named volume (the
+# image pre-creates ~/.m2 and ~/.gradle dev-owned, so their volumes need nothing).
 mkdir -p /home/dev/.cache/ms-playwright
 chown dev:dev /home/dev/.claude /home/dev/.cache /home/dev/.cache/ms-playwright 2>/dev/null || true
 
@@ -74,7 +75,7 @@ fi
 if [[ -t 0 ]]; then RUN_SETUP=1; else RUN_SETUP=0; fi
 export RUN_SETUP
 
-# JAVA_HOME/MAVEN_HOME/ANDROID_HOME/ANDROID_SDK_ROOT (and EMULATOR_API, which sandbox/emulator.sh and
+# JAVA_HOME/ANDROID_HOME/ANDROID_SDK_ROOT (and EMULATOR_API, which sandbox/emulator.sh and
 # sandbox/Dockerfile share, and TZ, the host's timezone - see above) must be preserved explicitly too:
 # `sudo` resets the environment by default, and PATH alone (assigned directly below,
 # same as HOME) is not enough for a tool that reads one of these as a variable rather
@@ -82,5 +83,5 @@ export RUN_SETUP
 # "SDK location not found" if ANDROID_HOME does not survive this hop.
 cd /work
 exec sudo -u dev \
-  --preserve-env=ANTHROPIC_API_KEY,CLAUDE_CONFIG_DIR,PLAYWRIGHT_BROWSERS_PATH,RUN_SETUP,JAVA_HOME,MAVEN_HOME,ANDROID_HOME,ANDROID_SDK_ROOT,EMULATOR_API,TZ \
+  --preserve-env=ANTHROPIC_API_KEY,CLAUDE_CONFIG_DIR,DISABLE_AUTOUPDATER,PLAYWRIGHT_BROWSERS_PATH,RUN_SETUP,JAVA_HOME,ANDROID_HOME,ANDROID_SDK_ROOT,EMULATOR_API,TZ \
   HOME=/home/dev PATH="${PATH}" /usr/local/bin/sandbox-launch.sh "$@"

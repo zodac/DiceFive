@@ -76,7 +76,8 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
     comment saying why, and say so in the report.
   - If the fix is large or changes behaviour beyond the task, ask rather than skip.
 - **Accessibility is part of done.** Every new or changed UI element goes through the checklist in `.claude/UI.md`.
-  The report says what TalkBack does with it, and what wasn't heard on a device.
+  The report says what TalkBack does with it. Don't add that it wasn't heard on a device: the maintainer knows
+  speech is never heard here.
 - **Achievement titles fit ONE line of the unlock banner at 11sp or larger.**
   - English titles are at most `MAX_ACHIEVEMENT_TITLE_LENGTH` (38) characters (`AchievementTextTest`). A translation
     may set its own `achievement_title_max_length`.
@@ -89,6 +90,15 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
     undone. The prompt is a backstop, not permission.
   - Only the release workflow empties it. Hook tests: `.claude/hooks/tests/run-hook-tests.sh`.
   - It's blank between releases; all of it becomes the Android release's notes (`DESIGN.md`, "Release pipeline").
+- **Edit files with the Edit/Write tools first.** Use a shell or Python script only for a change across many files or
+  a bulk pattern-based edit, and make the script fail when a pattern doesn't match rather than write the file
+  unchanged.
+- **Ask the user questions with the AskUserQuestion tool**, never as a question at the end of a message. That includes
+  offers ("Do you want me to...?") and choices between options.
+- **Notify the maintainer when a prompt is finished.** They drive sessions from their phone over Remote Control, so
+  end every prompt with the PushNotification tool: one line under 200 characters, leading with the outcome or what
+  needs their action ("Sandbox cleanup done, lint clean, not committed"). Skip it when the prompt ends in
+  AskUserQuestion, which already notifies.
 - **Commits**: the subject is `[Category] Short description` (`.githooks/commit-msg`). Use the `commit` skill; the
   category list lives there.
 - **After a requested code change is verified** (it compiles and the relevant tests pass), build and send the debug
@@ -108,6 +118,9 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 | `store-assets` | Generating and reviewing the Play Store graphics and video |
 
 ## Reference docs (read the one for an area before changing it)
+
+Most are long. List a doc's headings first (`grep -n '^#' <doc>`), then read the sections that apply with an offset
+and limit; read a whole doc only when the change spans it.
 
 | Doc | Read when |
 |---|---|

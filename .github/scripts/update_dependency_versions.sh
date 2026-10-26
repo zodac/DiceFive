@@ -8,7 +8,7 @@
 #                   release, majors included, but only to a version this project can actually build
 #                   against (see "Android compatibility" below); except an entry marked
 #                   `# @update hold` (never changed) or `# @update follows|matches` (set to the version
-#                   another entry calls for - see section 9, "Pinned and paired entries")
+#                   another entry calls for - see section 8, "Pinned and paired entries")
 #                 - The Gradle wrapper (gradle/wrapper/gradle-wrapper.properties), majors included
 #                 - Plugin versions declared in settings.gradle.kts (`id("…") version "…"`), majors included
 #               Every Gradle-side bump is then proven by the build at the end: one that breaks it is
@@ -17,7 +17,6 @@
 #                 - sandbox/Dockerfile toolchain stages:
 #                     JDK   - eclipse-temurin:X.Y.Z_B-jdk: the newest patch, and a newer LTS major only
 #                             once the project is proven to build on it (see "Java" below)
-#                     Maven - maven:X.Y.Z-eclipse-temurin-<jdk major>, within the Maven major
 #                     Node  - node:X.Y.Z-trixie, within the current major, or to a newer major only once
 #                             that major has reached LTS
 #                 - sandbox/Dockerfile's Debian runtime base (FROM debian:X.Y, within the current major)
@@ -37,6 +36,8 @@
 #                 - The actionlint image pinned in .github/scripts/lint_workflows.sh
 #                 - ImageMagick's AppImage (version + sha256), pinned in .github/scripts/install_imagemagick.sh
 #                   (CI) and sandbox/Dockerfile (the sandbox), always moved together
+#                 - Claude model IDs keying .claude/settings.json's `modelSettings`: each moves to the newest
+#                   model of its family (sonnet, opus, ...) on Anthropic's models overview
 #               Then two checks (NOT best-effort - either one failing fails the run):
 #                 - a consistency guard over values that must agree across files (JDK major, Android
 #                   platform, build-tools, NDK, emulator API), which also fails if the sandbox's emulator
@@ -73,7 +74,7 @@
 #                 2. Only when proven: after everything else has been updated and built, each newer LTS
 #                    (newest first) is written into the toolchain (`./gradlew updateDaemonJvm`) and the
 #                    project is built and unit-tested from scratch on it; the first that passes is kept
-#                    and written into the sandbox (jdk + maven stages). Non-LTS majors are never tried:
+#                    and written into the sandbox (the jdk stage). Non-LTS majors are never tried:
 #                    they reach end-of-life six months later.
 #
 # Android compatibility:
@@ -121,6 +122,8 @@ set -euo pipefail
 
 SANDBOX_DOCKERFILE="./sandbox/Dockerfile"
 SANDBOX_EMULATOR_SCRIPT="./sandbox/emulator.sh"
+CLAUDE_SETTINGS="./.claude/settings.json"
+CLAUDE_MODELS_URL="https://platform.claude.com/docs/en/about-claude/models/overview.md"
 WORKFLOWS_DIR=".github/workflows"
 VERSION_CATALOG="./gradle/libs.versions.toml"
 GRADLE_WRAPPER_PROPERTIES="./gradle/wrapper/gradle-wrapper.properties"
@@ -843,57 +846,7 @@ update_java() {
     ok "Java processed (jdk: ${jdk_tag})"
 }
 
-# ── 2. Maven (sandbox/Dockerfile maven stage) ─────────────────────────────────
-# Only /usr/share/maven is copied out of this image - its own JDK is never used - so the tag's
-# eclipse-temurin suffix is set to the jdk stage's major rather than tracked separately: an LTS
-# suffix is the one Docker Hub keeps publishing, where a short-lived non-LTS one eventually stops
-# getting new Maven tags and would silently stall this update. Stays within the Maven major.
-
-update_maven() {
-    echo
-    echo "🔍 Fetching latest Maven version (within the current major)..."
-
-    local current jdk_major
-    current=$(grep -oP '^FROM maven:\K[0-9.]+(?=-eclipse-temurin-[0-9]+ AS maven)' "${SANDBOX_DOCKERFILE}" | head -1 || true)
-    if [[ -z "${current}" ]]; then
-        warn "No 'FROM maven:…-eclipse-temurin-N AS maven' stage in ${SANDBOX_DOCKERFILE}, skipping"
-        return 0
-    fi
-    jdk_major=$(grep -oP '^FROM eclipse-temurin:\K[0-9]+(?=[._])' "${SANDBOX_DOCKERFILE}" | head -1 || true)
-    if [[ -z "${jdk_major}" ]]; then
-        warn "Could not read the jdk stage's major from ${SANDBOX_DOCKERFILE}, skipping Maven update"
-        return 0
-    fi
-    echo "  Current: ${current}"
-
-    local latest
-    latest=$(maven_versions "org.apache.maven:apache-maven" \
-        | filter_stable_versions \
-        | filter_same_major "${current}" \
-        | sort -V | tail -1)
-    if [[ -z "${latest}" ]]; then
-        warn "Could not fetch a stable Maven version from Maven Central, skipping"
-        return 0
-    fi
-
-    local docker_tag="${latest}-eclipse-temurin-${jdk_major}"
-    if ! hub_tag_exists "library/maven" "${docker_tag}"; then
-        warn "maven:${docker_tag} not on Docker Hub, skipping Maven update"
-        return 0
-    fi
-    echo "  maven:${docker_tag} confirmed on Docker Hub"
-
-    local old_tag
-    old_tag=$(grep -oP '^FROM maven:\K\S+(?= AS maven)' "${SANDBOX_DOCKERFILE}" | head -1 || true)
-    if [[ "${old_tag}" != "${docker_tag}" ]]; then
-        sed -i "s|^FROM maven:[^ ]* AS maven|FROM maven:${docker_tag} AS maven|" "${SANDBOX_DOCKERFILE}"
-        record_update "Sandbox Maven image: ${old_tag} → ${docker_tag}"
-    fi
-
-    ok "Maven processed → ${docker_tag}"
-}
-
-# ── 3. Node (sandbox/Dockerfile node stage) ───────────────────────────────────
+# ── 2. Node (sandbox/Dockerfile node stage) ───────────────────────────────────
 # Node runs Claude Code and Playwright in the sandbox; nothing in the app build uses it. It moves to
 # the newest release of the current major, or of a NEWER major once that major has reached LTS - an
 # odd-numbered or not-yet-LTS "Current" line is never adopted. Never moves backwards.
@@ -944,7 +897,7 @@ update_node() {
     ok "Node processed → ${latest}"
 }
 
-# ── 4. sandbox/Dockerfile runtime base image ──────────────────────────────────
+# ── 3. sandbox/Dockerfile runtime base image ──────────────────────────────────
 # The sandbox runtime base (`FROM debian:X.Y`) sits outside every `# BEGIN/END ... PACKAGES`
 # block, so the apt updater never touches it. MUST run before update_apt_packages: that updater
 # resolves each package's latest candidate version by querying the base image named in the file's
@@ -997,7 +950,7 @@ update_sandbox_base() {
     ok "sandbox Debian base processed → ${latest}"
 }
 
-# ── 5. Playwright CLI pin (sandbox/Dockerfile) ────────────────────────────────
+# ── 4. Playwright CLI pin (sandbox/Dockerfile) ────────────────────────────────
 # `npx --yes playwright@X.Y.Z install-deps chromium` bakes Chromium's shared libraries into the
 # image. The project itself declares no Playwright version to keep in step with, so this follows
 # the npm registry's latest final release.
@@ -1035,7 +988,7 @@ update_playwright() {
     ok "Playwright processed → ${latest}"
 }
 
-# ── 6. Android cmdline-tools (sandbox/Dockerfile) ─────────────────────────────
+# ── 5. Android cmdline-tools (sandbox/Dockerfile) ─────────────────────────────
 # The cmdline-tools archive is a direct download verified by sha1, both taken from Google's own SDK
 # repository manifest - the same one the SDK installer reads - for the stable-channel `cmdline-tools;latest`
 # package's Linux archive. The URL, the checksum and the "(tool revision N.M)" note in the comment
@@ -1168,7 +1121,7 @@ set_gradle_version() {
     esac
 }
 
-# ── 7. Gradle wrapper ─────────────────────────────────────────────────────────
+# ── 6. Gradle wrapper ─────────────────────────────────────────────────────────
 # Rewrites distributionUrl (and distributionSha256Sum, if one is pinned) to the newest final Gradle
 # release, majors included - a Gradle major can remove APIs AGP/KGP or this build script still use,
 # and verify_build then steps it back down to the newest Gradle that builds. Only the properties file
@@ -1215,7 +1168,7 @@ update_gradle_wrapper() {
     ok "Gradle wrapper processed → ${latest}"
 }
 
-# ── 8. settings.gradle.kts plugins ────────────────────────────────────────────
+# ── 7. settings.gradle.kts plugins ────────────────────────────────────────────
 # Plugins pinned directly in settings.gradle.kts (`id("…") version "…"`, e.g. the foojay toolchain
 # resolver) rather than through the version catalog. Resolved from each plugin's marker artifact,
 # majors included (proven by the build, like everything Gradle-side).
@@ -1253,7 +1206,7 @@ update_settings_plugins() {
     ok "Settings plugins processed"
 }
 
-# ── 9. Gradle version catalog ─────────────────────────────────────────────────
+# ── 8. Gradle version catalog ─────────────────────────────────────────────────
 # Every [versions] entry is bumped to the highest final release (majors included) that fits the
 # project: every library sharing the entry, and for a BOM every versionless library the
 #     app takes from it, must accept this project's compileSdk and AGP (android_compatible), and a BOM
@@ -1634,7 +1587,7 @@ update_version_catalog() {
     ok "Version catalog processed"
 }
 
-# ── 10. Debian (apt) packages ─────────────────────────────────────────────────
+# ── 9. Debian (apt) packages ─────────────────────────────────────────────────
 # For each # BEGIN/END <LABEL> PACKAGES block in the given Dockerfile:
 #   - Determines the preceding FROM image and queries apt-cache policy in a fresh container
 #   - If packages aren't in the base image's default repos (e.g. the Docker-engine packages, which
@@ -1816,7 +1769,7 @@ update_apt_packages() {
     ok "${label} packages processed in ${dockerfile}"
 }
 
-# ── 11. GitHub Actions ────────────────────────────────────────────────────────
+# ── 10. GitHub Actions ────────────────────────────────────────────────────────
 # Collects every `uses: owner/repo[/path]@ref` in the workflows and the repo's own composite actions
 # (.github/actions/*/action.yml) and moves it to the action's latest stable release, keeping the existing
 # pin style: a floating major tag (`@v4`) becomes the newer major tag (`@v5`, once that tag is confirmed
@@ -1916,7 +1869,7 @@ update_github_actions() {
     ok "GitHub Actions processed in ${WORKFLOWS_DIR} and ${ACTIONS_DIR}"
 }
 
-# ── 11b. actionlint image (.github/scripts/lint_workflows.sh) ─────────────────
+# ── 10b. actionlint image (.github/scripts/lint_workflows.sh) ─────────────────
 # The workflow linter's Docker image, pinned in the lint script rather than a workflow (so a
 # GITHUB_TOKEN push can bump it). Moved to actionlint's latest stable GitHub release whose Docker Hub
 # tag is confirmed - the release is tagged vX.Y.Z, the image X.Y.Z.
@@ -1956,7 +1909,7 @@ update_actionlint() {
     ok "actionlint processed → ${latest}"
 }
 
-# ── 11c. ImageMagick (.github/scripts/install_imagemagick.sh + sandbox/Dockerfile) ──
+# ── 10c. ImageMagick (.github/scripts/install_imagemagick.sh + sandbox/Dockerfile) ──
 # ImageMagick's own x86_64 AppImage, which renders the store assets in CI (the README-assets workflow) and in the
 # sandbox. Both files pin the same release and its SHA-256 (the sandbox image's build context can't reach the CI
 # script), so they are moved together or not at all, and the consistency guard checks they agree. Moved to
@@ -2005,7 +1958,68 @@ update_imagemagick() {
     ok "ImageMagick processed → ${latest}"
 }
 
-# ── 12. Consistency guard: values that must agree across files ─────────────────
+# ── 10d. Claude model IDs (.claude/settings.json modelSettings) ───────────────
+# `modelSettings` (the per-model effort level) is keyed by a model's full ID, so a new release of a
+# family would leave the entry on the old model and the setting would silently stop applying. Each key
+# moves to the newest ID of its family on Anthropic's models overview, which lists the current models
+# only. The entry's value is kept; the key never moves backwards, and a dated ID (`-20261001`) is never
+# taken for a version.
+
+update_claude_models() {
+    echo
+    echo "🔍 Fetching current Claude model IDs..."
+
+    local keys
+    keys=$(jq -r '.modelSettings // {} | keys[]' "${CLAUDE_SETTINGS}" 2>/dev/null || true)
+    if [[ -z "${keys}" ]]; then
+        echo "  No modelSettings in ${CLAUDE_SETTINGS}; nothing to update."
+        return 0
+    fi
+
+    local page
+    page=$(curl_get "${CLAUDE_MODELS_URL}" || true)
+    if [[ -z "${page}" ]]; then
+        warn "Could not fetch ${CLAUDE_MODELS_URL}, skipping"
+        return 0
+    fi
+
+    local key family newest
+    while IFS= read -r key; do
+        family=$(grep -oP '^claude-\K[a-z]+(?=-[0-9])' <<< "${key}" || true)
+        if [[ -z "${family}" ]]; then
+            warn "modelSettings key '${key}' isn't a claude-<family>-<version> ID, skipping"
+            continue
+        fi
+        # IDs as versions ("claude-sonnet-5-5" -> "5.5"), newest last; an 8-digit date suffix is excluded.
+        newest=$(grep -oP "claude-${family}-[0-9]+(-[0-9]{1,2})?(?![0-9])" <<< "${page}" \
+            | sed "s/^claude-${family}-//; s/-/./g" | sort -uV | tail -1 || true)
+        if [[ -z "${newest}" ]]; then
+            warn "No claude-${family} model on the models overview, keeping ${key}"
+            continue
+        fi
+        local current="${key#claude-"${family}"-}" target="claude-${family}-${newest//./-}"
+        current="${current//-/.}"
+        if [[ "${key}" == "${target}" ]] || [[ "$(printf '%s\n%s\n' "${current}" "${newest}" | sort -V | tail -1)" == "${current}" ]]; then
+            echo "  ${key} (already the newest ${family})"
+            continue
+        fi
+        if jq -e --arg t "${target}" '.modelSettings | has($t)' "${CLAUDE_SETTINGS}" >/dev/null; then
+            warn "modelSettings already has ${target}; leaving ${key} for a person to merge"
+            continue
+        fi
+        echo "  ${key} → ${target}"
+        local tmp
+        tmp=$(mktemp)
+        jq --arg old "${key}" --arg new "${target}" \
+            '.modelSettings |= with_entries(if .key == $old then .key = $new else . end)' \
+            "${CLAUDE_SETTINGS}" > "${tmp}" && mv "${tmp}" "${CLAUDE_SETTINGS}"
+        record_update "Claude modelSettings: ${key} → ${target}"
+    done <<< "${keys}"
+
+    ok "Claude model IDs processed"
+}
+
+# ── 11. Consistency guard: values that must agree across files ─────────────────
 # Values pinned in more than one place that must say the same thing - a drift between them is a
 # broken setup rather than a stale one:
 #   - JDK major: the Gradle toolchain and the sandbox's jdk stage
@@ -2239,7 +2253,7 @@ sync_emulator_api() {
     ok "Sandbox emulator ${current} → ${target}"
 }
 
-# ── 13. Build verification ────────────────────────────────────────────────────
+# ── 12. Build verification ────────────────────────────────────────────────────
 # Version metadata can only rule so much out: an AGP/Kotlin/KSP/Gradle combination, or a library's
 # own behaviour, can still break the build. So whenever a Gradle input changed, build the debug APK
 # and run the unit tests - the same gate the release workflow applies before publishing. When that
@@ -2343,7 +2357,7 @@ verify_build() {
     ok "The build gates pass with the remaining updates"
 }
 
-# ── 14. JDK major upgrade (proven by a build) ─────────────────────────────────
+# ── 13. JDK major upgrade (proven by a build) ─────────────────────────────────
 # Step 2 of the header's "Java" note. For each newer LTS found by update_java (newest first): point the
 # Gradle toolchain at it (`./gradlew updateDaemonJvm`, which also refreshes the per-platform download
 # URLs) and build + unit-test from scratch (--rerun-tasks --no-build-cache, so nothing compiled on the
@@ -2368,22 +2382,11 @@ apply_jdk_major() {
     local new_major="${1}" new_tag="${2}" old_major="${3}"
 
     sed -i "s|^FROM eclipse-temurin:[^ ]* AS jdk|FROM eclipse-temurin:${new_tag} AS jdk|" "${SANDBOX_DOCKERFILE}"
-    # The stage-comment and section-heading labels ("JDK 21  —", "── JDK 21 / Maven …").
+    # The stage-comment and section-heading labels ("JDK 21  —", "── JDK 21 / Node …").
     sed -i -E \
         -e "s|^(#[[:space:]]+JDK )${old_major}( +—)|\\1${new_major}\\2|" \
         -e "s|^(# ── JDK )${old_major}( /)|\\1${new_major}\\2|" \
         "${SANDBOX_DOCKERFILE}"
-
-    # The maven stage's suffix follows the jdk major (see update_maven), if that tag exists.
-    local maven_version
-    maven_version=$(grep -oP '^FROM maven:\K[0-9.]+(?=-eclipse-temurin-[0-9]+ AS maven)' "${SANDBOX_DOCKERFILE}" | head -1 || true)
-    if [[ -n "${maven_version}" ]]; then
-        if hub_tag_exists "library/maven" "${maven_version}-eclipse-temurin-${new_major}"; then
-            sed -i "s|^FROM maven:[^ ]* AS maven|FROM maven:${maven_version}-eclipse-temurin-${new_major} AS maven|" "${SANDBOX_DOCKERFILE}"
-        else
-            warn "maven:${maven_version}-eclipse-temurin-${new_major} not on Docker Hub, the maven stage keeps its suffix (its JDK is unused)"
-        fi
-    fi
 
     # The workflows pin no JDK: their setup-java reads the toolchain's version at run time.
 }
@@ -2454,9 +2457,7 @@ update_gradle_wrapper   || warn "Gradle wrapper update failed, continuing..."
 update_settings_plugins || warn "settings.gradle.kts plugin update failed, continuing..."
 update_version_catalog  || warn "Version catalog update failed, continuing..."
 
-# Maven reads the jdk stage's major, so Java goes first.
 update_java                  || warn "Java update failed, continuing..."
-update_maven                 || warn "Maven update failed, continuing..."
 update_node                  || warn "Node update failed, continuing..."
 update_playwright            || warn "Playwright update failed, continuing..."
 update_android_cmdline_tools || warn "Android cmdline-tools update failed, continuing..."
@@ -2468,6 +2469,7 @@ update_apt_packages "${SANDBOX_DOCKERFILE}" "DEBIAN" || warn "Debian packages up
 update_github_actions || warn "GitHub Actions update failed, continuing..."
 update_actionlint     || warn "actionlint update failed, continuing..."
 update_imagemagick    || warn "ImageMagick update failed, continuing..."
+update_claude_models  || warn "Claude model ID update failed, continuing..."
 
 # Final checks (NOT best-effort). Both run before either fails the run, so one report covers both.
 # The JDK major trial sits between them: it needs the build's verdict on the current JDK, and the

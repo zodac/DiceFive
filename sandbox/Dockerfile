@@ -2,14 +2,14 @@
 # Sandbox image for running Claude Code with --dangerously-skip-permissions
 # against the project this folder sits in, fully isolated from the host.
 #
-# The runtime is a plain Debian 13 (trixie) base. The JDK, Maven and Node
-# toolchains are pulled from their official images as multi-stage build stages
-# and the relevant directories copied straight in — so we track upstream image
-# tags instead of hand-rolling tarball / NodeSource downloads. On top we also
-# add: a NESTED Docker engine (so anything the project spins up runs inside this
+# The runtime is a plain Debian 13 (trixie) base. The JDK and Node toolchains
+# are pulled from their official images as multi-stage build stages and the
+# relevant directories copied straight in — so we track upstream image tags
+# instead of hand-rolling tarball / NodeSource downloads. On top we also add: a
+# NESTED Docker engine (so anything the project spins up runs inside this
 # throwaway container, never touching the host daemon), an Android SDK (this is
 # an Android app — see the "Android SDK" and emulator blocks below) and the system libraries
-# Playwright's Chromium needs.
+# Playwright's Chromium needs (for an occasional headless-browser screenshot).
 #
 # The JDK is an LTS release, and only moves to a newer major once this project is
 # proven to build on it: the update script builds and unit-tests the project on
@@ -27,7 +27,7 @@
 # .github/scripts/update_dependency_versions.sh from the repo root (nothing runs it
 # on a schedule), so a build that fails on a version Debian has since dropped means
 # it is time for a run. That script relies on this file's shape: the `FROM … AS
-# jdk|maven|node` stage names, the BEGIN/END DEBIAN PACKAGES markers, the
+# jdk|node` stage names, the BEGIN/END DEBIAN PACKAGES markers, the
 # cmdline-tools URL + sha1 line, and the `ENV IMAGEMAGICK_VERSION`/`IMAGEMAGICK_SHA256` lines.
 #
 # The nested Docker engine is the one toolchain NOT copied from an image: the
@@ -40,8 +40,7 @@
 # one-off cost — a contributor pays it on every single session until something
 # else invalidates the layer. The dominant source of churn (see `git log -p
 # -- sandbox/Dockerfile`) is version-pin bumps: the apt pins and the node tag move
-# on almost every bump, while the JDK and Maven tags and the user setup are
-# near-static. The Claude Code pin moves most often of all - it tracks whatever
+# on almost every bump, while the JDK tag and the user setup are near-static. The Claude Code pin moves most often of all - it tracks whatever
 # the registry published today.
 #
 # Layers are therefore ordered STABLE -> VOLATILE, and each step sits as late as
@@ -50,7 +49,7 @@
 #   1. apt cache config            static
 #   2. bootstrap apt (3 packages)  rarely bumped; only what the Docker repo needs
 #   3. Docker repo + engine        volatile pins, but `usermod -aG docker` needs it
-#   4. COPY jdk / maven            large but near-static tags
+#   4. COPY jdk                    large but near-static tag
 #   5. COPY node                   large, volatile tag -> below the static COPYs
 #   6. user creation               UID/GID build args -> below every large COPY
 #   7. tooling apt (the big one)   volatile pins; nothing below depends on it
@@ -74,11 +73,9 @@
 # their base OS reaches the final image.
 #   JDK 25  — self-contained under /opt/java/openjdk, portable onto glibc Debian.
 #             LTS; see the file-header note above for how a new major is adopted.
-#   Maven   — pure Java + shell under /usr/share/maven; the image's own JDK is unused.
 #   Node 26 — installed under /usr/local; the prebuilt binaries are glibc-portable
 #             (the -trixie tag matches this base's glibc exactly).
 FROM eclipse-temurin:25.0.4.1_1-jdk AS jdk
-FROM maven:3.10.0-eclipse-temurin-25 AS maven
 FROM node:26.12.1-trixie AS node
 
 # ── Runtime base ─────────────────────────────────────────────────────────────
@@ -101,19 +98,22 @@ ARG GID=1000
 #   terminal reconfiguration + re-login each time. This redirects .claude.json (and
 #   credentials) INTO the mounted dir, so it all persists. (entrypoint.sh already
 #   forwards this var to the `dev` user via --preserve-env.)
-# PATH — the dev-owned npm prefix goes FIRST so the self-updated `claude` wins over
-#   any other copy on the path.
+# DISABLE_AUTOUPDATER — Claude Code is pinned per build (see the install block near
+#   the bottom); a runtime self-update would only land in the container's writable
+#   layer, which `--rm` deletes, so every launch re-downloaded the same update.
+# PATH — the dev-owned npm prefix goes FIRST so the image's `claude` wins over any
+#   other copy on the path.
 # ANDROID_HOME / ANDROID_SDK_ROOT — both set to the same path: AGP and most current
 #   tooling read ANDROID_HOME, but ANDROID_SDK_ROOT is still checked by some older
 #   Gradle/CI tooling, so set both rather than assume which one a given plugin reads.
 ENV DEBIAN_FRONTEND=noninteractive \
     JAVA_HOME=/opt/java/openjdk \
-    MAVEN_HOME=/opt/maven \
     ANDROID_HOME=/opt/android-sdk \
     ANDROID_SDK_ROOT=/opt/android-sdk \
     PLAYWRIGHT_BROWSERS_PATH=/home/dev/.cache/ms-playwright \
     CLAUDE_CONFIG_DIR=/home/dev/.claude \
-    PATH=/home/dev/.npm-global/bin:/opt/java/openjdk/bin:/opt/maven/bin:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:$PATH
+    DISABLE_AUTOUPDATER=1 \
+    PATH=/home/dev/.npm-global/bin:/opt/java/openjdk/bin:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:$PATH
 
 # pipefail for every RUN in this stage so a failure in the middle of a `getent … | cut` pipe (or any
 # other) aborts the layer instead of being masked by the pipe's last command (debian base has bash).
@@ -166,9 +166,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
 # END DEBIAN PACKAGES
 
 # ── Nested daemon config: keep the build cache from growing without limit ────
-# The `-docker` volume (/var/lib/docker) is by far the largest of the five persistent volumes - every
-# gate run leaves image layers and BuildKit cache behind, and nothing reclaims them by default. Left
-# alone it reaches tens of GB: measured 77GB on a two-month-old sandbox, 61GB of it build cache.
+# The `-docker` volume (/var/lib/docker) is by far the largest of the four named volumes - every
+# nested build or run leaves image layers and BuildKit cache behind, and nothing reclaims them by default.
+# Left alone it reaches tens of GB: measured 77GB on a two-month-old sandbox of another project, 61GB of
+# it build cache.
 # BuildKit's own GC is the fix, but it is off unless configured, so the policy is baked into the image
 # (rather than left to the host) - a copied sandbox inherits the bound with no setup.
 # `maxUsedSpace` keeps enough cache to make a re-run of the docker gate a cache hit while capping the
@@ -198,18 +199,17 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
         docker-compose-plugin="5.6.1-1~debian.13~trixie"
 # END DEBIAN PACKAGES
 
-# ── JDK 25 / Maven / Node (copied from the toolchain stages above) ───────────
-# The three toolchains are self-contained directory trees; drop them into the
-# glibc base at the paths JAVA_HOME / MAVEN_HOME / PATH already point at.
+# ── JDK 25 / Node (copied from the toolchain stages above) ───────────────────
+# Both toolchains are self-contained directory trees; drop them into the glibc
+# base at the paths JAVA_HOME / PATH already point at.
 #
-# Three separate COPY layers, ordered by how often their source tag moves: the JDK
-# and Maven tags are near-static, whereas node is bumped on most update runs — so a
-# node bump re-copies only node, leaving the (larger) JDK layer cached. Keep node
-# LAST of the three, and keep all three ABOVE the user setup so a contributor whose
-# host UID/GID differs from the 1000/1000 default does not re-copy ~550MB.
-COPY --from=jdk   /opt/java/openjdk /opt/java/openjdk
-COPY --from=maven /usr/share/maven  /opt/maven
-COPY --from=node  /usr/local        /usr/local
+# Two separate COPY layers, ordered by how often their source tag moves: the JDK
+# tag is near-static, whereas node is bumped on most update runs — so a node bump
+# re-copies only node, leaving the (larger) JDK layer cached. Keep node LAST, and
+# keep both ABOVE the user setup so a contributor whose host UID/GID differs from
+# the 1000/1000 default does not re-copy ~500MB.
+COPY --from=jdk  /opt/java/openjdk /opt/java/openjdk
+COPY --from=node /usr/local        /usr/local
 
 # ── Non-root user `dev` matching the host UID/GID, with passwordless sudo ────
 # The Debian base ships no user at ${UID}/${GID}, so this normally just creates
@@ -225,9 +225,9 @@ COPY --from=node  /usr/local        /usr/local
 # otherwise exist yet.
 #
 # ~/.m2 and ~/.gradle are pre-created dev-owned because sandbox.sh mounts named volumes
-# there (so the Maven/Gradle caches survive the container's --rm — for Gradle that means
-# the downloaded distribution itself plus every AGP/Kotlin/AndroidX/Compose dependency, the
-# slow part of a first build). Docker seeds a volume from the image path it covers and
+# there (so the caches survive the container's --rm — for Gradle that means the downloaded
+# distribution itself plus every AGP/Kotlin/AndroidX/Compose dependency, the slow part of a
+# first build; ~/.m2 is where Robolectric keeps the android-all jars it downloads, ~600MB). Docker seeds a volume from the image path it covers and
 # inherits that path's ownership; if the directory did not exist, the volume would be
 # created root-owned and every `gradle`/`mvn` run would fail to write its local cache.
 RUN set -eux; \
@@ -251,17 +251,13 @@ RUN set -eux; \
 # the bottom where its invalidation costs only itself and the two cheap layers
 # below — NOT the ~550MB of toolchain COPYs or the Docker engine install.
 #
-# python3 (+pip/venv) with python3-fonttools, librsvg2-bin and optipng are an
-# image-asset toolchain (font/SVG rendering, PNG/ICO rasterising) carried over from the project this
-# sandbox was copied from. fonttools now earns its keep in THIS repo too: `app/shared/src/commonMain/composeResources/font/sora.ttf`
+# python3 (+pip/venv) with python3-fonttools: `app/shared/src/commonMain/composeResources/font/sora.ttf`
 # is a static weight-700 instance produced with `python3 -m fontTools.varLib.instancer`, subset to
 # printable ASCII with `python3 -m fontTools.subset` (see AppLogo.kt's SoraFontFamily doc) - a one-off,
 # not a build-time step, so regenerating it later still needs this package. scripts/subset-maths-fonts.sh
-# (the Maths dice's cut-down DiceFive Maths fonts) needs it too. librsvg2-bin/optipng remain unused by
-# this repo (ImageMagick is its own layer below, the same build CI uses); kept because the layer is
-# already built and python3 is generally useful in a session. Drop them from the list if the image size ever matters. fonttools is the distro
-# `python3-fonttools` package, NOT pip: the base image's Python is PEP-668 "externally managed", so
-# `pip install fonttools` is refused.
+# (the Maths dice's cut-down DiceFive Maths fonts) needs it too. Image rasterising is ImageMagick, its own
+# layer below (the same build CI uses). fonttools is the distro `python3-fonttools` package, NOT pip: the
+# base image's Python is PEP-668 "externally managed", so `pip install fonttools` is refused.
 #
 # ffmpeg joins that same asset toolchain for audio: this project ships .ogg sound effects
 # (app/android/src/main/res/raw/) and re-encoding/gain-adjusting one occasionally comes up (e.g. boosting a
@@ -300,9 +296,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
         git="1:2.47.3-0+deb13u1" \
         iproute2="6.15.0-1" \
         jq="1.7.1-6+deb13u4" \
-        librsvg2-bin="2.60.0+dfsg-1+deb13u1" \
         lsof="4.99.4+dfsg-2" \
-        optipng="0.7.8+ds-1+b1" \
         python3="3.13.5-1" \
         python3-fonttools="4.57.0-1+deb13u1" \
         python3-pip="25.1.1+dfsg-1" \
@@ -313,7 +307,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
 # END DEBIAN PACKAGES
 
 # ── Android SDK (this project is an Android app) ──────────────────────────────
-# Sits here, not up with the JDK/Maven/Node toolchain COPYs above, because it needs
+# Sits here, not up with the JDK/Node toolchain COPYs above, because it needs
 # `unzip` (just installed above) to extract the cmdline-tools archive with its Unix
 # permission bits intact — `jar xf` (the JDK's own zip extractor, which would let this
 # live in the JDK-adjacent stable region) silently drops the executable bit on every
@@ -321,7 +315,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
 # time sdkmanager (or any cmdline-tools script) shells out to one of them. Confirmed by hand before pinning below.
 #
 # There is no official upstream Docker image that is just "the Android SDK" the way
-# eclipse-temurin/maven/node are for their toolchains, so — unlike those three — this
+# eclipse-temurin/node are for their toolchains, so — unlike those two — this
 # is a direct download + checksum + unzip rather than a COPY --from stage.
 #
 # cmdline-tools is pinned to the build Google's own repository manifest
@@ -408,6 +402,8 @@ RUN set -eux; \
     test -x /opt/android-sdk/emulator/emulator; \
     test -d "/opt/android-sdk/system-images/android-${EMULATOR_API}/google_apis/x86_64"; \
     chmod -R a+rX /opt/android-sdk
+# Single quotes on purpose: the inner bash expands EMULATOR_API from the ENV above.
+# hadolint ignore=SC2016
 RUN runuser -u dev -- env HOME=/home/dev bash -c \
     'echo no | /opt/android-sdk/cmdline-tools/latest/bin/avdmanager create avd \
         -n "sandbox-api${EMULATOR_API}" -k "system-images;android-${EMULATOR_API};google_apis;x86_64" -d pixel_6' \
@@ -421,11 +417,11 @@ RUN runuser -u dev -- env HOME=/home/dev bash -c \
 # releases); instead Playwright's own `install-deps` resolves the correct set for
 # this base image - version-proof AND cached. Pinned to an explicit version so the
 # build stays reproducible (the repo is mounted at runtime, not present at build
-# time, so npx fetches the CLI here); keep it in step with any Playwright version
-# the project itself declares. Runs as root
-# (build default) - no sudo needed, unlike the setup.sh runtime path. The browser
-# BINARY itself stays out of the image (persisted in the ms-playwright volume via
-# setup.sh) to avoid baking ~150MB of Chromium into every layer.
+# time, so npx fetches the CLI here). The project declares no Playwright; a session
+# that wants a headless browser (e.g. to screenshot an HTML preview) runs
+# `npx playwright@<this version> install chromium` itself. Runs as root (build
+# default). The browser BINARY stays out of the image (it lands in the persisted
+# ms-playwright volume) to avoid baking ~150MB of Chromium into every layer.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
     npx --yes playwright@1.64.1 install-deps chromium
 
@@ -438,12 +434,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
 # is `magick`. Its own layer near the end, so a bump never re-downloads the Android layers above.
 ENV IMAGEMAGICK_VERSION=7.1.2-34
 ENV IMAGEMAGICK_SHA256=6e9edfd35d5f30b57c27533afe003d6085faaf8607b207426f398d11751acf93
+# --appimage-extract unpacks into the working directory (WORKDIR /work below resets it).
+WORKDIR /opt
 RUN set -eux; \
     curl -fsSL -o /tmp/magick.AppImage \
         "https://github.com/ImageMagick/ImageMagick/releases/download/${IMAGEMAGICK_VERSION}/ImageMagick-${IMAGEMAGICK_VERSION}-gcc-x86_64.AppImage"; \
     echo "${IMAGEMAGICK_SHA256}  /tmp/magick.AppImage" | sha256sum -c -; \
     chmod +x /tmp/magick.AppImage; \
-    cd /opt; \
     /tmp/magick.AppImage --appimage-extract > /dev/null; \
     mv /opt/squashfs-root /opt/imagemagick; \
     rm -f /tmp/magick.AppImage; \
@@ -461,8 +458,9 @@ RUN set -eux; \
 # runuser (util-linux) drops to `dev` for the install without invoking sudo (hadolint DL3004); like
 # `sudo -H` it resets HOME to /home/dev, so npm writes its config to the dev-owned ~/.npmrc.
 #
-# PINNED, to the version sandbox.sh resolved from the npm registry at build time.
-# The runtime self-update CANNOT be relied on to keep the sandbox current: it
+# PINNED, to the version sandbox.sh resolved from the npm registry at build time,
+# with the runtime self-update off (DISABLE_AUTOUPDATER in the ENV block). The
+# self-update CANNOT be relied on to keep the sandbox current: it
 # writes into the CONTAINER's writable layer, which `docker run --rm` deletes on
 # teardown — so every launch came back on the image's version, downloaded the same
 # update again, and showed the same "Update installed. Restart to apply" banner
@@ -498,8 +496,8 @@ WORKDIR /work
 # `docker ps` health), not something the sandbox itself acts on.
 #
 # The sandbox runs no service, so the one thing worth probing is the nested
-# dockerd started by entrypoint.sh: without it every containerised part of the
-# project (dev DB, Testcontainers, the E2E/smoke stacks) is dead, even though the
+# dockerd started by entrypoint.sh: without it anything containerised (here,
+# .github/scripts/lint_workflows.sh's actionlint) fails, even though the
 # container is still "up" from the host daemon's point of view. `docker info`
 # talks to that nested daemon over /var/run/docker.sock and exits non-zero when
 # it is unreachable; --format keeps the output to a single line (Docker retains

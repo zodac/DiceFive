@@ -133,8 +133,7 @@ once, in a function every category calls, rather than copying it. Already shared
    - `StyleCatalogTest` covers the invariants. Add tests for anything special.
 2. **Render every state** for review (the `render` skill), and iterate.
 3. **Measure** frame cost if it draws every frame or paints anything heavy, and record it in `BENCHMARKS.md`.
-4. **Accessibility.** The tile reads "Family, Colour", and the tray and cup are spoken regardless of style. Say so, and
-   that it wasn't heard on a device.
+4. **Accessibility.** The tile reads "Family, Colour", and the tray and cup are spoken regardless of style. Say so.
 5. **Note what later changes must know**: secret unlocks and easter eggs in `DESIGN.md` "Table art", reduced-motion
    behaviour in `UI.md`.
 6. **Finish.** Delete scratch tests and debug colours, run the gate (`test` skill), and send the APK (`debug-apk`).

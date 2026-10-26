@@ -84,7 +84,7 @@ if [[ "${RUN_SETUP:-0}" = "1" ]]; then
 fi
 
 # ── Re-assert the settings every sandbox session wants ───────────────────────
-# Three Claude user settings (settings.json under CLAUDE_CONFIG_DIR), none of
+# Four Claude user settings (settings.json under CLAUDE_CONFIG_DIR), none of
 # which has a CLI flag that covers every launch path:
 #   • `remoteControlAtStartup` — "Start Remote Control bridge automatically each
 #     session".
@@ -97,6 +97,10 @@ fi
 #     then runs claude by hand (or any nested invocation) would otherwise be back
 #     to prompting. Safe for the same reason the flag is: the sandbox is
 #     disposable and only /work is mounted from the host.
+#   • `cleanupPeriodDays=14` — session transcripts and their side-car dirs
+#     (file-history, tool results) older than two weeks are deleted at startup,
+#     so sandbox/.claude-history doesn't grow past a few hundred MB. Memory
+#     (projects/*/memory) and settings are not session data and are kept.
 # Because that file lives in the persisted volume (not the image), we re-assert
 # on every launch rather than baking it into the Dockerfile (the volume mount
 # would shadow anything the image wrote there). The jq merge preserves any other
@@ -107,14 +111,16 @@ if command -v jq >/dev/null 2>&1; then
   [[ -s "${SETTINGS}" ]] && jq -e . "${SETTINGS}" >/dev/null 2>&1 && base="$(cat "${SETTINGS}")"
   if ! printf '%s' "${base}" \
         | jq -e '.remoteControlAtStartup == true and .daemonColdStart == "transient"
-                 and .permissions.defaultMode == "bypassPermissions"' >/dev/null 2>&1; then
+                 and .permissions.defaultMode == "bypassPermissions"
+                 and .cleanupPeriodDays == 14' >/dev/null 2>&1; then
     tmp="${SETTINGS}.tmp.$$"
     if printf '%s' "${base}" \
          | jq '.remoteControlAtStartup = true
                | .daemonColdStart = "transient"
-               | .permissions.defaultMode = "bypassPermissions"' > "${tmp}" 2>/dev/null; then
+               | .permissions.defaultMode = "bypassPermissions"
+               | .cleanupPeriodDays = 14' > "${tmp}" 2>/dev/null; then
       mv -f "${tmp}" "${SETTINGS}" \
-        && echo "[sandbox] asserted sandbox defaults (Remote Control at startup, permissions bypassed)"
+        && echo "[sandbox] asserted sandbox defaults (Remote Control at startup, permissions bypassed, 14-day history)"
     else
       rm -f "${tmp}"
       echo "[sandbox] WARN: could not update ${SETTINGS} with the sandbox defaults" >&2

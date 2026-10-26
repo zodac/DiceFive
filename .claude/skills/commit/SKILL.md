@@ -22,6 +22,7 @@ commit**, and tell the user so they can rename it before it spreads.
 | Category         | Covers                                                                  |
 |------------------|-------------------------------------------------------------------------|
 | `[Achievements]` | Achievement rules, the achievements list and unlock banners             |
+| `[AI]`           | Claude's set-up - CLAUDE.md, skills, hooks, reference docs, the sandbox |
 | `[CI]`           | GitHub workflows, release pipeline, git hooks and changelog scripts     |
 | `[Dependencies]` | Version bumps - libraries, SDK, JDK, sandbox pins, actions              |
 | `[Game Mode]`    | Game modes - adding or changing one, with its rules and achievements    |

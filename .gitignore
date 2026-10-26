@@ -41,3 +41,6 @@ keystore.properties
 # baseline-profile job), so a copy here would only go stale. See .claude/DESIGN.md Phase 19.
 /app/android/src/*[rR]elease/generated/
 
+
+# Claude Code's lock for scheduled tasks in a running session - per-machine state.
+/.claude/scheduled_tasks.lock

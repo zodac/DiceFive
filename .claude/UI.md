@@ -183,7 +183,7 @@ how many tabs there are.
 10. **Sizes.** Keep the 48dp minimum touch target. Large system fonts must scroll, not clip.
 
 **Verifying**: add a Robolectric test asserting the semantics (`BoardSemanticsTest` and `RulesScreenAccessibilityTest`
-are the patterns). Real TalkBack speech can't be checked here, so the report says it wasn't heard on a device.
+are the patterns). Real TalkBack speech can't be checked here; the maintainer knows, so the report doesn't say so.
 
 ### Patterns in place (reuse them)
 

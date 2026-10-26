@@ -32,7 +32,7 @@ file_tool_output() {
 # run_bash <call-id> <command> [post-event] - the Pre hook, the command itself, then the Post hook;
 # prints what the Post hook said.
 run_bash() {
-  local id="$1" command="$2" post="${3:-PostToolUse}" payload
+  local id="$1" command="$2" post="${3:-PostToolUse}"
   payload() { jq -cn --arg event "$1" --arg id "$id" --arg command "$command" \
     '{hook_event_name: $event, session_id: "s", tool_use_id: $id, tool_name: "Bash", tool_input: {command: $command}}'; }
   [ -z "$(payload PreToolUse | "$guard")" ] || fail "PreToolUse on Bash should never answer ($command)"

@@ -15,8 +15,8 @@
 #
 # Only the project directory is mounted from the host. No $HOME, no SSH keys,
 # no other projects, and NOT the host Docker socket. The sandbox runs its own
-# nested Docker daemon, so everything the project spins up (dev DB, Testcontainers,
-# Playwright) lives and dies inside this disposable container.
+# nested Docker daemon, so any container a session spins up (here, actionlint)
+# lives and dies inside this disposable container.
 set -euo pipefail
 
 # This script lives in <project>/sandbox/, so the project root is its parent dir.
@@ -71,6 +71,7 @@ host_timezone() {
   fi
   if [[ -z "${zone}" ]] && command -v powershell.exe &>/dev/null; then
     # Windows names its zones its own way ("New Zealand Standard Time"); .NET converts to IANA.
+    # shellcheck disable=SC2016 # the $ variables are PowerShell's, so bash must not expand them
     zone="$(powershell.exe -NoProfile -Command \
       '$i=$null; if ([TimeZoneInfo]::TryConvertWindowsIdToIanaId([TimeZoneInfo]::Local.Id, [ref]$i)) { $i }' \
       2>/dev/null | tr -d '\r' || true)"
@@ -251,16 +252,15 @@ run() {
 
   # Nothing is published to the host by default - see SANDBOX_PORTS at the top.
   #
-  # The Maven local repository, the Gradle cache and the Playwright browser cache get named volumes for
-  # the same reason the Docker data dir does: without one they live in the container's writable layer,
+  # The ~/.m2 repository, the Gradle cache and the Playwright browser cache get named volumes for the
+  # same reason the Docker data dir does: without one they live in the container's writable layer,
   # which --rm deletes on teardown, so every fresh sandbox re-downloads the lot. A named volume — rather
   # than a bind to the host's ~/.m2 or ~/.gradle — keeps the "no $HOME from the host" rule above intact
   # while still persisting across sessions. The image pre-creates /home/dev/.m2 and /home/dev/.gradle
-  # dev-owned so the volumes are writable (see the Dockerfile's user-creation block). THIS project is
-  # Gradle/Android, not Maven, so the -m2 volume simply stays empty; it is kept so the launcher still
-  # works unchanged when copied elsewhere. -gradle is the one that matters here: it holds the Gradle
-  # distribution itself plus every AGP/Kotlin/AndroidX/Compose dependency, so a second launch does not
-  # redownload them.
+  # dev-owned so the volumes are writable (see the Dockerfile's user-creation block). -gradle holds the
+  # Gradle distribution itself plus every AGP/Kotlin/AndroidX/Compose dependency; -m2 holds the
+  # android-all jars Robolectric downloads (~600MB); -pw holds a Playwright Chromium, if a session
+  # installed one.
   #
   # /home/dev/.claude is different: it is a BIND MOUNT to CLAUDE_HISTORY_DIR, a plain directory inside
   # this sandbox folder, not a named (opaque, `docker volume`-only) volume like the four above. That

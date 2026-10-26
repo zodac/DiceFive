@@ -34,11 +34,15 @@ if ! command -v jq > /dev/null 2>&1; then
   [[ "$payload" == *"$target"* ]] || exit 0
   event="PreToolUse"; tool="Edit"; path="$target"
 else
-  event="$(jq -r '.hook_event_name // "PreToolUse"' <<< "$payload")"
-  tool="$(jq -r '.tool_name // ""' <<< "$payload")"
-  path="$(jq -r '.tool_input.file_path // .tool_input.notebook_path // ""' <<< "$payload")"
-  session="$(jq -r '.session_id // "session"' <<< "$payload")"
-  call="$(jq -r '.tool_use_id // "call"' <<< "$payload")"
+  # One jq for every field (the hook runs around each tool call), joined by the unit separator: unlike a
+  # tab, it isn't whitespace to `read`, so an empty field doesn't collapse into the next.
+  IFS=$'\x1f' read -r -d '' event tool path session call < <(jq -j '[
+      .hook_event_name // "PreToolUse",
+      .tool_name // "",
+      .tool_input.file_path // .tool_input.notebook_path // "",
+      .session_id // "session",
+      .tool_use_id // "call"
+    ] | join("\u001f")' <<< "$payload") || true
 fi
 
 ask() {

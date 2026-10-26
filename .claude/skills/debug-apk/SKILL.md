@@ -13,7 +13,7 @@ description: Build the debug APK and send it to the user. Use once a requested c
 2. Find the file: `ls -t app/android/build/outputs/apk/github/debug/*.apk | head -1`.
 3. Send it with the `SendUserFile` tool (load it via ToolSearch `select:SendUserFile` if it's deferred).
 4. In the report, say what to check by hand on the device, including what TalkBack should say for changed UI. Name
-   anything not seen on a device.
+   anything else not seen on a device; TalkBack speech never is, and needs no mention.
 
 Notes:
 - Visual work: get renders agreed first (`render` skill), then send the APK.

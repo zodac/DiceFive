@@ -16,9 +16,8 @@ from the project root unless noted.
 - **The host Docker socket is NOT mounted.** The sandbox runs its *own* nested
   Docker daemon, so any container the project spins up lives and dies *inside*
   the sandbox. Your host daemon — and everything already running on it — is never
-  touched. Note the flip side for a compose repo like this one: a `docker compose
-  up` in a session brings the stack up **inside the container**, against the
-  bind-mounted tree, not on the host.
+  touched. On this repo the nested daemon only runs actionlint
+  (`.github/scripts/lint_workflows.sh`).
 - **Runs as a non-root user** (`dev`, matching your host UID 1000) so files
   written under `/work` stay owned by you. (Claude also refuses
   `--dangerously-skip-permissions` as root — another reason for the non-root user.)
@@ -32,10 +31,8 @@ from the project root unless noted.
   above does not gate any of that.
   **So: the mount list is a guard against ACCIDENTS - a careless `rm -rf`, a
   runaway test, Claude with `--dangerously-skip-permissions` - and it is a good
-  one. It is NOT a security boundary against deliberately hostile code**, which is
-  worth remembering now that `setup.sh` runs `npm install` for whatever project
-  this folder was copied into (a malicious `postinstall` inherits everything
-  above). Closing that gap means dropping `--privileged`, which in turn means a
+  one. It is NOT a security boundary against deliberately hostile code** (a
+  malicious dependency or build script inherits everything above). Closing that gap means dropping `--privileged`, which in turn means a
   runtime built for it - [`sysbox-runc`](https://github.com/nestybox/sysbox) runs
   Docker-in-Docker unprivileged.
 
@@ -57,7 +54,8 @@ A launch rebuilds first, so this is rarely needed on its own.
 > passes it as the `CLAUDE_CODE_VERSION` build arg: the layer rebuilds when, and only when, a new
 > release exists, and it sits at the *bottom* of the Dockerfile so that rebuild costs nothing else.
 > With no network (or no `curl`) the arg is omitted, the cached install is kept and the build still
-> works — it just does not move forward.
+> works — it just does not move forward. The runtime self-update is switched off
+> (`DISABLE_AUTOUPDATER=1` in the image), since it could only ever re-download into a layer `--rm` deletes.
 
 ## Use
 
@@ -143,7 +141,7 @@ and vice versa.
 Add a second **Shell Script** config — **Name** `Claude Sandbox (Stop)`, same **Script path**, **Script
 options** `stop` — and leave "Execute in the terminal" **unticked** (it's a quick non-interactive
 command, no PTY needed). Running it does `docker stop <project>-sandbox` (the container name, derived
-from the project directory — `home-theatre-sandbox` here), which trips the running launcher's teardown
+from the project directory), which trips the running launcher's teardown
 (below). This is the closest thing to a Stop button.
 
 ## Shutdown — how the container is torn down
@@ -161,7 +159,7 @@ from the project directory — `home-theatre-sandbox` here), which trips the run
 It does this with a `trap` that runs `docker stop`, and by launching `docker run` as `… & wait` so the
 trap fires the instant the signal arrives (a foreground command would defer it until it returns — too
 late, once IntelliJ escalates to SIGKILL). `docker run --rm` then removes the stopped container, and
-the nested `dockerd` plus everything it spun up (dev DB, Testcontainers, Playwright) dies with it.
+the nested `dockerd` plus everything it spun up dies with it.
 
 > Previously the container could linger: `--rm` only fires when the container *exits*, so a `docker
 > run` client that was killed left its container — and its published port — running in the daemon.
@@ -174,28 +172,17 @@ sandbox or when something changed, otherwise it's a fast no-op:
 
 1. `git submodule update --init` — only if the project declares a submodule and it
    is uninitialised.
-2. `npm install` — only in a directory that actually **has** a `package.json` (looked for in
-   `frontend/` then the project root, override with `SANDBOX_NPM_DIRS`), and only if its
-   `node_modules` is missing or `package-lock.json` changed (tracked by a hash in the persistent
-   state volume).
-3. `npx playwright install chromium` — only if the project **declares** Playwright (looked for in
-   `tests/` then the root, override with `SANDBOX_PW_DIRS`), once per Playwright volume.
-4. `.claude/hooks/tests/run-hook-tests.sh` — only if the project has the guards and `jq` is present.
+2. `.claude/hooks/tests/run-hook-tests.sh` — only if the project has the guards and `jq` is present.
    The `PreToolUse` guards fail SILENTLY (an unregistered, non-executable or `jq`-less hook simply
    never blocks anything and says nothing), so they are proven here, in the environment that will
-   actually run them, before any work happens.
-
-Steps 2, 3 and 4 *detect* rather than assume, so this file survives being copy-pasted into a project
-with no Node side: it reports `(not applicable)` and runs nothing. That guard is load-bearing, not
-cosmetic — `npm --prefix frontend install` against a missing `frontend/` still **writes**
-`frontend/package-lock.json` before it errors, so an unguarded install would litter an unrelated
-project with a stray lockfile on its first open.
+   actually run them, before any work happens. On this repo that's the `RELEASE_NOTES.md` guard
+   (see `CLAUDE.md`).
 
 Scripted `run <cmd>` invocations skip setup (no TTY) so they stay fast.
 
-**On this repo only step 4 does anything:** there are no submodules, no `package.json` and no
-Playwright, but there is a guard in `.claude/hooks/` (keeping `RELEASE_NOTES.md` for the
-maintainer - see `CLAUDE.md`), so its tests run before each session.
+Playwright's Chromium is not installed by setup: the image carries its OS libraries, and a session that
+wants a headless browser runs `npx playwright@<the Dockerfile's pin> install chromium`, which lands in the
+`-pw` volume and stays there.
 
 ## Reusing this sandbox in another project
 
@@ -212,19 +199,13 @@ What the new project may want to set:
 |--------------------|-----------------|------------------------------------------------------------------------------------------------------------------|
 | `SANDBOX_PORTS`    | *(empty)*       | space-separated `host:container` pairs; empty publishes nothing. Two sandboxes cannot both hold the same host port |
 | `SANDBOX_NAME`     | the project dir | two checkouts of the *same* repo that must not share caches                                                      |
-| `SANDBOX_NPM_DIRS` | `frontend .`    | the Node project lives somewhere else                                                                            |
-| `SANDBOX_PW_DIRS`  | `tests .`       | the Playwright suite lives somewhere else                                                                        |
 | `PROJECT_DIR`      | the parent dir  | the folder is not at `<project>/sandbox/`                                                                        |
 
-What is baked into the image regardless: **JDK 25, Maven, an Android SDK (platform-tools,
-`platforms;android-37.2`, `build-tools;36.0.0`, matching this project's `compileSdk`/`buildToolsVersion`, plus
-the emulator with a system image of `compileSdk`'s API level and a virtual device - see "An Android emulator, on demand"),
-Node, Playwright's OS libs, Docker-in-Docker** and the Claude CLI. A project that needs none of a given
-toolchain still works — it just carries a larger image than it needs, so trim the `COPY --from=jdk` /
-`--from=maven` stages, or the Android SDK block, if that matters. **This repo uses the JDK/Android half**
-(it's a Gradle/Kotlin/Compose Android app — see `sandbox/Dockerfile`'s "Android SDK" block for how the
-SDK is pinned) **but not Maven, Node's project role, or Playwright**; those three are carried only
-because the image is already built and trimming them has a rebuild cost of its own.
+What is baked into the image: **JDK 25, an Android SDK (platform-tools, `platforms;android-37.2`,
+`build-tools;36.0.0`, matching this project's `compileSdk`/`buildToolsVersion`, plus the NDK and the emulator
+with a system image of `compileSdk`'s API level and a virtual device - see "An Android emulator, on demand"),
+Node (for the Claude CLI), Playwright's OS libs, ImageMagick, Docker-in-Docker** and the Claude CLI. The
+image is fitted to this repo; another project would trim the Android blocks and add its own toolchain.
 
 The project's `local.properties` is the host's own (Android Studio writes it), so its `sdk.dir` names
 the host's SDK. Rather than edit it - which would break the host's build - `entrypoint.sh` makes that
@@ -235,15 +216,15 @@ path exist in the container as a symlink to the image's SDK, so AGP finds it wit
 Two mechanisms survive across runs (so you don't re-pull/re-download, or lose Claude's session
 history, each time):
 
-`<project>` below is the project directory's name — `home-theatre` for this repo.
+`<project>` below is the project directory's name, lower-cased.
 
 | Mount                      | Kind             | Holds                                                                      |
 |-----------------------------|------------------|-----------------------------------------------------------------------------|
 | `sandbox/.claude-history/`  | bind-mounted dir | Claude auth, session transcripts/memory **and** onboarding/terminal-setup state (`~/.claude`) |
 | `<project>-sandbox-docker`  | named volume     | nested Docker images/layers (`/var/lib/docker`)                            |
 | `<project>-sandbox-gradle`  | named volume     | the Gradle distribution + dependency cache (`~/.gradle`) — AGP/Kotlin/AndroidX/Compose land here on first build |
-| `<project>-sandbox-m2`      | named volume     | the Maven repository (`~/.m2`) — unused here, stays empty                  |
-| `<project>-sandbox-pw`      | named volume     | Playwright browsers — unused here, stays empty                             |
+| `<project>-sandbox-m2`      | named volume     | `~/.m2` — the android-all jars Robolectric downloads for the unit tests    |
+| `<project>-sandbox-pw`      | named volume     | Playwright browsers — empty until a session installs Chromium              |
 
 `sandbox/.claude-history/` is a plain directory in this checkout (created on first launch,
 git-ignored), not an opaque Docker-managed volume. That means it's fully contained in the project —
@@ -261,9 +242,9 @@ this repo will produce:
 | Mount                        | Size      | Bounded?                                                            |
 |-------------------------------|-----------|---------------------------------------------------------------------|
 | `<project>-sandbox-docker`    | **77 GB** | **no** - 61 GB of it BuildKit cache, 21 GB images, from every build |
-| `<project>-sandbox-gradle`    | *(not yet measured on this repo)* | grows slowly with dependency churn, similar profile to `-m2` |
-| `<project>-sandbox-m2`        | 598 MB    | grows slowly with dependency churn                                  |
-| `sandbox/.claude-history/`    | 279 MB    | yes - Claude prunes transcripts (and their side-car dirs) at 30 days|
+| `<project>-sandbox-gradle`    | *(not yet measured on this repo)* | grows slowly with dependency churn                  |
+| `<project>-sandbox-m2`        | 623 MB    | this repo: Robolectric's android-all jars, one per SDK level tested |
+| `sandbox/.claude-history/`    | 1.2 GB    | yes - this repo at Claude's 30-day default; `launch.sh` now sets 14 days |
 | `<project>-sandbox-pw`        | small     | yes - one browser build                                             |
 
 The image now ships `/etc/docker/daemon.json` with a BuildKit GC policy (`maxUsedSpace: 20GB`,
@@ -278,16 +259,17 @@ reclaim them (and force a cache sweep now) with:
 It prefers `docker exec` into a running sandbox, so it will not interrupt a live Claude session.
 The trade-off is the obvious one: a pruned build cache makes the next `docker` gate run cold.
 
-Transcript retention on `sandbox/.claude-history/` is Claude's own `cleanupPeriodDays` (default 30) —
-set it in `~/.claude/settings.json` inside the sandbox if a month of `/resume` history is more than you
-want.
+Transcript retention on `sandbox/.claude-history/` is Claude's own `cleanupPeriodDays`, which
+`launch.sh` sets to 14 on every launch: a session (and its file-history and tool results) inactive for
+two weeks is deleted at startup, so `/resume` reaches back two weeks. Change the value in `launch.sh`,
+not in `~/.claude/settings.json`, which the next launch would overwrite.
 
 > **The four cache volume names are derived, not hardcoded** — `sandbox.sh` builds every docker name -
 > container, image, hostname and the four cache volumes - from the *project directory's* name:
 > `<project>-sandbox[-docker|-m2|-gradle|-pw]`. This matters when you **copy this launcher into another
 > repo**, which is the expected way to reuse it. A hardcoded name travels with the copy, and the copy
 > would then mount its own project at `/work` while attaching *these* volumes - so both repos would
-> share one Gradle/Maven/Playwright cache. Nothing warns you, because the project key Claude derives
+> share one Gradle/Robolectric/Playwright cache. Nothing warns you, because the project key Claude derives
 > from the mount point (`-work`) is identical for every project. A copied launcher scopes itself on its
 > first launch instead. Set `SANDBOX_NAME` to pin a name explicitly - e.g. two checkouts of the *same*
 > repo that must not share caches.
@@ -333,7 +315,7 @@ want.
 Full reset (wipe all sandbox state):
 
 ```bash
-docker volume rm home-theatre-sandbox-{docker,gradle,m2,pw}
+docker volume rm <project>-sandbox-{docker,gradle,m2,pw}
 rm -rf sandbox/.claude-history
 ```
 

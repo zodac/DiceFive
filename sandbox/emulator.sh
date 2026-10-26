@@ -61,7 +61,7 @@ ensure_packages() {
   sudo chmod -R a+rX "${sdk}/emulator" "${sdk}/system-images"
   sudo find "${sdk}/emulator" -type f -perm -u+x -exec chmod a+x {} +
   if [[ ! -x "${sdk}/emulator/emulator" || ! -d "${sdk}/system-images/android-${api}/google_apis/x86_64" ]]; then
-    echo "[emulator] installing ${image} failed (is it published? see `android sdk list`)." >&2
+    echo "[emulator] installing ${image} failed (is it published? see 'android sdk list')." >&2
     exit 1
   fi
 }
