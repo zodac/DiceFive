@@ -1,7 +1,9 @@
 package net.zodac.dicefive.ui.styles
 
 import net.zodac.dicefive.ui.common.DIALOG_ICON_SIZE
+import net.zodac.dicefive.ui.common.FilterSwitchState
 import net.zodac.dicefive.ui.common.HoldPageCover
+import net.zodac.dicefive.ui.common.rememberFilterSwitchState
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.animation.core.Animatable
@@ -310,7 +312,12 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
     // The switch answers a tap at once, not once the setting has been written and read back.
     var tappedUnlockedOnly by remember { mutableStateOf<Boolean?>(null) }
     LaunchedEffect(savedUnlockedOnly) { tappedUnlockedOnly = null }
-    val unlockedOnly = tappedUnlockedOnly ?: savedUnlockedOnly
+    // Left off the page once every style is unlocked; see rememberFilterSwitchState.
+    val filterSwitch = rememberFilterSwitchState(
+        allUnlocked = saved?.let { picks -> StyleCategory.entries.map { it.catalog.unlockCount(picks.access) }.reduce(UnlockCount::plus).let { it.unlocked >= it.total } },
+        filterOn = tappedUnlockedOnly ?: savedUnlockedOnly ?: false,
+    )
+    val unlockedOnly = filterSwitch.applied(tappedUnlockedOnly ?: savedUnlockedOnly ?: false)
     val platform = LocalPlatformServices.current
     LaunchedEffect(viewModel) {
         viewModel.toastMessages.collect { message -> platform.showTransientMessage(message) }
@@ -329,7 +336,8 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
     StylesScaffold(
         picks = saved,
         focus = focus,
-        unlockedOnly = unlockedOnly ?: false,
+        unlockedOnly = unlockedOnly,
+        filterSwitch = filterSwitch,
         onUnlockedOnlyChange = { tappedUnlockedOnly = it; viewModel.setUnlockedOnly(it) },
         onUnlockedCountTap = viewModel::onUnlockedCountTapped,
         storeState = storeState,
@@ -353,6 +361,7 @@ private fun StylesScaffold(
     modifier: Modifier = Modifier,
     driftingDice: Boolean = true,
     unlockedOnly: Boolean = false,
+    filterSwitch: FilterSwitchState = FilterSwitchState(shown = true, enabled = true),
     onUnlockedOnlyChange: (Boolean) -> Unit = {},
     onUnlockedCountTap: () -> Unit = {},
     storeState: StoreState = StoreState.Unavailable,
@@ -381,8 +390,8 @@ private fun StylesScaffold(
         },
         actions = {
             if (offerUnlockAll) UnlockAllStylesButton(storeState, compact = compactUnlockAll, onBuy = onBuy)
-            if (LocalLandscapePage.current && picks != null) {
-                Box(modifier = Modifier.padding(start = 8.dp, end = BACK_ARROW_OUTSET)) { UnlockedOnlySwitch(unlockedOnly, onUnlockedOnlyChange) }
+            if (LocalLandscapePage.current && picks != null && filterSwitch.shown) {
+                Box(modifier = Modifier.padding(start = 8.dp, end = BACK_ARROW_OUTSET)) { UnlockedOnlySwitch(unlockedOnly, filterSwitch.enabled, onUnlockedOnlyChange) }
             }
         },
         onTitleCrowded = { if (offerUnlockAll) compactUnlockAll = true },
@@ -395,6 +404,7 @@ private fun StylesScaffold(
             focus = focus,
             onSelect = onSelect,
             unlockedOnly = unlockedOnly,
+            filterSwitch = filterSwitch,
             onUnlockedOnlyChange = onUnlockedOnlyChange,
             onUnlockedCountTap = onUnlockedCountTap,
             scale = pageScale,
@@ -414,6 +424,7 @@ private fun ColumnScope.StylesPage(
     focus: StyleScrollRequest?,
     onSelect: (StyleCategory) -> (String) -> Unit,
     unlockedOnly: Boolean,
+    filterSwitch: FilterSwitchState,
     onUnlockedOnlyChange: (Boolean) -> Unit,
     onUnlockedCountTap: () -> Unit,
     scale: Float? = null,
@@ -447,7 +458,7 @@ private fun ColumnScope.StylesPage(
         if (!LocalLandscapePage.current) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 StylesUnlockedCount(picks.access, compact = false, onTap = onUnlockedCountTap, modifier = Modifier.weight(1f))
-                UnlockedOnlySwitch(unlockedOnly, onUnlockedOnlyChange)
+                if (filterSwitch.shown) UnlockedOnlySwitch(unlockedOnly, filterSwitch.enabled, onUnlockedOnlyChange)
             }
         }
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -556,13 +567,14 @@ private val UNLOCK_ALL_ICON_SIZE = 24.dp
 
 /** The switch that hides every style not yet unlocked, drawn as the Achievements page's Locked only switch is. */
 @Composable
-private fun UnlockedOnlySwitch(unlockedOnly: Boolean, onChange: (Boolean) -> Unit) {
+private fun UnlockedOnlySwitch(unlockedOnly: Boolean, enabled: Boolean, onChange: (Boolean) -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         // One target for the label and switch, read as "Unlocked only, switch, on". No ripple, as on the Achievements page.
         modifier = Modifier.toggleable(
             value = unlockedOnly,
+            enabled = enabled,
             interactionSource = remember { MutableInteractionSource() },
             indication = null,
             role = Role.Switch,
@@ -574,7 +586,7 @@ private fun UnlockedOnlySwitch(unlockedOnly: Boolean, onChange: (Boolean) -> Uni
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.widthIn(max = 104.dp),
         )
-        Switch(checked = unlockedOnly, onCheckedChange = null)
+        Switch(checked = unlockedOnly, onCheckedChange = null, enabled = enabled)
     }
 }
 

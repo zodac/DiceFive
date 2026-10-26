@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.achievements
 import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
 import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LocalLandscapePage
+import net.zodac.dicefive.ui.common.rememberFilterSwitchState
 import androidx.compose.runtime.SideEffect
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -287,7 +288,10 @@ fun AchievementsScreen(
     // Achievements to a row: LANDSCAPE_COLUMNS on a landscape page, one otherwise. Set by the page below, which knows its shape.
     var columns by remember { mutableIntStateOf(1) }
     // Kept across restarts, on this device only (SettingsRepository.lockedOnlyAchievements).
-    val onlyLocked = viewModel.lockedOnly.collectAsStateWithLifecycle().value ?: false
+    val savedLockedOnly = viewModel.lockedOnly.collectAsStateWithLifecycle().value ?: false
+    // Left off the page once everything is unlocked; see rememberFilterSwitchState.
+    val filterSwitch = rememberFilterSwitchState(allUnlocked = if (state.isLoaded) state.groups.all { group -> group.items.all { it.unlockedAt != null } } else null, filterOn = savedLockedOnly)
+    val onlyLocked = filterSwitch.applied(savedLockedOnly)
     val groups = remember(state.groups, onlyLocked) {
         if (!onlyLocked) {
             state.groups
@@ -405,6 +409,7 @@ fun AchievementsScreen(
             // No ripple: it drew as a pale rectangle over the label, and the switch already shows the change.
             modifier = Modifier.toggleable(
                 value = onlyLocked,
+                enabled = filterSwitch.enabled,
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 role = Role.Switch,
@@ -418,7 +423,7 @@ fun AchievementsScreen(
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier.widthIn(max = 104.dp),
             )
-            Switch(checked = onlyLocked, onCheckedChange = null)
+            Switch(checked = onlyLocked, onCheckedChange = null, enabled = filterSwitch.enabled)
         }
     }
 
@@ -432,7 +437,7 @@ fun AchievementsScreen(
             if (LocalLandscapePage.current && state.isLoaded) unlockedCount(Modifier.padding(start = 8.dp), true)
         },
         actions = {
-            if (LocalLandscapePage.current && state.isLoaded) {
+            if (LocalLandscapePage.current && state.isLoaded && filterSwitch.shown) {
                 Box(modifier = Modifier.padding(end = BACK_ARROW_OUTSET)) { lockedOnlySwitch() }
             }
         },
@@ -447,7 +452,7 @@ fun AchievementsScreen(
         if (!LocalLandscapePage.current) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 unlockedCount(Modifier.weight(1f), false)
-                lockedOnlySwitch()
+                if (filterSwitch.shown) lockedOnlySwitch()
             }
         }
 
