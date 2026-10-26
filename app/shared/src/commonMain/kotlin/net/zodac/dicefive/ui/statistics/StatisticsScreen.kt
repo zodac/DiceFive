@@ -40,18 +40,20 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -66,11 +68,11 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.first
 import net.zodac.dicefive.data.scores.ModeStatistics
 import net.zodac.dicefive.data.scores.PlayerStatistics
 import net.zodac.dicefive.resources.Res
@@ -188,19 +190,29 @@ fun StatisticsScreen(
             val listState = rememberLazyListState()
             // Two cards to a row in landscape, each opening on its own (the other keeps its height); one otherwise.
             val columns = if (LocalLandscapePage.current) LANDSCAPE_COLUMNS else 1
-            // Whether every card fits on screen opened: null until measured.
+            // Whether every card fits on screen opened: null until the list has been laid out with them all open.
             var allFit by remember { mutableStateOf<Boolean?>(if (players.size > MEASURE_LIMIT) false else null) }
-            // The names of the open cards. Dealt afresh whenever the order changes (or the columns do, or the fit is known):
-            // every card if they all fit, else the top card of each column - the first row's. Toggled from there.
-            val openNames = remember(sortOrder?.stored, columns, allFit) {
-                val dealt = if (allFit == true) players else players.take(columns)
+            // The names of the open cards. Dealt afresh whenever the order changes (or the columns do, or they're found not
+            // to fit): every card until the fit is known and if they all fit, else the top card of each column - the first
+            // row's. Toggled from there.
+            val openNames = remember(sortOrder?.stored, columns, allFit == false) {
+                val dealt = if (allFit != false) players else players.take(columns)
                 mutableStateListOf<String>().apply { addAll(dealt.map { it.playerName }) }
+            }
+            if (allFit == null) {
+                // The page stays covered until the fit is known, so the cards are never seen open before they're dealt.
+                HoldPageCover()
+                // They all fit if the list, laid out with every card open, has nothing to scroll. It builds only the
+                // cards on screen, so finding out costs no more than showing them.
+                LaunchedEffect(listState) {
+                    snapshotFlow { listState.layoutInfo.visibleItemsInfo.isNotEmpty() }.first { it }
+                    allFit = !listState.canScrollForward
+                }
             }
 
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                if (allFit == null) {
-                    StatsFitMeasurer(players, columns, onMeasured = { allFit = it })
-                } else {
+                // Built afresh, not closed in place, once they're known not to fit: a card closing animates its height.
+                key(allFit == false) {
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
@@ -316,28 +328,6 @@ private fun StatsRow(row: List<PlayerStatistics>, columns: Int, card: @Composabl
             Box(modifier = Modifier.weight(1f)) { card(player) }
         }
         repeat(columns - row.size) { Spacer(modifier = Modifier.weight(1f)) }
-    }
-}
-
-/**
- * Lays out every card opened, unseen and taking no room, and reports through [onMeasured] whether they all fit in the
- * height it is given. The screen shows the real list once it has.
- */
-@Composable
-private fun StatsFitMeasurer(players: List<PlayerStatistics>, columns: Int, onMeasured: (Boolean) -> Unit) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(CARD_GAP),
-        modifier = Modifier
-            .clearAndSetSemantics {}
-            .layout { measurable, constraints ->
-                val placeable = measurable.measure(Constraints(maxWidth = constraints.maxWidth, maxHeight = Constraints.Infinity))
-                onMeasured(placeable.height <= constraints.maxHeight)
-                layout(0, 0) {}
-            },
-    ) {
-        for (row in players.chunked(columns)) {
-            StatsRow(row, columns) { player -> PlayerStatsCardContent(player, expanded = true, onExpandedChange = {}, onDelete = {}) }
-        }
     }
 }
 

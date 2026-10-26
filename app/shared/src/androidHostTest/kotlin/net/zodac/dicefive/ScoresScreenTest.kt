@@ -112,6 +112,30 @@ class ScoresScreenTest : UiTest() {
     }
 
     @Test
+    fun gameModeBuildsTheCardsOnScreenOnTheFrameItAppearsAndTheRestOverTheFramesAfter() = uiTest(TestScreen(360, 800)) {
+        // Every mode with ten scores: a full card each, two or three to a screen.
+        show(GameMode.entries.flatMapIndexed { m, mode -> (1..10).map { rowOf(m * 100L + it, 100 + it, mode) } })
+        compose.mainClock.autoAdvance = false
+        compose.onNodeWithText("Game Mode").performClick()
+        val first = modeName(GameMode.entries.first())
+        val last = modeName(GameMode.entries.last())
+        repeat(30) {
+            if (compose.onAllNodesWithText(first).fetchSemanticsNodes().isEmpty()) {
+                compose.mainClock.advanceTimeByFrame()
+                compose.waitForIdle()
+            }
+        }
+        compose.onNodeWithText(first).assertExists()
+        compose.onAllNodesWithText(last).assertCountEquals(0)
+
+        repeat(GameMode.entries.size) {
+            compose.mainClock.advanceTimeByFrame()
+            compose.waitForIdle()
+        }
+        GameMode.entries.forEach { compose.onAllNodesWithText(modeName(it)).assertCountEquals(1) }
+    }
+
+    @Test
     fun signedInEachModeCardOpensItsGlobalLeaderboardWithoutMovingAnythingOnIt() = uiTest {
         // Signed out (or with no service): no button, and where the card's header row sits.
         show(someRows)

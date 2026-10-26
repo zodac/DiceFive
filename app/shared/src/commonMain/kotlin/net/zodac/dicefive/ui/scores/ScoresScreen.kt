@@ -42,8 +42,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
@@ -58,6 +60,8 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -66,6 +70,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -322,24 +327,29 @@ private fun ColumnScope.GameModeLeaderboard(state: ScoresUiState, viewModel: Sco
     // Each card opens its mode's board on the service while signed in to one.
     val online = services.state.collectAsStateWithLifecycle().value is GameServicesState.SignedIn && services.canShowLeaderboardUi
     val pageScroll = rememberScrollState()
-    Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-        Column(modifier = Modifier.verticalScroll(pageScroll), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // [columns] cards to a row: two side by side in landscape, a row's last place left empty so its card keeps the others' width.
-            for (row in boards.chunked(columns)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    for ((mode, board) in row) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            ModeCard(
-                                mode = mode,
-                                board = board,
-                                onPrevious = { viewModel.previousModePage(mode) },
-                                onNext = { viewModel.nextModePage(mode) },
-                                onlineServices = services.takeIf { online },
-                            )
-                        }
+    // [columns] cards to a row: two side by side in landscape, a row's last place left empty so its card keeps the others' width.
+    val rows = boards.chunked(columns)
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth().weight(1f)) {
+        ScreenfulFirstColumn(
+            keys = rows.map { row -> row.first().first },
+            viewportHeight = constraints.maxHeight,
+            spacing = 12.dp,
+            modifier = Modifier.verticalScroll(pageScroll),
+        ) { index ->
+            val row = rows[index]
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                for ((mode, board) in row) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        ModeCard(
+                            mode = mode,
+                            board = board,
+                            onPrevious = { viewModel.previousModePage(mode) },
+                            onNext = { viewModel.nextModePage(mode) },
+                            onlineServices = services.takeIf { online },
+                        )
                     }
-                    repeat(columns - row.size) { Spacer(modifier = Modifier.weight(1f)) }
                 }
+                repeat(columns - row.size) { Spacer(modifier = Modifier.weight(1f)) }
             }
         }
         VerticalScrollbar(
@@ -347,6 +357,58 @@ private fun ColumnScope.GameModeLeaderboard(state: ScoresUiState, viewModel: Sco
             width = PAGE_MARGIN,
             modifier = Modifier.align(Alignment.TopEnd).offset(x = PAGE_MARGIN),
         )
+    }
+}
+
+/**
+ * A column of items, one per [keys] entry, [spacing] apart, built a screenful first: the frame it opens on composes only
+ * the items that reach into the top [viewportHeight] (px), and each frame after it composes one more, until every item is
+ * built. Built items stay built, so a later scroll builds nothing. The rest arrive below the fold, so nothing on screen
+ * moves. Composing every mode card at once, when two or three are in view, held the switch to Game Mode up for a few frames.
+ */
+@Composable
+private fun ScreenfulFirstColumn(
+    keys: List<Any>,
+    viewportHeight: Int,
+    spacing: Dp,
+    modifier: Modifier = Modifier,
+    item: @Composable (index: Int) -> Unit,
+) {
+    // How many items are built: the screenful its first layout reached, then one more each frame.
+    var built by remember { mutableIntStateOf(0) }
+    val screenful = remember { IntArray(1) }
+    // One content per key for good, reading the latest item through state: a new lambda each layout would recompose
+    // every built item each time one more is added.
+    val currentItem by rememberUpdatedState(item)
+    val currentKeys by rememberUpdatedState(keys)
+    val contents = remember { HashMap<Any, @Composable () -> Unit>() }
+    LaunchedEffect(keys.size) {
+        while (built < keys.size) {
+            withFrameNanos { }
+            built = maxOf(built, screenful[0]) + 1
+        }
+    }
+    SubcomposeLayout(modifier) { constraints ->
+        val gap = spacing.roundToPx()
+        val itemConstraints = constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity)
+        val placeables = ArrayList<Placeable>()
+        var height = 0
+        for ((index, key) in keys.withIndex()) {
+            if (index >= built && height >= viewportHeight) break
+            if (index > 0) height += gap
+            val content = contents.getOrPut(key) { { currentItem(currentKeys.indexOf(key)) } }
+            val placeable = subcompose(key, content).single().measure(itemConstraints)
+            placeables += placeable
+            height += placeable.height
+        }
+        screenful[0] = maxOf(screenful[0], placeables.size)
+        layout(constraints.maxWidth, height) {
+            var y = 0
+            for (placeable in placeables) {
+                placeable.place(0, y)
+                y += placeable.height + gap
+            }
+        }
     }
 }
 

@@ -69,11 +69,15 @@ class InMemoryScoreDao(initial: List<ScoreEntry> = emptyList()) : ScoreDao {
                 )
             }
 
-    override suspend fun latestPlayerName(playerKey: String): String =
-        entries.last { it.playerKey == playerKey && it.timestampEpochMillis == entries.filter { e -> e.playerKey == playerKey }.maxOf { e -> e.timestampEpochMillis } }.playerName
+    override suspend fun latestPlayerNames(): List<PlayerLatestName> =
+        entries.filter { it.playerKey !in dismissed }.groupBy { it.playerKey }.map { (playerKey, games) ->
+            PlayerLatestName(playerKey, games.last { it.timestampEpochMillis == games.maxOf { game -> game.timestampEpochMillis } }.playerName)
+        }
 
-    override suspend fun playerOutcomes(playerKey: String): List<Boolean> =
-        entries.filter { it.playerKey == playerKey }.sortedByDescending { it.timestampEpochMillis }.mapNotNull { it.won }
+    override suspend fun playerOutcomes(): List<PlayerOutcome> =
+        entries.filter { it.playerKey !in dismissed }
+            .sortedWith(compareBy<ScoreEntry> { it.playerKey }.thenByDescending { it.timestampEpochMillis })
+            .mapNotNull { entry -> entry.won?.let { PlayerOutcome(entry.playerKey, it) } }
 
     override suspend fun clearDismissal(playerKey: String) {
         dismissed -= playerKey

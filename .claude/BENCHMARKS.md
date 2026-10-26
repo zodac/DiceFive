@@ -68,6 +68,14 @@ Each of these fixed a reported stutter. New work must keep them.
     frames, nearest the pick first, with unbuilt runs as one `PlaceholderRun` `Canvas`. A `LazyLayoutCacheWindow` built
     nothing ahead on a device.
   - `StylesWarmUp` pre-draws on the menu's idle frames (`UI_SCREENS.md`).
+- **The Leaderboard and Statistics.** Neither page's frames grow with the scores behind them: the Combined table reads
+  50 rows a page, Statistics is a `LazyColumn` (only the cards on screen are built), and each Game Mode card is capped
+  at ten rows that scroll inside it. What grew was elsewhere:
+  - The Game Mode view builds a screenful of cards first, then one a frame (`ScreenfulFirstColumn`, `UI_SCREENS.md`).
+    Built all at once, seven cards (~10-12ms each) held the switch up while only two or three could be seen.
+  - Statistics reads every player in three queries (`ScoreDao.playerRecords`), not two more per player.
+  - Statistics finds whether every card fits open from the real list laid out with them open, which builds only the
+    cards on screen, rather than from a hidden copy with every card open.
 - **The Rules screen.**
   - A tab snaps to its page (`scrollToPage`) without building the pages between.
   - A page builds its first screenful, then the rest over the following frames (`rememberShownBlocks`).
@@ -119,6 +127,15 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
   - glitch bands only during a burst.
 - **Game screen.** A landing frame is 3-6 (~17 for the first of a session). A reroll's tap frame is 3.5-8. Third Wind
   stacks add 0.15-0.4 a frame and ~2 to the tap. No score line recomposes on shake or toss frames.
+- **Leaderboard and Statistics at scale** (2026-10-27, warm, compose and layout only; in-memory Room on Robolectric's
+  SQLite, 4 to 400 players and 40 to 10,000 games, ~25,000 rows):
+  - Opening either page is 10-30 at every size. Scrolling either, or a mode card, is under 1 a frame. The next Combined
+    page is 13-23.
+  - The switch to Game Mode: 40-100 in one frame with every card built at once, flat with the scores. Now 11-36, then
+    4-15 for each frame that builds one more card.
+  - Statistics' read: 7 at 30 players, 24 at 150, 35-42 at 400 with two queries a player. Now 2.7, 8 and 22.
+  - Statistics with 12 players (not all fitting open): 72-87 then 19-25, behind the page cover. Now 31-35 then 22-25.
+  - Leaderboard reads are under 1 a page, 2-4 for all seven cards.
 - **Pages.** Styles opens at ~42-44 the first time after launch, then 16-24. A tile scrolling in costs ~0.6. Settings'
   first frame is ~26-30. A Rules tap frame is ~6-8.
 

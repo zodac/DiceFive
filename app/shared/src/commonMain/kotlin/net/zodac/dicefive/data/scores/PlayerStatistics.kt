@@ -78,6 +78,12 @@ data class PlayerModeTotals(
     val firstPlayedEpochMillis: Long,
 )
 
+/** The spelling of a player's latest game, by [ScoreEntry.playerKey] - [ScoreDao.latestPlayerNames]'s row. */
+data class PlayerLatestName(val playerKey: String, val playerName: String)
+
+/** Whether the player [playerKey] names won one game with someone to beat - [ScoreDao.playerOutcomes]'s row. */
+data class PlayerOutcome(val playerKey: String, val won: Boolean)
+
 /**
  * Everything the Statistics screen needs about one player, as [ScoreDao.playerRecords] reads it: the spelling of their
  * latest game, their games added up per mode, and the outcome of each game with someone to beat, most recent first - the

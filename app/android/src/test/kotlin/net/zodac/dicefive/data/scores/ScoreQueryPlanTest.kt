@@ -7,6 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.test.runTest
 import net.zodac.dicefive.model.GameMode
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -54,7 +55,13 @@ class ScoreQueryPlanTest {
             val plan = database.openHelper.readableDatabase.query("EXPLAIN QUERY PLAN $sql", args.toTypedArray()).use { cursor ->
                 buildList { while (cursor.moveToNext()) add(cursor.getString(cursor.getColumnIndexOrThrow("detail"))) }
             }
-            val scans = plan.filter { it.startsWith("SCAN") && !(wholeIndex && it.startsWith("SCAN scores USING COVERING INDEX")) }
+            // A subquery SQLite runs as a co-routine is read back row by row ("SCAN <its name>"), but holds its own rows,
+            // not the table's.
+            val coroutines = plan.mapNotNull { it.removePrefix("CO-ROUTINE ").takeIf { name -> name != it } }.toSet()
+            val scans = plan.filter {
+                it.startsWith("SCAN") && it.removePrefix("SCAN ") !in coroutines &&
+                    !(wholeIndex && it.startsWith("SCAN scores USING COVERING INDEX"))
+            }
             if (scans.isNotEmpty() || plan.any { "TEMP B-TREE" in it }) fail("$name reads or sorts the whole table:\n$sql\n${plan.joinToString("\n")}")
         }
     }
@@ -104,4 +111,12 @@ class ScoreQueryPlanTest {
     @Test
     fun `Statistics adds up each player's games from an index - and reads their latest name and outcomes from another`() =
         assertIndexed("playerRecords", wholeIndex = true) { playerRecords() }
+
+    @Test
+    fun `Statistics makes three reads however many players there are`() = runTest {
+        dao.insertGame((1..20).map { row(GameMode.STANDARD, score = 100 + it, primary = it == 1).copy(playerName = "Player $it", won = it == 1) })
+        synchronized(statements) { statements.clear() }
+        assertEquals(20, dao.playerRecords().size)
+        assertEquals(3, synchronized(statements) { statements.count { (sql, _) -> sql.trimStart().startsWith("SELECT", ignoreCase = true) && SCORES in sql } })
+    }
 }

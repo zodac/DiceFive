@@ -240,7 +240,10 @@ time.
 
 A `SegmentedChoiceRow` (Combined | Game Mode) at the top, always shown.
 - Game Mode's cards are all read in one go the first time it's chosen. The switch moves at once, but the Combined table stays
-  up until the cards are ready and then gives way in one frame (no empty page, no cards appearing one by one).
+  up until the cards are ready and then gives way in one frame (no empty page, no cards appearing one by one on screen).
+- **Cards are built a screenful first** (`ScreenfulFirstColumn`): the frame the view appears on composes only the
+  cards that reach into the page's height, and each frame after that one more, below the fold, until all are built
+  (`ScoresScreenTest`). They stay built, so scrolling builds nothing.
 - **`CombinedLeaderboard`** is one table with the podium. Its card is as tall as its rows.
 - **`GameModeLeaderboard`** is a card per mode with a score, in a scrolling page, with **no podium colours**. A card
   lists only games played with no modifier on (`playedUnmodified`), as the Combined table and online boards do.

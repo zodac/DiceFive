@@ -237,7 +237,8 @@ will map to Play Games.
     - `index_scores_player_mode_totals` and `index_scores_player_history`: Statistics (below).
   - **Statistics is added up by SQLite.** `playerRecords` reads each player's games summed per mode (a `GROUP BY` over
     a covering index), their latest spelling, and only the outcomes of their decided games, newest first, for the win
-    streaks; window functions, which could do the streaks too, need Android 11. `ScoreRepository` adds the modes up
+    streaks; window functions, which could do the streaks too, need Android 11. That's three reads for every player
+    together, never a read per player (`ScoreQueryPlanTest`). `ScoreRepository` adds the modes up
     and walks the streaks. `PlayerStatisticsQueryTest` checks the result equals walking every game.
   - **Leaderboard order is total.** Rows equal on every criterion follow in `rowid` (recording) order, so `LIMIT/OFFSET`
     pages never repeat or skip a row.
@@ -284,7 +285,8 @@ will map to Play Games.
 - **Statistics** (`StatisticsScreen`). One card per distinct human *name*; a rename starts a new player.
   - Closed, a card is the name and best score ("1,287pts", the unit at 0.75 of the number's size). Its header opens it
     onto an Overview / By mode switch.
-  - **Open by default** when every card fits on screen opened (measured unseen, `StatsFitMeasurer`; more than 12
+  - **Open by default** when every card fits on screen opened (the list is laid out with every card open under the page cover, which
+    builds only the cards on screen, and they fit if it has nothing to scroll; more than 12
     players skip the measure and don't fit). Otherwise all start closed but the top card of each column (the first
     one in portrait, the first two in landscape), which always open. Opening a card never closes another.
   - **Sort** (`StatisticsSort`): a button at the app bar's end opens a menu of Name, First played, Highest score,
