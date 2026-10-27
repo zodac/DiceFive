@@ -34,8 +34,8 @@ import org.robolectric.annotation.Config
 /**
  * Play Console's side of the leaderboards, one per [GameMode] in New Game order, which are made there by hand (it has
  * no import for them): the rules each keeps to there, checked on every run, and (with `-PexportPlayConsole`, which
- * `scripts/export-play-console.sh` passes) the sheet to make them from and their icons, written to the gitignored
- * `assets/play-console/` folder.
+ * `scripts/export-play-console.sh` passes) the sheet to make them from and their icons, written to `leaderboards/` in
+ * the gitignored `assets/play-console/` folder.
  */
 @RunWith(AndroidJUnit4::class)
 @Config(qualifiers = "w600dp-h900dp-mdpi")
@@ -89,7 +89,7 @@ class PlayConsoleLeaderboardsExportTest {
     @Test
     fun `export the sheet and icons for Play Console`() {
         assumeTrue("Only with -PexportPlayConsole", exportingPlayConsole)
-        val dir = playConsoleDir()
+        val dir = playConsoleDir().resolve("leaderboards")
         val icons = dir.resolve("leaderboard-icons").apply { deleteRecursively(); mkdirs() }
         writeSheet(dir.resolve("leaderboards.csv"))
 

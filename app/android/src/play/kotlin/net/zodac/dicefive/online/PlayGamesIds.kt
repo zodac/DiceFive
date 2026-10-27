@@ -4,7 +4,8 @@ import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.GameMode
 
 /**
- * Each achievement's id on Play Games, from Play Console's Achievements > Get resources (matched by English name).
+ * Each achievement's id on Play Games, from Play Console's Achievements > Get resources (matched by English name),
+ * saved as `assets/play-console/achievements/achievement-ids.xml`.
  * A new achievement is imported there first (`scripts/export-play-console.sh`), then its id is added here;
  * `PlayGamesIdsTest` fails until every achievement Play has ([onPlay]) is mapped.
  */

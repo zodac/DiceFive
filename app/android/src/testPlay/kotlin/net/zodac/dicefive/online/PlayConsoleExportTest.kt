@@ -38,7 +38,7 @@ import org.robolectric.annotation.Config
 /**
  * Play Console's side of the achievements: the rules every one must keep to there, checked on every run, and (with
  * `-PexportPlayConsole`, which `scripts/export-play-console.sh` passes) the sheet and icons to enter them from,
- * written to the gitignored `assets/play-console/` folder.
+ * written to `achievements/` in the gitignored `assets/play-console/` folder.
  */
 @RunWith(AndroidJUnit4::class)
 @Config(qualifiers = "w600dp-h900dp-mdpi")
@@ -115,8 +115,8 @@ class PlayConsoleExportTest {
     @Test
     fun `export the sheet and icons for Play Console`() {
         assumeTrue("Only with -PexportPlayConsole", exportingPlayConsole)
-        val dir = playConsoleDir()
-        val icons = dir.resolve("icons").apply { deleteRecursively(); mkdirs() }
+        val dir = playConsoleDir().resolve("achievements")
+        val icons = dir.resolve("achievement-icons").apply { deleteRecursively(); mkdirs() }
         writeSheet(dir.resolve("achievements.csv"))
 
         var shown by mutableStateOf(onPlay.first())
@@ -190,7 +190,7 @@ class PlayConsoleExportTest {
                 if (type is PlayAchievementType.Incremental) "Incremental" else "Standard",
                 (type as? PlayAchievementType.Incremental)?.steps?.toString().orEmpty(),
                 if (achievement.playHidden) "Hidden" else "Revealed",
-                "icons/${achievement.id}.png",
+                "achievement-icons/${achievement.id}.png",
             ) + LOCALES.flatMap { listOf(text.getValue(it).getValue(achievement.title.key), text.getValue(it).getValue(achievement.description.key)) }
         }
         file.writeText(csvLines(listOf(header) + rows))
