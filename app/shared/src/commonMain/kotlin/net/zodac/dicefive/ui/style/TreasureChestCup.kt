@@ -763,7 +763,10 @@ private val LiveTreasure: List<Treasure> = listOf(Treasure.Goblet(-11f, -4f), Tr
 private const val LIVE_COINS = 6
 
 /** The hoard as painted for one chest at one size: the settled [pile], and the [image] of the bulk of it. */
-private class HoardArt(val pile: Pile, val image: ImageBitmap)
+private class HoardArt(val pile: Pile, val image: ImageBitmap) {
+    /** The [pile]'s coins drawn live over [image], picked out once rather than on every frame - see [topCoins]. */
+    val liveCoins: List<SettledCoin> = topCoins(pile)
+}
 
 // Painted hoards, kept for the session by chest and size - only ever read and written on the main thread.
 private val HoardArts = LinkedHashMap<Pair<String, IntSize>, HoardArt>()
@@ -820,7 +823,7 @@ private fun CupDrawScope.drawHoard(hoard: HoardArt?, palette: ChestPalette) {
     // Painted at the chest's scale, so it's stamped with that scale undone.
     unscaledAbout(CHEST_SCALE, chestPivot(size)) { drawImage(hoard.image) }
     for (treasure in LiveTreasure) drawTreasure(treasure, hoard.pile, palette)
-    for (coin in topCoins(hoard.pile)) drawSettledCoin(coin, hoard.pile, palette)
+    for (coin in hoard.liveCoins) drawSettledCoin(coin, hoard.pile, palette)
 }
 
 private fun topCoins(pile: Pile): List<SettledCoin> = pile.coins.sortedByDescending { it.y }.take(LIVE_COINS).sortedBy { it.depth }
