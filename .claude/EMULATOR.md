@@ -72,7 +72,11 @@ if the journey or a profile file changed. The `apk` job builds with the profile 
 **Robustness.**
 - The APKs build before the boot.
 - `.github/scripts/watch_checks.sh` stops the job as soon as another release check fails.
-- Only a failed boot or install is retried (twice). A failing journey fails the release at once.
+- A failed boot or install is retried, and so is a failing journey once in a 3-lap run (three attempts in all). A 10-lap
+  soak fails on the first failing journey. The failed run's screen and results go in the report under
+  `journey-attempt<N>/`.
+- Journey taps confirm they took (`tapUntil` and its kin in `Journeys.kt`), tapping again only after `TIMEOUT_MS` without
+  their effect: a starved runner drops taps.
 - Gradle passing with no `baseline-prof.txt` counts as a failed install.
 - Limits: 190 min for the step, 210 for the job. A lap that plays a game to the end (every lap of a 10-lap run) takes
   ~4.5 min here and 3x+ that on a runner.

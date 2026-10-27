@@ -2,6 +2,7 @@ package net.zodac.dicefive.baselineprofile
 
 import android.content.res.Resources
 import android.graphics.Rect
+import android.view.accessibility.AccessibilityNodeInfo
 import java.io.File
 import java.util.regex.Pattern
 import androidx.benchmark.macro.MacrobenchmarkScope
@@ -88,6 +89,87 @@ private fun MacrobenchmarkScope.tap(what: String, find: () -> UiObject2) {
     error("Baseline Profile journey: '$what' kept going stale before it could be tapped")
 }
 
+/**
+ * Taps what [find] returns until [done] says the tap took. A starved emulator drops taps - two in a row went with the
+ * unlock banners animating at the foot of the screen - and the step after one then waits for what never comes. Tapped
+ * again only after [TIMEOUT_MS] without [done], so a slow tap isn't doubled into one that undoes it.
+ */
+private fun MacrobenchmarkScope.tapUntil(what: String, find: () -> UiObject2, done: () -> Boolean) {
+    repeat(TAP_ATTEMPTS) {
+        try {
+            find().click()
+        } catch (_: StaleObjectException) {
+            // Re-composed between the lookup and the tap - look again.
+            return@repeat
+        }
+        if (waitUntil(done)) {
+            device.waitForIdle()
+            return
+        }
+    }
+    error("Baseline Profile journey: tapping '$what' never took (on screen: ${screenText()})")
+}
+
+private fun MacrobenchmarkScope.tapTextUntil(text: String, done: () -> Boolean) = tapUntil(text, { await(By.text(text), text) }, done)
+
+private fun MacrobenchmarkScope.tapDescUntil(description: String, done: () -> Boolean) =
+    tapUntil(description, { await(By.desc(description), description) }, done)
+
+/** True once [done] is, within [TIMEOUT_MS]; a node gone stale while it's read counts as not yet. */
+private fun waitUntil(done: () -> Boolean): Boolean {
+    val deadline = System.currentTimeMillis() + TIMEOUT_MS
+    while (System.currentTimeMillis() < deadline) {
+        try {
+            if (done()) return true
+        } catch (_: StaleObjectException) {
+            // Re-composed while it was read - read it again.
+        }
+        Thread.sleep(POLL_MS)
+    }
+    return false
+}
+
+/**
+ * Sets the switch, segment or chip around [label] to [checked], tapping until it says so. Already [checked], it isn't
+ * tapped: a second tap would undo the first.
+ */
+private fun MacrobenchmarkScope.setChecked(label: BySelector, what: String, checked: Boolean) {
+    if (await(By.checkable(true).hasDescendant(label), what).isChecked == checked) return
+    tapUntil(what, { await(label, what) }) { device.hasObject(By.checkable(true).checked(checked).hasDescendant(label)) }
+}
+
+/** Whether the switch around [text] is on. */
+private fun MacrobenchmarkScope.isChecked(text: String): Boolean = await(By.checkable(true).hasDescendant(By.text(text)), text).isChecked
+
+/**
+ * Selects the tab [text], the topmost match (see [topmost]), tapping until it is selected; it isn't tapped if it
+ * already is.
+ */
+internal fun MacrobenchmarkScope.selectTab(text: String) {
+    val selected = By.selected(true).hasDescendant(By.text(text))
+    await(By.text(text), text)
+    if (device.hasObject(selected)) return
+    tapUntil(text, { topmost(text) }) { device.hasObject(selected) }
+}
+
+/** The dice cup's description, which counts the turn's rolls left, or null without a cup on screen. */
+private fun MacrobenchmarkScope.cupDescription(): String? = device.findObject(CUP)?.contentDescription
+
+/**
+ * Taps what [find] returns until the dice cup's description changes: a roll uses one of the turn's rolls, and a score
+ * hands the next turn a full cup.
+ */
+private fun MacrobenchmarkScope.tapChangingCup(what: String, find: () -> UiObject2) {
+    val before = await(CUP, "the dice cup").contentDescription
+    tapUntil(what, find) { cupDescription() != before }
+}
+
+/** Rolls the dice: the cup, tapped until a roll has been used. */
+private fun MacrobenchmarkScope.roll() = tapChangingCup("the dice cup") { await(CUP, "the dice cup") }
+
+/** Starts the game from the setup (or the tutorial from How to Play) with [label], tapped until the board is up. */
+private fun MacrobenchmarkScope.startGame(label: String = "Start Game") = tapTextUntil(label) { device.hasObject(CUP) }
+
 /** True if [text] is on screen right now, without waiting. */
 internal fun MacrobenchmarkScope.hasText(text: String): Boolean = device.hasObject(By.text(text))
 
@@ -166,23 +248,36 @@ internal fun MacrobenchmarkScope.scrollDown(times: Int) {
     }
 }
 
-/** Swipes down the middle of the screen [times] times - back up a long page. */
-internal fun MacrobenchmarkScope.scrollUp(times: Int) {
-    val x = device.displayWidth / 2
-    repeat(times) {
-        device.swipe(x, device.displayHeight / 4, x, device.displayHeight * 3 / 4, 20)
+/**
+ * The topmost match for [text]. For a label that appears twice on a screen, such as a Rules tab
+ * and the page heading or footer pill of the same name: the tab rows are above everything else.
+ */
+private fun MacrobenchmarkScope.topmost(text: String): UiObject2 {
+    await(By.text(text), text)
+    return device.findObjects(By.text(text)).minByOrNull { it.visibleBounds.top }
+        ?: error("Baseline Profile journey: '$text' never appeared")
+}
+
+/**
+ * Scrolls the page back to its top by its own accessibility scroll action, not a swipe: on a starved emulator a
+ * swipe's moves arrive late and the tile under the finger takes them as a press, so swipes up left the Styles page where
+ * it was. The page is the screen's ScrollView, the only one; it is scrolled a screenful at a time until it can go no
+ * further.
+ */
+private fun MacrobenchmarkScope.scrollPageToTop() {
+    repeat(PAGE_SCROLLS) {
+        val root = InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow
+        val page = findNode(root) { it.isScrollable && it.className == "android.widget.ScrollView" } ?: return
+        if (!page.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)) return
         device.waitForIdle()
     }
 }
 
-/**
- * Taps the topmost match for [text]. For a label that appears twice on a screen, such as a Rules tab
- * and the page heading or footer pill of the same name: the tab rows are above everything else.
- */
-internal fun MacrobenchmarkScope.tapTopText(text: String) = tap(text) {
-    await(By.text(text), text)
-    device.findObjects(By.text(text)).minByOrNull { it.visibleBounds.top }
-        ?: error("Baseline Profile journey: '$text' never appeared")
+private fun findNode(node: AccessibilityNodeInfo?, match: (AccessibilityNodeInfo) -> Boolean): AccessibilityNodeInfo? {
+    if (node == null) return null
+    if (match(node)) return node
+    for (child in 0 until node.childCount) findNode(node.getChild(child), match)?.let { return it }
+    return null
 }
 
 /** Swipes along the screen at [heightFraction] of its height, right to left, [times] times. */
@@ -197,16 +292,17 @@ internal fun MacrobenchmarkScope.scrollRow(heightFraction: Float, times: Int) {
 /** From the menu: Play (or New Game, when a game is saved) -> Start Game, then back to the menu. */
 internal fun MacrobenchmarkScope.playATurn() {
     openGameSetup()
-    tapText("Start Game")
+    startGame()
 
     // Roll, hold a die, roll again, then score: the loop a player spends nearly all their time in.
-    // Rolling animates, which waitForIdle can't see, so each roll is given a moment to settle.
-    tapDesc("Dice cup", startsWith = true)
+    // Rolling animates, which waitForIdle can't see, so each roll is given a moment to settle. A dropped hold
+    // costs nothing after it, so it alone isn't checked (nor could it be: held is said only to TalkBack).
+    roll()
     Thread.sleep(ROLL_SETTLE_MS)
     tapDesc("Die 1", startsWith = true)
-    tapDesc("Dice cup", startsWith = true)
+    roll()
     Thread.sleep(ROLL_SETTLE_MS)
-    tapDesc("Chance")
+    tapChangingCup("Chance") { await(By.desc("Chance"), "Chance") }
     Thread.sleep(ROLL_SETTLE_MS)
 
     // Back out, think better of it ("Cancel"), then leave for real.
@@ -250,7 +346,7 @@ internal fun MacrobenchmarkScope.resumeGame() {
 private fun MacrobenchmarkScope.rollInLandscape() {
     device.setOrientationLandscape()
     await(By.descStartsWith("Dice cup"), "the board in landscape")
-    tapDesc("Dice cup", startsWith = true)
+    roll()
     Thread.sleep(ROLL_SETTLE_MS)
     device.setOrientationNatural()
     await(By.descStartsWith("Dice cup"), "the board back in portrait")
@@ -284,22 +380,22 @@ private fun MacrobenchmarkScope.cancelLeaving() {
 /** Settings, flipping one switch (and flipping it back), picking an animation level (and back) and opening the Licences and About dialogs. */
 internal fun MacrobenchmarkScope.visitSettings() {
     openFromMenu("Settings")
-    tapText("Sound effects")
-    tapText("Sound effects")
+    val sound = By.text("Sound effects")
+    val soundOn = isChecked("Sound effects")
+    setChecked(sound, "Sound effects", !soundOn)
+    setChecked(sound, "Sound effects", soundOn)
     // Back to High: the journeys after this one are profiling the full animations.
-    tapText("Low")
-    tapText("High")
+    setChecked(By.text("Low"), "Low", true)
+    setChecked(By.text("High"), "High", true)
 
     // Each dialog is waited for by its Close button and left by it: the Settings page behind is
     // itself scrollable and has the same "Licences" text, so neither a scrollable nor a label says
     // the dialog is up, and a back press sent too early would leave Settings altogether.
-    tapText("Licences")
-    await(By.desc("Close licences"), "the Licences dialog's Close button")
+    tapTextUntil("Licences") { device.hasObject(By.desc("Close licences")) }
     scrollDown(3)
     closeDialog(By.desc("Close licences"), "the Licences dialog's Close button")
 
-    tapText("About")
-    await(By.desc("Close about"), "the About dialog's Close button")
+    tapTextUntil("About") { device.hasObject(By.desc("Close about")) }
     scrollDown(1)
     closeDialog(By.desc("Close about"), "the About dialog's Close button")
 
@@ -313,8 +409,7 @@ internal fun MacrobenchmarkScope.visitSettings() {
  */
 internal fun MacrobenchmarkScope.resetAchievements() {
     openFromMenu("Settings")
-    tapText("Reset achievements")
-    await(By.text("Reset"), "the reset dialog's Reset button")
+    tapTextUntil("Reset achievements") { device.hasObject(By.text("Reset")) }
     closeDialog(By.text("Reset"), "the reset dialog's Reset button")
     backToMenu()
 }
@@ -482,8 +577,8 @@ internal fun MacrobenchmarkScope.playAModeGame() {
     for (mode in OTHER_MODES) {
         openFromMenu("New Game")
         chooseMode(mode)
-        tapText("Start Game")
-        tapDesc("Dice cup", startsWith = true)
+        startGame()
+        roll()
         Thread.sleep(ROLL_SETTLE_MS)
         leaveGame()
     }
@@ -513,8 +608,7 @@ private fun MacrobenchmarkScope.awaitModePickerClosed(replacedMode: String) {
  * out of, so a game is started with them and left (saved, for Continue).
  */
 private fun MacrobenchmarkScope.saveSetup() {
-    tapText("Start Game")
-    await(By.descStartsWith("Dice cup"), "the board after starting a game to keep the setup")
+    startGame()
     leaveGame()
 }
 
@@ -531,12 +625,12 @@ internal fun MacrobenchmarkScope.unlockModes() {
         await(By.text("Settings"), "the menu after leaving the setup")
         return
     }
-    tapDesc("1")
-    tapText("Start Game")
+    setPlayers(1)
+    startGame()
     playToGameOver(rollsPerTurn = STANDARD_ROLLS)
-    tapText("Main Menu")
+    toMainMenu()
     openGameSetup()
-    tapDesc("2")
+    setPlayers(2)
     saveSetup()
 }
 
@@ -549,28 +643,27 @@ internal fun MacrobenchmarkScope.unlockModes() {
  */
 internal fun MacrobenchmarkScope.playFinishedGame() {
     openGameSetup()
-    tapDesc("3")
+    setPlayers(3)
     setThirdSeatCpu(true)
     setOneRollPerTurn(true)
     chooseMode("Quickfire")
-    tapText("Start Game")
+    startGame()
     playToGameOver(rollsPerTurn = 1)
     // The fireworks are given a moment to start: the profile records the code that ran, not how long they played
     // (they run for GameOverScreen's CELEBRATION_MILLIS, as long as the fanfare).
     Thread.sleep(CELEBRATION_MS)
-    tapText("Review Scorecards")
-    await(By.text("Scorecards"), "the scorecards review")
+    tapTextUntil("Review Scorecards") { device.hasObject(By.text("Scorecards")) }
     // Another player's tab: the first's name, one row, three quarters of the screen to the right (a name can be anything).
     val firstTab = await(By.text("Player 1"), "the review's first player").visibleBounds
     device.click(device.displayWidth * 3 / 4, firstTab.centerY())
     device.waitForIdle()
     back()
     await(GAME_OVER, "the Game Over page after the review")
-    tapText("Main Menu")
+    toMainMenu()
 
     openGameSetup()
     setThirdSeatCpu(false)
-    tapDesc("2")
+    setPlayers(2)
     setOneRollPerTurn(false)
     chooseMode("Standard")
     awaitModePickerClosed(replacedMode = "Quickfire")
@@ -588,9 +681,15 @@ private fun MacrobenchmarkScope.setThirdSeatCpu(cpu: Boolean) {
         device.findObjects(chip).maxByOrNull { it.visibleBounds.top }
             ?: error("Baseline Profile journey: the third seat's User or CPU chip never appeared")
     await(chip, "the seats' User or CPU chips")
-    if ((lowestChip().text == "CPU") != cpu) tap("the third seat's chip") { lowestChip() }
+    if ((lowestChip().text == "CPU") != cpu) tapUntil("the third seat's chip", ::lowestChip) { (lowestChip().text == "CPU") == cpu }
     if (cpu) tapText("Easy")
 }
+
+/** On the setup: [count] players, its segment tapped until it is the one picked. */
+private fun MacrobenchmarkScope.setPlayers(count: Int) = setChecked(By.desc("$count"), "$count players", true)
+
+/** From the Game Over page: Main Menu, tapped until the menu is up. */
+private fun MacrobenchmarkScope.toMainMenu() = tapTextUntil("Main Menu") { device.hasObject(MENU) }
 
 /** On the setup: the Number of Rolls modifier on at one roll a turn, or off. */
 private fun MacrobenchmarkScope.setOneRollPerTurn(on: Boolean) {
@@ -599,13 +698,12 @@ private fun MacrobenchmarkScope.setOneRollPerTurn(on: Boolean) {
     repeat(CLOSE_ATTEMPTS) {
         device.findObject(By.desc("Modifiers"))?.click()
         if (device.wait(Until.hasObject(By.text("Number of Rolls")), CLOSE_WAIT_MS)) {
-            if (device.hasObject(decrease) != on) tapText("Number of Rolls")
+            if (device.hasObject(decrease) != on) tapTextUntil("Number of Rolls") { device.hasObject(decrease) == on }
             if (on) {
                 // Down to the lowest, whatever it was left at: a tap at the lowest does nothing.
                 repeat(2) { tapDesc("Decrease rolls per turn") }
             }
-            tapText("Done")
-            await(By.text("Start Game"), "the setup after the modifiers")
+            tapTextUntil("Done") { device.hasObject(By.text("Start Game")) && !device.hasObject(By.text("Done")) }
             return
         }
     }
@@ -672,8 +770,10 @@ private fun MacrobenchmarkScope.playTurnsToGameOver(nextTurn: BySelector) {
  * the current mode's name too, so that name could be found twice.
  */
 private fun MacrobenchmarkScope.chooseMode(mode: String) {
-    tapDesc("Game Mode")
-    tapText(mode)
+    tapDescUntil("Game Mode") { device.hasObject(By.text(mode)) }
+    // The picker's list is the only place another mode's name shows, so its going says the pick closed it.
+    val otherMode = if (mode == "Standard") "Tricolour" else "Standard"
+    tapTextUntil(mode) { !device.hasObject(By.text(otherMode)) }
 }
 
 /**
@@ -684,8 +784,8 @@ internal fun MacrobenchmarkScope.visitRules() {
     openFromMenu("Rules")
     playTutorial()
     scrollDown(4)
-    tapTopText("Modes")
-    tapTopText("Tricolour")
+    selectTab("Modes")
+    selectTab("Tricolour")
     scrollDown(2)
     backToMenu()
 }
@@ -696,13 +796,13 @@ internal fun MacrobenchmarkScope.visitRules() {
  */
 private fun MacrobenchmarkScope.playTutorial() {
     // The Rules open on the page last shown while the app has been running, so How to Play is asked for.
-    tapTopText("Gameplay")
-    tapTopText("How to Play")
+    selectTab("Gameplay")
+    selectTab("How to Play")
     val start = By.text("Start Tutorial")
     // Under the page's text, which a short screen can push below the fold.
     if (!device.wait(Until.hasObject(start), CLOSE_WAIT_MS)) scrollDown(1)
-    tap("Start Tutorial") { await(start, "Start Tutorial") }
-    tapDesc("Dice cup", startsWith = true)
+    startGame("Start Tutorial")
+    roll()
     Thread.sleep(ROLL_SETTLE_MS)
     repeat(TUTORIAL_TURNS) {
         tapDesc("Next turn")
@@ -724,7 +824,7 @@ internal fun MacrobenchmarkScope.visitScoreScreens() {
     tapDesc("Combined")
     backToMenu()
     openFromMenu("Statistics")
-    tapDesc("Player 1.", startsWith = true)
+    tapUntil("Player 1's card", { await(By.descStartsWith("Player 1."), "Player 1's card") }) { device.hasObject(By.text("By mode")) }
     tapText("By mode")
     backToMenu()
 }
@@ -737,11 +837,15 @@ internal fun MacrobenchmarkScope.visitScoreScreens() {
 internal fun MacrobenchmarkScope.visitAchievements() {
     openFromMenu("Achievements")
     scrollDown(2)
-    tapText("All")
-    // Category by category until Tally's row is on screen.
+    // The switch's label is the filter in force: "All" turns to "Unearned" as the switch takes the tap, and back.
+    tapTextUntil("All") { device.hasObject(By.text("Unearned")) }
+    // Category by category until Tally's row is on screen: back first, then on. The page opens where it was last left,
+    // which after visitAchievementBanner is that banner's row in Easter Eggs, the category after Tally's.
     // The scroll to a category goes on after the tap has returned, so each hop is given a moment to show it.
-    var hops = 0
-    while (!device.wait(Until.hasObject(By.text("Tally")), HOP_WAIT_MS) && hops++ < CATEGORY_HOPS) tapDesc("Next category")
+    for (direction in listOf("Previous category", "Next category")) {
+        var hops = 0
+        while (!device.wait(Until.hasObject(By.text("Tally")), HOP_WAIT_MS) && hops++ < CATEGORY_HOPS) tapDesc(direction)
+    }
     // A press can be dropped (the row's tooltip, a banner fading out over it), so it is repeated until the dialog is up.
     val missing = By.textStartsWith("Scores not yet on the leaderboard")
     var pressed = 0
@@ -750,7 +854,7 @@ internal fun MacrobenchmarkScope.visitAchievements() {
     } while (!device.wait(Until.hasObject(missing), CLOSE_WAIT_MS) && ++pressed < CLOSE_ATTEMPTS)
     await(missing, "Tally's missing scores")
     closeDialog(By.text("Done"), "the missing scores' Done button")
-    tapText("Unearned")
+    tapTextUntil("Unearned") { device.hasObject(By.text("All")) }
     backToMenu()
 }
 
@@ -764,7 +868,7 @@ internal fun MacrobenchmarkScope.visitStyles() {
     tapDesc("Dice gallery")
     scrollDown(2)
     closeMisreadLockDialog()
-    scrollUp(2)
+    scrollPageToTop()
     closeMisreadLockDialog()
     tapDesc("Dice gallery")
     for (fraction in listOf(0.25f, 0.45f, 0.65f, 0.85f)) {
@@ -790,6 +894,11 @@ private fun MacrobenchmarkScope.closeMisreadLockDialog() {
 
 private val LOCK_DIALOG_OK = By.text("OK")
 
+private val CUP = By.descStartsWith("Dice cup")
+private const val POLL_MS = 250L
+/** Screenfuls [scrollPageToTop] scrolls back at most. */
+private const val PAGE_SCROLLS = 12
+
 private val GAME_OVER = By.text("Game Over")
 private const val MODES_LOCKED = "Finish a game to unlock game modes"
 private const val STANDARD_ROLLS = 3
@@ -805,8 +914,10 @@ private const val ROLL_ATTEMPTS = 12
 private const val ROLL_WAIT_MS = 2_500L
 private const val TURN_WAIT_MS = 60_000L
 private const val CELEBRATION_MS = 1_000L
-private const val CATEGORY_HOPS = 15
-private const val HOP_WAIT_MS = 800L
+// Each way: the page has seven categories, and a hop at either end does nothing.
+private const val CATEGORY_HOPS = 8
+// Long enough for a starved emulator's scroll to land: given 800ms, the journey hopped on past Tally's category.
+private const val HOP_WAIT_MS = 3_000L
 private const val ROLL_SETTLE_MS = 2_000L
 private const val PICKER_CLOSE_MS = 1_000L
 private const val CLOSE_ATTEMPTS = 4

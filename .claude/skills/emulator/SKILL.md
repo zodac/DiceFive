@@ -57,6 +57,8 @@ sandbox/emulator.sh stop
 
 **Write journey steps for a slow device.** A hosted runner takes 2-4s per UiAutomator lookup.
 - Wait for things rather than checking once: `hasText` only after an `await`.
+- A tap whose effect later steps rely on goes through `tapUntil` (or `startGame`, `roll`, `setChecked`, `selectTab`),
+  which taps again until that effect shows: a starved emulator drops taps.
 - Open screens with `openFromMenu`, which retries until the "DiceFive" wordmark is gone.
 - Never race anything that times out on its own, such as the 4s banner.
 - To shake out races, pin the emulator and two busy loops to two cores (`taskset -c 0-1`) and run two laps.
