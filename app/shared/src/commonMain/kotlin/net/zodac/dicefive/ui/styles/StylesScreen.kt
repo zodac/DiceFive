@@ -1,14 +1,5 @@
 package net.zodac.dicefive.ui.styles
 
-import net.zodac.dicefive.ui.common.FittedCountText
-import net.zodac.dicefive.ui.common.percentOf
-import net.zodac.dicefive.ui.common.DIALOG_ICON_SIZE
-import net.zodac.dicefive.ui.common.FilterSwitchLabel
-import net.zodac.dicefive.ui.common.FilterSwitchState
-import net.zodac.dicefive.ui.common.HoldPageCover
-import net.zodac.dicefive.ui.common.rememberFilterSwitchState
-import net.zodac.dicefive.ui.common.LocalLandscapePage
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -19,14 +10,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -35,29 +28,23 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.outlined.GridView as GridViewOutlined
 import androidx.compose.material3.Card
-import androidx.compose.material3.Switch
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -163,6 +150,7 @@ import net.zodac.dicefive.resources.filter_all
 import net.zodac.dicefive.resources.style_variant_colour
 import net.zodac.dicefive.resources.styles_all_unlocked
 import net.zodac.dicefive.resources.styles_category_background
+import net.zodac.dicefive.resources.styles_category_count
 import net.zodac.dicefive.resources.styles_category_dice
 import net.zodac.dicefive.resources.styles_category_dice_cup
 import net.zodac.dicefive.resources.styles_category_frame
@@ -171,7 +159,6 @@ import net.zodac.dicefive.resources.styles_choose_variant_action
 import net.zodac.dicefive.resources.styles_family_colour_cd
 import net.zodac.dicefive.resources.styles_frame_preview_name
 import net.zodac.dicefive.resources.styles_gallery_all_action
-import net.zodac.dicefive.resources.styles_category_count
 import net.zodac.dicefive.resources.styles_gallery_cd
 import net.zodac.dicefive.resources.styles_gallery_row_action
 import net.zodac.dicefive.resources.styles_locked_spoken
@@ -196,27 +183,36 @@ import net.zodac.dicefive.resources.styles_unlock_free
 import net.zodac.dicefive.resources.styles_unlock_specific
 import net.zodac.dicefive.resources.styles_unlocked_count
 import net.zodac.dicefive.resources.styles_unlocked_count_short
-import net.zodac.dicefive.resources.styles_unlocked_percent
 import net.zodac.dicefive.resources.styles_unlocked_only
-import net.zodac.dicefive.ui.common.accessibleCombinedClickable
-import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
+import net.zodac.dicefive.resources.styles_unlocked_percent
 import net.zodac.dicefive.ui.common.AppTooltip
+import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
 import net.zodac.dicefive.ui.common.ColourDisc
+import net.zodac.dicefive.ui.common.DIALOG_ICON_SIZE
 import net.zodac.dicefive.ui.common.DiceFiveDialog
+import net.zodac.dicefive.ui.common.FilterSwitchLabel
+import net.zodac.dicefive.ui.common.FilterSwitchState
+import net.zodac.dicefive.ui.common.FittedCountText
+import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.HorizontalScrollbar
+import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.PAGE_CONTENT_FADE_IN_MILLIS
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.VerticalScrollbar
-import net.zodac.dicefive.ui.common.categoryHeaderStyle
+import net.zodac.dicefive.ui.common.accessibleCombinedClickable
 import net.zodac.dicefive.ui.common.ambientMotion
+import net.zodac.dicefive.ui.common.categoryHeaderStyle
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.parseInlineMarkup
+import net.zodac.dicefive.ui.common.percentOf
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
+import net.zodac.dicefive.ui.common.rememberFilterSwitchState
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.tooltipMarkup
 import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
+import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.style.DiceCupStyle
 import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DiceMat
@@ -235,10 +231,10 @@ import net.zodac.dicefive.ui.style.StyleCategory
 import net.zodac.dicefive.ui.style.StyleColour
 import net.zodac.dicefive.ui.style.StyleFamily
 import net.zodac.dicefive.ui.style.StyleUnlock
-import net.zodac.dicefive.ui.style.UnlockCount
 import net.zodac.dicefive.ui.style.TableArt
 import net.zodac.dicefive.ui.style.TableBackground
 import net.zodac.dicefive.ui.style.TableBackgrounds
+import net.zodac.dicefive.ui.style.UnlockCount
 import net.zodac.dicefive.ui.style.access
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import net.zodac.dicefive.ui.theme.GoldAccent
@@ -1240,7 +1236,7 @@ private fun GalleryToggle(title: String, gallery: Boolean, onGalleryChange: (Boo
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = if (gallery) Icons.Filled.GridView else Icons.Outlined.GridViewOutlined,
+                imageVector = if (gallery) Symbols.GridView else Symbols.GridViewOutlined,
                 contentDescription = null,
                 tint = if (gallery) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(GALLERY_ICON_SIZE),
@@ -1784,7 +1780,7 @@ private fun <T : TableArt> StyleFamilyTile(
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Filled.Lock,
+                                        imageVector = Symbols.Lock,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = LOCKED_PADLOCK_ALPHA),
                                         modifier = Modifier.size(previewSize.width / 3),
@@ -1805,7 +1801,7 @@ private fun <T : TableArt> StyleFamilyTile(
 
     if (lockedVariantRequirement != null) {
         DiceFiveDialog(
-            icon = Icons.Filled.Lock,
+            icon = Symbols.Lock,
             title = null,
             message = parseInlineMarkup(
                 lockedVariantRequirement!!,
@@ -1875,7 +1871,7 @@ private fun <T : TableArt> LockedStyleFamilyTile(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Lock,
+                        imageVector = Symbols.Lock,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = LOCKED_PADLOCK_ALPHA),
                         modifier = Modifier.size(28.dp),
@@ -1888,7 +1884,7 @@ private fun <T : TableArt> LockedStyleFamilyTile(
 
     if (showingRequirement) {
         DiceFiveDialog(
-            icon = Icons.Filled.Lock,
+            icon = Symbols.Lock,
             title = null,
             // Backticks mark what to highlight - the gold the rules pages use.
             message = parseInlineMarkup(
@@ -1996,7 +1992,7 @@ private fun SelectedBadge(modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = Icons.Filled.CheckCircle,
+            imageVector = Symbols.CheckCircle,
             contentDescription = stringResource(Res.string.styles_selected_cd),
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(18.dp),

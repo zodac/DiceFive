@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -38,7 +36,6 @@ import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.about_author_body
-import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.resources.about_author_heading
 import net.zodac.dicefive.resources.about_author_link
 import net.zodac.dicefive.resources.about_close_cd
@@ -50,12 +47,14 @@ import net.zodac.dicefive.resources.about_privacy_body_online
 import net.zodac.dicefive.resources.about_privacy_heading
 import net.zodac.dicefive.resources.about_privacy_link
 import net.zodac.dicefive.resources.about_title
+import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.ui.common.LARGE_DIALOG_MARGIN
 import net.zodac.dicefive.ui.common.LargeDialog
 import net.zodac.dicefive.ui.common.LargeDialogTitle
 import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.parseInlineMarkup
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.icons.Symbols
 import org.jetbrains.compose.resources.StringResource
 
 private const val GITHUB_REPO_URL = "https://github.com/zodac/DiceFive"
@@ -185,7 +184,7 @@ private fun AboutSectionCard(section: AboutSection, serviceName: String?, nameSt
                         .offset(x = -ButtonDefaults.TextButtonWithIconContentPadding.calculateStartPadding(LayoutDirection.Ltr)),
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                        imageVector = Symbols.OpenInNew,
                         contentDescription = null,
                         modifier = Modifier.size(ButtonDefaults.IconSize),
                     )

@@ -180,6 +180,11 @@ Profile).
   ~30 KB smaller (0.5% of the APK), not worth restyling every icon. The library is plain path code with almost no API
   to break. Symbols also redraws some glyphs (`whatshot` became a trend arrow; its flame, `mode_heat`, matches
   `local_fire_department`, which `PlayConsoleExportTest` rejects).
+  - **Done after all** (2026-10-27), for the maintained, Material 3 look rather than for size: Rounded, filled, as path
+    strings in Kotlin (`ui/icons/Symbols.kt`, `scripts/material-symbols.sh`), 117 glyphs. Play release APK 6,538,307 →
+    6,537,839 bytes (-468), download 3,432,231 → 3,421,524 (-10.7 KB): R8'd code fell ~55 KB and the path strings
+    added about as much. `minifyPlayReleaseWithR8` alone, warm, 8 runs each after an untimed one: median 24.5s before,
+    24.3s after - no change worth the name, though R8 no longer reads the library's 11,123 classes.
 
 - **Reading the toss in layout and drawing, not composition** (2026-10). Built, verified and discarded.
   - **The idea.** A tossed die's pose was read in composition, so each moving die (`Moving`) and its `TossedCube`

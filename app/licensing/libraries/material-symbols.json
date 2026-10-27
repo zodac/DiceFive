@@ -1,0 +1,10 @@
+{
+  "uniqueId": "material-symbols",
+  "name": "Material Symbols",
+  "description": "Copyright Google LLC. Google's Material Symbols icons (Rounded), drawn from their published path data throughout the app's icons; the Completionist and Defeat From The Jaws Of Victory trophies are its trophy, recoloured and cracked.",
+  "website": "https://github.com/google/material-design-icons",
+  "licenses": [
+    "Apache-2.0"
+  ],
+  "tag": "image"
+}

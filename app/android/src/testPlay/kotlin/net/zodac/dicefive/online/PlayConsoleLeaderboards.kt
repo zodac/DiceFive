@@ -9,11 +9,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.ui.achievements.TRICOLOUR_DICE_ICON
 import net.zodac.dicefive.ui.style.pipLayout
 import net.zodac.dicefive.ui.theme.OnPrimaryContainer
-import net.zodac.dicefive.ui.theme.TricolourBlueSwatch
-import net.zodac.dicefive.ui.theme.TricolourRedSwatch
-import net.zodac.dicefive.ui.theme.TricolourYellowSwatch
 
 // Each mode's Play leaderboard icon, for Play Console only - the game never shows them. Drawn like the achievements'
 // icons: in their gold on their tile, bar Tricolour's dice, in the mode's own three colours. Written as SVG path data on
@@ -67,15 +65,8 @@ private val STANDARD_ICON: ImageVector by lazy {
     icon("Standard") { fill(die(2.5f, 2.5f, 19f, 5)) }
 }
 
-/** Three dice in a triangle, one in each of the mode's colours. */
-private val TRICOLOUR_ICON: ImageVector by lazy {
-    icon("Tricolour") {
-        val size = 10.5f
-        fill(die(12f - size / 2, 1.25f, size, 3), TricolourRedSwatch)
-        fill(die(1.25f, 12.25f, size, 5), TricolourYellowSwatch)
-        fill(die(12.25f, 12.25f, size, 2), TricolourBlueSwatch)
-    }
-}
+/** Three dice in a triangle, one in each of the mode's colours: Tricolour Me Impressed's own icon. */
+private val TRICOLOUR_ICON: ImageVector get() = TRICOLOUR_DICE_ICON
 
 /** A die showing three, blown along by three gusts - the wind's curl on the outer two. */
 private val THIRD_WIND_ICON: ImageVector by lazy {

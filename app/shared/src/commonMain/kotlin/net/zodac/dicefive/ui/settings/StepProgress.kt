@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -31,6 +29,7 @@ import net.zodac.dicefive.resources.online_sync_step_scores
 import net.zodac.dicefive.resources.online_sync_step_settings
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.icons.Symbols
 import org.jetbrains.compose.resources.StringResource
 
 /** Where a [androidx.compose.material3.ListItem]'s text starts, past its leading icon: 16dp padding, the 24dp icon, then 16dp. */
@@ -57,7 +56,7 @@ internal fun StepProgress(step: String, number: Int, total: Int, modifier: Modif
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (LocalReduceMotion.current) {
-                Icon(imageVector = Icons.Filled.Sync, contentDescription = null, modifier = iconModifier, tint = colour)
+                Icon(imageVector = Symbols.Sync, contentDescription = null, modifier = iconModifier, tint = colour)
             } else {
                 CircularProgressIndicator(modifier = iconModifier, color = colour, strokeWidth = 2.dp)
             }

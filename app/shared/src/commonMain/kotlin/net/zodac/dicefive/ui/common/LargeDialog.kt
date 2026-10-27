@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +21,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import net.zodac.dicefive.ui.icons.Symbols
 
 /** The margin inside a [LargeDialog], round its content - the close button's row aside, which sits higher. */
 val LARGE_DIALOG_MARGIN = 20.dp
@@ -61,7 +60,7 @@ fun LargeDialog(
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     IconButton(onClick = onDismissRequest) {
-                        Icon(imageVector = Icons.Filled.Close, contentDescription = closeContentDescription)
+                        Icon(imageVector = Symbols.Close, contentDescription = closeContentDescription)
                     }
                 }
                 content()

@@ -37,12 +37,19 @@ that must remember its place, with a reset for tests (`resetAchievementsScrollMe
 Robolectric test shares one process, so a test that opens the screen calls it first.
 
 **Icons** (`ui/achievements/AchievementIcons.kt`) are a `@Composable` `when` over the enum.
-- Bespoke drawables (`ic_stairs`, `ic_cowboy_hat`) are allowed.
+- Glyphs are Material Symbols, Rounded and filled, from `ui/icons/Symbols.kt`, which `scripts/material-symbols.sh`
+  generates from Google's path data. Add a glyph to the script's list and run it; never edit `Symbols.kt` by hand.
+- Bespoke drawings are allowed where Symbols has nothing that fits: `DrawnAchievementIcons.kt` (path data on the 24 grid,
+  one colour with details cut out), and drawables (`ic_stairs`, `ic_cowboy_hat`).
 - An icon is not a field on `Achievement`, so the model stays free of Compose.
 - **Locked rows all show the same question mark**, so they never spoil the achievement.
-- **Easter Egg icons keep a fixed colour** via `iconTintOrUnspecified`, rather than the row's tint. Luck of the Irish
-  shows its real flag fills (`Color.Unspecified`); Big Fan's heart is forced red. A new Easter Egg adds its case there.
-- When adding one, grep that the glyph is unused and that it exists in `material-icons-extended`.
+- **Fixed colours** via `iconTintOrUnspecified`, rather than the row's tint:
+  - every Easter Egg (Luck of the Irish shows its real flag fills with `Color.Unspecified`; Big Fan's heart is forced
+    red). A new Easter Egg adds its case there;
+  - and the few whose point is a colour: Tricolour's red/yellow/blue (Tricolourful's traffic light, Tricolour Me
+    Impressed's dice, which are also Tricolour's Play leaderboard icon), Everything Everywhere's googly eye, and
+    Completionist's crystal trophy.
+- When adding one, grep that the glyph is unused. `PlayConsoleExportTest` fails if two achievements draw the same.
 
 ## Achievement banners
 

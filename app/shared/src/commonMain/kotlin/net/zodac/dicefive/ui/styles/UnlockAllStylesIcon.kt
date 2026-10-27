@@ -2,9 +2,6 @@ package net.zodac.dicefive.ui.styles
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.Palette
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -22,6 +19,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.unit.Dp
+import net.zodac.dicefive.ui.icons.Symbols
 
 /**
  * The "Unlock all styles" purchase's mark ([net.zodac.dicefive.purchases.ProductKey.UNLOCK_ALL_STYLES]): a palette,
@@ -34,8 +32,8 @@ import androidx.compose.ui.unit.Dp
  */
 @Composable
 fun UnlockAllStylesIcon(size: Dp, tint: Color, modifier: Modifier = Modifier) {
-    val palette = rememberVectorPainter(Icons.Filled.Palette)
-    val padlock = rememberVectorPainter(Icons.Filled.LockOpen)
+    val palette = rememberVectorPainter(Symbols.Palette)
+    val padlock = rememberVectorPainter(Symbols.LockOpen)
     // Drawn offscreen, so the cut-outs clear only the mark's own pixels, not what's behind it.
     Canvas(modifier.size(size).graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)) {
         val unit = this.size.minDimension / UNITS

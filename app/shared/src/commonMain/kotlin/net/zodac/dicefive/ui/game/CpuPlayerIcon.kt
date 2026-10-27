@@ -1,8 +1,6 @@
 package net.zodac.dicefive.ui.game
 
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
@@ -12,6 +10,7 @@ import androidx.compose.ui.unit.Dp
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_cpu_cd
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.icons.Symbols
 
 /**
  * The little processor chip shown before a CPU player's name, wherever players are listed (the
@@ -21,7 +20,7 @@ import net.zodac.dicefive.ui.common.stringResource
 @Composable
 fun CpuPlayerIcon(size: Dp, modifier: Modifier = Modifier, tint: Color = LocalContentColor.current) {
     Icon(
-        imageVector = Icons.Filled.Memory,
+        imageVector = Symbols.Memory,
         contentDescription = stringResource(Res.string.common_cpu_cd),
         tint = tint,
         modifier = modifier.size(size),

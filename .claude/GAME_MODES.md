@@ -305,7 +305,8 @@ option needs work:
   - Zero To Hero and Scratched leave out `playerOneTimedOutZeroes`.
   - A new low, zeroed or barely-rolled card achievement needs the same guard.
 - **Resuming.** Per-game counters restart on resume, so design each achievement so that only makes it harder.
-- **Icon.** Add it to `AchievementIcons.kt`, unused and present in `material-icons-extended`.
+- **Icon.** Add it to `AchievementIcons.kt`, unused, from Material Symbols (`scripts/material-symbols.sh`) or drawn
+  (`UI_SCREENS.md`, "Icons").
 - **Already handled.** `WHERE_WERE_GOING_WE_DONT_NEED_RULES` already fires for any non-Standard mode.
 - **Hidden.** Miscellaneous ⇔ `HIDDEN`, and `AchievementEngineTest` enforces both directions.
 - **Bookkeeping.** Update the "Game Modes achievements are ordered" list in `AchievementEngineTest`, and the count in

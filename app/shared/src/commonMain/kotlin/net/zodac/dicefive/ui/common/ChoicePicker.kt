@@ -28,10 +28,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -89,6 +85,7 @@ import net.zodac.dicefive.resources.common_modifiers_none
 import net.zodac.dicefive.resources.common_picker_choose_action
 import net.zodac.dicefive.resources.common_picker_state_spoken
 import net.zodac.dicefive.resources.common_stepper_value_spoken
+import net.zodac.dicefive.ui.icons.Symbols
 
 /*
  * The app's dropdown-and-modal pickers. Every colour, shape, size and text style of the closed field and
@@ -142,7 +139,7 @@ private fun PickerField(
                 )
                 Text(text = supporting, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
             }
-            Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            Icon(imageVector = Symbols.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
         }
     }
 }
@@ -457,7 +454,7 @@ private fun ModifierStepperRow(stepper: ModifierStepper, enabled: Boolean, modif
     val spokenValue = stringResource(Res.string.common_stepper_value_spoken, stepper.label, valueText)
     Row(modifier = modifier, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { stepper.onValueChange(stepper.value - stepper.step) }, enabled = enabled && stepper.value - stepper.step >= stepper.range.first) {
-            Icon(Icons.Filled.Remove, contentDescription = stepper.decreaseLabel)
+            Icon(Symbols.Remove, contentDescription = stepper.decreaseLabel)
         }
         Text(
             text = valueText,
@@ -473,7 +470,7 @@ private fun ModifierStepperRow(stepper: ModifierStepper, enabled: Boolean, modif
             },
         )
         IconButton(onClick = { stepper.onValueChange(stepper.value + stepper.step) }, enabled = enabled && stepper.value + stepper.step <= stepper.range.last) {
-            Icon(Icons.Filled.Add, contentDescription = stepper.increaseLabel)
+            Icon(Symbols.Add, contentDescription = stepper.increaseLabel)
         }
     }
 }

@@ -19,11 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
@@ -91,6 +86,7 @@ import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.LocalLeaveGameConfirmation
+import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.style.unlocksStyle
 
 /**
@@ -524,7 +520,7 @@ private fun BannerSlot(
             modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).alpha(indicatorAlpha.value),
         ) {
             Icon(
-                imageVector = if (indicatorShowsPause) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                imageVector = if (indicatorShowsPause) Symbols.Pause else Symbols.PlayArrow,
                 // Only announced while it's on screen; the tap itself is the semantics action above.
                 contentDescription = if (indicatorAlpha.value > 0f) (if (indicatorShowsPause) pausedText else resumedText) else null,
                 modifier = Modifier.padding(4.dp).size(20.dp),
@@ -681,7 +677,7 @@ private fun StylesUnlockedBanner(event: AchievementEvent.StylesUnlocked) {
                 modifier = Modifier.size(40.dp).border(width = 1.dp, color = LocalContentColor.current, shape = CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(imageVector = Icons.Filled.Star, contentDescription = null, modifier = Modifier.size(24.dp))
+                Icon(imageVector = Symbols.Star, contentDescription = null, modifier = Modifier.size(24.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
                 BannerTitle(stylesUnlockedTitle(event))
@@ -737,7 +733,7 @@ private fun ProgressBanner(achievement: Achievement, previous: Int, current: Int
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Icon(imageVector = Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(28.dp))
+            Icon(imageVector = Symbols.TrendingUp, contentDescription = null, modifier = Modifier.size(28.dp))
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

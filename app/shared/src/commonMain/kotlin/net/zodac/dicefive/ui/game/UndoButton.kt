@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.game_undo_cd
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.theme.TileIconColor
 import net.zodac.dicefive.ui.theme.TileTealBorder
 import net.zodac.dicefive.ui.theme.TileTealBottom
@@ -27,7 +26,7 @@ import net.zodac.dicefive.ui.theme.TileTealTop
 
 /**
  * A dark, rounded, icon-only button with the standard Material "undo" glyph ([BoardButtonIcon]), named
- * "Undo" for a screen reader. Uses the stock [Icons.AutoMirrored.Filled.Undo] rather than a
+ * "Undo" for a screen reader. Uses the stock [Symbols.Undo] rather than a
  * hand-drawn arrow - a bespoke Canvas path looked malformed at small sizes. It once had a small "Undo"
  * label under the glyph too; it was dropped, with [TotalsButton]'s, as the pair looked better without.
  */
@@ -52,6 +51,6 @@ fun UndoButton(enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modif
         contentAlignment = Alignment.Center,
     ) {
         // The glyph's description names the button: it merges into the clickable Box as one node.
-        BoardButtonIcon(imageVector = Icons.AutoMirrored.Filled.Undo, contentDescription = stringResource(Res.string.game_undo_cd), tint = iconColor)
+        BoardButtonIcon(imageVector = Symbols.Undo, contentDescription = stringResource(Res.string.game_undo_cd), tint = iconColor)
     }
 }

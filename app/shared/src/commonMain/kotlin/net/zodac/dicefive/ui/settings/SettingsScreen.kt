@@ -9,21 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.FileOpen
-import androidx.compose.material.icons.filled.Gavel
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.MotionPhotosOff
-import androidx.compose.material.icons.filled.RestartAlt
-import androidx.compose.material.icons.filled.ScreenRotation
-import androidx.compose.material.icons.filled.StayCurrentLandscape
-import androidx.compose.material.icons.filled.StayCurrentPortrait
-import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -35,8 +20,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -60,6 +45,7 @@ import net.zodac.dicefive.resources.about_title
 import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.resources.common_cancel
 import net.zodac.dicefive.resources.licences_title
+import net.zodac.dicefive.resources.settings_already_developer
 import net.zodac.dicefive.resources.settings_animations
 import net.zodac.dicefive.resources.settings_animations_high
 import net.zodac.dicefive.resources.settings_animations_high_short
@@ -73,12 +59,12 @@ import net.zodac.dicefive.resources.settings_import_progress_confirm
 import net.zodac.dicefive.resources.settings_import_progress_message
 import net.zodac.dicefive.resources.settings_import_progress_title
 import net.zodac.dicefive.resources.settings_online_achievements
+import net.zodac.dicefive.resources.settings_online_achievements_action
+import net.zodac.dicefive.resources.settings_online_achievements_description
 import net.zodac.dicefive.resources.settings_orientation
 import net.zodac.dicefive.resources.settings_orientation_device
 import net.zodac.dicefive.resources.settings_orientation_landscape
 import net.zodac.dicefive.resources.settings_orientation_portrait
-import net.zodac.dicefive.resources.settings_online_achievements_action
-import net.zodac.dicefive.resources.settings_online_achievements_description
 import net.zodac.dicefive.resources.settings_reset_achievements
 import net.zodac.dicefive.resources.settings_reset_achievements_description
 import net.zodac.dicefive.resources.settings_reset_achievements_message
@@ -91,7 +77,6 @@ import net.zodac.dicefive.resources.settings_reset_leaderboard_message
 import net.zodac.dicefive.resources.settings_reset_leaderboard_online_note
 import net.zodac.dicefive.resources.settings_reset_leaderboard_title
 import net.zodac.dicefive.resources.settings_sound
-import net.zodac.dicefive.resources.settings_already_developer
 import net.zodac.dicefive.resources.settings_steps_from_developer
 import net.zodac.dicefive.resources.settings_title
 import net.zodac.dicefive.resources.settings_version
@@ -106,6 +91,7 @@ import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.TwoPanes
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.icons.Symbols
 
 /** How far the About and Licences row is lifted into the gap above it, and the version below it with it. */
 private val LINKS_RAISE = (-8).dp
@@ -144,7 +130,7 @@ internal fun SwitchSetting(icon: ImageVector, label: String, checked: Boolean, o
 @Composable
 private fun OnlineAchievementsSetting(serviceName: String, onClick: () -> Unit) {
     ListItem(
-        leadingContent = { Icon(imageVector = Icons.Filled.EmojiEvents, contentDescription = null) },
+        leadingContent = { Icon(imageVector = Symbols.EmojiEvents, contentDescription = null) },
         headlineContent = { SettingLabel(stringResource(Res.string.settings_online_achievements, serviceName)) },
         supportingContent = { Text(stringResource(Res.string.settings_online_achievements_description)) },
         modifier = Modifier.clickable(
@@ -236,9 +222,9 @@ private fun orientationLabel(orientation: ScreenOrientation): String = stringRes
 
 /** Each orientation as a phone turned that way (or turning), for a narrow screen: an initial would mean nothing. */
 private fun orientationGlyph(orientation: ScreenOrientation): ImageVector = when (orientation) {
-    ScreenOrientation.DEVICE -> Icons.Filled.ScreenRotation
-    ScreenOrientation.PORTRAIT -> Icons.Filled.StayCurrentPortrait
-    ScreenOrientation.LANDSCAPE -> Icons.Filled.StayCurrentLandscape
+    ScreenOrientation.DEVICE -> Symbols.ScreenRotation
+    ScreenOrientation.PORTRAIT -> Symbols.StayCurrentPortrait
+    ScreenOrientation.LANDSCAPE -> Symbols.StayCurrentLandscape
 }
 
 /** The level's initial for a narrow screen - its own string, as a translation's initials can collide. Off is a glyph. */
@@ -315,10 +301,10 @@ fun SettingsScreen(
         }
         val switchesCard = @Composable {
             Card(modifier = Modifier.fillMaxWidth()) {
-                SwitchSetting(Icons.AutoMirrored.Filled.VolumeUp, stringResource(Res.string.settings_sound), toggles.soundEnabled, viewModel::setSoundEnabled)
-                SwitchSetting(Icons.Filled.Vibration, stringResource(Res.string.settings_vibration), toggles.vibrationEnabled, viewModel::setVibrationEnabled)
+                SwitchSetting(Symbols.VolumeUp, stringResource(Res.string.settings_sound), toggles.soundEnabled, viewModel::setSoundEnabled)
+                SwitchSetting(Symbols.Vibration, stringResource(Res.string.settings_vibration), toggles.vibrationEnabled, viewModel::setVibrationEnabled)
                 SwitchSetting(
-                    Icons.Filled.CheckCircle,
+                    Symbols.CheckCircle,
                     stringResource(Res.string.settings_confirm_leaving),
                     toggles.confirmBeforeLeavingGame,
                     viewModel::setConfirmBeforeLeavingGame,
@@ -329,7 +315,7 @@ fun SettingsScreen(
         val choicesCard = @Composable {
             Card(modifier = Modifier.fillMaxWidth()) {
                 SegmentedSetting(
-                    icon = Icons.Filled.AutoAwesome,
+                    icon = Symbols.AutoAwesome,
                     label = stringResource(Res.string.settings_animations),
                     // Least to most, Off first: from the start edge, so left to right here and mirrored in a right-to-left language.
                     options = AnimationLevel.entries.reversed(),
@@ -338,10 +324,10 @@ fun SettingsScreen(
                     optionLabel = { animationLevelLabel(it) },
                     compactLabel = { animationLevelShortLabel(it) },
                     // "Off" as a symbol when there's no room for words: an initial would be "O", or a translation's own.
-                    compactGlyph = { if (it == AnimationLevel.OFF) Icons.Filled.MotionPhotosOff else null },
+                    compactGlyph = { if (it == AnimationLevel.OFF) Symbols.MotionPhotosOff else null },
                 )
                 SegmentedSetting(
-                    icon = Icons.Filled.ScreenRotation,
+                    icon = Symbols.ScreenRotation,
                     label = stringResource(Res.string.settings_orientation),
                     options = ScreenOrientation.entries,
                     selected = toggles.screenOrientation,
@@ -360,14 +346,14 @@ fun SettingsScreen(
                     OnlineAchievementsSetting(gameServices.serviceName, onClick = gameServices::showAchievementsUi)
                 } else {
                     ResetSetting(
-                        icon = Icons.Filled.RestartAlt,
+                        icon = Symbols.RestartAlt,
                         label = stringResource(Res.string.settings_reset_achievements),
                         description = stringResource(Res.string.settings_reset_achievements_description),
                         onClick = { showResetAchievementsConfirmation = true },
                     )
                 }
                 ResetSetting(
-                    icon = Icons.Filled.DeleteSweep,
+                    icon = Symbols.DeleteSweep,
                     label = stringResource(Res.string.settings_reset_leaderboard),
                     description = stringResource(Res.string.settings_reset_leaderboard_description),
                     onClick = { showResetLeaderboardConfirmation = true },
@@ -385,7 +371,7 @@ fun SettingsScreen(
                 modifier = linkModifier,
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Info,
+                    imageVector = Symbols.Info,
                     contentDescription = null,
                     modifier = Modifier.padding(end = 8.dp),
                 )
@@ -395,7 +381,7 @@ fun SettingsScreen(
         val licencesLink = @Composable { linkModifier: Modifier ->
             TextButton(onClick = { showLicenses = true }, modifier = linkModifier) {
                 Icon(
-                    imageVector = Icons.Filled.Gavel,
+                    imageVector = Symbols.Gavel,
                     contentDescription = null,
                     modifier = Modifier.padding(end = 8.dp),
                 )
@@ -458,7 +444,7 @@ fun SettingsScreen(
 
     if (showResetAchievementsConfirmation) {
         DiceFiveDialog(
-            icon = Icons.Filled.RestartAlt,
+            icon = Symbols.RestartAlt,
             title = stringResource(Res.string.settings_reset_achievements_title),
             message = stringResource(Res.string.settings_reset_achievements_message),
             confirmLabel = stringResource(Res.string.settings_reset_confirm),
@@ -474,7 +460,7 @@ fun SettingsScreen(
 
     if (showImportConfirmation && progressFiles != null) {
         DiceFiveDialog(
-            icon = Icons.Filled.FileOpen,
+            icon = Symbols.FileOpen,
             title = stringResource(Res.string.settings_import_progress_title),
             message = stringResource(Res.string.settings_import_progress_message, appName),
             confirmLabel = stringResource(Res.string.settings_import_progress_confirm),
@@ -494,7 +480,7 @@ fun SettingsScreen(
         val signedIn = gameServices.state.collectAsStateWithLifecycle().value is GameServicesState.SignedIn
         val message = stringResource(Res.string.settings_reset_leaderboard_message)
         DiceFiveDialog(
-            icon = Icons.Filled.RestartAlt,
+            icon = Symbols.RestartAlt,
             title = stringResource(Res.string.settings_reset_leaderboard_title),
             message = if (signedIn) "$message ${stringResource(Res.string.settings_reset_leaderboard_online_note, gameServices.serviceName)}" else message,
             confirmLabel = stringResource(Res.string.settings_reset_confirm),

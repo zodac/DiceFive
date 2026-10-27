@@ -1,8 +1,5 @@
 package net.zodac.dicefive.ui.scores
 
-import net.zodac.dicefive.ui.common.HoldPageCover
-import net.zodac.dicefive.ui.common.LocalLandscapePage
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,16 +20,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,19 +44,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.unit.Velocity
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -72,6 +65,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -95,16 +89,19 @@ import net.zodac.dicefive.resources.scores_header_score
 import net.zodac.dicefive.resources.scores_next
 import net.zodac.dicefive.resources.scores_previous
 import net.zodac.dicefive.resources.scores_title
+import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LazyListScrollbar
+import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.OnDemandTooltip
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.delayWhileResumed
-import net.zodac.dicefive.ui.common.timestampFormatter
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.common.timestampFormatter
+import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.theme.Bronze
 import net.zodac.dicefive.ui.theme.Silver
 
@@ -497,12 +494,12 @@ private fun GlobalLeaderboardButton(mode: GameMode, services: GameServices, labe
         .semantics { contentDescription = description }
     if (label == null) {
         IconButton(onClick = onClick, modifier = modifier) {
-            Icon(imageVector = Icons.Filled.Public, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Icon(imageVector = Symbols.Public, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         }
         return
     }
     TextButton(onClick = onClick, modifier = modifier) {
-        Icon(imageVector = Icons.Filled.Public, contentDescription = null, modifier = Modifier.size(GLOBAL_ICON_SIZE))
+        Icon(imageVector = Symbols.Public, contentDescription = null, modifier = Modifier.size(GLOBAL_ICON_SIZE))
         Spacer(modifier = Modifier.size(GLOBAL_ICON_GAP))
         Text(label, maxLines = 1)
     }
@@ -710,7 +707,7 @@ private fun PaginationControls(
     ) {
         TextButton(onClick = onPrevious, enabled = hasPrevious) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                imageVector = Symbols.ArrowBack,
                 contentDescription = null,
                 modifier = Modifier.padding(end = 4.dp),
             )
@@ -724,7 +721,7 @@ private fun PaginationControls(
         TextButton(onClick = onNext, enabled = hasNext) {
             Text(stringResource(Res.string.scores_next))
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                imageVector = Symbols.ArrowForward,
                 contentDescription = null,
                 modifier = Modifier.padding(start = 4.dp),
             )

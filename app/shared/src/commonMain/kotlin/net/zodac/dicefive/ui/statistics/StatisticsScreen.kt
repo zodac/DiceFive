@@ -26,13 +26,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.DeleteForever
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -59,8 +52,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -137,8 +130,8 @@ import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.LocalPageCover
-import net.zodac.dicefive.ui.common.PageCover
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.PageCover
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 import net.zodac.dicefive.ui.common.grouped
@@ -146,6 +139,7 @@ import net.zodac.dicefive.ui.common.joinSentences
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.timestamp
+import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.theme.color
 import org.jetbrains.compose.resources.StringResource
 
@@ -254,7 +248,7 @@ fun StatisticsScreen(
 
         pendingDeleteName?.let { playerName ->
             DiceFiveDialog(
-                icon = Icons.Filled.DeleteForever,
+                icon = Symbols.DeleteForever,
                 title = stringResource(Res.string.stats_delete_title),
                 message = stringResource(Res.string.stats_delete_message, playerName),
                 confirmLabel = stringResource(Res.string.stats_delete_confirm),
@@ -281,7 +275,7 @@ private fun SortMenu(sortOrder: StatisticsSortOrder, onPick: (StatisticsSort) ->
     Box {
         IconButton(onClick = { open = true }) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.Sort,
+                imageVector = Symbols.Sort,
                 contentDescription = stringResource(Res.string.stats_sort_action),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -303,7 +297,7 @@ private fun SortMenu(sortOrder: StatisticsSortOrder, onPick: (StatisticsSort) ->
                     trailingIcon = {
                         // Decorative: the direction is the row's spoken state.
                         Icon(
-                            imageVector = if (ascending) Icons.Filled.ArrowUpward else Icons.Filled.ArrowDownward,
+                            imageVector = if (ascending) Symbols.ArrowUpward else Symbols.ArrowDownward,
                             contentDescription = null,
                             tint = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
                         )
@@ -477,7 +471,7 @@ private fun PlayerStatsCardContent(
                     }
                     // Decorative: the header's own state and action are spoken (above).
                     Icon(
-                        imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                        imageVector = if (expanded) Symbols.KeyboardArrowUp else Symbols.KeyboardArrowDown,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -511,7 +505,7 @@ private fun PlayerStatsCardContent(
                     .offset { IntOffset(0, (headerHeightPx - DELETE_BUTTON_SIZE.roundToPx()) / 2) },
             ) {
                 Icon(
-                    imageVector = Icons.Filled.DeleteForever,
+                    imageVector = Symbols.DeleteForever,
                     contentDescription = deleteLabel,
                     tint = MaterialTheme.colorScheme.error,
                 )

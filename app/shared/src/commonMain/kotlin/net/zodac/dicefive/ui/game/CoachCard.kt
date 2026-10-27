@@ -16,9 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -46,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.game.TutorialMessage
 import net.zodac.dicefive.game.TutorialStep
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.resources.game_tutorial_bonus_earned
 import net.zodac.dicefive.resources.game_tutorial_hold_chase_straight
 import net.zodac.dicefive.resources.game_tutorial_hold_five
@@ -67,7 +65,6 @@ import net.zodac.dicefive.resources.game_tutorial_hold_twos
 import net.zodac.dicefive.resources.game_tutorial_next_turn_cd
 import net.zodac.dicefive.resources.game_tutorial_open_totals
 import net.zodac.dicefive.resources.game_tutorial_open_totals_bonus
-import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.resources.game_tutorial_previous_turn_cd
 import net.zodac.dicefive.resources.game_tutorial_roll_again
 import net.zodac.dicefive.resources.game_tutorial_roll_for_five
@@ -100,6 +97,7 @@ import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.parseInlineMarkup
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.icons.Symbols
 import org.jetbrains.compose.resources.StringResource
 
 /**
@@ -192,7 +190,7 @@ private fun TurnArrow(back: Boolean, onClick: (() -> Unit)?) {
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = if (back) Icons.AutoMirrored.Filled.KeyboardArrowLeft else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                imageVector = if (back) Symbols.KeyboardArrowLeft else Symbols.KeyboardArrowRight,
                 contentDescription = label,
                 tint = MaterialTheme.colorScheme.primary.copy(alpha = if (onClick != null) 1f else DISABLED_ARROW_ALPHA),
             )

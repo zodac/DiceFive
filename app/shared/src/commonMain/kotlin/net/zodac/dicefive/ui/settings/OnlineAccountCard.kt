@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -44,6 +42,7 @@ import net.zodac.dicefive.resources.online_last_saved
 import net.zodac.dicefive.resources.online_sign_in
 import net.zodac.dicefive.resources.online_sign_in_failed
 import net.zodac.dicefive.resources.online_sign_in_failed_cd
+import net.zodac.dicefive.resources.online_sign_out
 import net.zodac.dicefive.resources.online_signed_in_cd
 import net.zodac.dicefive.resources.online_signed_in_saved_cd
 import net.zodac.dicefive.resources.online_signed_in_syncing_cd
@@ -54,9 +53,9 @@ import net.zodac.dicefive.resources.online_sync_step_leaderboards
 import net.zodac.dicefive.resources.online_sync_step_uploading
 import net.zodac.dicefive.resources.online_unreachable
 import net.zodac.dicefive.resources.online_unreachable_cd
-import net.zodac.dicefive.resources.online_sign_out
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.timestamp
+import net.zodac.dicefive.ui.icons.Symbols
 import org.jetbrains.compose.resources.StringResource
 
 /**
@@ -127,7 +126,7 @@ fun OnlineAccountCard(
                     if (avatar != null) {
                         Image(bitmap = avatar, contentDescription = null, modifier = Modifier.size(24.dp).clip(CircleShape))
                     } else {
-                        Icon(imageVector = Icons.Filled.SportsEsports, contentDescription = null)
+                        Icon(imageVector = Symbols.SportsEsports, contentDescription = null)
                     }
                 },
                 headlineContent = { Text(name, style = MaterialTheme.typography.bodyLarge) },

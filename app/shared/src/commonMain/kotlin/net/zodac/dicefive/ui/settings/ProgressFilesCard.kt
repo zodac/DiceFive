@@ -4,9 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FileOpen
-import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -49,6 +46,7 @@ import net.zodac.dicefive.resources.settings_progress_not_a_file
 import net.zodac.dicefive.resources.settings_progress_step_opening
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.icons.Symbols
 import org.jetbrains.compose.resources.StringResource
 
 /**
@@ -68,14 +66,14 @@ import org.jetbrains.compose.resources.StringResource
 fun ProgressFilesCard(onExport: () -> Unit, onImport: () -> Unit, modifier: Modifier = Modifier, status: ProgressFilesStatus? = null) {
     Card(modifier = modifier.fillMaxWidth()) {
         ProgressFileSetting(
-            icon = Icons.Filled.SaveAlt,
+            icon = Symbols.Download,
             label = stringResource(Res.string.settings_export_progress),
             description = stringResource(Res.string.settings_export_progress_description),
             actionLabel = stringResource(Res.string.settings_export_progress_action),
             onClick = onExport,
         )
         ProgressFileSetting(
-            icon = Icons.Filled.FileOpen,
+            icon = Symbols.FileOpen,
             label = stringResource(Res.string.settings_import_progress),
             description = stringResource(Res.string.settings_import_progress_description),
             actionLabel = stringResource(Res.string.settings_import_progress_action),

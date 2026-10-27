@@ -1,15 +1,12 @@
 package net.zodac.dicefive.ui.rules
 
-import net.zodac.dicefive.ui.common.LocalLandscapePage
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -25,15 +22,14 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -126,6 +122,16 @@ import net.zodac.dicefive.resources.rules_5x_and_joker_5
 import net.zodac.dicefive.resources.rules_5x_and_joker_6
 import net.zodac.dicefive.resources.rules_5x_and_joker_tab
 import net.zodac.dicefive.resources.rules_5x_and_joker_title
+import net.zodac.dicefive.resources.rules_d20_1
+import net.zodac.dicefive.resources.rules_d20_2
+import net.zodac.dicefive.resources.rules_d20_3
+import net.zodac.dicefive.resources.rules_d20_4
+import net.zodac.dicefive.resources.rules_d20_5
+import net.zodac.dicefive.resources.rules_d20_6
+import net.zodac.dicefive.resources.rules_d20_7
+import net.zodac.dicefive.resources.rules_d20_8
+import net.zodac.dicefive.resources.rules_d20_tab
+import net.zodac.dicefive.resources.rules_d20_title
 import net.zodac.dicefive.resources.rules_example_any_place_spoken
 import net.zodac.dicefive.resources.rules_example_blue_die_spoken
 import net.zodac.dicefive.resources.rules_example_equals
@@ -133,13 +139,13 @@ import net.zodac.dicefive.resources.rules_example_held_spoken
 import net.zodac.dicefive.resources.rules_example_ignored_spoken
 import net.zodac.dicefive.resources.rules_example_locked_spoken
 import net.zodac.dicefive.resources.rules_example_nothing_held_spoken
+import net.zodac.dicefive.resources.rules_example_pressed_alternatives_spoken
+import net.zodac.dicefive.resources.rules_example_pressed_takes_spoken
 import net.zodac.dicefive.resources.rules_example_red_die_spoken
 import net.zodac.dicefive.resources.rules_example_roll_spoken
 import net.zodac.dicefive.resources.rules_example_scores_spoken
 import net.zodac.dicefive.resources.rules_example_spoken
 import net.zodac.dicefive.resources.rules_example_target_spoken
-import net.zodac.dicefive.resources.rules_example_pressed_alternatives_spoken
-import net.zodac.dicefive.resources.rules_example_pressed_takes_spoken
 import net.zodac.dicefive.resources.rules_example_tile_alibi_spoken
 import net.zodac.dicefive.resources.rules_example_tile_target_spoken
 import net.zodac.dicefive.resources.rules_example_worth_spoken
@@ -154,16 +160,6 @@ import net.zodac.dicefive.resources.rules_extended_scores_title
 import net.zodac.dicefive.resources.rules_group_gameplay
 import net.zodac.dicefive.resources.rules_group_modes
 import net.zodac.dicefive.resources.rules_group_modifiers
-import net.zodac.dicefive.resources.rules_d20_1
-import net.zodac.dicefive.resources.rules_d20_2
-import net.zodac.dicefive.resources.rules_d20_3
-import net.zodac.dicefive.resources.rules_d20_4
-import net.zodac.dicefive.resources.rules_d20_5
-import net.zodac.dicefive.resources.rules_d20_6
-import net.zodac.dicefive.resources.rules_d20_7
-import net.zodac.dicefive.resources.rules_d20_8
-import net.zodac.dicefive.resources.rules_d20_tab
-import net.zodac.dicefive.resources.rules_d20_title
 import net.zodac.dicefive.resources.rules_hit_list_1
 import net.zodac.dicefive.resources.rules_hit_list_10
 import net.zodac.dicefive.resources.rules_hit_list_11
@@ -313,6 +309,7 @@ import net.zodac.dicefive.resources.score_two_pair
 import net.zodac.dicefive.resources.score_yellows
 import net.zodac.dicefive.ui.common.FooterPill
 import net.zodac.dicefive.ui.common.LOGO_DICE
+import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SoraFontFamily
@@ -332,13 +329,14 @@ import net.zodac.dicefive.ui.game.CategoryTile
 import net.zodac.dicefive.ui.game.FADED_DIE_ALPHA
 import net.zodac.dicefive.ui.game.LockedChains
 import net.zodac.dicefive.ui.game.TurnTimerBadge
+import net.zodac.dicefive.ui.game.drawColumnOutline
+import net.zodac.dicefive.ui.game.targetProgress
+import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.style.ClassicGoldDiceCupStyle
 import net.zodac.dicefive.ui.style.IvoryDiceStyle
 import net.zodac.dicefive.ui.style.PIP_FACES
 import net.zodac.dicefive.ui.style.numberedLike
 import net.zodac.dicefive.ui.style.palette
-import net.zodac.dicefive.ui.game.drawColumnOutline
-import net.zodac.dicefive.ui.game.targetProgress
 import org.jetbrains.compose.resources.StringResource
 
 /** One page of [RulesScreen]. [title] heads the page itself; [tabLabel] is the shorter name its tab
@@ -1801,7 +1799,7 @@ private fun TabScrollChevron(scrollState: ScrollState, forward: Boolean, modifie
             .clearAndSetSemantics {},
     ) {
         Icon(
-            imageVector = if (forward) Icons.AutoMirrored.Filled.KeyboardArrowRight else Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            imageVector = if (forward) Symbols.KeyboardArrowRight else Symbols.KeyboardArrowLeft,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
         )

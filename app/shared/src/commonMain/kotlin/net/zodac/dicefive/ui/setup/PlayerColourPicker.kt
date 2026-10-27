@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +36,7 @@ import net.zodac.dicefive.resources.setup_colour_select_action
 import net.zodac.dicefive.resources.setup_colour_swaps_cd
 import net.zodac.dicefive.ui.common.ColourDisc
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.theme.color
 
 /** The coloured dot on a player's row and in the pop-up: [SWATCH_SIZE] drawn inside a 48dp touch target. */
@@ -138,7 +137,7 @@ fun PlayerColourPicker(
 private fun Swatch(colour: PlayerColour, checked: Boolean = false) {
     ColourDisc(colour.color, SWATCH_SIZE, MaterialTheme.colorScheme.outlineVariant) {
         if (checked) {
-            Icon(imageVector = Icons.Filled.Check, contentDescription = null, tint = Color.Black.copy(alpha = 0.8f), modifier = Modifier.size(18.dp))
+            Icon(imageVector = Symbols.Check, contentDescription = null, tint = Color.Black.copy(alpha = 0.8f), modifier = Modifier.size(18.dp))
         }
     }
 }

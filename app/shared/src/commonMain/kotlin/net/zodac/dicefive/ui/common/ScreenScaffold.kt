@@ -25,8 +25,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -37,8 +35,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -58,10 +56,11 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_back_cd
 import net.zodac.dicefive.ui.game.landscapeGameContentWidth
-import kotlin.math.abs
+import net.zodac.dicefive.ui.icons.Symbols
 
 /** How long a page's content takes to fade in once it's opened - see [ScreenScaffold]. */
 const val PAGE_CONTENT_FADE_IN_MILLIS = 100
@@ -259,7 +258,7 @@ fun LandscapePage(content: @Composable () -> Unit) {
 @Composable
 fun BackArrow(onBack: () -> Unit, modifier: Modifier = Modifier) {
     IconButton(onClick = onBack, modifier = modifier) {
-        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back_cd))
+        Icon(imageVector = Symbols.ArrowBack, contentDescription = stringResource(Res.string.common_back_cd))
     }
 }
 

@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.House
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,8 +23,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.TextUnit
@@ -44,6 +42,7 @@ import net.zodac.dicefive.resources.ic_stairs
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.style.PipFace
 import net.zodac.dicefive.ui.style.palette
@@ -233,14 +232,14 @@ private fun TargetIcon(target: HitTarget, matches: List<PlaceMatch>?, color: Col
 private fun HouseIcon(color: Color, shadowed: Boolean = false) {
     if (shadowed) {
         Icon(
-            imageVector = Icons.Filled.House,
+            imageVector = Symbols.House,
             contentDescription = null,
             tint = Color.Black.copy(alpha = 0.45f),
             modifier = Modifier.fillMaxSize().padding(8.dp).offset(x = 1.dp, y = 1.dp),
         )
     }
     Icon(
-        imageVector = Icons.Filled.House,
+        imageVector = Symbols.House,
         contentDescription = null,
         tint = color,
         modifier = Modifier.fillMaxSize().padding(8.dp),
@@ -330,8 +329,8 @@ private fun FiveOfAKindIcon(color: Color, fontSize: TextUnit, bonusCount: Int) {
 private fun StairsWithRunBadge(color: Color, runLength: Int, dimmed: Boolean) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         Icon(
-            // A plain custom shape (ic_stairs.xml), not Icons.Filled/Outlined.Stairs: both of
-            // Material's variants come from its wayfinding/signage icon family and draw the
+            // A plain custom shape (ic_stairs.xml), not Material's Stairs: both of its fill
+            // styles come from its wayfinding/signage icon family and draw the
             // pictogram framed inside its own square outline (mimicking real accessibility
             // signage) - that frame showed up as a stray border around the icon once placed
             // inside this app's own tile chrome, in either fill style. This shape has no frame,

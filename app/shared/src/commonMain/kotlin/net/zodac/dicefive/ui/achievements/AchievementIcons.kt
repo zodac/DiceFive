@@ -3,98 +3,6 @@ package net.zodac.dicefive.ui.achievements
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Help
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.AcUnit
-import androidx.compose.material.icons.filled.Adjust
-import androidx.compose.material.icons.filled.Air
-import androidx.compose.material.icons.filled.Android
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.AssignmentTurnedIn
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Balance
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Calculate
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.Casino
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ColorLens
-import androidx.compose.material.icons.filled.Cyclone
-import androidx.compose.material.icons.filled.DeleteForever
-import androidx.compose.material.icons.filled.DeveloperMode
-import androidx.compose.material.icons.filled.DoNotTouch
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.EmojiPeople
-import androidx.compose.material.icons.filled.EventRepeat
-import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.FastForward
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Filter1
-import androidx.compose.material.icons.filled.Filter3
-import androidx.compose.material.icons.filled.Filter7
-import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material.icons.filled.FormatListNumbered
-import androidx.compose.material.icons.filled.FormatPaint
-import androidx.compose.material.icons.filled.Gavel
-import androidx.compose.material.icons.filled.GpsFixed
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.HeartBroken
-import androidx.compose.material.icons.filled.HomeWork
-import androidx.compose.material.icons.filled.HourglassEmpty
-import androidx.compose.material.icons.filled.House
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
-import androidx.compose.material.icons.filled.KeyboardDoubleArrowUp
-import androidx.compose.material.icons.filled.Landslide
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Looks3
-import androidx.compose.material.icons.filled.Looks6
-import androidx.compose.material.icons.filled.LooksTwo
-import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.MilitaryTech
-import androidx.compose.material.icons.filled.NewReleases
-import androidx.compose.material.icons.filled.NoMeetingRoom
-import androidx.compose.material.icons.filled.Numbers
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.PriorityHigh
-import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.QuestionMark
-import androidx.compose.material.icons.filled.Quiz
-import androidx.compose.material.icons.filled.RecordVoiceOver
-import androidx.compose.material.icons.filled.RemoveCircle
-import androidx.compose.material.icons.filled.Repeat
-import androidx.compose.material.icons.filled.Replay
-import androidx.compose.material.icons.filled.Restore
-import androidx.compose.material.icons.filled.RocketLaunch
-import androidx.compose.material.icons.filled.Route
-import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
-import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.Spa
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Stars
-import androidx.compose.material.icons.filled.Storefront
-import androidx.compose.material.icons.filled.Straighten
-import androidx.compose.material.icons.filled.Style
-import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.SyncAlt
-import androidx.compose.material.icons.filled.ThumbUp
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.Traffic
-import androidx.compose.material.icons.filled.Upgrade
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Whatshot
-import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -120,11 +28,11 @@ import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.ic_cowboy_hat
 import net.zodac.dicefive.resources.ic_stairs
 import net.zodac.dicefive.resources.ic_time_machine_car
+import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.style.CUP_VIEW_SQUASH
 import net.zodac.dicefive.ui.style.pipLayout
 import net.zodac.dicefive.ui.theme.AchievementDeveloperCyan
 import net.zodac.dicefive.ui.theme.AchievementHeartRed
-import net.zodac.dicefive.ui.theme.AchievementTrophyGold
 import net.zodac.dicefive.ui.theme.DicePipColor
 import net.zodac.dicefive.ui.theme.FlowerpotLeaf
 import net.zodac.dicefive.ui.theme.FlowerpotLeafDark
@@ -159,9 +67,9 @@ import org.jetbrains.compose.resources.vectorResource
 
 /**
  * The glyph an unlocked [Achievement] shows in [AchievementsScreen]. Every achievement gets its
- * own icon rather than a single stock trophy - almost all stock Material glyphs (a couple, where
- * nothing in Material fit, borrow a bespoke drawable from `ui/game/CategoryIcon.kt` or a small
- * one drawn just for this), picked to hint at what the achievement is actually about.
+ * own icon rather than a single stock trophy - mostly Material Symbols ([Symbols]; where nothing
+ * there fit, a bespoke drawable from `ui/game/CategoryIcon.kt` or one drawn just for this, in
+ * `DrawnAchievementIcons.kt`), picked to hint at what the achievement is actually about.
  * [AchievementsScreen] falls back to [LOCKED_ACHIEVEMENT_ICON] until an achievement is unlocked,
  * so none of this is visible - or a spoiler - beforehand.
  *
@@ -175,135 +83,145 @@ val Achievement.icon: ImageVector
     @Composable
     get() = when (this) {
         // ---- Milestones ---------------------------------------------------------------------
-        Achievement.THE_JOURNEY_BEGINS -> Icons.Filled.RocketLaunch
-        Achievement.PRACTICE_MAKES_PERFECT -> Icons.Filled.Person
-        Achievement.FULL_TABLE -> Icons.Filled.Groups
-        Achievement.LETS_FINISH_THIS -> Icons.Filled.Restore
-        Achievement.ONE_MORE_TIME -> Icons.Filled.Replay
-        Achievement.GETTING_COMFORTABLE -> Icons.Filled.Numbers
-        Achievement.REGULAR -> Icons.Filled.EventRepeat
-        Achievement.CENTURION -> Icons.Filled.MilitaryTech
-        Achievement.HALL_OF_FAMER -> Icons.Filled.EmojiEvents
-        Achievement.WELL_ROLLED -> Icons.Filled.Casino
-        Achievement.ON_A_ROLL -> Icons.Filled.Whatshot
-        Achievement.UNTOUCHABLE -> Icons.Filled.LocalFireDepartment
-        Achievement.PROFESSIONAL_ROLLER -> Icons.Filled.WorkspacePremium
+        Achievement.THE_JOURNEY_BEGINS -> Symbols.RocketLaunch
+        Achievement.PRACTICE_MAKES_PERFECT -> Symbols.Person
+        Achievement.FULL_TABLE -> Symbols.Groups
+        Achievement.LETS_FINISH_THIS -> Symbols.History
+        Achievement.ONE_MORE_TIME -> Symbols.Replay
+        Achievement.GETTING_COMFORTABLE -> Symbols.Numbers
+        Achievement.REGULAR -> Symbols.EventRepeat
+        Achievement.CENTURION -> Symbols.MilitaryTech
+        Achievement.HALL_OF_FAMER -> Symbols.EmojiEvents
+        Achievement.WELL_ROLLED -> Symbols.Casino
+        Achievement.ON_A_ROLL -> Symbols.ModeHeat
+        // A crown for ten wins in a row: a flame would be too close to On A Roll's.
+        Achievement.UNTOUCHABLE -> Symbols.Crown
+        Achievement.PROFESSIONAL_ROLLER -> Symbols.WorkspacePremium
 
         // ---- Dice feats -----------------------------------------------------------------------
-        Achievement.BONUS_ROUND -> Icons.Filled.Star
-        Achievement.FIVE_X -> Icons.Filled.NewReleases
-        Achievement.SPOTLESS -> Icons.Filled.CheckCircle
+        Achievement.BONUS_ROUND -> Symbols.Star
+        // Drawn for this app: the 5x box's own mark, cut out of a burst.
+        Achievement.FIVE_X -> FIVE_X_BURST_ICON
+        Achievement.SPOTLESS -> Symbols.CheckCircle
         // Same custom shape as Small/Large Straight's own tile icon (CategoryIcon.kt) - see
-        // ic_stairs.xml for why that's a bespoke drawable rather than Icons.Filled/Outlined.Stairs.
+        // ic_stairs.xml for why that's a bespoke drawable rather than Material's Stairs.
         Achievement.STRAIGHT_TALKER -> vectorResource(Res.drawable.ic_stairs)
-        Achievement.UPPER_CLASS -> Icons.Filled.ArrowUpward
-        Achievement.LOWER_CLASS -> Icons.Filled.ArrowDownward
-        Achievement.ENCORE -> Icons.Filled.Repeat
-        Achievement.DICE_WHISPERER -> Icons.Filled.RecordVoiceOver
-        Achievement.HAT_TRICK -> Icons.Filled.Looks3
+        Achievement.UPPER_CLASS -> Symbols.ArrowUpward
+        Achievement.LOWER_CLASS -> Symbols.ArrowDownward
+        Achievement.ENCORE -> Symbols.Repeat
+        Achievement.DICE_WHISPERER -> Symbols.RecordVoiceOver
+        Achievement.HAT_TRICK -> Symbols.Looks3
         // Drawn for this app: every die face, 1 to 6 - the set of numbers it collects.
         Achievement.FULL_SET -> DIE_FACE_SET_ICON
-        Achievement.DEJA_VU -> Icons.Filled.Balance
-        Achievement.TWICE_IN_A_LIFETIME -> Icons.Filled.SyncAlt
-        Achievement.NATURAL_5X -> Icons.Filled.AutoAwesome
-        Achievement.I_CAN_COUNT -> Icons.Filled.FormatListNumbered
-        Achievement.A_CUNNING_STRATEGY -> Icons.Filled.Psychology
-        Achievement.EXACT_CHANGE -> Icons.Filled.Calculate
+        // Stacked copies of the same thing, the dice coming up the same again.
+        Achievement.DEJA_VU -> Symbols.FilterNone
+        Achievement.TWICE_IN_A_LIFETIME -> Symbols.SyncAlt
+        Achievement.NATURAL_5X -> Symbols.AutoAwesome
+        // Drawn for this app: a number line, 1 2 3, as counting is first taught.
+        Achievement.I_CAN_COUNT -> NUMBER_LINE_ICON
+        Achievement.A_CUNNING_STRATEGY -> Symbols.Psychology
+        Achievement.EXACT_CHANGE -> Symbols.Calculate
 
         // ---- Scoring ----------------------------------------------------------------------------
-        Achievement.NEW_PERSONAL_BEST -> Icons.AutoMirrored.Filled.TrendingUp
-        Achievement.TON -> Icons.Filled.Filter1
-        Achievement.SOLID_ROUND -> Icons.Filled.Speed
-        Achievement.SHARPSHOOTER -> Icons.Filled.GpsFixed
-        Achievement.HIGH_ROLLER -> Icons.Filled.KeyboardDoubleArrowUp
-        Achievement.DICE_DEITY -> Icons.Filled.Bolt
+        Achievement.NEW_PERSONAL_BEST -> Symbols.TrendingUp
+        // Drawn for this app: a kettlebell marked 100.
+        Achievement.TON -> KETTLEBELL_100_ICON
+        Achievement.SOLID_ROUND -> Symbols.Speed
+        Achievement.SHARPSHOOTER -> Symbols.MyLocation
+        Achievement.HIGH_ROLLER -> Symbols.KeyboardDoubleArrowUp
+        Achievement.DICE_DEITY -> Symbols.Bolt
 
         // ---- Winning ----------------------------------------------------------------------------
-        Achievement.FIRST_VICTORY -> Icons.Filled.Flag
-        Achievement.LANDSLIDE -> Icons.Filled.Landslide
-        Achievement.PHOTO_FINISH -> Icons.Filled.PhotoCamera
+        Achievement.FIRST_VICTORY -> Symbols.Flag
+        Achievement.LANDSLIDE -> Symbols.Landslide
+        Achievement.PHOTO_FINISH -> Symbols.PhotoCamera
         // A gavel - the ruling that settled an otherwise-equal score.
-        Achievement.TIE_BREAK -> Icons.Filled.Gavel
+        Achievement.TIE_BREAK -> Symbols.Gavel
         // No cowboy-with-twin-pistols glyph in Material (nor any hat at all) for the "quick draw"
         // read of a last-round comeback, so this is the requested fallback: a plain cowboy hat.
         Achievement.COMEBACK_KID -> vectorResource(Res.drawable.ic_cowboy_hat)
-        Achievement.LAST_HUMAN_STANDING -> Icons.Filled.EmojiPeople
-        Achievement.HOW_DO_YOU_DO_FELLOW_CPUS -> Icons.Filled.Memory
-        Achievement.NATURALLY_GIFTED -> Icons.Filled.Spa
-        // Drawn for this app: a googly eye, its pupil off to one side.
+        Achievement.LAST_HUMAN_STANDING -> Symbols.EmojiPeople
+        Achievement.HOW_DO_YOU_DO_FELLOW_CPUS -> Symbols.Memory
+        Achievement.NATURALLY_GIFTED -> Symbols.Spa
+        // Drawn for this app: a googly eye, its pupil off to one side, in its own white and black.
         Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE -> GOOGLY_EYE_ICON
 
         // ---- Game modes ---------------------------------------------------------------------------
         // A wedge-shaped sports car trailing fire - a nod to the film the title quotes, drawn from
         // scratch rather than traced from it.
         Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES -> vectorResource(Res.drawable.ic_time_machine_car)
-        // Three lights, for three colours.
-        Achievement.TRICOLOURFUL -> Icons.Filled.Traffic
-        Achievement.TRICOLOUR_ME_IMPRESSED -> Icons.Filled.ColorLens
+        // Drawn for this app, in fixed colours: a traffic light lit in the mode's red, yellow and blue.
+        Achievement.TRICOLOURFUL -> TRICOLOUR_TRAFFIC_LIGHT_ICON
+        // The Tricolour leaderboard's own three dice, in the mode's colours.
+        Achievement.TRICOLOUR_ME_IMPRESSED -> TRICOLOUR_DICE_ICON
         // Fast-forward rather than Speed or a bolt - those are Solid Round's and Dice Deity's.
-        Achievement.QUICK_ON_THE_DRAW -> Icons.Filled.FastForward
-        // A bullseye, for hitting the mark with so few boxes to do it in.
-        Achievement.SIX_OF_THE_BEST -> Icons.Filled.Adjust
+        Achievement.QUICK_ON_THE_DRAW -> Symbols.FastForward
+        // A clock at speed, for a big score in the shortest game.
+        Achievement.SIX_OF_THE_BEST -> Symbols.AvgPace
         // A hand of cards, for the poker game the mode is named after.
-        Achievement.HOLD_EM -> Icons.Filled.Style
-        Achievement.LUCKY_SEVEN -> Icons.Filled.Filter7
-        Achievement.GONE_WITH_THE_WIND -> Icons.Filled.Cyclone
-        Achievement.THIRD_TIMES_THE_CHARM -> Icons.Filled.Air
+        Achievement.HOLD_EM -> Symbols.Style
+        Achievement.LUCKY_SEVEN -> Symbols.Filter7
+        Achievement.GONE_WITH_THE_WIND -> Symbols.Cyclone
+        Achievement.THIRD_TIMES_THE_CHARM -> Symbols.Air
         // A hexagon, the outline of a twenty-sided die seen face on, with a 20 in it; and a star for each of the two bonuses.
         Achievement.NAT_20 -> D20_NAT_20_ICON
-        Achievement.CRITICAL_SUCCESS -> Icons.Filled.Stars
+        Achievement.CRITICAL_SUCCESS -> Symbols.Stars
         // A list with every job ticked off - the contract seen through.
-        Achievement.CONTRACT_FULFILLED -> Icons.Filled.AssignmentTurnedIn
-        // Drawn for this app: Material's bullseyes have no arrow in them.
-        Achievement.RIGHT_ON_TARGET -> BULLSEYE_ARROW_ICON
+        Achievement.CONTRACT_FULFILLED -> Symbols.AssignmentTurnedIn
+        Achievement.RIGHT_ON_TARGET -> Symbols.Target
         // A piggy bank, for rolls put by for a rainy day.
-        Achievement.RAINY_DAY_FUND -> Icons.Filled.Savings
-        // Drawn for this app: a devil's head, for dice cursed into chains.
-        Achievement.BAD_OMEN -> DEVIL_HEAD_ICON
+        Achievement.RAINY_DAY_FUND -> Symbols.Savings
+        // A skull, for dice cursed into chains.
+        Achievement.BAD_OMEN -> Symbols.Skull
         // A compass, for finding the way round every mode there is.
-        Achievement.GRAND_TOUR -> Icons.Filled.Explore
+        Achievement.GRAND_TOUR -> Symbols.Explore
 
         // ---- Misfortune -------------------------------------------------------------------------
-        Achievement.SCRATCHED -> Icons.Filled.Cancel
-        Achievement.THE_DICE_HATE_ME -> Icons.Filled.SentimentVeryDissatisfied
-        Achievement.ALMOST_FAMOUS -> Icons.Filled.HeartBroken
-        Achievement.I_ROBOT -> Icons.Filled.Android
-        Achievement.PIPPED_TO_THE_POST -> Icons.Filled.Timer
-        Achievement.DEFEAT_FROM_THE_JAWS_OF_VICTORY -> Icons.Filled.PriorityHigh
-        Achievement.COLD_DICE -> Icons.Filled.AcUnit
-        Achievement.LOW_ROLLS -> Icons.AutoMirrored.Filled.TrendingDown
+        Achievement.SCRATCHED -> Symbols.Cancel
+        Achievement.THE_DICE_HATE_ME -> Symbols.SentimentDissatisfied
+        Achievement.ALMOST_FAMOUS -> Symbols.HeartBroken
+        Achievement.I_ROBOT -> Symbols.Android
+        Achievement.PIPPED_TO_THE_POST -> Symbols.Timer
+        // Drawn for this app: a trophy cracked in two - the win that broke at the last.
+        Achievement.DEFEAT_FROM_THE_JAWS_OF_VICTORY -> CRACKED_TROPHY_ICON
+        Achievement.COLD_DICE -> Symbols.AcUnit
+        Achievement.LOW_ROLLS -> Symbols.TrendingDown
         // Drawn for this app: the bonus's 63, struck through.
         Achievement.PROBABILITY_NEVER_HEARD_OF_HER -> STRUCK_THROUGH_63_ICON
 
         // ---- Miscellaneous (hidden) ---------------------------------------------------------------
-        Achievement.COMMITMENT_ISSUES -> Icons.Filled.SwapHoriz
-        Achievement.DECISIONS_DECISIONS -> Icons.AutoMirrored.Filled.Help
-        Achievement.TIME_TO_LET_IT_GO -> Icons.Filled.HourglassEmpty
-        Achievement.TIME_WASTING -> Icons.Filled.Shuffle
+        // Drawn for this app: a ring with a gem on it.
+        Achievement.COMMITMENT_ISSUES -> WEDDING_RING_ICON
+        Achievement.DECISIONS_DECISIONS -> Symbols.Help
+        // Waving goodbye to the die that was held twice and never used.
+        Achievement.TIME_TO_LET_IT_GO -> Symbols.WavingHand
+        Achievement.TIME_WASTING -> Symbols.HourglassEmpty
         // A hand crossed out - not a die touched all game.
-        Achievement.HANDS_OFF -> Icons.Filled.DoNotTouch
+        Achievement.HANDS_OFF -> Symbols.DoNotTouch
         // The same glyph UndoButton.kt uses for the real undo control, not its Redo mirror image -
         // this achievement is about undoing, not redoing.
-        Achievement.I_DIDNT_MEAN_THAT -> Icons.AutoMirrored.Filled.Undo
-        Achievement.NO_MORE_ROLLS -> Icons.Filled.Block
-        Achievement.IMPATIENT -> Icons.Filled.FlashOn
+        Achievement.I_DIDNT_MEAN_THAT -> Symbols.Undo
+        Achievement.NO_MORE_ROLLS -> Symbols.Block
+        // A clock with speed lines, rather than a bolt - that's Dice Deity's.
+        Achievement.IMPATIENT -> Symbols.Acute
         // The timer shuffling your scores into place for you.
-        Achievement.FRESH_COAT_OF_PAINT -> Icons.Filled.FormatPaint
-        Achievement.EMPTY_HOUSE -> Icons.Filled.NoMeetingRoom
-        Achievement.FULLER_HOUSE -> Icons.Filled.House
-        Achievement.HOUSE_CALL -> Icons.Filled.HomeWork
-        Achievement.STRAIGHT_AWAY -> Icons.Filled.Route
-        Achievement.SIX_APPEAL -> Icons.Filled.Looks6
-        Achievement.TAKING_A_CHANCE -> Icons.AutoMirrored.Filled.HelpOutline
-        Achievement.PRODUCT_PLACEMENT -> Icons.Filled.Storefront
-        Achievement.WHAT_WAS_THE_POINT_OF_THAT -> Icons.Filled.RemoveCircle
-        Achievement.NICE -> Icons.Filled.ThumbUp
-        Achievement.ZERO_TO_HERO -> Icons.Filled.Upgrade
-        Achievement.WASTED_FORTUNE -> Icons.Filled.DeleteForever
-        Achievement.SIZE_ISNT_EVERYTHING -> Icons.Filled.Straighten
-        Achievement.HOW_DO_YOU_PLAY_THIS_GAME -> Icons.Filled.Quiz
-        Achievement.ROCK_BOTTOM -> Icons.Filled.KeyboardDoubleArrowDown
-        Achievement.WHO_MADE_THIS -> Icons.Filled.Info
+        Achievement.FRESH_COAT_OF_PAINT -> Symbols.FormatPaint
+        Achievement.EMPTY_HOUSE -> Symbols.OtherHouses
+        Achievement.FULLER_HOUSE -> Symbols.House
+        Achievement.HOUSE_CALL -> Symbols.HomeWork
+        // Open stairs, a straight - not Straight Talker's (and the scorecard's) own stairs.
+        Achievement.STRAIGHT_AWAY -> Symbols.Stairs2
+        Achievement.SIX_APPEAL -> Symbols.Looks6
+        Achievement.TAKING_A_CHANCE -> Symbols.HelpOutline
+        Achievement.PRODUCT_PLACEMENT -> Symbols.Storefront
+        Achievement.WHAT_WAS_THE_POINT_OF_THAT -> Symbols.SentimentNeutral
+        Achievement.NICE -> Symbols.ThumbUp
+        Achievement.ZERO_TO_HERO -> Symbols.Upgrade
+        Achievement.WASTED_FORTUNE -> Symbols.DeleteForever
+        Achievement.SIZE_ISNT_EVERYTHING -> Symbols.Straighten
+        Achievement.HOW_DO_YOU_PLAY_THIS_GAME -> Symbols.Quiz
+        Achievement.ROCK_BOTTOM -> Symbols.Anchor
+        Achievement.WHO_MADE_THIS -> Symbols.Info
 
         // ---- Collection ---------------------------------------------------------------------------
         // The six score ranges, lowest to highest, count up a die's faces: one pip more for each.
@@ -313,17 +231,18 @@ val Achievement.icon: ImageVector
         Achievement.AUDITOR -> dieFaceIcon(4)
         Achievement.ARCHIVIST -> dieFaceIcon(5)
         Achievement.HISTORIAN -> dieFaceIcon(6)
-        Achievement.COMPLETIONIST -> Icons.Filled.EmojiEvents
+        // Drawn for this app: the trophy in crystal, for the last of them all.
+        Achievement.COMPLETIONIST -> CRYSTAL_TROPHY_ICON
 
         // ---- Easter Eggs ------------------------------------------------------------------------
         // Every icon in this category is a fixed colour rather than the ambient tint - see
         // [iconTintOrUnspecified] and .claude/UI.md's "The achievements list" section.
         // Android's own developer-mode glyph, in the Wireframe dice's cyan.
-        Achievement.ARE_YOU_A_DEVELOPER -> Icons.Filled.DeveloperMode
-        Achievement.BIG_FAN -> Icons.Filled.Favorite
+        Achievement.ARE_YOU_A_DEVELOPER -> Symbols.DeveloperMode
+        Achievement.BIG_FAN -> Symbols.Favorite
         // A real tricolour flag, not a single-colour Material glyph - this one's whole point is
         // its own three fixed colours, so it's built with real fills rather than borrowed from
-        // Icons.Filled.
+        // Material Symbols.
         Achievement.LUCK_OF_THE_IRISH -> rememberIrishFlagIcon()
         // A martini, not a Material glyph - like the Irish flag above, its whole point is its own
         // fixed colours (glass, liquid, olive), not a single ambient tint.
@@ -352,7 +271,7 @@ val Achievement.icon: ImageVector
 @Composable
 fun BoxScope.StyleRewardStar(tint: Color) {
     Icon(
-        imageVector = Icons.Filled.Star,
+        imageVector = Symbols.Star,
         contentDescription = null,
         tint = tint,
         modifier = Modifier.align(Alignment.TopEnd).offset(x = STAR_BADGE_OFFSET, y = -STAR_BADGE_OFFSET).size(STAR_BADGE_SIZE),
@@ -363,16 +282,21 @@ private val STAR_BADGE_SIZE = 16.dp
 private val STAR_BADGE_OFFSET = 6.dp
 
 /**
- * [tint] as given, except for the fixed-colour Easter Eggs icons, where it's overridden instead:
+ * [tint] as given, except for the fixed-colour icons, where it's overridden instead:
  * [Achievement.BIG_FAN]'s heart is always [AchievementHeartRed], and [Achievement.LUCK_OF_THE_IRISH]
  * gets [Color.Unspecified], which tells [androidx.compose.material3.Icon] to skip its colour
  * filter entirely and show the flag vector's own three fills. Every Easter Egg means a specific
- * colour, not whatever container happens to hold it - see .claude/UI.md.
+ * colour, not whatever container happens to hold it - see .claude/UI_SCREENS.md. So do the few
+ * others about a colour: Tricolour's red, yellow and blue, the googly eye's white, and the
+ * Completionist's crystal.
  */
 fun Achievement.iconTintOrUnspecified(tint: Color): Color = when (this) {
+    Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE -> Color.Unspecified
+    Achievement.TRICOLOURFUL -> Color.Unspecified
+    Achievement.TRICOLOUR_ME_IMPRESSED -> Color.Unspecified
+    Achievement.COMPLETIONIST -> Color.Unspecified
     Achievement.ARE_YOU_A_DEVELOPER -> AchievementDeveloperCyan
     Achievement.BIG_FAN -> AchievementHeartRed
-    Achievement.COMPLETIONIST -> AchievementTrophyGold
     Achievement.LUCK_OF_THE_IRISH -> Color.Unspecified
     Achievement.SHAKEN_NOT_TAPPED -> Color.Unspecified
     Achievement.THE_MAGICIANS_SECRET -> Color.Unspecified
@@ -607,7 +531,7 @@ private fun rememberMagicianIcon(): ImageVector = remember {
 }
 
 /** Shown in place of [icon] for every achievement until it's unlocked - a mystery, not a spoiler. */
-val LOCKED_ACHIEVEMENT_ICON: ImageVector = Icons.Filled.QuestionMark
+val LOCKED_ACHIEVEMENT_ICON: ImageVector = Symbols.QuestionMark
 
 // The dice fan icon: each die's side, and the gap between neighbours, in the icon's 24-unit
 // viewport - as big as five across can be, the end dice's tilted corners just inside its edges, with

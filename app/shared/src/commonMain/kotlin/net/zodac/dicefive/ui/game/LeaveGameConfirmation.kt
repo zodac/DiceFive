@@ -1,7 +1,5 @@
 package net.zodac.dicefive.ui.game
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,6 +14,7 @@ import net.zodac.dicefive.resources.game_leave_tutorial_message
 import net.zodac.dicefive.resources.game_leave_tutorial_title
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.icons.Symbols
 
 /**
  * The one "Leave game?" confirmation, whichever way the player is leaving - the system back
@@ -60,7 +59,7 @@ val LocalLeaveGameConfirmation = staticCompositionLocalOf { LeaveGameConfirmatio
 fun LeaveGameConfirmationDialog(confirmation: LeaveGameConfirmation) {
     if (!confirmation.isShowing) return
     DiceFiveDialog(
-        icon = Icons.AutoMirrored.Filled.Logout,
+        icon = Symbols.Logout,
         title = stringResource(if (confirmation.leavingTutorial) Res.string.game_leave_tutorial_title else Res.string.game_leave_title),
         message = stringResource(if (confirmation.leavingTutorial) Res.string.game_leave_tutorial_message else Res.string.game_leave_message),
         confirmLabel = stringResource(Res.string.game_leave_confirm),

@@ -254,7 +254,10 @@ are the patterns). Real TalkBack speech can't be checked here; the maintainer kn
     - disabled Undo: 2.4-2.9:1;
     - a scored tile against the page: 1.4:1 (its state is spoken).
   - Below 3:1:
-    - the locked padlock over light art: ~2.1:1 (it's spoken "Locked").
+    - the locked padlock over light art: ~2.1:1 (it's spoken "Locked");
+    - Tricolour's red and blue in the fixed-colour achievement icons (Tricolourful, Tricolour Me Impressed) on the
+      list row and banner: 2.2-2.6:1, and Tricolourful's charcoal housing lower still. Decorative: the row's title
+      and description are what's spoken.
 - **Not looked at**: whether a title-less dialog announces anything (the locked-style dialog passes `title = null`),
   and the Achievements rows' locked state beyond the icon.
 

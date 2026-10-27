@@ -282,8 +282,19 @@ val AchievementHeartRed = Color(0xFFE53935)
 /** Are You A Developer?'s icon: the cyan of the Wireframe dice it unlocks. */
 val AchievementDeveloperCyan = Color(0xFF3FE6FF)
 
-/** The Completionist trophy: always gold, whatever the row or banner holding it. */
-val AchievementTrophyGold = Color(0xFFFFC107)
+/** The Completionist trophy's crystal, top left to bottom right: white, ice, cyan, violet. */
+val CrystalTrophyWhite = Color(0xFFFFFFFF)
+val CrystalTrophyIce = Color(0xFFCDEFFF)
+val CrystalTrophyCyan = Color(0xFF8EC5EC)
+val CrystalTrophyViolet = Color(0xFF6F7FD8)
+
+/** Everything Everywhere All At Once's googly eye: a white eye with a dark rim, a black pupil and its glint. */
+val GooglyEyeWhite = Color(0xFFFFFFFF)
+val GooglyEyeRim = Color(0xFF20232B)
+val GooglyEyePupil = Color(0xFF14161C)
+
+/** Tricolourful's traffic light: a charcoal housing round the mode's red, yellow and blue lights. */
+val TrafficLightHousing = Color(0xFF2B2F38)
 
 // Shaken, Not Tapped's martini icon (Achievement.iconTintOrUnspecified) - same "fixed meaning,
 // not a theme-able choice" reasoning as the heart/podium accents above: a martini has a glass, a

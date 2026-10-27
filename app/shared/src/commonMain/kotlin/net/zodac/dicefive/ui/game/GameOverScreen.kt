@@ -19,8 +19,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -59,15 +57,16 @@ import net.zodac.dicefive.resources.gameover_tutorial_done
 import net.zodac.dicefive.resources.gameover_tutorial_new_game
 import net.zodac.dicefive.resources.gameover_winner
 import net.zodac.dicefive.ui.common.BrandBackdrop
-import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.LandscapePage
 import net.zodac.dicefive.ui.common.LocalLandscapePage
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.PageColumn
-import net.zodac.dicefive.ui.common.TwoPanes
 import net.zodac.dicefive.ui.common.PageTopBar
 import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.TwoPanes
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.theme.CupRimGold
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.GoldAccentDim
@@ -242,7 +241,7 @@ private fun WinnerCard(player: PlayerState, solo: Boolean, tieBreakReason: TieBr
         ) {
             if (!solo) {
                 Icon(
-                    imageVector = Icons.Filled.EmojiEvents,
+                    imageVector = Symbols.EmojiEvents,
                     contentDescription = stringResource(Res.string.gameover_winner),
                     modifier = Modifier.size(44.dp),
                 )

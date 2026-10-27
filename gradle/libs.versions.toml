@@ -7,12 +7,11 @@ activityCompose = "1.13.0"
 composeBom = "2026.09.00"
 # Compose Multiplatform (the shared UI). On Android each JetBrains artifact resolves to the androidx
 # one it wraps, so these track the Compose BOM above: CMP 1.12.x is androidx Compose UI 1.12.x, and
-# JetBrains' material3 1.9.x is androidx material3 1.4.x. JetBrains' icons stopped at 1.7.3.
+# JetBrains' material3 1.9.x is androidx material3 1.4.x.
 # @update matches composeBom: org.jetbrains.compose.ui:ui -> androidx.compose.ui:ui
 composeMultiplatform = "1.12.2"
 # @update matches composeBom: org.jetbrains.compose.material3:material3 -> androidx.compose.material3:material3
 composeMultiplatformMaterial3 = "1.9.0"
-composeMultiplatformMaterialIcons = "1.7.3"
 jetbrainsLifecycle = "2.11.0"
 jetbrainsNavigation = "2.10.0"
 jetbrainsNavigationEvent = "1.1.0"
@@ -81,7 +80,6 @@ jetbrains-compose-components-resources = { group = "org.jetbrains.compose.compon
 jetbrains-compose-ui-test = { group = "org.jetbrains.compose.ui", name = "ui-test", version.ref = "composeMultiplatform" }
 jetbrains-compose-desktop-jvm = { group = "org.jetbrains.compose.desktop", name = "desktop-jvm", version.ref = "composeMultiplatform" }
 jetbrains-compose-material3 = { group = "org.jetbrains.compose.material3", name = "material3", version.ref = "composeMultiplatformMaterial3" }
-jetbrains-compose-material-icons-extended = { group = "org.jetbrains.compose.material", name = "material-icons-extended", version.ref = "composeMultiplatformMaterialIcons" }
 jetbrains-lifecycle-viewmodel-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "jetbrainsLifecycle" }
 jetbrains-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "jetbrainsLifecycle" }
 jetbrains-navigationevent-compose = { group = "org.jetbrains.androidx.navigationevent", name = "navigationevent-compose", version.ref = "jetbrainsNavigationEvent" }

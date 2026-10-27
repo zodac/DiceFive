@@ -15,24 +15,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Functions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -47,8 +45,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.launch
-import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.game.TutorialStep
+import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.game_totals_alibi_spoken
 import net.zodac.dicefive.resources.game_totals_bonus
@@ -75,6 +73,7 @@ import net.zodac.dicefive.ui.common.joinClauses
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
 import net.zodac.dicefive.ui.common.scorePulse
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 import net.zodac.dicefive.ui.theme.TileTealBorder
@@ -313,7 +312,7 @@ private fun TotalsButton(
                 contentAlignment = Alignment.Center,
             ) {
                 // Decorative: the button's own semantics, above, name it and say the totals.
-                BoardButtonIcon(imageVector = Icons.Filled.Functions, contentDescription = null, tint = color, litHalves = litHalves)
+                BoardButtonIcon(imageVector = Symbols.Functions, contentDescription = null, tint = color, litHalves = litHalves)
             }
         }
     }
