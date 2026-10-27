@@ -2,12 +2,12 @@ package net.zodac.dicefive.game
 
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.Die
-import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
+import net.zodac.dicefive.model.earnableIn
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.heldIndices
 
@@ -184,7 +184,7 @@ class AchievementTracker {
         if (rolled.dice.indices.any { rolled.dice[it].isGolden && !before.dice[it].isGolden }) add(Achievement.EGGCELLENT_DISCOVERY)
 
         addAll(firstRollAchievements(rolled))
-        addAll(postRollAchievements(rolled, before.rollsRemaining, before.dice))
+        addAll(postRollAchievements(rolled, before.rollsRemaining, before.dice).earnableIn(rolled.gameMode))
     }
 
     /**
@@ -228,7 +228,7 @@ class AchievementTracker {
         val rollIsHand = !state.gameMode.scoresHeldDiceOnly && dice.none { it.isUnlucky }
 
         // Lucky Seven: every one of Stud's seven dice showing the same number - an achievement for that one mode.
-        if (state.gameMode == GameMode.STUD && values.toSet().size == 1) add(Achievement.LUCKY_SEVEN)
+        if (values.toSet().size == 1) add(Achievement.LUCKY_SEVEN)
 
         // I Can Count!: 1,2,3,4,5 in that order, first roll of the turn only.
         if (rollsRemainingBeforeRoll == state.fullRolls && values == COUNTING_DICE_VALUES) add(Achievement.I_CAN_COUNT)

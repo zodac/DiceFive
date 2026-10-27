@@ -13,6 +13,7 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ProgressStyle
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnTimer
+import net.zodac.dicefive.model.earnableIn
 import net.zodac.dicefive.model.hasGrownSunflower
 import net.zodac.dicefive.model.isLuckOfTheIrish
 import net.zodac.dicefive.model.isPhilWoodward
@@ -288,7 +289,7 @@ object AchievementEngine {
             val players = context.game.players
             if (players.size == 2 && players[1].type == PlayerType.HUMAN && players[1].name == ZODAC_PLAYER_NAME) add(Achievement.BIG_FAN)
             if (context.game.isLuckOfTheIrish) add(Achievement.LUCK_OF_THE_IRISH)
-            if (context.game.gameMode != GameMode.STANDARD) add(Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES)
+            if (!context.game.gameMode.isOfficialRules) add(Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES)
             if (context.previousGame?.let { it.isGameOver && it.wonBy(0) == false } == true) add(Achievement.ONE_MORE_TIME)
             if (context.startedAtLocalHour in MIDNIGHT_DICE_HOURS) add(Achievement.ROLLING_THE_MIDNIGHT_DICE)
         }
@@ -439,7 +440,7 @@ object AchievementEngine {
         // can't earn it - see growsSunflower. Nor can a game on any cup but the Flowerpot that grows.
         award(Achievement.GREENFINGERS, growingFlowerpotInPlay && anyHuman { it.hasGrownSunflower })
 
-        return earned
+        return earned.earnableIn(players.first().gameMode)
     }
 
     private fun earnedBy(
@@ -481,7 +482,7 @@ object AchievementEngine {
             singleScoreCard && state.gameMode.hasStandardCard &&
                 anyHuman { player -> player.allScores.none { it == 0 } && player.upperSectionBonus > 0 },
         )
-        award(Achievement.THIRD_TIMES_THE_CHARM, state.gameMode == GameMode.THIRD_WIND && noZeroes)
+        award(Achievement.THIRD_TIMES_THE_CHARM, noZeroes)
         // The best is off the Leaderboard, so a game that isn't on it has nothing to compare with.
         award(
             Achievement.NEW_PERSONAL_BEST,
@@ -521,17 +522,9 @@ object AchievementEngine {
                 !state.gameMode.scoresHeldDiceOnly && multiplayer && humanWon &&
                 humans.any { it.totalScore == state.topScore && it.allScores.count { v -> v == 0 } - context.playerOneTimedOutZeroes.size >= ZEROES_FOR_HERO },
         )
-        award(Achievement.TRICOLOURFUL, multiplayer && humanWon && state.gameMode == GameMode.TRICOLOUR)
-        award(Achievement.QUICK_ON_THE_DRAW, multiplayer && humanWon && state.gameMode == GameMode.QUICKFIRE)
-        award(
-            Achievement.SIX_OF_THE_BEST,
-            state.gameMode == GameMode.QUICKFIRE && !state.rollModifiers.isActive && !state.extendedScores &&
-                bestHumanScore >= QUICKFIRE_SCORE_TARGET,
-        )
-        award(Achievement.HOLD_EM, multiplayer && humanWon && state.gameMode == GameMode.STUD)
-        award(Achievement.GONE_WITH_THE_WIND, multiplayer && humanWon && state.gameMode == GameMode.THIRD_WIND)
-        award(Achievement.NAT_20, multiplayer && humanWon && state.gameMode == GameMode.D20)
-        award(Achievement.CONTRACT_FULFILLED, multiplayer && humanWon && state.gameMode == GameMode.HIT_LIST)
+        // Each mode's own win - kept for its mode alone, like every achievement with one (see the end).
+        for (achievement in Achievement.entries) if (achievement.isModeWin) award(achievement, multiplayer && humanWon)
+        award(Achievement.SIX_OF_THE_BEST, !state.rollModifiers.isActive && !state.extendedScores && bestHumanScore >= QUICKFIRE_SCORE_TARGET)
         award(Achievement.PIPPED_TO_THE_POST, multiplayer && !humanWon && state.topScore - bestHumanScore == PIPPED_MARGIN)
         award(Achievement.DEFEAT_FROM_THE_JAWS_OF_VICTORY, multiplayer && !humanWon && context.ledIntoFinalRound)
         award(
@@ -571,7 +564,7 @@ object AchievementEngine {
         // No modifier may be on (timer, roll modifiers, Extended Scores, Unlucky Dice): they change the score.
         award(
             Achievement.THE_SOLUTION,
-            players.size == 1 && state.gameMode == GameMode.STANDARD && !state.hasModifiers && isPhilWoodward(players[0].name) &&
+            players.size == 1 && !state.hasModifiers && isPhilWoodward(players[0].name) &&
                 players[0].totalScore == THE_SOLUTION_SCORE,
         )
 
@@ -584,14 +577,14 @@ object AchievementEngine {
         // Every modifier at once, in a mode of its own: the timer, both roll modifiers, Extended Scores and Unlucky Dice.
         award(
             Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE,
-            multiplayer && humanWon && state.gameMode != GameMode.STANDARD && state.turnTimer != TurnTimer.NONE &&
+            multiplayer && humanWon && !state.gameMode.isOfficialRules && state.turnTimer != TurnTimer.NONE &&
                 state.rollModifiers.rollsPerTurn != null && state.rollModifiers.storedRolls && state.extendedScores && state.unluckyDice != null,
         )
 
         // Hands Off!: 200 or more without a die held all game - on Standard's own card and rules, nothing to make it easier.
         award(
             Achievement.HANDS_OFF,
-            state.gameMode == GameMode.STANDARD && !state.hasModifiers && humans.first().diceHeld == 0 &&
+            !state.hasModifiers && humans.first().diceHeld == 0 &&
                 humans.first().totalScore >= HANDS_OFF_SCORE,
         )
 
@@ -604,7 +597,7 @@ object AchievementEngine {
         // game - can only be judged once every upper box is actually filled in.
         award(Achievement.EXACT_CHANGE, anyHuman { it.matchesExactUpperLadder() })
 
-        return earned
+        return earned.earnableIn(state.gameMode)
     }
 
     /**

@@ -8,6 +8,7 @@ import kotlin.test.assertTrue
 import net.zodac.dicefive.LoadedDice
 import net.zodac.dicefive.ScriptedDice
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerType
@@ -151,6 +152,18 @@ class AchievementTrackerTest {
         val rerolled = GameEngine.rollDice(golden, Random(1), goldenOneIn = 1)
         assertTrue(Achievement.EGGCELLENT_DISCOVERY !in tracker.onRoll(golden, rerolled))
         assertTrue(Achievement.EGGCELLENT_DISCOVERY !in tracker.onRoll(before, GameEngine.rollDice(before, Random(1))))
+    }
+
+    @Test
+    fun `every die matching is Lucky Seven in Stud alone - five matching in Standard is not`() {
+        fun earns(mode: GameMode): Boolean {
+            val tracker = AchievementTracker()
+            tracker.startGame()
+            val start = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "P1")), mode)
+            return Achievement.LUCKY_SEVEN in GameEngine.rollDice(start, LoadedDice(3)).let { tracker.onRoll(start, it) }
+        }
+        assertTrue(earns(GameMode.STUD))
+        assertFalse(earns(GameMode.STANDARD))
     }
 
     @Test

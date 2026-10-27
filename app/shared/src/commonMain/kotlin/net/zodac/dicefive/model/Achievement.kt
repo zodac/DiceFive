@@ -406,6 +406,13 @@ enum class Achievement(
      * every several dozen (or several hundred) games.
      */
     val progressStepSize: Int? = null,
+    /**
+     * The one game mode this achievement can be earned in, or null for any. The engine judges its condition in every
+     * game and keeps it only in this mode's ([isEarnableIn]).
+     */
+    val mode: GameMode? = null,
+    /** Whether this is [mode]'s own win: earned by winning a game of it against at least one other player. */
+    val isModeWin: Boolean = false,
 ) {
 
     // ---- Milestones: simply playing the game -------------------------------------------------
@@ -696,7 +703,7 @@ enum class Achievement(
         "tricolourful",
         Res.string.achievement_tricolourful_title,
         Res.string.achievement_tricolourful_description,
-        AchievementCategory.GAME_MODES,
+        AchievementCategory.GAME_MODES, mode = GameMode.TRICOLOUR, isModeWin = true,
     ),
     // Judged mid-game, the moment the fourth of the four boxes goes in with a non-zero score - not
     // held back for the results screen.
@@ -710,20 +717,20 @@ enum class Achievement(
         "gone_with_the_wind",
         Res.string.achievement_gone_with_the_wind_title,
         Res.string.achievement_gone_with_the_wind_description,
-        AchievementCategory.GAME_MODES,
+        AchievementCategory.GAME_MODES, mode = GameMode.THIRD_WIND, isModeWin = true,
     ),
     // Third Wind's own Spotless, which can't be earned there - every one of the 39 slots, no zeroes.
     THIRD_TIMES_THE_CHARM(
         "third_times_the_charm",
         Res.string.achievement_third_times_the_charm_title,
         Res.string.achievement_third_times_the_charm_description,
-        AchievementCategory.GAME_MODES,
+        AchievementCategory.GAME_MODES, mode = GameMode.THIRD_WIND,
     ),
     HOLD_EM(
         "hold_em",
         Res.string.achievement_hold_em_title,
         Res.string.achievement_hold_em_description,
-        AchievementCategory.GAME_MODES,
+        AchievementCategory.GAME_MODES, mode = GameMode.STUD, isModeWin = true,
     ),
     // Judged as the dice land, like the other roll feats - held dice count, so it's five held and the
     // last two rolled to match them, or any other way to get there.
@@ -731,13 +738,13 @@ enum class Achievement(
         "lucky_seven",
         Res.string.achievement_lucky_seven_title,
         Res.string.achievement_lucky_seven_description,
-        AchievementCategory.GAME_MODES,
+        AchievementCategory.GAME_MODES, mode = GameMode.STUD,
     ),
     NAT_20(
         "nat_20",
         Res.string.achievement_nat_20_title,
         Res.string.achievement_nat_20_description,
-        AchievementCategory.GAME_MODES,
+        AchievementCategory.GAME_MODES, mode = GameMode.D20, isModeWin = true,
     ),
     // Judged mid-game, the moment the second of the two half bonuses is earned - not with extra rolls, which make both easier.
     CRITICAL_SUCCESS(
@@ -750,7 +757,7 @@ enum class Achievement(
         "contract_fulfilled",
         Res.string.achievement_contract_fulfilled_title,
         Res.string.achievement_contract_fulfilled_description,
-        AchievementCategory.GAME_MODES,
+        AchievementCategory.GAME_MODES, mode = GameMode.HIT_LIST, isModeWin = true,
     ),
     // Judged mid-game, the moment the exact hit goes in its target - only a target with no any places counts.
     RIGHT_ON_TARGET(
@@ -763,7 +770,7 @@ enum class Achievement(
         "quick_on_the_draw",
         Res.string.achievement_quick_on_the_draw_title,
         Res.string.achievement_quick_on_the_draw_description,
-        AchievementCategory.GAME_MODES,
+        AchievementCategory.GAME_MODES, mode = GameMode.QUICKFIRE, isModeWin = true,
     ),
     // Judged on the finished game's total. Not with extra rolls or Extended Scores' three boxes, which
     // make a total that high far easier.
@@ -771,7 +778,7 @@ enum class Achievement(
         "six_of_the_best",
         Res.string.achievement_six_of_the_best_title,
         Res.string.achievement_six_of_the_best_description,
-        AchievementCategory.GAME_MODES,
+        AchievementCategory.GAME_MODES, mode = GameMode.QUICKFIRE,
     ),
     // Judged on player 1's first roll of a turn: the rolls it started with, its own and those Stored Rolls brought in.
     RAINY_DAY_FUND(
@@ -888,7 +895,7 @@ enum class Achievement(
         "hands_off",
         Res.string.achievement_hands_off_title,
         Res.string.achievement_hands_off_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, mode = GameMode.STANDARD,
     ),
     I_DIDNT_MEAN_THAT(
         "i_didnt_mean_that",
@@ -1169,7 +1176,7 @@ enum class Achievement(
         "the_solution",
         Res.string.achievement_the_solution_title,
         Res.string.achievement_the_solution_description,
-        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN, mode = GameMode.STANDARD,
     ),
     ;
 
@@ -1202,6 +1209,9 @@ enum class Achievement(
             else -> null
         }
 
+    /** Whether this can be earned in a game of [gameMode]: any, unless it belongs to one [mode]. */
+    fun isEarnableIn(gameMode: GameMode): Boolean = mode == null || mode == gameMode
+
     companion object {
 
         /** The achievements [COMPLETIONIST] waits on. */
@@ -1210,3 +1220,6 @@ enum class Achievement(
         fun fromId(id: String): Achievement? = entries.firstOrNull { it.id == id }
     }
 }
+
+/** The ones of these a game of [mode] can earn - see [Achievement.mode]. */
+fun Set<Achievement>.earnableIn(mode: GameMode): Set<Achievement> = filterTo(mutableSetOf()) { it.isEarnableIn(mode) }

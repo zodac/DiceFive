@@ -54,7 +54,8 @@ When a new rule adds a field, add it here.
 | `hitListShapes` (`hasHitList`; a game's targets: `GameState`/`PlayerState.hitList`, drawn in `newGame`)                                                 | `ScoreCalculator.scoreFor` (`DiceScoring` refuses them), `GameStateJson`, `AiTurnPlayer` (`cpuStrategyFor` hands the turn to `HitListPlay`; `prepareHard` does nothing), `CategoryCell`/`CategoryIcon`, guards and Right On Target                                                                                                                             |
 | `sectionBonuses` (`SectionBonus`)                                                                                                                       | `PlayerState.sectionBonusTotal`/`hasSectionBonus`, Hard's bonus stake, Critical Success, the Totals Bonus line                                                                                                                                                                                                                                |
 | `allowsExtendedScores`                                                                                                                                  | `categoriesWith`, `GameEngine.newGame`, `GameViewModel.startGame`, the setup screen's locked row                                                                                                                                                                                                                                              |
-| `hasPerfectPlayTable` (`playsByPerfectPlayTable(extendedScores)`)                                                                                       | `AiTurnPlayer` (Hard's table), `GameViewModel` (reading the table ahead, `AiTurnPlayer.usesPerfectPlayTable`)                                                                                                                                                                                                                                 |
+| `hasPerfectPlayTable` (`playsByPerfectPlayTable(extendedScores)`)                                                                                       | `HardCpu` (Hard's table), `GameViewModel` (reading the table ahead, `AiTurnPlayer.usesPerfectPlayTable`)                                                                                                                                                                                                                                      |
+| `isOfficialRules`                                                                                                                                       | `AchievementEngine` (Where We're Going..., Everything Everywhere All At Once)                                                                                                                                                                                                                                                                 |
 
 ## What kind of mode is it?
 
@@ -300,6 +301,9 @@ option needs work:
 - **Text.** The title fits the cap. The description names the mode in quotes ("Win a game of 'Quickfire' mode").
   - The constant is the title in snake case, and the `id` is that in lower case. It's permanent.
 - **Judging.**
+  - Never test `gameMode == X`. Set the entry's `mode` (the one mode it's earned in): the engine and the tracker keep
+    it only in that mode (`Achievement.isEarnableIn`). The mode's multiplayer win is just `isModeWin = true`, with no
+    code; `AchievementModeTest` checks every mode beyond the official rules has one.
   - `earnedDuringPlay` if a scorecard mid-game settles it; `earnedBy` if it needs the finished game.
   - If it needs something the final state can't show, add a field to `GameAchievementContext`, tracked in
     `game/AchievementTracker`: a `private var`, reset in `startGame`, passed in `endOfGameContext`.
@@ -312,7 +316,7 @@ option needs work:
 - **Resuming.** Per-game counters restart on resume, so design each achievement so that only makes it harder.
 - **Icon.** Add it to `AchievementIcons.kt`, unused, from Material Symbols (`scripts/material-symbols.sh`) or drawn
   (`UI_SCREENS.md`, "Icons").
-- **Already handled.** `WHERE_WERE_GOING_WE_DONT_NEED_RULES` already fires for any non-Standard mode.
+- **Already handled.** `WHERE_WERE_GOING_WE_DONT_NEED_RULES` already fires for any mode not `isOfficialRules`.
 - **Hidden.** Miscellaneous ⇔ `HIDDEN`, and `AchievementEngineTest` enforces both directions.
 - **Bookkeeping.** Update the "Game Modes achievements are ordered" list in `AchievementEngineTest`, and the count in
   `DESIGN.md`.

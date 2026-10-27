@@ -176,6 +176,8 @@ enum class GameMode(
      * rather than estimating - see [playsByPerfectPlayTable].
      */
     val hasPerfectPlayTable: Boolean = false,
+    /** Whether this is the official rules, unchanged - the one mode not "beyond" them, as the achievements for leaving them read it. */
+    val isOfficialRules: Boolean = false,
 ) {
 
     /**
@@ -204,6 +206,7 @@ enum class GameMode(
         maxPossibleScore = 1575,
         maxRollsPerGame = 39,
         hasPerfectPlayTable = true,
+        isOfficialRules = true,
     ),
 
     /**
