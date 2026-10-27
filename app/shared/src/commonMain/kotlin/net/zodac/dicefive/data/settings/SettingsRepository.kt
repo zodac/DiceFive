@@ -123,10 +123,10 @@ class SettingsRepository(
     /** The synced settings, by key name, each with its stamp - every one that is set, or was set and since removed. */
     suspend fun cloudSettings(): Map<String, Stamped<SettingValue?>> {
         val prefs = dataStore.data.first()
-        return SYNCED_KEYS.mapNotNull { key ->
-            val value = settingValue(prefs[key])
-            val at = prefs[stampKey(key)]
-            if (value == null && at == null) null else key.name to Stamped(value, at ?: 0)
+        return SYNCED.mapNotNull { synced ->
+            val value = synced.read(prefs)
+            val at = prefs[stampKey(synced.key)]
+            if (value == null && at == null) null else synced.key.name to Stamped(value, at ?: 0)
         }.toMap()
     }
 
@@ -137,10 +137,10 @@ class SettingsRepository(
     suspend fun mergeCloud(remote: Map<String, Stamped<SettingValue?>>) {
         dataStore.edit { prefs ->
             for ((name, theirs) in remote) {
-                val key = SYNCED_KEYS_BY_NAME[name] ?: continue
-                val ours = Stamped(settingValue(prefs[key]), prefs[stampKey(key)] ?: 0)
+                val synced = SYNCED_BY_NAME[name] ?: continue
+                val ours = Stamped(synced.read(prefs), prefs[stampKey(synced.key)] ?: 0)
                 if (ours == theirs || newerOf(ours, theirs) { it.toString() } !== theirs) continue
-                if (write(prefs, key, theirs.value)) prefs[stampKey(key)] = theirs.atEpochMillis
+                if (synced.write(prefs, theirs.value)) prefs[stampKey(synced.key)] = theirs.atEpochMillis
             }
         }
     }
@@ -165,6 +165,14 @@ class SettingsRepository(
 
     /** [transform] of the settings as they change - only when its own value does, not on a write to another setting. */
     private fun <T> read(transform: (Preferences) -> T): Flow<T> = dataStore.data.map(transform).distinctUntilChanged()
+
+    /** [key]'s value as it changes, or [default] while it's unset. */
+    private fun <T> read(key: Preferences.Key<T>, default: T): Flow<T> = read { prefs -> prefs[key] ?: default }
+
+    /** Sets [key] to [value]. */
+    private suspend fun <T> set(key: Preferences.Key<T>, value: T) {
+        edit { it[key] = value }
+    }
 
     /** [read], of a [Snapshot]. */
     private fun <T> readSnapshot(transform: (Snapshot) -> T): Flow<T> = read { transform(Snapshot(it)) }
@@ -293,109 +301,78 @@ class SettingsRepository(
     /** Whether a game has been played to its end, won or lost. Only ever set, never cleared - not even by a reset. */
     val firstGameCompleted: Flow<Boolean> = readSnapshot { it.firstGameCompleted }
 
-    suspend fun setFirstGameCompleted() {
-        edit { it[FIRST_GAME_COMPLETED_KEY] = true }
-    }
+    suspend fun setFirstGameCompleted() = set(FIRST_GAME_COMPLETED_KEY, true)
 
-    val confirmBeforeLeavingGame: Flow<Boolean> =
-        read { prefs -> prefs[CONFIRM_BEFORE_LEAVING_GAME_KEY] ?: true }
+    val confirmBeforeLeavingGame: Flow<Boolean> = read(CONFIRM_BEFORE_LEAVING_GAME_KEY, default = true)
 
-    suspend fun setConfirmBeforeLeavingGame(confirm: Boolean) {
-        edit { it[CONFIRM_BEFORE_LEAVING_GAME_KEY] = confirm }
-    }
+    suspend fun setConfirmBeforeLeavingGame(confirm: Boolean) = set(CONFIRM_BEFORE_LEAVING_GAME_KEY, confirm)
 
-    val soundEnabled: Flow<Boolean> = read { prefs -> prefs[SOUND_ENABLED_KEY] ?: true }
+    val soundEnabled: Flow<Boolean> = read(SOUND_ENABLED_KEY, default = true)
 
-    suspend fun setSoundEnabled(enabled: Boolean) {
-        edit { it[SOUND_ENABLED_KEY] = enabled }
-    }
+    suspend fun setSoundEnabled(enabled: Boolean) = set(SOUND_ENABLED_KEY, enabled)
 
-    val vibrationEnabled: Flow<Boolean> = read { prefs -> prefs[VIBRATION_ENABLED_KEY] ?: true }
+    val vibrationEnabled: Flow<Boolean> = read(VIBRATION_ENABLED_KEY, default = true)
 
-    suspend fun setVibrationEnabled(enabled: Boolean) {
-        edit { it[VIBRATION_ENABLED_KEY] = enabled }
-    }
+    suspend fun setVibrationEnabled(enabled: Boolean) = set(VIBRATION_ENABLED_KEY, enabled)
 
     /** The player's "Animations" level - see [AnimationLevel]. */
     val animationLevel: Flow<AnimationLevel> = read { prefs ->
         prefs[ANIMATION_LEVEL_KEY]?.let { storedIdOf<AnimationLevel>(it) } ?: AnimationLevel.default
     }
 
-    suspend fun setAnimationLevel(level: AnimationLevel) {
-        edit { it[ANIMATION_LEVEL_KEY] = level.id }
-    }
+    suspend fun setAnimationLevel(level: AnimationLevel) = set(ANIMATION_LEVEL_KEY, level.id)
 
     /** The player's "Orientation" - see [ScreenOrientation]. */
     val screenOrientation: Flow<ScreenOrientation> = read { prefs ->
         prefs[SCREEN_ORIENTATION_KEY]?.let { storedIdOf<ScreenOrientation>(it) } ?: ScreenOrientation.default
     }
 
-    suspend fun setScreenOrientation(orientation: ScreenOrientation) {
-        edit { it[SCREEN_ORIENTATION_KEY] = orientation.id }
-    }
+    suspend fun setScreenOrientation(orientation: ScreenOrientation) = set(SCREEN_ORIENTATION_KEY, orientation.id)
 
     // Style ids, not the ui.style types themselves - this is the data layer, and resolving an
     // id to a concrete DiceStyle/DiceCupStyle/TableBackground is the Styles screen's job (via its
     // catalog). The defaults are DefaultStyleIds, which the default styles themselves are given.
-    val diceStyleId: Flow<String> = read { prefs -> prefs[DICE_STYLE_ID_KEY] ?: DefaultStyleIds.DICE }
+    val diceStyleId: Flow<String> = read(DICE_STYLE_ID_KEY, default = DefaultStyleIds.DICE)
 
-    suspend fun setDiceStyleId(id: String) {
-        edit { it[DICE_STYLE_ID_KEY] = id }
-    }
+    suspend fun setDiceStyleId(id: String) = set(DICE_STYLE_ID_KEY, id)
 
-    val diceCupStyleId: Flow<String> = read { prefs -> prefs[DICE_CUP_STYLE_ID_KEY] ?: DefaultStyleIds.DICE_CUP }
+    val diceCupStyleId: Flow<String> = read(DICE_CUP_STYLE_ID_KEY, default = DefaultStyleIds.DICE_CUP)
 
-    suspend fun setDiceCupStyleId(id: String) {
-        edit { it[DICE_CUP_STYLE_ID_KEY] = id }
-    }
+    suspend fun setDiceCupStyleId(id: String) = set(DICE_CUP_STYLE_ID_KEY, id)
 
-    val tableBackgroundId: Flow<String> = read { prefs -> prefs[TABLE_BACKGROUND_ID_KEY] ?: DefaultStyleIds.TABLE_BACKGROUND }
+    val tableBackgroundId: Flow<String> = read(TABLE_BACKGROUND_ID_KEY, default = DefaultStyleIds.TABLE_BACKGROUND)
 
-    suspend fun setTableBackgroundId(id: String) {
-        edit { it[TABLE_BACKGROUND_ID_KEY] = id }
-    }
+    suspend fun setTableBackgroundId(id: String) = set(TABLE_BACKGROUND_ID_KEY, id)
 
-    val diceMatId: Flow<String> = read { prefs -> prefs[DICE_MAT_ID_KEY] ?: DefaultStyleIds.DICE_MAT }
+    val diceMatId: Flow<String> = read(DICE_MAT_ID_KEY, default = DefaultStyleIds.DICE_MAT)
 
-    suspend fun setDiceMatId(id: String) {
-        edit { it[DICE_MAT_ID_KEY] = id }
-    }
+    suspend fun setDiceMatId(id: String) = set(DICE_MAT_ID_KEY, id)
 
     // The frame round the player whose turn it is.
-    val scoreFrameId: Flow<String> = read { prefs -> prefs[SCORE_FRAME_ID_KEY] ?: DefaultStyleIds.SCORE_FRAME }
+    val scoreFrameId: Flow<String> = read(SCORE_FRAME_ID_KEY, default = DefaultStyleIds.SCORE_FRAME)
 
-    suspend fun setScoreFrameId(id: String) {
-        edit { it[SCORE_FRAME_ID_KEY] = id }
-    }
+    suspend fun setScoreFrameId(id: String) = set(SCORE_FRAME_ID_KEY, id)
 
     // The Styles page's fitted size for the screen it was measured on, as the Styles screen writes it -
     // opaque here. Null until it's first measured.
     val stylesPageFit: Flow<String?> = read { prefs -> prefs[STYLES_PAGE_FIT_KEY] }
 
-    suspend fun setStylesPageFit(fit: String) {
-        edit { it[STYLES_PAGE_FIT_KEY] = fit }
-    }
+    suspend fun setStylesPageFit(fit: String) = set(STYLES_PAGE_FIT_KEY, fit)
 
     /** Whether the Achievements page shows only the achievements not yet unlocked - its Locked only switch. Off until switched on. */
-    val lockedOnlyAchievements: Flow<Boolean> = read { prefs -> prefs[LOCKED_ONLY_ACHIEVEMENTS_KEY] ?: false }
+    val lockedOnlyAchievements: Flow<Boolean> = read(LOCKED_ONLY_ACHIEVEMENTS_KEY, default = false)
 
-    suspend fun setLockedOnlyAchievements(lockedOnly: Boolean) {
-        edit { it[LOCKED_ONLY_ACHIEVEMENTS_KEY] = lockedOnly }
-    }
+    suspend fun setLockedOnlyAchievements(lockedOnly: Boolean) = set(LOCKED_ONLY_ACHIEVEMENTS_KEY, lockedOnly)
 
     /** Whether the Styles page shows only the styles already unlocked - its Unlocked only switch. Off until switched on. */
-    val unlockedOnlyStyles: Flow<Boolean> = read { prefs -> prefs[UNLOCKED_ONLY_STYLES_KEY] ?: false }
+    val unlockedOnlyStyles: Flow<Boolean> = read(UNLOCKED_ONLY_STYLES_KEY, default = false)
 
-    suspend fun setUnlockedOnlyStyles(unlockedOnly: Boolean) {
-        edit { it[UNLOCKED_ONLY_STYLES_KEY] = unlockedOnly }
-    }
+    suspend fun setUnlockedOnlyStyles(unlockedOnly: Boolean) = set(UNLOCKED_ONLY_STYLES_KEY, unlockedOnly)
 
     /** The Statistics screen's sort as stored (`StatisticsSortOrder.stored`), or null until one is picked. */
     val statisticsSort: Flow<String?> = read { prefs -> prefs[STATISTICS_SORT_KEY] }
 
-    suspend fun setStatisticsSort(sort: String) {
-        edit { it[STATISTICS_SORT_KEY] = sort }
-    }
+    suspend fun setStatisticsSort(sort: String) = set(STATISTICS_SORT_KEY, sort)
 
     private companion object {
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
@@ -435,52 +412,73 @@ class SettingsRepository(
 
         val STYLE_KEYS = listOf(DICE_STYLE_ID_KEY, DICE_CUP_STYLE_ID_KEY, TABLE_BACKGROUND_ID_KEY, DICE_MAT_ID_KEY, SCORE_FRAME_ID_KEY)
 
-        private val SYNCED_STRING_KEYS: List<Preferences.Key<String>> = STYLE_KEYS +
-            listOf(TURN_TIMER_KEY, TURN_TIMER_LENGTH_KEY, GAME_MODE_KEY, STATISTICS_SORT_KEY) +
-            (1..PLAYER_SLOTS).flatMap { listOf(playerNameKey(it), playerTypeKey(it), playerColourKey(it), playerDifficultyKey(it)) }
-        private val SYNCED_INT_KEYS: List<Preferences.Key<Int>> = listOf(
-            PLAYER_COUNT_KEY, ROLLS_PER_TURN_KEY, ROLLS_PER_TURN_LENGTH_KEY, STORED_ROLLS_MAX_KEY, UNLUCKY_ODDS_KEY, UNLUCKY_MAX_DICE_KEY,
-        )
-        private val SYNCED_BOOLEAN_KEYS: List<Preferences.Key<Boolean>> = listOf(
-            STORED_ROLLS_KEY, EXTENDED_SCORES_KEY, UNLUCKY_DICE_KEY, SOUND_ENABLED_KEY, VIBRATION_ENABLED_KEY, CONFIRM_BEFORE_LEAVING_GAME_KEY,
-            FIRST_GAME_COMPLETED_KEY,
-        )
-
         /**
          * What the cloud save carries: everything but the Animations level ([ANIMATION_LEVEL_KEY]), chosen for what this
          * device can draw, the Orientation ([SCREEN_ORIENTATION_KEY]), chosen for how it's held, and the Styles page fit
          * ([STYLES_PAGE_FIT_KEY]), a measurement of its screen, and the two list filters ([LOCKED_ONLY_ACHIEVEMENTS_KEY],
          * [UNLOCKED_ONLY_STYLES_KEY]), a way of browsing.
          */
-        val SYNCED_KEYS: List<Preferences.Key<*>> = SYNCED_STRING_KEYS + SYNCED_INT_KEYS + SYNCED_BOOLEAN_KEYS
-        private val SYNCED_KEYS_BY_NAME = SYNCED_KEYS.associateBy { it.name }
+        private val SYNCED: List<SyncedKey<*>> = buildList {
+            (STYLE_KEYS + listOf(TURN_TIMER_KEY, TURN_TIMER_LENGTH_KEY, GAME_MODE_KEY, STATISTICS_SORT_KEY)).mapTo(this) { SyncedKey.Text(it) }
+            for (slot in 1..PLAYER_SLOTS) {
+                listOf(playerNameKey(slot), playerTypeKey(slot), playerColourKey(slot), playerDifficultyKey(slot)).mapTo(this) { SyncedKey.Text(it) }
+            }
+            listOf(PLAYER_COUNT_KEY, ROLLS_PER_TURN_KEY, ROLLS_PER_TURN_LENGTH_KEY, STORED_ROLLS_MAX_KEY, UNLUCKY_ODDS_KEY, UNLUCKY_MAX_DICE_KEY)
+                .mapTo(this) { SyncedKey.Number(it) }
+            listOf(
+                STORED_ROLLS_KEY, EXTENDED_SCORES_KEY, UNLUCKY_DICE_KEY, SOUND_ENABLED_KEY, VIBRATION_ENABLED_KEY, CONFIRM_BEFORE_LEAVING_GAME_KEY,
+                FIRST_GAME_COMPLETED_KEY,
+            ).mapTo(this) { SyncedKey.Flag(it) }
+        }
+        private val SYNCED_BY_NAME = SYNCED.associateBy { it.key.name }
+
+        /** Each of [SYNCED]'s keys. */
+        val SYNCED_KEYS: List<Preferences.Key<*>> = SYNCED.map { it.key }
 
         /** Each of [SYNCED_KEYS]' [stampKey], in the same order. */
         private val SYNCED_STAMP_KEYS = SYNCED_KEYS.map(::stampKey)
 
         /** When [key] last changed: `synced_at:<key>`. */
         fun stampKey(key: Preferences.Key<*>) = longPreferencesKey("synced_at:${key.name}")
+    }
+}
 
-        fun settingValue(stored: Any?): SettingValue? = when (stored) {
-            is String -> SettingValue.Text(stored)
-            is Int -> SettingValue.Number(stored)
-            is Boolean -> SettingValue.Flag(stored)
-            else -> null
-        }
+/** A setting the cloud save carries: its [key], and its value as the [SettingValue] the cloud save holds. */
+private sealed class SyncedKey<T : Any>(val key: Preferences.Key<T>) {
 
-        /** Sets [key] to [value] (null: removes it). False if [value] isn't [key]'s type, and nothing is written. */
-        fun write(prefs: MutablePreferences, key: Preferences.Key<*>, value: SettingValue?): Boolean {
-            if (value == null) {
-                prefs.remove(key)
-                return true
-            }
-            when {
-                value is SettingValue.Text && key in SYNCED_STRING_KEYS -> prefs[SYNCED_STRING_KEYS.first { it == key }] = value.value
-                value is SettingValue.Number && key in SYNCED_INT_KEYS -> prefs[SYNCED_INT_KEYS.first { it == key }] = value.value
-                value is SettingValue.Flag && key in SYNCED_BOOLEAN_KEYS -> prefs[SYNCED_BOOLEAN_KEYS.first { it == key }] = value.value
-                else -> return false
-            }
+    /** [stored] as the cloud save holds it. */
+    protected abstract fun valueOf(stored: T): SettingValue
+
+    /** [value] as [key] stores it, or null for a value of another type. */
+    protected abstract fun storedOf(value: SettingValue): T?
+
+    fun read(prefs: Preferences): SettingValue? = prefs[key]?.let(::valueOf)
+
+    /** Sets [key] to [value] (null: removes it). False if [value] isn't [key]'s type, and nothing is written. */
+    fun write(prefs: MutablePreferences, value: SettingValue?): Boolean {
+        if (value == null) {
+            prefs.remove(key)
             return true
         }
+        prefs[key] = storedOf(value) ?: return false
+        return true
+    }
+
+    class Text(key: Preferences.Key<String>) : SyncedKey<String>(key) {
+        override fun valueOf(stored: String) = SettingValue.Text(stored)
+
+        override fun storedOf(value: SettingValue) = (value as? SettingValue.Text)?.value
+    }
+
+    class Number(key: Preferences.Key<Int>) : SyncedKey<Int>(key) {
+        override fun valueOf(stored: Int) = SettingValue.Number(stored)
+
+        override fun storedOf(value: SettingValue) = (value as? SettingValue.Number)?.value
+    }
+
+    class Flag(key: Preferences.Key<Boolean>) : SyncedKey<Boolean>(key) {
+        override fun valueOf(stored: Boolean) = SettingValue.Flag(stored)
+
+        override fun storedOf(value: SettingValue) = (value as? SettingValue.Flag)?.value
     }
 }
