@@ -3,6 +3,7 @@ package net.zodac.dicefive.online
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -152,14 +153,25 @@ class PlayGamesServices private constructor(private val application: Application
         player.iconImageUri?.let { loadAvatar(it, account.accountKey) }
     }
 
+    /**
+     * The avatar's listener until it's called: [ImageManager] holds a listener only weakly, so one nothing else held
+     * could be collected before the image arrived, and the avatar would never be shown.
+     */
+    private var avatarListener: ImageManager.OnImageLoadedListener? = null
+
     private fun loadAvatar(uri: Uri, accountKey: String) {
-        ImageManager.create(application).loadImage({ _, drawable, isRequestedDrawable ->
-            val signedIn = mutableState.value as? GameServicesState.SignedIn
-            if (drawable != null && isRequestedDrawable && signedIn?.account?.accountKey == accountKey) {
-                val avatar = drawable.toBitmap(AVATAR_SIZE_PX, AVATAR_SIZE_PX).asImageBitmap()
-                mutableState.value = GameServicesState.SignedIn(signedIn.account.copy(avatar = avatar))
+        val listener = object : ImageManager.OnImageLoadedListener {
+            override fun onImageLoaded(uri: Uri, drawable: Drawable?, isRequestedDrawable: Boolean) {
+                if (avatarListener === this) avatarListener = null
+                val signedIn = mutableState.value as? GameServicesState.SignedIn
+                if (drawable != null && isRequestedDrawable && signedIn?.account?.accountKey == accountKey) {
+                    val avatar = drawable.toBitmap(AVATAR_SIZE_PX, AVATAR_SIZE_PX).asImageBitmap()
+                    mutableState.value = GameServicesState.SignedIn(signedIn.account.copy(avatar = avatar))
+                }
             }
-        }, uri)
+        }
+        avatarListener = listener
+        ImageManager.create(application).loadImage(listener, uri)
     }
 
     /** The task's result, or null if it failed or took longer than [timeoutMillis] (null: no limit). */
