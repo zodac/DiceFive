@@ -116,7 +116,7 @@ data class PlayerState(
      */
     val upperBonusThreshold: Int
         get() {
-            val onCard = UPPER_CATEGORIES.filter { it in categories }
+            val onCard = ScoreCategory.UPPER.filter { it in categories }
             val faces = onCard.sumOf { faceOf(it) }
             if (faces == 0) return gameMode.upperBonusThreshold
             return gameMode.upperBonusThreshold * onCard.filter { it !in disabledCategories }.sumOf { faceOf(it) } / faces
@@ -124,14 +124,14 @@ data class PlayerState(
 
     /** Whether there's an upper box left to score in at all - without one there's no bonus to earn. */
     val hasUpperBonus: Boolean
-        get() = UPPER_CATEGORIES.any { it in categories && it !in disabledCategories }
+        get() = ScoreCategory.UPPER.any { it in categories && it !in disabledCategories }
 
     /**
      * Whether the upper bonus is still unearned, but a single die showing [category]'s number in [category] would earn it:
      * the section is short of [upperBonusThreshold] by no more than that number. False for anything but an upper box.
      */
     fun needsOneDieForBonus(category: ScoreCategory): Boolean {
-        if (!hasUpperBonus || category !in UPPER_CATEGORIES) return false
+        if (!hasUpperBonus || category.section != ScoreSection.UPPER) return false
         val total = upperSectionTotal
         return total < upperBonusThreshold && total + faceOf(category) >= upperBonusThreshold
     }
@@ -218,11 +218,8 @@ data class PlayerState(
         categories.filter { it.section == section }.sumOf { scoresIn(it).sum() }
 
     companion object {
-        /** ONES..SIXES, in pip order - so a category's index here, plus one, is the pip value it counts. */
-        val UPPER_CATEGORIES: List<ScoreCategory> = ScoreCategory.entries.filter { it.section == ScoreSection.UPPER }
-
         /** The number an upper box counts: ONES 1, ... SIXES 6. */
-        private fun faceOf(category: ScoreCategory): Int = UPPER_CATEGORIES.indexOf(category) + 1
+        private fun faceOf(category: ScoreCategory): Int = requireNotNull(category.number)
 
         private val FIVE_OF_A_KIND_FULL_SCORE: Int = requireNotNull(ScoreCategory.FIVE_OF_A_KIND.fixedScore)
     }

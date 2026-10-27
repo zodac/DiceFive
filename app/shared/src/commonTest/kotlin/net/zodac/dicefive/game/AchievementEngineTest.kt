@@ -56,7 +56,7 @@ class AchievementEngineTest {
 
     /** A Standard card with no zero and the upper bonus reached (the six upper boxes score 15 each, 90 over 63). */
     private val spotlessCard: Map<ScoreCategory, Int> =
-        GameMode.STANDARD.categories.associateWith { 10 } + PlayerState.UPPER_CATEGORIES.associateWith { 15 }
+        GameMode.STANDARD.categories.associateWith { 10 } + ScoreCategory.UPPER.associateWith { 15 }
 
     private fun bot(total: Int, gameMode: GameMode = GameMode.STANDARD, fiveOfAKindBonusCount: Int = 0) =
         player(name = "Bot", type = PlayerType.AI, total = total, gameMode = gameMode, fiveOfAKindBonusCount = fiveOfAKindBonusCount)
@@ -963,7 +963,7 @@ class AchievementEngineTest {
         val bonus = midGamePlayer(mapOf(ScoreCategory.SIXES to 18), gameMode = GameMode.QUICKFIRE).copy(disabledCategories = onlySixes)
         assertEquals(35, bonus.upperSectionBonus)
         assertFalse(Achievement.BONUS_ROUND in unlockedMidGame(bonus))
-        assertTrue(Achievement.BONUS_ROUND in unlockedMidGame(midGamePlayer(PlayerState.UPPER_CATEGORIES.associateWith { 3 * (PlayerState.UPPER_CATEGORIES.indexOf(it) + 1) })))
+        assertTrue(Achievement.BONUS_ROUND in unlockedMidGame(midGamePlayer(ScoreCategory.UPPER.associateWith { 3 * requireNotNull(it.number) })))
     }
 
     // ---- The turn timer ------------------------------------------------------------------------------

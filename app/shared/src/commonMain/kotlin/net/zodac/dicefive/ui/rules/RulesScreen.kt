@@ -295,18 +295,6 @@ import net.zodac.dicefive.resources.rules_upper_section_2
 import net.zodac.dicefive.resources.rules_upper_section_3
 import net.zodac.dicefive.resources.rules_upper_section_tab
 import net.zodac.dicefive.resources.rules_upper_section_title
-import net.zodac.dicefive.resources.score_blues
-import net.zodac.dicefive.resources.score_chance
-import net.zodac.dicefive.resources.score_coloured_house
-import net.zodac.dicefive.resources.score_evens
-import net.zodac.dicefive.resources.score_fives
-import net.zodac.dicefive.resources.score_full_house
-import net.zodac.dicefive.resources.score_large_straight
-import net.zodac.dicefive.resources.score_odds
-import net.zodac.dicefive.resources.score_reds
-import net.zodac.dicefive.resources.score_small_straight
-import net.zodac.dicefive.resources.score_two_pair
-import net.zodac.dicefive.resources.score_yellows
 import net.zodac.dicefive.ui.common.FooterPill
 import net.zodac.dicefive.ui.common.LOGO_DICE
 import net.zodac.dicefive.ui.common.LocalLandscapePage
@@ -394,7 +382,9 @@ private sealed interface RulesName {
     data class Named(val resource: StringResource) : RulesName
 }
 
-private fun mark(category: ScoreCategory): RulesName = RulesName.Mark(requireNotNull(category.mark))
+/** [category]'s heading: its mark, or its name. */
+private fun boxName(category: ScoreCategory): RulesName =
+    category.mark?.let(RulesName::Mark) ?: RulesName.Named(requireNotNull(category.displayName) { "$category has no name" })
 
 private fun named(resource: StringResource): RulesName = RulesName.Named(resource)
 
@@ -528,7 +518,7 @@ private val RULES_GROUPS = listOf(
                 tabLabel = Res.string.rules_upper_section_tab,
                 blocks = listOf(
                     text(Res.string.rules_upper_section_1),
-                    RulesCategory(named(Res.string.score_fives), Res.string.rules_upper_section_2, dice(5, 5, 5, 2, 1, counting = 3, score = points(15))),
+                    RulesCategory(boxName(ScoreCategory.FIVES), Res.string.rules_upper_section_2, dice(5, 5, 5, 2, 1, counting = 3, score = points(15))),
                     text(Res.string.rules_upper_section_3),
                 ),
             ),
@@ -537,13 +527,13 @@ private val RULES_GROUPS = listOf(
                 tabLabel = Res.string.rules_lower_section_tab,
                 blocks = listOf(
                     text(Res.string.rules_lower_section_1),
-                    RulesCategory(mark(ScoreCategory.THREE_OF_A_KIND), Res.string.rules_lower_section_2, dice(5, 5, 5, 2, 6, counting = 3, score = points(23))),
-                    RulesCategory(mark(ScoreCategory.FOUR_OF_A_KIND), Res.string.rules_lower_section_3, dice(4, 4, 4, 4, 1, counting = 4, score = points(17))),
-                    RulesCategory(named(Res.string.score_full_house), Res.string.rules_lower_section_4, dice(3, 3, 3, 6, 6, score = points(25))),
-                    RulesCategory(named(Res.string.score_small_straight), Res.string.rules_lower_section_5, dice(2, 3, 4, 5, 2, counting = 4, score = points(30))),
-                    RulesCategory(named(Res.string.score_large_straight), Res.string.rules_lower_section_6, dice(1, 2, 3, 4, 5, score = points(40))),
-                    RulesCategory(mark(ScoreCategory.FIVE_OF_A_KIND), Res.string.rules_lower_section_7, dice(6, 6, 6, 6, 6, score = points(50))),
-                    RulesCategory(named(Res.string.score_chance), Res.string.rules_lower_section_8, dice(2, 3, 5, 5, 6, score = points(21))),
+                    RulesCategory(boxName(ScoreCategory.THREE_OF_A_KIND), Res.string.rules_lower_section_2, dice(5, 5, 5, 2, 6, counting = 3, score = points(23))),
+                    RulesCategory(boxName(ScoreCategory.FOUR_OF_A_KIND), Res.string.rules_lower_section_3, dice(4, 4, 4, 4, 1, counting = 4, score = points(17))),
+                    RulesCategory(boxName(ScoreCategory.FULL_HOUSE), Res.string.rules_lower_section_4, dice(3, 3, 3, 6, 6, score = points(25))),
+                    RulesCategory(boxName(ScoreCategory.SMALL_STRAIGHT), Res.string.rules_lower_section_5, dice(2, 3, 4, 5, 2, counting = 4, score = points(30))),
+                    RulesCategory(boxName(ScoreCategory.LARGE_STRAIGHT), Res.string.rules_lower_section_6, dice(1, 2, 3, 4, 5, score = points(40))),
+                    RulesCategory(boxName(ScoreCategory.FIVE_OF_A_KIND), Res.string.rules_lower_section_7, dice(6, 6, 6, 6, 6, score = points(50))),
+                    RulesCategory(boxName(ScoreCategory.CHANCE), Res.string.rules_lower_section_8, dice(2, 3, 5, 5, 6, score = points(21))),
                 ),
             ),
             RulesPage(
@@ -595,16 +585,16 @@ private val RULES_GROUPS = listOf(
                 blocks = listOf(
                     text(Res.string.rules_tricolour_1),
                     text(Res.string.rules_tricolour_2),
-                    RulesCategory(named(Res.string.score_reds), Res.string.rules_tricolour_3,
+                    RulesCategory(boxName(ScoreCategory.REDS), Res.string.rules_tricolour_3,
                         colouredDice(2 to DieColour.RED, 5 to DieColour.RED, 1 to DieColour.RED, 6 to DieColour.RED, 3 to DieColour.RED, score = points(40)),
                     ),
-                    RulesCategory(named(Res.string.score_yellows), Res.string.rules_tricolour_4,
+                    RulesCategory(boxName(ScoreCategory.YELLOWS), Res.string.rules_tricolour_4,
                         colouredDice(4 to DieColour.YELLOW, 4 to DieColour.YELLOW, 1 to DieColour.YELLOW, 5 to DieColour.YELLOW, 2 to DieColour.YELLOW, score = points(40)),
                     ),
-                    RulesCategory(named(Res.string.score_blues), Res.string.rules_tricolour_5,
+                    RulesCategory(boxName(ScoreCategory.BLUES), Res.string.rules_tricolour_5,
                         colouredDice(6 to DieColour.BLUE, 3 to DieColour.BLUE, 3 to DieColour.BLUE, 2 to DieColour.BLUE, 5 to DieColour.BLUE, score = points(40)),
                     ),
-                    RulesCategory(named(Res.string.score_coloured_house), Res.string.rules_tricolour_6,
+                    RulesCategory(boxName(ScoreCategory.COLOURED_HOUSE), Res.string.rules_tricolour_6,
                         colouredDice(1 to DieColour.RED, 4 to DieColour.RED, 6 to DieColour.RED, 2 to DieColour.BLUE, 5 to DieColour.BLUE, score = points(25)),
                     ),
                     text(Res.string.rules_tricolour_7),
@@ -689,7 +679,7 @@ private val RULES_GROUPS = listOf(
                         diceCounting(4, 1, 6, 2, 5, counting = setOf(0, 1, 3), score = points(10)).showing(RulesTile.Target(EXAMPLE_TARGET)),
                     ),
                     text(Res.string.rules_hit_list_8),
-                    RulesCategory(mark(ScoreCategory.ALIBI), Res.string.rules_hit_list_9,
+                    RulesCategory(boxName(ScoreCategory.ALIBI), Res.string.rules_hit_list_9,
                         dice(2, 4, 1, 3, 5, counting = 4, score = points(20)).showing(RulesTile.Alibi),
                     ),
                     text(Res.string.rules_hit_list_10),
@@ -734,9 +724,9 @@ private val RULES_GROUPS = listOf(
                 tabLabel = Res.string.rules_extended_scores_tab,
                 blocks = listOf(
                     text(Res.string.rules_extended_scores_1),
-                    RulesCategory(named(Res.string.score_two_pair), Res.string.rules_extended_scores_2, dice(4, 4, 2, 2, 4, counting = 4, score = points(12))),
-                    RulesCategory(named(Res.string.score_evens), Res.string.rules_extended_scores_3, dice(6, 4, 2, 3, 1, counting = 3, score = points(12))),
-                    RulesCategory(named(Res.string.score_odds), Res.string.rules_extended_scores_4, dice(5, 3, 3, 6, 2, counting = 3, score = points(11))),
+                    RulesCategory(boxName(ScoreCategory.TWO_PAIR), Res.string.rules_extended_scores_2, dice(4, 4, 2, 2, 4, counting = 4, score = points(12))),
+                    RulesCategory(boxName(ScoreCategory.EVENS), Res.string.rules_extended_scores_3, dice(6, 4, 2, 3, 1, counting = 3, score = points(12))),
+                    RulesCategory(boxName(ScoreCategory.ODDS), Res.string.rules_extended_scores_4, dice(5, 3, 3, 6, 2, counting = 3, score = points(11))),
                     text(Res.string.rules_extended_scores_5),
                 ),
             ),

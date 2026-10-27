@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.game
 import androidx.compose.runtime.Composable
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.ScoreRule
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.die_colour_blue
 import net.zodac.dicefive.resources.die_colour_blue_irish
@@ -10,29 +11,9 @@ import net.zodac.dicefive.resources.die_colour_red
 import net.zodac.dicefive.resources.die_colour_red_irish
 import net.zodac.dicefive.resources.die_colour_yellow
 import net.zodac.dicefive.resources.die_colour_yellow_irish
-import net.zodac.dicefive.resources.score_blues
-import net.zodac.dicefive.resources.score_blues_irish
-import net.zodac.dicefive.resources.score_chance
-import net.zodac.dicefive.resources.score_coloured_house
-import net.zodac.dicefive.resources.score_evens
-import net.zodac.dicefive.resources.score_fives
-import net.zodac.dicefive.resources.score_fours
-import net.zodac.dicefive.resources.score_full_house
-import net.zodac.dicefive.resources.score_large_straight
 import net.zodac.dicefive.resources.score_number
-import net.zodac.dicefive.resources.score_odds
-import net.zodac.dicefive.resources.score_ones
-import net.zodac.dicefive.resources.score_reds
-import net.zodac.dicefive.resources.score_reds_irish
-import net.zodac.dicefive.resources.score_sixes
-import net.zodac.dicefive.resources.score_small_straight
 import net.zodac.dicefive.resources.score_target
-import net.zodac.dicefive.resources.score_threes
-import net.zodac.dicefive.resources.score_two_pair
-import net.zodac.dicefive.resources.score_twos
 import net.zodac.dicefive.resources.score_wildcard
-import net.zodac.dicefive.resources.score_yellows
-import net.zodac.dicefive.resources.score_yellows_irish
 import net.zodac.dicefive.ui.common.stringResource
 
 // What a screen reader says for the board's drawn art - the dice, the score tiles - which has no
@@ -40,36 +21,11 @@ import net.zodac.dicefive.ui.common.stringResource
 
 /** A score category's name, as the Rules pages give it - [irish] for Luck of the Irish's colours. */
 @Composable
-internal fun ScoreCategory.spokenName(irish: Boolean): String = when (this) {
-    ScoreCategory.ONES -> stringResource(Res.string.score_ones)
-    ScoreCategory.TWOS -> stringResource(Res.string.score_twos)
-    ScoreCategory.THREES -> stringResource(Res.string.score_threes)
-    ScoreCategory.FOURS -> stringResource(Res.string.score_fours)
-    ScoreCategory.FIVES -> stringResource(Res.string.score_fives)
-    ScoreCategory.SIXES -> stringResource(Res.string.score_sixes)
-    ScoreCategory.FULL_HOUSE -> stringResource(Res.string.score_full_house)
-    ScoreCategory.SMALL_STRAIGHT -> stringResource(Res.string.score_small_straight)
-    ScoreCategory.LARGE_STRAIGHT -> stringResource(Res.string.score_large_straight)
-    ScoreCategory.CHANCE -> stringResource(Res.string.score_chance)
-    ScoreCategory.THREE_OF_A_KIND, ScoreCategory.FOUR_OF_A_KIND, ScoreCategory.FIVE_OF_A_KIND, ScoreCategory.ALIBI -> requireNotNull(mark)
-    ScoreCategory.REDS -> stringResource(if (irish) Res.string.score_reds_irish else Res.string.score_reds)
-    ScoreCategory.YELLOWS -> stringResource(if (irish) Res.string.score_yellows_irish else Res.string.score_yellows)
-    ScoreCategory.BLUES -> stringResource(if (irish) Res.string.score_blues_irish else Res.string.score_blues)
-    ScoreCategory.COLOURED_HOUSE -> stringResource(Res.string.score_coloured_house)
-    ScoreCategory.TWO_PAIR -> stringResource(Res.string.score_two_pair)
-    ScoreCategory.EVENS -> stringResource(Res.string.score_evens)
-    ScoreCategory.ODDS -> stringResource(Res.string.score_odds)
-    ScoreCategory.TARGET_1, ScoreCategory.TARGET_2, ScoreCategory.TARGET_3, ScoreCategory.TARGET_4,
-    ScoreCategory.TARGET_5, ScoreCategory.TARGET_6, ScoreCategory.TARGET_7, ScoreCategory.TARGET_8,
-    ScoreCategory.TARGET_9, ScoreCategory.TARGET_10, ScoreCategory.TARGET_11, ScoreCategory.TARGET_12,
-    -> stringResource(Res.string.score_target, ScoreCategory.TARGETS.indexOf(this) + 1)
-    ScoreCategory.D20_1, ScoreCategory.D20_2, ScoreCategory.D20_3, ScoreCategory.D20_4, ScoreCategory.D20_5,
-    ScoreCategory.D20_6, ScoreCategory.D20_7, ScoreCategory.D20_8, ScoreCategory.D20_9, ScoreCategory.D20_10,
-    ScoreCategory.D20_11, ScoreCategory.D20_12, ScoreCategory.D20_13, ScoreCategory.D20_14, ScoreCategory.D20_15,
-    ScoreCategory.D20_16, ScoreCategory.D20_17, ScoreCategory.D20_18, ScoreCategory.D20_19, ScoreCategory.D20_20,
-    -> stringResource(Res.string.score_number, requireNotNull(number))
-    ScoreCategory.D20_WILD_LOW, ScoreCategory.D20_WILD_HIGH ->
-        stringResource(Res.string.score_wildcard, requireNotNull(wildcardNumbers).first, requireNotNull(wildcardNumbers).last)
+internal fun ScoreCategory.spokenName(irish: Boolean): String = when (val rule = rule) {
+    is ScoreRule.Target -> stringResource(Res.string.score_target, rule.index)
+    is ScoreRule.Wildcard -> stringResource(Res.string.score_wildcard, rule.numbers.first, rule.numbers.last)
+    is ScoreRule.Numbered if displayName == null -> stringResource(Res.string.score_number, rule.number)
+    else -> mark ?: stringResource(requireNotNull((if (irish) irishName else null) ?: displayName) { "$this has no name" })
 }
 
 /** A die colour's name - the Irish flag's colours in its place while [irish] (see DieColour.palette). */

@@ -29,11 +29,11 @@ internal class HandScoring(
 
     /** Each category's number, if it's in the upper section - zero otherwise. */
     val upperValue: IntArray = IntArray(categoryCount) { index ->
-        if (categories[index].section == ScoreSection.UPPER) PlayerState.UPPER_CATEGORIES.indexOf(categories[index]) + 1 else 0
+        if (categories[index].section == ScoreSection.UPPER) requireNotNull(categories[index].number) else 0
     }
 
     private val upperIndexForValue = IntArray(UPPER_VALUES + 1) { value ->
-        if (value == 0) -1 else categories.indexOf(PlayerState.UPPER_CATEGORIES[value - 1])
+        ScoreCategory.upperFor(value)?.let { categories.indexOf(it) } ?: -1
     }
     private val freeFill = BooleanArray(categoryCount) { categories[it].jokerFreeFill }
     private val fixedScore = IntArray(categoryCount) { categories[it].fixedScore ?: 0 }

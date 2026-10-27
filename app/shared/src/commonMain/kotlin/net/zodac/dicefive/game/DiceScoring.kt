@@ -3,6 +3,7 @@ package net.zodac.dicefive.game
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.ScoreRule
 
 /**
  * Stateless scoring rules for a single dice roll. Does not know about a
@@ -24,40 +25,22 @@ object DiceScoring {
     // Only what each category needs is worked out from the dice: Hard's hold search scores every
     // open category of tens of thousands of hands per decision in Tricolour, so the counts and
     // distinct values a category never looks at aren't built for it.
-    fun score(category: ScoreCategory, dice: List<Die>): Int = when (category) {
-        ScoreCategory.ONES -> scoreUpper(dice, 1)
-        ScoreCategory.TWOS -> scoreUpper(dice, 2)
-        ScoreCategory.THREES -> scoreUpper(dice, 3)
-        ScoreCategory.FOURS -> scoreUpper(dice, 4)
-        ScoreCategory.FIVES -> scoreUpper(dice, 5)
-        ScoreCategory.SIXES -> scoreUpper(dice, 6)
-        ScoreCategory.THREE_OF_A_KIND -> if (valueCounts(dice).values.any { it >= 3 }) dice.sumOf { it.value } else 0
-        ScoreCategory.FOUR_OF_A_KIND -> if (valueCounts(dice).values.any { it >= 4 }) dice.sumOf { it.value } else 0
-        ScoreCategory.FULL_HOUSE -> fixedScoreIf(category, isHouse(valueCounts(dice)))
-        ScoreCategory.SMALL_STRAIGHT -> fixedScoreIf(category, hasStraight(dice, 4))
-        ScoreCategory.LARGE_STRAIGHT -> fixedScoreIf(category, hasStraight(dice, 5))
-        ScoreCategory.FIVE_OF_A_KIND -> fixedScoreIf(category, isFiveOfAKind(dice))
-        ScoreCategory.CHANCE -> dice.sumOf { it.value }
-        ScoreCategory.REDS, ScoreCategory.YELLOWS, ScoreCategory.BLUES ->
-            fixedScoreIf(category, isAllOneColour(dice, requireNotNull(category.matchingColour)))
+    fun score(category: ScoreCategory, dice: List<Die>): Int = when (val rule = category.rule) {
+        is ScoreRule.Numbered -> scoreUpper(dice, rule.number)
+        is ScoreRule.Wildcard -> scoreWildcard(dice, rule.numbers)
+        is ScoreRule.OfAKind -> if (valueCounts(dice).values.any { it >= rule.count }) dice.sumOf { it.value } else 0
+        ScoreRule.House -> fixedScoreIf(category, isHouse(valueCounts(dice)))
+        is ScoreRule.Straight -> fixedScoreIf(category, hasStraight(dice, rule.length))
+        ScoreRule.FiveOfAKind -> fixedScoreIf(category, isFiveOfAKind(dice))
+        ScoreRule.Chance -> dice.sumOf { it.value }
+        is ScoreRule.ColourSet -> fixedScoreIf(category, isAllOneColour(dice, rule.colour))
         // Every die needs a colour: a colourless mode's dice would otherwise all group under null.
-        ScoreCategory.COLOURED_HOUSE ->
-            fixedScoreIf(category, dice.all { it.colour != null } && isHouse(dice.groupingBy { it.colour }.eachCount()))
-        ScoreCategory.TWO_PAIR -> scoreTwoPair(dice)
-        ScoreCategory.EVENS -> dice.sumOf { if (it.value % 2 == 0) it.value else 0 }
-        ScoreCategory.ODDS -> dice.sumOf { if (it.value % 2 != 0) it.value else 0 }
-        ScoreCategory.D20_1, ScoreCategory.D20_2, ScoreCategory.D20_3, ScoreCategory.D20_4, ScoreCategory.D20_5,
-        ScoreCategory.D20_6, ScoreCategory.D20_7, ScoreCategory.D20_8, ScoreCategory.D20_9, ScoreCategory.D20_10,
-        ScoreCategory.D20_11, ScoreCategory.D20_12, ScoreCategory.D20_13, ScoreCategory.D20_14, ScoreCategory.D20_15,
-        ScoreCategory.D20_16, ScoreCategory.D20_17, ScoreCategory.D20_18, ScoreCategory.D20_19, ScoreCategory.D20_20,
-        -> scoreUpper(dice, requireNotNull(category.number))
-        ScoreCategory.D20_WILD_LOW, ScoreCategory.D20_WILD_HIGH -> scoreWildcard(dice, requireNotNull(category.wildcardNumbers))
+        ScoreRule.ColouredHouse -> fixedScoreIf(category, dice.all { it.colour != null } && isHouse(dice.groupingBy { it.colour }.eachCount()))
+        ScoreRule.TwoPair -> scoreTwoPair(dice)
+        is ScoreRule.Parity -> dice.sumOf { if ((it.value % 2 == 0) == rule.even) it.value else 0 }
         // Each game draws its own targets, so there's no rule here to score them by.
-        ScoreCategory.TARGET_1, ScoreCategory.TARGET_2, ScoreCategory.TARGET_3, ScoreCategory.TARGET_4,
-        ScoreCategory.TARGET_5, ScoreCategory.TARGET_6, ScoreCategory.TARGET_7, ScoreCategory.TARGET_8,
-        ScoreCategory.TARGET_9, ScoreCategory.TARGET_10, ScoreCategory.TARGET_11, ScoreCategory.TARGET_12,
-        ScoreCategory.ALIBI,
-        -> throw IllegalArgumentException("$category is scored against the player's hit list - see ScoreCalculator.scoreFor")
+        is ScoreRule.Target, ScoreRule.Alibi ->
+            throw IllegalArgumentException("$category is scored against the player's hit list - see ScoreCalculator.scoreFor")
     }
 
     /**

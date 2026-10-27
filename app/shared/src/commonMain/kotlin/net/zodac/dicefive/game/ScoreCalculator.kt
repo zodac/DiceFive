@@ -35,7 +35,7 @@ object ScoreCalculator {
         val open = player.categories.filter { player.isOpen(it) }
         if (!isJokerSituation(player, dice)) return open
 
-        val forcedUpper = PlayerState.UPPER_CATEGORIES[dice.first().value - 1].takeIf { it in open }
+        val forcedUpper = ScoreCategory.upperFor(dice.first().value)?.takeIf { it in open }
         if (forcedUpper != null) return listOf(forcedUpper)
 
         val openOutsideUpper = open.filterNot { it.section == ScoreSection.UPPER }

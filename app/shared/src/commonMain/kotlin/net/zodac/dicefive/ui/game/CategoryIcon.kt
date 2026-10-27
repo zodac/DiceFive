@@ -32,8 +32,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.zodac.dicefive.model.HitTarget
 import net.zodac.dicefive.model.PlaceMatch
-import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.ScoreRule
+import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.game_badge_evens
 import net.zodac.dicefive.resources.game_badge_odds
@@ -78,52 +79,49 @@ fun CategoryIcon(
             TargetIcon(target, matches, color)
             return@Box
         }
-        when (category) {
-            in PlayerState.UPPER_CATEGORIES -> {
-                val pipValue = PlayerState.UPPER_CATEGORIES.indexOf(category) + 1
-                PipFace(value = pipValue, color = color, modifier = Modifier.fillMaxSize().padding(6.dp))
-            }
-
+        when (val rule = category.rule) {
+            is ScoreRule.Numbered if category.section == ScoreSection.UPPER ->
+                PipFace(value = rule.number, color = color, modifier = Modifier.fillMaxSize().padding(6.dp))
             // D20's numbers: the number itself, in digits that follow the language, as a badge like 3x.
-            in ScoreCategory.D20_NUMBERS -> BadgeLabel(requireNotNull(category.number).localised(), color, labelFontSize)
+            is ScoreRule.Numbered -> BadgeLabel(rule.number.localised(), color, labelFontSize)
             // A wildcard: the range it takes its pick from, small enough for five characters to fit the tile.
-            ScoreCategory.D20_WILD_LOW, ScoreCategory.D20_WILD_HIGH -> {
-                val range = requireNotNull(category.wildcardNumbers)
-                BadgeLabel(stringResource(Res.string.game_badge_range, range.first, range.last), color, labelFontSize * WILDCARD_LABEL_SCALE)
-            }
-            ScoreCategory.THREE_OF_A_KIND, ScoreCategory.FOUR_OF_A_KIND -> BadgeLabel(requireNotNull(category.mark), color, labelFontSize)
-            ScoreCategory.FIVE_OF_A_KIND -> FiveOfAKindIcon(color, labelFontSize, fiveOfAKindBonusCount)
-            ScoreCategory.CHANCE -> BadgeLabel("?", color, labelFontSize)
+            is ScoreRule.Wildcard -> BadgeLabel(
+                stringResource(Res.string.game_badge_range, rule.numbers.first, rule.numbers.last),
+                color,
+                labelFontSize * WILDCARD_LABEL_SCALE,
+            )
+            is ScoreRule.OfAKind -> BadgeLabel(requireNotNull(category.mark), color, labelFontSize)
+            ScoreRule.FiveOfAKind -> FiveOfAKindIcon(color, labelFontSize, fiveOfAKindBonusCount)
+            ScoreRule.Chance -> BadgeLabel("?", color, labelFontSize)
             // A stock glyph rather than a hand-drawn one (a previous roof/body Canvas silhouette
             // read as too tall for the tile). The tile itself is always square (CategoryTile sizes
             // it with a single dp value for both dimensions), so laying this out with fillMaxSize
             // renders it within that same square automatically, with no separate aspect tuning.
-            ScoreCategory.FULL_HOUSE -> HouseIcon(color)
+            ScoreRule.House -> HouseIcon(color)
             // The same house, over CategoryTile's red/yellow/blue stripes rather than plain teal -
             // with a soft shadow under it, since white or gold alone washes out on the yellow band.
-            ScoreCategory.COLOURED_HOUSE -> HouseIcon(color, shadowed = true)
+            ScoreRule.ColouredHouse -> HouseIcon(color, shadowed = true)
             // Nothing but the colour itself: the box is about the colour, and a flat square of it
             // says so at a glance. Fades like every other glyph once scored.
-            ScoreCategory.REDS, ScoreCategory.YELLOWS, ScoreCategory.BLUES -> Box(
+            is ScoreRule.ColourSet -> Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(10.dp)
                     .alpha(if (dimmed) 0.4f else 1f)
-                    .background(requireNotNull(category.matchingColour).palette(LocalIrishTricolour.current).swatch),
+                    .background(rule.colour.palette(LocalIrishTricolour.current).swatch),
             )
             // Material has one Stairs glyph, not a short-flight/long-flight pair, so both
             // categories render the same icon - a corner badge carries the run length (4 vs 5)
             // that used to come from the hand-drawn version's step count.
-            ScoreCategory.SMALL_STRAIGHT -> StairsWithRunBadge(color, runLength = 4, dimmed = dimmed)
-            ScoreCategory.LARGE_STRAIGHT -> StairsWithRunBadge(color, runLength = 5, dimmed = dimmed)
+            is ScoreRule.Straight -> StairsWithRunBadge(color, runLength = rule.length, dimmed = dimmed)
             // Text badges like 3x and ?, since there's no picture that says "two pairs" or "evens" better than
             // the words themselves. The spoken name is on the tile (see BoardSemantics).
-            ScoreCategory.TWO_PAIR -> BadgeLabel("2+2", color, labelFontSize)
-            ScoreCategory.EVENS -> BadgeLabel(stringResource(Res.string.game_badge_evens), color, labelFontSize)
-            ScoreCategory.ODDS -> BadgeLabel(stringResource(Res.string.game_badge_odds), color, labelFontSize)
+            ScoreRule.TwoPair -> BadgeLabel("2+2", color, labelFontSize)
+            is ScoreRule.Parity -> BadgeLabel(stringResource(if (rule.even) Res.string.game_badge_evens else Res.string.game_badge_odds), color, labelFontSize)
             // A word, like the text badges: there's no picture of an alibi. Smaller than 5x's two characters.
-            ScoreCategory.ALIBI -> BadgeLabel(requireNotNull(category.mark), color, labelFontSize * ALIBI_LABEL_SCALE)
-            else -> Unit
+            ScoreRule.Alibi -> BadgeLabel(requireNotNull(category.mark), color, labelFontSize * ALIBI_LABEL_SCALE)
+            // Drawn from the target it calls, above.
+            is ScoreRule.Target -> Unit
         }
     }
 }

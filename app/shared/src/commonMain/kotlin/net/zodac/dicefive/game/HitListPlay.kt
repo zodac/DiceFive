@@ -4,6 +4,7 @@ import kotlin.math.pow
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.HitTarget
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
@@ -26,7 +27,7 @@ import net.zodac.dicefive.model.ScoreCategory
  *
  * Every rule here reads the player's own card and the dice as they lie, in column order.
  */
-internal object HitListPlay {
+internal object HitListPlay : CpuStrategy {
 
     /** The most rerolls planned over, as for [AiTurnPlayer]'s Hard - stored rolls can pile up past what changes anything. */
     private const val MAX_PLANNED_ROLLS = 9
@@ -36,15 +37,16 @@ internal object HitListPlay {
     /** The chance a die misses a number it's rolled for. */
     private const val MISS_ODDS = 5.0 / 6.0
 
-    /** Which of [dice] to hold before the next roll (every one means "stop rolling") - see the class doc. */
-    fun chooseHolds(player: PlayerState, dice: List<Die>, rollsRemaining: Int): Set<Int> {
+    /** Which dice to hold before the next roll (every one means "stop rolling") - see the class doc. */
+    override fun chooseHolds(state: GameState, player: PlayerState, perfectPlay: StandardPerfectPlayTable?): Set<Int> {
+        val dice = state.dice
         val stop = dice.indices.toSet()
         // A real hit, not a partial one - almost every roll scores a little somewhere.
         val anyHit = player.hitList.any { (category, target) -> player.isOpen(category) && target.isHit(dice) }
         if (player.difficulty == Difficulty.EASY) return if (anyHit) stop else emptySet()
         if (player.difficulty == Difficulty.MEDIUM && anyHit) return stop
 
-        val rolls = rollsRemaining.coerceAtMost(MAX_PLANNED_ROLLS)
+        val rolls = state.rollsRemaining.coerceAtMost(MAX_PLANNED_ROLLS)
         val exactAllowed = player.difficulty == Difficulty.HARD
         var bestValue = if (exactAllowed) bestScore(player, dice).toDouble() else 0.0
         var bestHolds = if (exactAllowed) stop else emptySet()
@@ -70,14 +72,21 @@ internal object HitListPlay {
         return bestHolds
     }
 
-    /** The box an AI scores [dice] in - see the class doc. */
-    fun chooseCategory(player: PlayerState, dice: List<Die>, available: List<ScoreCategory>, rollsPerTurn: Int): ScoreCategory =
-        when (player.difficulty) {
-            Difficulty.EASY -> available.maxBy { ScoreCalculator.scoreFor(player, it, dice) }
+    /** The box an AI scores [hand] in - see the class doc. */
+    override fun chooseCategory(
+        state: GameState,
+        player: PlayerState,
+        hand: List<Die>,
+        available: List<ScoreCategory>,
+        perfectPlay: StandardPerfectPlayTable?,
+    ): ScoreCategory {
+        val rollsPerTurn = state.rollsPerTurn
+        return when (player.difficulty) {
+            Difficulty.EASY -> available.maxBy { ScoreCalculator.scoreFor(player, it, hand) }
             Difficulty.MEDIUM -> {
                 val best = available.maxWith(
                     compareBy(
-                        { ScoreCalculator.scoreFor(player, it, dice) },
+                        { ScoreCalculator.scoreFor(player, it, hand) },
                         // A target over the Alibi on equal points, and of nothing hit, the box least worth keeping goes.
                         { if (it == ScoreCategory.ALIBI) 0 else 1 },
                         { -worthKeeping(player, it, rollsPerTurn) },
@@ -85,11 +94,12 @@ internal object HitListPlay {
                 )
                 // A plain hit on a target naming all five numbers goes in the Alibi, keeping the target for its double.
                 val target = player.hitList[best]
-                val plainFullHit = target != null && target.called.size == target.places.size && ScoreCalculator.scoreFor(player, best, dice) == target.points
+                val plainFullHit = target != null && target.called.size == target.places.size && ScoreCalculator.scoreFor(player, best, hand) == target.points
                 if (plainFullHit && ScoreCategory.ALIBI in available) ScoreCategory.ALIBI else best
             }
-            Difficulty.HARD -> available.maxBy { ScoreCalculator.scoreFor(player, it, dice) - worthKeeping(player, it, rollsPerTurn) }
+            Difficulty.HARD -> available.maxBy { ScoreCalculator.scoreFor(player, it, hand) - worthKeeping(player, it, rollsPerTurn) }
         }
+    }
 
     /**
      * What leaving [category] open for a later turn is worth: a whole turn's chance of hitting its target, plus of an

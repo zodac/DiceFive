@@ -8,7 +8,7 @@ import net.zodac.dicefive.model.Die
  * out of rerolling the rest - all numbered up front and laid out in flat arrays, so Hard's whole-turn
  * search ([keepValues], [bestKeepValues]) is a few passes of plain arithmetic over them rather than a
  * tree of map lookups. Costly to build for many faces, so each is built once and kept - see
- * [AiTurnPlayer]'s per-mode lazies.
+ * [HardCpu]'s per-mode lazies.
  *
  * Hands and held sets are unordered - how many dice show each face - since scoring never depends on
  * die order: five dice of 18 faces is 1.9 million ordered rolls, but only 26,334 hands. Standard's

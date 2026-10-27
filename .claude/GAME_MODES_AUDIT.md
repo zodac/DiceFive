@@ -192,7 +192,8 @@ player's pick if it's one (white or blue, faces in `D20_VIEWS`), else white (`D2
 - The Rules page draws examples past 6 with `numberedLike`.
 
 **Code rules.**
-- Use `ScoreCategory.number`, never `PlayerState.UPPER_CATEGORIES`: `UPPER_CATEGORIES[value - 1]` throws for 7+.
+- Use `ScoreCategory.number`, or `ScoreCategory.upperFor(value)` (null for 7+), never `ScoreCategory.UPPER[value - 1]`,
+  which throws for 7+.
 - `hasStandardCard` (ONES on the card) is what the Standard-card guards ask, not `!hasHitList`.
 
 **Board.** `d20Layout`, with sky and indigo halves (`UI_BOARD.md`).
@@ -204,7 +205,7 @@ each colour's `secretAchievement`). The mode always has white.
 
 **Can't be earned**:
 - the 5x ones, Upper/Lower Class, Bonus Round, Exact Change, Six Appeal, Taking A Chance and Both Straights;
-- Time To Let It Go and Commitment Issues (they read `UPPER_CATEGORIES`);
+- Time To Let It Go and Commitment Issues (they read the upper boxes only);
 - Greenfingers (5 rolls a turn);
 - New Personal Best and the bands;
 - Nice and Rock Bottom.

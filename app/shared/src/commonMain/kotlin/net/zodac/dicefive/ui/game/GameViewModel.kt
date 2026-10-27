@@ -1352,7 +1352,7 @@ class GameViewModel(
                     )
                 }
                 // Also off the main thread: Hard's category choice compares against
-                // CATEGORY_BASELINES, a `by lazy` average-over-every-outcome computed once per
+                // HardCpu.CATEGORY_BASELINES, a `by lazy` average-over-every-outcome computed once per
                 // process on whichever call touches it first - same cost/rationale as the hold
                 // choice above. Worked out during the pause before scoring, not after it.
                 val toScore = current

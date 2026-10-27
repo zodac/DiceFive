@@ -756,9 +756,7 @@ object AchievementEngine {
     private val PlayerState.hasStandardTotals: Boolean
         get() = hasFullCard && gameMode.hasStandardCard
 
-    /** ONES holds exactly 1, TWOS exactly 2, ... SIXES exactly 6 (in any one of its slots) -
-     * [PlayerState.UPPER_CATEGORIES] is already declared in that order, so its index doubles as the
-     * target value. */
+    /** ONES holds exactly 1, TWOS exactly 2, ... SIXES exactly 6 (in any one of its slots). */
     private fun PlayerState.matchesExactUpperLadder(): Boolean =
-        PlayerState.UPPER_CATEGORIES.withIndex().all { (index, category) -> hasScore(category, index + 1) }
+        ScoreCategory.UPPER.all { category -> hasScore(category, requireNotNull(category.number)) }
 }

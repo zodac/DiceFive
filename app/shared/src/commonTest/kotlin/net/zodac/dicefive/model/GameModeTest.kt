@@ -42,7 +42,7 @@ class GameModeTest {
             ScoreCategory.FULL_HOUSE -> listOf(6, 6, 6, 5, 5)
             ScoreCategory.SMALL_STRAIGHT, ScoreCategory.LARGE_STRAIGHT -> listOf(1, 2, 3, 4, 5)
             ScoreCategory.THREE_OF_A_KIND, ScoreCategory.FOUR_OF_A_KIND, ScoreCategory.CHANCE -> listOf(6, 6, 6, 6, 6)
-            else -> List(5) { PlayerState.UPPER_CATEGORIES.indexOf(category) + 1 }
+            else -> List(5) { requireNotNull(category.number) }
         }
         return values.map { Die(value = it) }
     }
@@ -55,7 +55,7 @@ class GameModeTest {
         }
 
         // Quickfire's is the best of every set of boxes it can switch off: 3 upper enabled out of 6, and 3 lower enabled out of 6 (plus 5x disabled).
-        val upperCategories = PlayerState.UPPER_CATEGORIES
+        val upperCategories = ScoreCategory.UPPER
         val lowerCategories = ScoreCategory.entries.filter { it.section == ScoreSection.LOWER && it != ScoreCategory.FIVE_OF_A_KIND }
         var best = 0
         for (upperMask in 0 until (1 shl upperCategories.size)) {
@@ -290,7 +290,7 @@ class GameModeTest {
         assertEquals(18, onlySixes.upperBonusThreshold)
         assertEquals(35, onlySixes.upperSectionBonus)
         // Nothing left in the section: no bonus to earn, even though 0 reaches a threshold of 0.
-        val noUpper = upperPlayer(*PlayerState.UPPER_CATEGORIES.toTypedArray(), upper = emptyMap())
+        val noUpper = upperPlayer(*ScoreCategory.UPPER.toTypedArray(), upper = emptyMap())
         assertEquals(0, noUpper.upperBonusThreshold)
         assertFalse(noUpper.hasUpperBonus)
         assertEquals(0, noUpper.upperSectionBonus)

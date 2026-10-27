@@ -7,6 +7,7 @@ import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.heldIndices
 
@@ -399,15 +400,15 @@ class AchievementTracker {
         if (lastReleasedCommitmentGroupValue != null &&
             committingValue != null &&
             committingValue != lastReleasedCommitmentGroupValue &&
-            category == PlayerState.UPPER_CATEGORIES.getOrNull(committingValue - 1)
+            category == ScoreCategory.upperFor(committingValue)
         ) {
             add(Achievement.COMMITMENT_ISSUES)
         }
 
         // Time To Let It Go: a die held after both the 1st and 2nd rolls whose value the committed upper box never
         // counted. A zero means the box failed outright rather than the die being let go, so it doesn't count.
-        if (category in PlayerState.UPPER_CATEGORIES && DiceScoring.score(category, dice) > 0) {
-            val target = PlayerState.UPPER_CATEGORIES.indexOf(category) + 1
+        if (category.section == ScoreSection.UPPER && DiceScoring.score(category, dice) > 0) {
+            val target = requireNotNull(category.number)
             if (heldThroughBothRerolls.any { state.dice[it].value != target }) add(Achievement.TIME_TO_LET_IT_GO)
         }
 

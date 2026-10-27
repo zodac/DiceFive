@@ -29,7 +29,7 @@ class PlayerStateTest {
         PlayerState(name = "P", type = PlayerType.HUMAN, gameMode = GameMode.THIRD_WIND).let { it.copy(scorecard = it.scorecard + boxes) }
 
     /** Every upper box's three slots at three of its number - 189 in all, Third Wind's bonus threshold exactly. */
-    private val upperAtPar = PlayerState.UPPER_CATEGORIES.mapIndexed { index, category -> category to List(3) { 3 * (index + 1) } }
+    private val upperAtPar = ScoreCategory.UPPER.mapIndexed { index, category -> category to List(3) { 3 * (index + 1) } }
 
     @Test
     fun `a Third Wind box is worth all three slots and open until they're used - 189 upper earns 105 - every 50 in 5x is a 5x`() {
