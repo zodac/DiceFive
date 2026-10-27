@@ -72,7 +72,7 @@ class GameWarmUpTest : UiTest() {
             random = Random(1),
             localHour = { TEST_LOCAL_HOUR },
         )
-        viewModel.setPlayerCount(1)
+        viewModel.setupForm.setPlayerCount(1)
         compose.mainClock.autoAdvance = false
         var playing by mutableStateOf(false)
         compose.setContent {
@@ -123,7 +123,7 @@ class GameWarmUpTest : UiTest() {
         )
         // A game left part-way, as Continue finds it.
         viewModel().run {
-            setPlayerCount(1)
+            setupForm.setPlayerCount(1)
             startGame()
         }
         assertNotNull(runBlocking { saved.load() }, "no game was saved")

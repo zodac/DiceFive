@@ -87,7 +87,7 @@ class GameAchievementsWiringTest {
             random = dice,
             isDebugBuild = isDebugBuild,
         )
-        viewModel.setPlayerCount(players)
+        viewModel.setupForm.setPlayerCount(players)
         viewModel.setUp()
         viewModel.startGame()
         return Table(viewModel, store)
@@ -142,11 +142,11 @@ class GameAchievementsWiringTest {
     fun `a finished game with any modifier on is recorded as modified - off the board and its mode's card - and one with none as not`() = runTest {
         val modifiers: List<Pair<String, GameViewModel.() -> Unit>> = listOf(
             "none" to {},
-            "turn timer" to { setTurnTimer(TurnTimer.SECONDS_120) },
-            "rolls per turn" to { setRollsPerTurn(2) },
-            "stored rolls" to { setStoredRolls(true) },
-            "extended scores" to { setExtendedScores(true) },
-            "unlucky dice" to { setUnluckyDiceEnabled(true) },
+            "turn timer" to { setupForm.setTurnTimer(TurnTimer.SECONDS_120) },
+            "rolls per turn" to { setupForm.setRollsPerTurn(2) },
+            "stored rolls" to { setupForm.setStoredRolls(true) },
+            "extended scores" to { setupForm.setExtendedScores(true) },
+            "unlucky dice" to { setupForm.setUnluckyDiceEnabled(true) },
         )
         for ((name, modifier) in modifiers) {
             val dao = InMemoryScoreDao()
@@ -195,7 +195,7 @@ class GameAchievementsWiringTest {
 
         // A game finished by an AI still records the human's achievements. The AI plays itself via a coroutine, so its
         // turns interleave with advanceUntilIdle.
-        val againstBot = started(players = 2) { setPlayerType(2, PlayerType.AI) }
+        val againstBot = started(players = 2) { setupForm.setPlayerType(2, PlayerType.AI) }
         repeat(GameMode.STANDARD.categories.size * 2) {
             advanceUntilIdle()
             val state = againstBot.viewModel.game.value ?: return@repeat
@@ -228,7 +228,7 @@ class GameAchievementsWiringTest {
     fun `each recorded score carries its outcome - 5x count - primary-player flag and whether it's on the Leaderboard`() = runTest {
         fun finished(players: Int = 1, dice: Random = Random(1), mode: GameMode = GameMode.STANDARD): Pair<GameViewModel, InMemoryScoreDao> {
             val dao = InMemoryScoreDao()
-            val table = started(dice, players, scoreRepository = ScoreRepository(dao)) { setGameMode(mode) }
+            val table = started(dice, players, scoreRepository = ScoreRepository(dao)) { setupForm.setGameMode(mode) }
             table.viewModel.playToCompletion()
             advanceUntilIdle()
             return table.viewModel to dao
@@ -657,7 +657,7 @@ class GameAchievementsWiringTest {
 
         // With one roll a turn, that roll is also the last, so "every roll spent" is true straight away and nothing was ever
         // rerolled to break the hold - the case the one-roll guard is for.
-        val oneRollATurn = unlockedAfter(ScriptedDice(listOf(6, 6, 6, 6, 1)), setUp = { setRollsPerTurn(1) }) {
+        val oneRollATurn = unlockedAfter(ScriptedDice(listOf(6, 6, 6, 6, 1)), setUp = { setupForm.setRollsPerTurn(1) }) {
             rollDice()
             commitScore(ScoreCategory.SIXES)
         }
@@ -674,7 +674,7 @@ class GameAchievementsWiringTest {
         assertFalse(Achievement.ALMOST_FAMOUS in leaked, "ALMOST_FAMOUS should not leak a stale four-of-a-kind flag into the next turn, got $leaked")
 
         // Four 6s and three others in Stud: the 6s held, the other three rerolled twice and never a 6.
-        val stud = unlockedAfter(ScriptedDice(listOf(6, 6, 6, 6, 1, 2, 3, 2, 3, 4, 3, 4, 5)), setUp = { setGameMode(GameMode.STUD) }) {
+        val stud = unlockedAfter(ScriptedDice(listOf(6, 6, 6, 6, 1, 2, 3, 2, 3, 4, 3, 4, 5)), setUp = { setupForm.setGameMode(GameMode.STUD) }) {
             rollDice()
             for (index in 0 until 4) toggleHold(index)
             rollDice()
@@ -687,7 +687,7 @@ class GameAchievementsWiringTest {
 
     @Test
     fun `Stud - seven matching dice are Lucky Seven but no 5x feat and a timed-out turn completes and scores only the held hand`() = runTest {
-        val stud: GameViewModel.() -> Unit = { setGameMode(GameMode.STUD) }
+        val stud: GameViewModel.() -> Unit = { setupForm.setGameMode(GameMode.STUD) }
         val firstRoll = unlockedAfter(LoadedDice(6), setUp = stud) { rollDice() }
         assertTrue(Achievement.LUCKY_SEVEN in firstRoll, "LUCKY_SEVEN should pop, got $firstRoll")
         val rerolled = unlockedAfter(LoadedDice(6), setUp = stud) {
@@ -700,8 +700,8 @@ class GameAchievementsWiringTest {
         // hand completed with the last 1 and then the leftmost dice (the first, third and fourth) - so the third 6 and the
         // 3 are left on the mat.
         val timedOut = started(ScriptedDice(listOf(6, 1, 6, 2, 6, 3, 1))) {
-            setGameMode(GameMode.STUD)
-            setTurnTimer(TurnTimer.SECONDS_30)
+            setupForm.setGameMode(GameMode.STUD)
+            setupForm.setTurnTimer(TurnTimer.SECONDS_30)
         }
         timedOut.viewModel.rollDice()
         timedOut.viewModel.toggleHold(1)
@@ -714,7 +714,7 @@ class GameAchievementsWiringTest {
 
     @Test
     fun `letting every turn time out scores a zero in each box with no roll - and earns none of the low or zeroed cards`() = runTest {
-        val table = started(LoadedDice(1)) { setTurnTimer(TurnTimer.SECONDS_30) }
+        val table = started(LoadedDice(1)) { setupForm.setTurnTimer(TurnTimer.SECONDS_30) }
         repeat(GameMode.STANDARD.categories.size) {
             testDispatcher.scheduler.advanceTimeBy(30_000)
             testDispatcher.scheduler.runCurrent()

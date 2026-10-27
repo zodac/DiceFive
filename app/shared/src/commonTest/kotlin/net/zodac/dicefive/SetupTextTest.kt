@@ -38,7 +38,7 @@ class SetupTextTest : UiTest() {
 
         // An empty name field shows its seat's default as a hint - and a name typed over it replaces it.
         compose.onNodeWithText("Player 1").assertExists()
-        viewModel.setPlayerName(1, "Wolfgang")
+        viewModel.setupForm.setPlayerName(1, "Wolfgang")
         compose.waitForIdle()
         compose.onNodeWithText("Wolfgang").assertExists()
         compose.onAllNodesWithText("Player 1").assertCountEquals(0)
@@ -46,16 +46,16 @@ class SetupTextTest : UiTest() {
 
         // A seat's default clashes with another seat that typed the same words.
         val clash = gameViewModel()
-        clash.setPlayerCount(3)
-        clash.setPlayerType(2, PlayerType.HUMAN)
-        clash.setPlayerType(3, PlayerType.HUMAN)
-        clash.setPlayerName(2, "player 3")
+        clash.setupForm.setPlayerCount(3)
+        clash.setupForm.setPlayerType(2, PlayerType.HUMAN)
+        clash.setupForm.setPlayerType(3, PlayerType.HUMAN)
+        clash.setupForm.setPlayerName(2, "player 3")
         show(clash)
         compose.onNodeWithText("Names must be unique").assertExists()
 
         // The seat chips and a computer player's difficulties are named.
         val cpu = gameViewModel()
-        cpu.setPlayerType(2, PlayerType.AI)
+        cpu.setupForm.setPlayerType(2, PlayerType.AI)
         show(cpu)
         compose.onNodeWithText("CPU").assertExists()
         listOf("Easy", "Medium", "Hard").forEach { compose.onNodeWithText(it).assertExists() }

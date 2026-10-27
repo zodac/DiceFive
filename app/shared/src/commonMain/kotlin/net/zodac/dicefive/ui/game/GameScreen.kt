@@ -350,8 +350,8 @@ private fun GamePage(
 @Composable
 fun GameWarmUp(viewModel: GameViewModel, modifier: Modifier = Modifier) {
     val table by viewModel.tableSettings.collectAsStateWithLifecycle()
-    val setup by viewModel.setup.collectAsStateWithLifecycle()
-    val setupRestored by viewModel.setupRestored.collectAsStateWithLifecycle()
+    val setup by viewModel.setupForm.setup.collectAsStateWithLifecycle()
+    val setupRestored by viewModel.setupForm.setupRestored.collectAsStateWithLifecycle()
     val theme = table?.visualTheme
     if (theme == null || !setupRestored) return
     val game = remember(setup) { viewModel.previewGame() }

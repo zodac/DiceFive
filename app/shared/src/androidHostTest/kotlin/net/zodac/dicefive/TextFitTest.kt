@@ -119,18 +119,18 @@ open class TextFitTest : UiTest() {
         fun check(screen: String) = brokenWords().takeIf { it.isNotEmpty() }?.let { broken[screen] = it }
 
         val setup = gameViewModel()
-        setup.setPlayerCount(4)
-        setup.setPlayerType(2, PlayerType.AI)
+        setup.setupForm.setPlayerCount(4)
+        setup.setupForm.setPlayerType(2, PlayerType.AI)
         content { GameSetupScreen(viewModel = setup, onStartGame = {}, onTutorial = {}, onBack = {}) }
         check("New game")
 
         // The modifiers, with every one switched on.
         val modifiers = gameViewModel()
-        modifiers.setTurnTimer(net.zodac.dicefive.model.TurnTimer.SECONDS_30)
-        modifiers.setRollsPerTurn(3)
-        modifiers.setStoredRolls(true)
-        modifiers.setUnluckyDiceEnabled(true)
-        modifiers.setExtendedScores(true)
+        modifiers.setupForm.setTurnTimer(net.zodac.dicefive.model.TurnTimer.SECONDS_30)
+        modifiers.setupForm.setRollsPerTurn(3)
+        modifiers.setupForm.setStoredRolls(true)
+        modifiers.setupForm.setUnluckyDiceEnabled(true)
+        modifiers.setupForm.setExtendedScores(true)
         content { GameSetupScreen(viewModel = modifiers, onStartGame = {}, onTutorial = {}, onBack = {}) }
         compose.onNodeWithText(fiveModifiersEnabled).performClick()
         compose.waitForIdle()
@@ -168,8 +168,8 @@ open class TextFitTest : UiTest() {
         check("Styles")
 
         val game = gameViewModel()
-        game.setPlayerCount(2)
-        game.setPlayerType(2, PlayerType.AI)
+        game.setupForm.setPlayerCount(2)
+        game.setupForm.setPlayerType(2, PlayerType.AI)
         game.startGame()
         content { GameScreen(viewModel = game) }
         check("Game")

@@ -39,7 +39,7 @@ class GameScreenHapticsTest : UiTest() {
     private fun show(viewModel: GameViewModel) {
         // Off, so each step moves the clock only as far as advance() says.
         compose.mainClock.autoAdvance = false
-        viewModel.setGameMode(GameMode.STANDARD)
+        viewModel.setupForm.setGameMode(GameMode.STANDARD)
         viewModel.startGame()
         showcase.show {
             CompositionLocalProvider(LocalPlatformServices provides recordingServices) {
@@ -65,7 +65,7 @@ class GameScreenHapticsTest : UiTest() {
     @Test
     fun `the player's own roll buzzes the phone once`() = uiTest {
         val viewModel = gameViewModel()
-        viewModel.setPlayerCount(1)
+        viewModel.setupForm.setPlayerCount(1)
         show(viewModel)
         tapCup()
         waitFor("the roll to land") { viewModel.game.value!!.phase == TurnPhase.ROLLED }
@@ -75,8 +75,8 @@ class GameScreenHapticsTest : UiTest() {
     @Test
     fun `a CPU's roll does not buzz the phone - only the player's own did`() = uiTest {
         val viewModel = gameViewModel()
-        viewModel.setPlayerCount(2)
-        viewModel.setPlayerType(2, PlayerType.AI)
+        viewModel.setupForm.setPlayerCount(2)
+        viewModel.setupForm.setPlayerType(2, PlayerType.AI)
         show(viewModel)
         tapCup()
         waitFor("the player's roll to land") { viewModel.game.value!!.phase == TurnPhase.ROLLED }

@@ -120,6 +120,7 @@ import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.game.GameSetupForm
 import net.zodac.dicefive.ui.game.GameSetupState
 import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.game.PlayerSetupSlot
@@ -146,8 +147,8 @@ fun GameSetupScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val setup by viewModel.setup.collectAsStateWithLifecycle()
-    val setupRestored by viewModel.setupRestored.collectAsStateWithLifecycle()
+    val setup by viewModel.setupForm.setup.collectAsStateWithLifecycle()
+    val setupRestored by viewModel.setupForm.setupRestored.collectAsStateWithLifecycle()
     val activeSlots = setup.playerSlots.take(setup.playerCount)
     val focusManager = LocalFocusManager.current
 
@@ -164,7 +165,7 @@ fun GameSetupScreen(
         if (!setupRestored) return@ScreenScaffold HoldPageCover()
 
         val playerCards = @Composable {
-            PlayerCards(setup = setup, activeSlots = activeSlots, duplicateNameSlots = duplicateNameSlots, namesMustBeUnique = namesMustBeUnique, defaultName = defaultName, viewModel = viewModel)
+            PlayerCards(setup = setup, activeSlots = activeSlots, duplicateNameSlots = duplicateNameSlots, namesMustBeUnique = namesMustBeUnique, defaultName = defaultName, form = viewModel.setupForm)
         }
         val actions = @Composable {
             if (duplicateNameSlots.isNotEmpty()) {
@@ -214,7 +215,7 @@ fun GameSetupScreen(
                     ScrollingColumn(
                         modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) { GameCards(setup = setup, viewModel = viewModel) }
+                    ) { GameCards(setup = setup, form = viewModel.setupForm) }
                     actions()
                 }
             }
@@ -231,7 +232,7 @@ fun GameSetupScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             playerCards()
-            GameCards(setup = setup, viewModel = viewModel)
+            GameCards(setup = setup, form = viewModel.setupForm)
         }
         actions()
     }
@@ -245,10 +246,10 @@ private fun PlayerCards(
     duplicateNameSlots: Set<Int>,
     namesMustBeUnique: String,
     defaultName: (Int) -> String,
-    viewModel: GameViewModel,
+    form: GameSetupForm,
 ) {
     SetupCard(title = stringResource(Res.string.setup_players)) {
-        PlayerCountSelector(count = setup.playerCount, onCountChange = viewModel::setPlayerCount)
+        PlayerCountSelector(count = setup.playerCount, onCountChange = form::setPlayerCount)
     }
 
     // Every active seat gets a row, including player 1 (always Human, at this device) - one card
@@ -268,10 +269,10 @@ private fun PlayerCards(
                 namesMustBeUnique = namesMustBeUnique,
                 defaultName = defaultName(slot.slot),
                 colourHolders = colourHolders,
-                onColourChange = { colour -> viewModel.setPlayerColour(slot.slot, colour) },
-                onTypeChange = { type -> viewModel.setPlayerType(slot.slot, type) },
-                onNameChange = { name -> viewModel.setPlayerName(slot.slot, name) },
-                onDifficultyChange = { difficulty -> viewModel.setPlayerDifficulty(slot.slot, difficulty) },
+                onColourChange = { colour -> form.setPlayerColour(slot.slot, colour) },
+                onTypeChange = { type -> form.setPlayerType(slot.slot, type) },
+                onNameChange = { name -> form.setPlayerName(slot.slot, name) },
+                onDifficultyChange = { difficulty -> form.setPlayerDifficulty(slot.slot, difficulty) },
             )
         }
     }
@@ -279,7 +280,7 @@ private fun PlayerCards(
 
 /** The form's second half: the game mode and the modifiers. */
 @Composable
-private fun GameCards(setup: GameSetupState, viewModel: GameViewModel) {
+private fun GameCards(setup: GameSetupState, form: GameSetupForm) {
     // Until a first game is finished each card holds a note in place of its picker, and the form plays Standard with no
     // modifiers.
     if (!setup.modesUnlocked) {
@@ -289,20 +290,20 @@ private fun GameCards(setup: GameSetupState, viewModel: GameViewModel) {
     }
 
     SetupCard(title = stringResource(Res.string.setup_game_mode)) {
-        GameModeSelector(selected = setup.gameMode, onSelect = viewModel::setGameMode)
+        GameModeSelector(selected = setup.gameMode, onSelect = form::setGameMode)
     }
 
     SetupCard(title = stringResource(Res.string.setup_modifiers)) {
         SetupModifierPicker(
             setup = setup,
-            onTurnTimer = viewModel::setTurnTimer,
-            onRollsPerTurn = viewModel::setRollsPerTurn,
-            onStoredRolls = viewModel::setStoredRolls,
-            onStoredRollsMax = viewModel::setStoredRollsMax,
-            onExtendedScores = viewModel::setExtendedScores,
-            onUnluckyDiceEnabled = viewModel::setUnluckyDiceEnabled,
-            onUnluckyOdds = viewModel::setUnluckyOdds,
-            onUnluckyMaxDice = viewModel::setUnluckyMaxDice,
+            onTurnTimer = form::setTurnTimer,
+            onRollsPerTurn = form::setRollsPerTurn,
+            onStoredRolls = form::setStoredRolls,
+            onStoredRollsMax = form::setStoredRollsMax,
+            onExtendedScores = form::setExtendedScores,
+            onUnluckyDiceEnabled = form::setUnluckyDiceEnabled,
+            onUnluckyOdds = form::setUnluckyOdds,
+            onUnluckyMaxDice = form::setUnluckyMaxDice,
         )
     }
 }

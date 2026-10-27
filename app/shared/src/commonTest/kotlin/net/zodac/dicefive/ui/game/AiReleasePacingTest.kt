@@ -52,8 +52,8 @@ class AiReleasePacingTest {
                 ),
             ),
         )
-        viewModel.setPlayerCount(2)
-        viewModel.setPlayerType(2, PlayerType.AI)
+        viewModel.setupForm.setPlayerCount(2)
+        viewModel.setupForm.setPlayerType(2, PlayerType.AI)
         viewModel.startGame()
 
         var releasedAt: Long? = null
@@ -88,8 +88,8 @@ class AiReleasePacingTest {
     private fun TestScope.cpuHoldChanges(diceAnimated: Boolean): List<Triple<Long, Int, Boolean>> {
         val viewModel = gameViewModel(aiDispatcher = testDispatcher, random = ScriptedDice(PAIR_THEN_STRAIGHT))
         viewModel.setPacing(GamePacing(diceAnimated = diceAnimated))
-        viewModel.setPlayerCount(2)
-        viewModel.setPlayerType(2, PlayerType.AI)
+        viewModel.setupForm.setPlayerCount(2)
+        viewModel.setupForm.setPlayerType(2, PlayerType.AI)
         viewModel.startGame()
 
         val changes = mutableListOf<Triple<Long, Int, Boolean>>()

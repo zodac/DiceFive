@@ -32,8 +32,8 @@ class BadgeLabelFitTest : UiTest() {
 
     private fun showD20(fontScale: Float) {
         val viewModel = gameViewModel()
-        viewModel.setPlayerCount(1)
-        viewModel.setGameMode(GameMode.D20)
+        viewModel.setupForm.setPlayerCount(1)
+        viewModel.setupForm.setGameMode(GameMode.D20)
         viewModel.startGame()
         showcase.show {
             CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {

@@ -80,18 +80,18 @@ class GameSetupRestoreTest {
         repository.setGameMode(GameMode.TRICOLOUR)
 
         val viewModel = gameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
-        assertFalse(viewModel.setupRestored.value)
+        assertFalse(viewModel.setupForm.setupRestored.value)
 
         // Every state the form could be drawn with once it's shown - there must be exactly one.
         val shownStates = mutableListOf<GameSetupState>()
         backgroundScope.launch(testDispatcher) {
-            viewModel.setupRestored.collect { restored -> if (restored) shownStates += viewModel.setup.value }
+            viewModel.setupForm.setupRestored.collect { restored -> if (restored) shownStates += viewModel.setupForm.setup.value }
         }
         advanceUntilIdle()
         // advanceUntilIdle stops once only background work is left - the collector above included.
         runCurrent()
 
-        assertTrue(viewModel.setupRestored.value)
+        assertTrue(viewModel.setupForm.setupRestored.value)
         val restored = shownStates.single()
         assertEquals(GameMode.TRICOLOUR, restored.gameMode)
         assertEquals(TurnTimer.SECONDS_60, restored.turnTimer)
@@ -99,7 +99,7 @@ class GameSetupRestoreTest {
         assertEquals("Alexandra the Great".take(maxPlayerNameLength(3)), restored.playerSlots[0].name)
         assertEquals(PlayerType.AI, restored.playerSlots[1].type)
         assertEquals(Difficulty.HARD, restored.playerSlots[1].difficulty)
-        assertEquals(restored, viewModel.setup.value)
+        assertEquals(restored, viewModel.setupForm.setup.value)
     }
 
     @Test
@@ -114,8 +114,8 @@ class GameSetupRestoreTest {
         val viewModel = restored(repository)
 
         assertEquals(1, store.finishedReads)
-        assertEquals(4, viewModel.setup.value.playerCount)
-        assertEquals(GameMode.TRICOLOUR, viewModel.setup.value.gameMode)
+        assertEquals(4, viewModel.setupForm.setup.value.playerCount)
+        assertEquals(GameMode.TRICOLOUR, viewModel.setupForm.setup.value.gameMode)
     }
 
     @Test
@@ -124,25 +124,25 @@ class GameSetupRestoreTest {
         val repository = SettingsRepository(store)
         repository.setFirstGameCompleted()
         val first = restored(repository)
-        first.setPlayerCount(4)
-        first.setPlayerName(1, "Ann")
-        first.setPlayerName(3, "Cal")
-        first.setPlayerType(2, PlayerType.AI)
-        first.setPlayerDifficulty(2, Difficulty.HARD)
-        first.setPlayerType(4, PlayerType.AI)
-        first.setPlayerDifficulty(4, Difficulty.EASY)
-        first.setPlayerColour(1, PlayerColour.PINK)
-        first.setGameMode(GameMode.TRICOLOUR)
-        first.setTurnTimer(TurnTimer.SECONDS_30)
-        first.setRollsPerTurn(4)
-        first.setUnluckyDiceEnabled(true)
+        first.setupForm.setPlayerCount(4)
+        first.setupForm.setPlayerName(1, "Ann")
+        first.setupForm.setPlayerName(3, "Cal")
+        first.setupForm.setPlayerType(2, PlayerType.AI)
+        first.setupForm.setPlayerDifficulty(2, Difficulty.HARD)
+        first.setupForm.setPlayerType(4, PlayerType.AI)
+        first.setupForm.setPlayerDifficulty(4, Difficulty.EASY)
+        first.setupForm.setPlayerColour(1, PlayerColour.PINK)
+        first.setupForm.setGameMode(GameMode.TRICOLOUR)
+        first.setupForm.setTurnTimer(TurnTimer.SECONDS_30)
+        first.setupForm.setRollsPerTurn(4)
+        first.setupForm.setUnluckyDiceEnabled(true)
         store.writes = 0
 
         first.startGame()
         advanceUntilIdle()
 
         assertEquals(1, store.writes)
-        val second = restored(repository).setup.value
+        val second = restored(repository).setupForm.setup.value
         assertEquals(4, second.playerCount)
         assertEquals(listOf("Ann", "", "Cal", ""), second.playerSlots.map { it.name })
         assertEquals(listOf(PlayerType.HUMAN, PlayerType.AI, PlayerType.HUMAN, PlayerType.AI), second.playerSlots.map { it.type })
@@ -159,30 +159,30 @@ class GameSetupRestoreTest {
     fun `each seat has its own colour - a taken one swaps - and they're remembered and carried into the game unless they clash`() = runTest(testDispatcher) {
         val defaults = listOf(PlayerColour.CYAN, PlayerColour.GREEN, PlayerColour.PURPLE, PlayerColour.AMBER)
         val viewModel = gameViewModel(aiDispatcher = testDispatcher)
-        assertEquals(defaults, viewModel.setup.value.playerSlots.map { it.colour })
+        assertEquals(defaults, viewModel.setupForm.setup.value.playerSlots.map { it.colour })
 
         // Picking a colour another player has swaps the two; a free one just replaces.
-        viewModel.setPlayerColour(1, PlayerColour.GREEN)
-        assertEquals(listOf(PlayerColour.GREEN, PlayerColour.CYAN, PlayerColour.PURPLE, PlayerColour.AMBER), viewModel.setup.value.playerSlots.map { it.colour })
-        viewModel.setPlayerColour(3, PlayerColour.PINK)
-        val colours = viewModel.setup.value.playerSlots.map { it.colour }
+        viewModel.setupForm.setPlayerColour(1, PlayerColour.GREEN)
+        assertEquals(listOf(PlayerColour.GREEN, PlayerColour.CYAN, PlayerColour.PURPLE, PlayerColour.AMBER), viewModel.setupForm.setup.value.playerSlots.map { it.colour })
+        viewModel.setupForm.setPlayerColour(3, PlayerColour.PINK)
+        val colours = viewModel.setupForm.setup.value.playerSlots.map { it.colour }
         assertEquals(PlayerColour.PINK, colours[2])
         assertEquals(4, colours.toSet().size)
 
         val repository = SettingsRepository(InMemoryPreferences())
         val first = restored(repository)
-        first.setPlayerColour(2, PlayerColour.LIME)
+        first.setupForm.setPlayerColour(2, PlayerColour.LIME)
         first.startGame()
         advanceUntilIdle()
         assertEquals(PlayerColour.LIME, checkNotNull(first.game.value).players[1].colour)
         val second = restored(repository)
-        assertEquals(PlayerColour.LIME, second.setup.value.playerSlots[1].colour)
-        assertEquals(4, second.setup.value.playerSlots.map { it.colour }.toSet().size)
+        assertEquals(PlayerColour.LIME, second.setupForm.setup.value.playerSlots[1].colour)
+        assertEquals(4, second.setupForm.setup.value.playerSlots.map { it.colour }.toSet().size)
 
         // Saved colours that clash are dropped for the defaults.
         val clashing = SettingsRepository(InMemoryPreferences())
         for (slot in 1..4) clashing.setPlayerColour(slot, PlayerColour.RED)
-        assertEquals(defaults, restored(clashing).setup.value.playerSlots.map { it.colour })
+        assertEquals(defaults, restored(clashing).setupForm.setup.value.playerSlots.map { it.colour })
     }
 
     @Test
@@ -190,24 +190,24 @@ class GameSetupRestoreTest {
         val repository = SettingsRepository(InMemoryPreferences())
         repository.setFirstGameCompleted()
         val first = restored(repository)
-        assertFalse(first.setup.value.extendedScores)
-        assertFalse(first.setup.value.unluckyDiceEnabled)
-        assertEquals(UnluckyDice(10, 1), first.setup.value.unluckyDice)
-        first.setTurnTimer(TurnTimer.SECONDS_120)
-        first.setTurnTimer(TurnTimer.NONE)
-        assertEquals(TurnTimer.SECONDS_120, first.setup.value.turnTimerLength)
-        first.setRollsPerTurn(7)
-        first.setRollsPerTurn(null)
-        first.setStoredRolls(true)
-        first.setStoredRollsMax(12)
-        first.setExtendedScores(true)
-        first.setUnluckyDiceEnabled(true)
-        first.setUnluckyOdds(40)
-        first.setUnluckyMaxDice(3)
+        assertFalse(first.setupForm.setup.value.extendedScores)
+        assertFalse(first.setupForm.setup.value.unluckyDiceEnabled)
+        assertEquals(UnluckyDice(10, 1), first.setupForm.setup.value.unluckyDice)
+        first.setupForm.setTurnTimer(TurnTimer.SECONDS_120)
+        first.setupForm.setTurnTimer(TurnTimer.NONE)
+        assertEquals(TurnTimer.SECONDS_120, first.setupForm.setup.value.turnTimerLength)
+        first.setupForm.setRollsPerTurn(7)
+        first.setupForm.setRollsPerTurn(null)
+        first.setupForm.setStoredRolls(true)
+        first.setupForm.setStoredRollsMax(12)
+        first.setupForm.setExtendedScores(true)
+        first.setupForm.setUnluckyDiceEnabled(true)
+        first.setupForm.setUnluckyOdds(40)
+        first.setupForm.setUnluckyMaxDice(3)
         first.startGame()
         advanceUntilIdle()
 
-        val second = restored(repository).setup.value
+        val second = restored(repository).setupForm.setup.value
         assertEquals(TurnTimer.NONE, second.turnTimer)
         assertEquals(TurnTimer.SECONDS_120, second.turnTimerLength)
         assertEquals(RollModifiers(rollsPerTurn = null, storedRolls = true, storedRollsMax = 12), second.rollModifiers)
@@ -220,8 +220,8 @@ class GameSetupRestoreTest {
     @Test
     fun `a game starts with the modifiers chosen - in every mode that allows them`() = runTest(testDispatcher) {
         val rolls = gameViewModel(aiDispatcher = testDispatcher)
-        rolls.setRollsPerTurn(5)
-        rolls.setStoredRolls(true)
+        rolls.setupForm.setRollsPerTurn(5)
+        rolls.setupForm.setStoredRolls(true)
         rolls.startGame()
         val game = checkNotNull(rolls.game.value)
         assertEquals(RollModifiers(rollsPerTurn = 5, storedRolls = true), game.rollModifiers)
@@ -229,11 +229,11 @@ class GameSetupRestoreTest {
 
         for (mode in GameMode.entries) {
             val viewModel = gameViewModel(aiDispatcher = testDispatcher)
-            viewModel.setGameMode(mode)
-            viewModel.setExtendedScores(true)
-            viewModel.setUnluckyDiceEnabled(true)
-            viewModel.setUnluckyOdds(20)
-            viewModel.setUnluckyMaxDice(2)
+            viewModel.setupForm.setGameMode(mode)
+            viewModel.setupForm.setExtendedScores(true)
+            viewModel.setupForm.setUnluckyDiceEnabled(true)
+            viewModel.setupForm.setUnluckyOdds(20)
+            viewModel.setupForm.setUnluckyMaxDice(2)
             viewModel.startGame()
             val started = checkNotNull(viewModel.game.value)
             assertEquals(UnluckyDice(20, 2), started.unluckyDice, mode.id)
@@ -243,31 +243,31 @@ class GameSetupRestoreTest {
 
         // Hit List starts without Extended Scores - and keeps the switch on for the next mode.
         val hitList = gameViewModel(aiDispatcher = testDispatcher)
-        hitList.setExtendedScores(true)
-        hitList.setGameMode(GameMode.HIT_LIST)
+        hitList.setupForm.setExtendedScores(true)
+        hitList.setupForm.setGameMode(GameMode.HIT_LIST)
         hitList.startGame()
         assertFalse(checkNotNull(hitList.game.value).extendedScores)
-        assertTrue(hitList.setup.value.extendedScores)
-        hitList.setGameMode(GameMode.STANDARD)
+        assertTrue(hitList.setupForm.setup.value.extendedScores)
+        hitList.setupForm.setGameMode(GameMode.STANDARD)
         hitList.startGame()
         assertTrue(checkNotNull(hitList.game.value).extendedScores)
 
         // Unlucky Dice's settings are kept while it is switched off, and a game starts without it.
         val unlucky = gameViewModel(aiDispatcher = testDispatcher)
-        unlucky.setUnluckyOdds(50)
-        unlucky.setUnluckyDiceEnabled(true)
-        unlucky.setUnluckyDiceEnabled(false)
+        unlucky.setupForm.setUnluckyOdds(50)
+        unlucky.setupForm.setUnluckyDiceEnabled(true)
+        unlucky.setupForm.setUnluckyDiceEnabled(false)
         unlucky.startGame()
         assertEquals(null, checkNotNull(unlucky.game.value).unluckyDice)
-        assertEquals(50, unlucky.setup.value.unluckyDice.oddsPercent)
+        assertEquals(50, unlucky.setupForm.setup.value.unluckyDice.oddsPercent)
     }
 
     @Test
     fun `a name left blank is its seat's default in the player's language - and is saved blank`() = runTest(testDispatcher) {
         val viewModel = gameViewModel(aiDispatcher = testDispatcher)
-        viewModel.setPlayerCount(3)
-        viewModel.setPlayerName(2, "Wolfgang")
-        assertEquals(listOf("", "Wolfgang", ""), viewModel.setup.value.playerSlots.take(3).map { it.name })
+        viewModel.setupForm.setPlayerCount(3)
+        viewModel.setupForm.setPlayerName(2, "Wolfgang")
+        assertEquals(listOf("", "Wolfgang", ""), viewModel.setupForm.setup.value.playerSlots.take(3).map { it.name })
         viewModel.startGame { slot -> "Joueur $slot" }
         assertEquals(listOf("Joueur 1", "Wolfgang"), checkNotNull(viewModel.game.value).players.take(2).map { it.name })
 
@@ -276,8 +276,8 @@ class GameSetupRestoreTest {
         repository.setPlayerName(2, "Wolfgang")
         repository.setPlayerName(3, "Player 4")
         val first = restored(repository)
-        assertEquals(listOf("", "Wolfgang", "Player 4"), first.setup.value.playerSlots.take(3).map { it.name })
-        first.setPlayerCount(2)
+        assertEquals(listOf("", "Wolfgang", "Player 4"), first.setupForm.setup.value.playerSlots.take(3).map { it.name })
+        first.setupForm.setPlayerCount(2)
         first.startGame()
         advanceUntilIdle()
         assertEquals("", repository.playerNameFor(1).first())

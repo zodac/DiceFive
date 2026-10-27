@@ -67,7 +67,7 @@ class GameModesLockTest {
 
     @Test
     fun `a fresh install is locked to Standard with no modifiers`() = runTest(testDispatcher) {
-        val setup = restored(SettingsRepository(InMemoryPreferences())).setup.value
+        val setup = restored(SettingsRepository(InMemoryPreferences())).setupForm.setup.value
 
         assertFalse(setup.modesUnlocked)
         assertEquals(GameMode.STANDARD, setup.gameMode)
@@ -83,8 +83,8 @@ class GameModesLockTest {
         repository.saveNonDefaultPicks()
 
         val locked = restored(repository)
-        assertEquals(GameMode.STANDARD, locked.setup.value.gameMode)
-        assertEquals(TurnTimer.NONE, locked.setup.value.turnTimer)
+        assertEquals(GameMode.STANDARD, locked.setupForm.setup.value.gameMode)
+        assertEquals(TurnTimer.NONE, locked.setupForm.setup.value.turnTimer)
         locked.startGame()
         advanceUntilIdle()
         assertEquals(GameMode.STANDARD, locked.game.value?.gameMode)
@@ -92,7 +92,7 @@ class GameModesLockTest {
         assertEquals(TurnTimer.SECONDS_30, repository.turnTimer.first())
 
         repository.setFirstGameCompleted()
-        val unlocked = restored(repository).setup.value
+        val unlocked = restored(repository).setupForm.setup.value
         assertTrue(unlocked.modesUnlocked)
         assertEquals(GameMode.TRICOLOUR, unlocked.gameMode)
         assertEquals(TurnTimer.SECONDS_30, unlocked.turnTimer)
@@ -105,15 +105,15 @@ class GameModesLockTest {
         for (players in listOf(1, 2)) {
             val repository = SettingsRepository(InMemoryPreferences())
             val viewModel = restored(repository)
-            viewModel.setPlayerCount(players)
+            viewModel.setupForm.setPlayerCount(players)
             viewModel.startGame()
             viewModel.play()
             advanceUntilIdle()
 
             assertTrue(viewModel.game.value?.isGameOver == true, "$players players")
-            assertTrue(viewModel.setup.value.modesUnlocked, "$players players")
+            assertTrue(viewModel.setupForm.setup.value.modesUnlocked, "$players players")
             assertTrue(repository.firstGameCompleted.first(), "$players players")
-            assertTrue(restored(repository).setup.value.modesUnlocked, "$players players")
+            assertTrue(restored(repository).setupForm.setup.value.modesUnlocked, "$players players")
         }
     }
 
@@ -126,8 +126,8 @@ class GameModesLockTest {
         advanceUntilIdle()
 
         assertFalse(viewModel.game.value?.isGameOver == true)
-        assertFalse(viewModel.setup.value.modesUnlocked)
+        assertFalse(viewModel.setupForm.setup.value.modesUnlocked)
         assertFalse(repository.firstGameCompleted.first())
-        assertFalse(restored(repository).setup.value.modesUnlocked)
+        assertFalse(restored(repository).setupForm.setup.value.modesUnlocked)
     }
 }

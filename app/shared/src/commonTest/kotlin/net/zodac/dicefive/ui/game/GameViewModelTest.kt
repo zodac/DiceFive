@@ -58,10 +58,10 @@ class GameViewModelTest {
         setUp: GameViewModel.() -> Unit = {},
     ): GameViewModel {
         val viewModel = gameViewModel(aiDispatcher = aiDispatcher, random = random, isDebugBuild = isDebugBuild)
-        viewModel.setPlayerCount(players)
+        viewModel.setupForm.setPlayerCount(players)
         for (slot in cpus) {
-            viewModel.setPlayerType(slot, PlayerType.AI)
-            viewModel.setPlayerDifficulty(slot, difficulty)
+            viewModel.setupForm.setPlayerType(slot, PlayerType.AI)
+            viewModel.setupForm.setPlayerDifficulty(slot, difficulty)
         }
         viewModel.setUp()
         viewModel.startGame()
@@ -91,7 +91,7 @@ class GameViewModelTest {
         // Standard by default.
         val viewModel = started()
         assertEquals(GameMode.STANDARD, viewModel.game.value?.gameMode)
-        viewModel.setGameMode(GameMode.TRICOLOUR)
+        viewModel.setupForm.setGameMode(GameMode.TRICOLOUR)
         viewModel.startGame()
         viewModel.rollDice()
         val tricolour = viewModel.game.value!!
@@ -116,22 +116,22 @@ class GameViewModelTest {
     @Test
     fun `two Human seats under one name start nothing - a blank one counting as its default name`() {
         val viewModel = gameViewModel(aiDispatcher = testDispatcher)
-        viewModel.setPlayerCount(3)
-        viewModel.setPlayerName(1, "Sam")
-        viewModel.setPlayerName(3, "sam ")
-        assertEquals(setOf(1, 3), viewModel.setup.value.duplicateNameSlots { "Player $it" })
+        viewModel.setupForm.setPlayerCount(3)
+        viewModel.setupForm.setPlayerName(1, "Sam")
+        viewModel.setupForm.setPlayerName(3, "sam ")
+        assertEquals(setOf(1, 3), viewModel.setupForm.setup.value.duplicateNameSlots { "Player $it" })
         assertFalse(viewModel.startGame())
         assertNull(viewModel.game.value)
 
         // Seat 3 left blank is "Player 3", which seat 2 has typed.
-        viewModel.setPlayerName(3, "")
-        viewModel.setPlayerName(2, "Player 3")
-        assertEquals(setOf(2, 3), viewModel.setup.value.duplicateNameSlots { "Player $it" })
+        viewModel.setupForm.setPlayerName(3, "")
+        viewModel.setupForm.setPlayerName(2, "Player 3")
+        assertEquals(setOf(2, 3), viewModel.setupForm.setup.value.duplicateNameSlots { "Player $it" })
         assertFalse(viewModel.startGame())
 
         // A CPU seat's name is generated, so it clashes with nothing.
-        viewModel.setPlayerType(3, PlayerType.AI)
-        assertEquals(emptySet(), viewModel.setup.value.duplicateNameSlots { "Player $it" })
+        viewModel.setupForm.setPlayerType(3, PlayerType.AI)
+        assertEquals(emptySet(), viewModel.setupForm.setup.value.duplicateNameSlots { "Player $it" })
         assertTrue(viewModel.startGame())
         assertEquals(listOf("Sam", "Player 3"), viewModel.game.value!!.players.take(2).map { it.name })
     }
@@ -161,7 +161,7 @@ class GameViewModelTest {
 
         // A roll that lands after Undo took the turn back to one with no rolls left is ignored. The cup shakes before a
         // roll lands; Undo in that window restores the previous turn - with one roll a turn (Number of Rolls), it has none left.
-        val oneRoll = started { setRollsPerTurn(1) }
+        val oneRoll = started { setupForm.setRollsPerTurn(1) }
         oneRoll.takeATurn()
         oneRoll.undo()
         val restored = oneRoll.game.value!!
@@ -201,7 +201,7 @@ class GameViewModelTest {
     @Test
     fun `the turn timer counts down every turn - a human's or a CPU's and a turn it runs out on is forfeited and scored`() = runTest(testDispatcher) {
         assertNull(started().turnSecondsRemaining.value, "no turn timer means no countdown is shown")
-        val timed: GameViewModel.() -> Unit = { setTurnTimer(TurnTimer.SECONDS_30) }
+        val timed: GameViewModel.() -> Unit = { setupForm.setTurnTimer(TurnTimer.SECONDS_30) }
         assertEquals(30, started(setUp = timed).turnSecondsRemaining.value)
 
         // Letting it expire forfeits the turn and auto-scores it. Not advanceUntilIdle: a single-player game with a timer
@@ -243,7 +243,7 @@ class GameViewModelTest {
 
     @Test
     fun `in the background the turn timer stops and a CPU turn waits - both carrying on when the game is back`() = runTest(testDispatcher) {
-        val timed = started { setTurnTimer(TurnTimer.SECONDS_30) }
+        val timed = started { setupForm.setTurnTimer(TurnTimer.SECONDS_30) }
         advanceTimeBy(5_000)
         runCurrent()
         assertEquals(25, timed.turnSecondsRemaining.value)
@@ -323,10 +323,10 @@ class GameViewModelTest {
         )) {
             var asked = 0
             val viewModel = gameViewModel(aiDispatcher = testDispatcher, standardPerfectPlay = { asked++; null })
-            viewModel.setPlayerCount(2)
-            viewModel.setPlayerType(2, PlayerType.AI)
-            viewModel.setPlayerDifficulty(2, difficulty)
-            viewModel.setGameMode(mode)
+            viewModel.setupForm.setPlayerCount(2)
+            viewModel.setupForm.setPlayerType(2, PlayerType.AI)
+            viewModel.setupForm.setPlayerDifficulty(2, difficulty)
+            viewModel.setupForm.setGameMode(mode)
             viewModel.startGame()
 
             viewModel.rollDice()
@@ -340,7 +340,7 @@ class GameViewModelTest {
         }
 
         for (difficulty in Difficulty.entries) {
-            val viewModel = started(players = 2, cpus = listOf(2), difficulty = difficulty) { setGameMode(GameMode.STUD) }
+            val viewModel = started(players = 2, cpus = listOf(2), difficulty = difficulty) { setupForm.setGameMode(GameMode.STUD) }
             viewModel.rollDice()
             for (index in 0 until 5) viewModel.toggleHold(index)
             viewModel.commitScore(ScoreCategory.CHANCE)
@@ -384,13 +384,13 @@ class GameViewModelTest {
 
     @Test
     fun `a Stud box scores with fewer than five held in the same tap - and Undo returns to the dice as the player held them`() {
-        val viewModel = started { setGameMode(GameMode.STUD) }
+        val viewModel = started { setupForm.setGameMode(GameMode.STUD) }
         viewModel.rollDice()
         for (index in 0 until 3) viewModel.toggleHold(index)
         viewModel.commitScore(ScoreCategory.CHANCE)
         assertNotNull(viewModel.game.value!!.players.single().scoresIn(ScoreCategory.CHANCE).singleOrNull())
 
-        val undone = started { setGameMode(GameMode.STUD) }
+        val undone = started { setupForm.setGameMode(GameMode.STUD) }
         undone.rollDice()
         undone.toggleHold(1)
         undone.commitScore(ScoreCategory.CHANCE)

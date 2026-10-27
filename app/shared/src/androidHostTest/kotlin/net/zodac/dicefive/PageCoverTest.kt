@@ -179,8 +179,8 @@ class PageCoverTest : UiTest() {
     @Test
     fun `the turn timer doesn't count while the cover is up over the game`() = uiTest {
         val viewModel = gameViewModel()
-        viewModel.setPlayerCount(1)
-        viewModel.setTurnTimer(TurnTimer.SECONDS_30)
+        viewModel.setupForm.setPlayerCount(1)
+        viewModel.setupForm.setTurnTimer(TurnTimer.SECONDS_30)
         viewModel.startGame()
         var holding by mutableStateOf(false)
         compose.mainClock.autoAdvance = false
@@ -222,7 +222,7 @@ class PageCoverTest : UiTest() {
             random = Random(1),
             localHour = { TEST_LOCAL_HOUR },
         ).run {
-            setPlayerCount(1)
+            setupForm.setPlayerCount(1)
             startGame()
         }
         assertNotNull(runBlocking { container.inProgressGameRepository.load() }, "no game was saved")

@@ -32,8 +32,8 @@ class GameScreenCupGateTest : UiTest() {
         // delay - the whole shake and toss - in one go, and there's no "still settling" left to tap into.
         compose.mainClock.autoAdvance = false
         val viewModel = gameViewModel()
-        viewModel.setPlayerCount(1)
-        viewModel.setGameMode(GameMode.STANDARD)
+        viewModel.setupForm.setPlayerCount(1)
+        viewModel.setupForm.setGameMode(GameMode.STANDARD)
         viewModel.startGame()
         showcase.show {
             CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {
