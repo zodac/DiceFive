@@ -43,6 +43,7 @@ import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.game.GameStartContext
 import net.zodac.dicefive.game.HandCompletion
 import net.zodac.dicefive.game.LeaderboardTotals
+import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.game.StandardPerfectPlayTable
 import net.zodac.dicefive.game.TutorialDice
 import net.zodac.dicefive.game.TutorialScript
@@ -94,7 +95,7 @@ data class PlayerSetupSlot(
 
 data class GameSetupState(
     val playerCount: Int = 2,
-    val playerSlots: List<PlayerSetupSlot> = (1..MAX_PLAYERS).map { PlayerSetupSlot(slot = it) },
+    val playerSlots: List<PlayerSetupSlot> = (1..GameState.MAX_PLAYERS).map { PlayerSetupSlot(slot = it) },
     val gameMode: GameMode = GameMode.default,
     val turnTimer: TurnTimer = TurnTimer.NONE,
     /** The length the turn timer modifier returns to when switched back on: the last one chosen, kept while [turnTimer] is [TurnTimer.NONE]. Never NONE. */
@@ -120,9 +121,6 @@ data class GameSetupState(
         get() = unluckyDice.takeIf { unluckyDiceEnabled }
 
     companion object {
-        const val MIN_PLAYERS = 1
-        const val MAX_PLAYERS = 4
-
         /**
          * The longest name that fits its own tab in the in-game header without being ellipsised -
          * not a database or gameplay limit, a layout one. In characters' worth of width (see [nameWidth]): full-width scripts count double. Every seat shares that one row, so the
@@ -470,7 +468,7 @@ class GameViewModel(
             // not applied against the default count of 2.
             saved.playerCount?.let { savedCount ->
                 restored = restored.copy(
-                    playerCount = savedCount.coerceIn(GameSetupState.MIN_PLAYERS, GameSetupState.MAX_PLAYERS),
+                    playerCount = savedCount.coerceIn(GameState.MIN_PLAYERS, GameState.MAX_PLAYERS),
                 )
             }
             val cap = GameSetupState.maxPlayerNameLength(restored.playerCount)
@@ -510,7 +508,7 @@ class GameViewModel(
     }
 
     fun setPlayerCount(count: Int) {
-        val newCount = count.coerceIn(GameSetupState.MIN_PLAYERS, GameSetupState.MAX_PLAYERS)
+        val newCount = count.coerceIn(GameState.MIN_PLAYERS, GameState.MAX_PLAYERS)
         _setup.update { it.copy(playerCount = newCount) }
         // A count change can only ever tighten or loosen every seat's cap at once, never just one
         // of them - so every name (not just the seat(s) just added/removed) is reclamped here,
@@ -773,6 +771,9 @@ class GameViewModel(
     // Not undoable, same reasoning as rollDice: holding/unholding just selects what a future roll
     // will touch, it doesn't itself score anything.
     fun toggleHold(dieIndex: Int) {
+        // A tap that lands after its turn has moved on - the timer ran out, or a box was scored, in the same frame - holds
+        // nothing: the dice can only be held once rolled.
+        if (_game.value?.phase != TurnPhase.ROLLED) return
         // A die locked by Unlucky Dice can't be held, and a tap on it is no hold-or-release to track.
         if (_game.value?.dice?.getOrNull(dieIndex)?.isUnlucky == true) return
         if (tutorial != null) {
@@ -818,6 +819,11 @@ class GameViewModel(
     // already-finished turn.
     fun commitScore(category: ScoreCategory) {
         val state = _game.value ?: return
+        // A tap that lands after its turn has moved on - the timer ran out, or another box was scored, in the same frame -
+        // scores nothing: not before a roll, and not in a box the dice can't go in.
+        if (state.phase != TurnPhase.ROLLED) return
+        val player = state.currentPlayer ?: return
+        if (state.hasFullHand && category !in ScoreCalculator.availableCategories(player, state.scoringDice)) return
         if (tutorial != null) {
             if ((currentTutorialStep as? TutorialStep.Score)?.category != category || state.currentPlayer?.type != PlayerType.HUMAN) return
             advanceTutorial()

@@ -3,6 +3,7 @@ package net.zodac.dicefive.game
 import kotlin.math.pow
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.Difficulty
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.HitTarget
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
@@ -143,20 +144,23 @@ internal object HitListPlay {
     /**
      * The chance of rolling every number of [needed] within [rolls] rolls, rerolling those dice and [extraDice] more
      * that nothing needs, and holding each match as it comes - the best that can be done for one target. Zero when
-     * there are fewer dice than numbers to find.
+     * there are fewer dice than numbers to find. Remembered only for this call: CPU decisions are worked out on
+     * background threads at once, so nothing it writes is shared.
      */
-    fun hitOdds(needed: List<Int>, rolls: Int, extraDice: Int): Double {
+    fun hitOdds(needed: List<Int>, rolls: Int, extraDice: Int): Double = hitOdds(needed, rolls, extraDice, HashMap())
+
+    private fun hitOdds(needed: List<Int>, rolls: Int, extraDice: Int, known: MutableMap<HitOddsKey, Double>): Double {
         if (needed.isEmpty()) return 1.0
         if (rolls <= 0 || extraDice < 0) return 0.0
         val key = HitOddsKey(needed, rolls, extraDice)
-        HIT_ODDS[key]?.let { return it }
+        known[key]?.let { return it }
         var odds = 0.0
         for ((counts, chance) in rollOutcomes(needed.size + extraDice)) {
             val left = needed.toMutableList()
             for (face in 1..DIE_FACES) repeat(counts[face - 1]) { left.remove(face) }
-            odds += chance * hitOdds(left, rolls - 1, extraDice)
+            odds += chance * hitOdds(left, rolls - 1, extraDice, known)
         }
-        HIT_ODDS[key] = odds
+        known[key] = odds
         return odds
     }
 
@@ -165,10 +169,13 @@ internal object HitListPlay {
 
     private data class HitOddsKey(val needed: List<Int>, val rolls: Int, val extraDice: Int)
 
-    private val HIT_ODDS = mutableMapOf<HitOddsKey, Double>()
-
     /** Every way [dice] dice can land, as a count per face, with its chance - so a roll's outcomes are a few hundred, not 6^5. */
-    private fun rollOutcomes(dice: Int): List<Pair<IntArray, Double>> = ROLL_OUTCOMES.getOrPut(dice) {
+    private fun rollOutcomes(dice: Int): List<Pair<IntArray, Double>> = ROLL_OUTCOMES.getOrNull(dice)?.value ?: outcomesOf(dice)
+
+    // Worked out once for as many dice as a Hit List game rolls, through lazy so the threads asking can share them.
+    private val ROLL_OUTCOMES = List(GameMode.HIT_LIST.diceCount + 1) { dice -> lazy { outcomesOf(dice) } }
+
+    private fun outcomesOf(dice: Int): List<Pair<IntArray, Double>> {
         val outcomes = mutableListOf<Pair<IntArray, Double>>()
         val counts = IntArray(DIE_FACES)
         val total = DIE_FACES.toDouble().pow(dice)
@@ -185,10 +192,8 @@ internal object HitListPlay {
             }
         }
         fill(0, dice)
-        outcomes
+        return outcomes
     }
-
-    private val ROLL_OUTCOMES = mutableMapOf<Int, List<Pair<IntArray, Double>>>()
 
     private fun factorial(n: Int): Double = (1..n).fold(1.0) { product, value -> product * value }
 }

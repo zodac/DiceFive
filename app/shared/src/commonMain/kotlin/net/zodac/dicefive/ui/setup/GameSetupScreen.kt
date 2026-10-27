@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerColour
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
@@ -151,7 +152,7 @@ fun GameSetupScreen(
     val activeSlots = setup.playerSlots.take(setup.playerCount)
     val focusManager = LocalFocusManager.current
 
-    val defaultNames = (1..GameSetupState.MAX_PLAYERS).map { stringResource(Res.string.common_default_player_name, it) }
+    val defaultNames = (1..GameState.MAX_PLAYERS).map { stringResource(Res.string.common_default_player_name, it) }
     val defaultName: (Int) -> String = { defaultNames[it - 1] }
     val duplicateNameSlots = duplicateHumanNameSlots(activeSlots, defaultName)
     val namesMustBeUnique = stringResource(Res.string.setup_names_unique)
@@ -393,7 +394,7 @@ private fun LockedSetupCard(title: String, note: String) {
 @Composable
 private fun PlayerCountSelector(count: Int, onCountChange: (Int) -> Unit) {
     SegmentedChoiceRow(
-        options = (GameSetupState.MIN_PLAYERS..GameSetupState.MAX_PLAYERS).toList(),
+        options = (GameState.MIN_PLAYERS..GameState.MAX_PLAYERS).toList(),
         selected = count,
         onSelect = onCountChange,
         label = { it.localised() },

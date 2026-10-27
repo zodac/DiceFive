@@ -157,6 +157,25 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `a tap landing after its turn has moved on does nothing - a second score, a hold, a box already filled`() = runTest(testDispatcher) {
+        val viewModel = started()
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.CHANCE)
+        val scored = viewModel.game.value!!
+        assertEquals(TurnPhase.AWAITING_ROLL, scored.phase)
+        // Taps from the same frame, before the board is drawn again: the next turn isn't rolled yet.
+        viewModel.commitScore(ScoreCategory.SIXES)
+        viewModel.toggleHold(0)
+        assertEquals(scored, viewModel.game.value)
+
+        viewModel.rollDice()
+        val rolled = viewModel.game.value!!
+        viewModel.commitScore(ScoreCategory.CHANCE)
+        assertEquals(rolled, viewModel.game.value, "Chance is already filled")
+        assertEquals(1, rolled.players.single().turnsTaken)
+    }
+
+    @Test
     fun `the turn timer counts down every turn - a human's or a CPU's and a turn it runs out on is forfeited and scored`() = runTest(testDispatcher) {
         assertNull(started().turnSecondsRemaining.value, "no turn timer means no countdown is shown")
         val timed: GameViewModel.() -> Unit = { setTurnTimer(TurnTimer.SECONDS_30) }

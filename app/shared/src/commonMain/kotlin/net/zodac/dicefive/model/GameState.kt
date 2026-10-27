@@ -96,4 +96,12 @@ data class GameState(
      * and no modifier, like the [turnTimer], [rollModifiers], [extendedScores] or [unluckyDice], may be on - modifiers are for fun, not for the records. */
     val countsOnLeaderboard: Boolean
         get() = gameMode.countsOnLeaderboard && !hasModifiers
+
+    companion object {
+        /** The fewest players a game seats. */
+        const val MIN_PLAYERS = 1
+
+        /** The most players a game seats. */
+        const val MAX_PLAYERS = 4
+    }
 }

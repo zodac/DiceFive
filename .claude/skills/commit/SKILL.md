@@ -36,6 +36,7 @@ commit**, and tell the user so they can rename it before it spreads.
 | `[Purchases]`    | The "Unlock all styles" purchase - Play Billing and the entitlement     |
 | `[Sandbox]`      | The Docker sandbox and its emulator tooling (`sandbox/`)                |
 | `[Settings]`     | The Settings screen and the preferences behind it                       |
+| `[Stability]`    | Crash fixes and hardening across the app - bad input, I/O, threads      |
 | `[Statistics]`   | The Statistics screen - per-player cards, Overview and By mode          |
 | `[Styles]`       | The Styles screen and the table art - dice, cups, mats, backgrounds     |
 | `[UI]`           | App-wide layout and navigation - main menu, shared chrome, dialogs      |

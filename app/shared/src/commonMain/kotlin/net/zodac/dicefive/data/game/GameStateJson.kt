@@ -76,27 +76,49 @@ object GameStateJson {
         val extendedScores = "extendedScores" in obj && obj.getBoolean("extendedScores")
         val disabledCategories = decodeDisabledCategories(obj, gameMode)
         val hitList = decodeHitList(obj, gameMode)
-        return GameState(
-            gameMode = gameMode,
-            turnTimer = TurnTimer.parse(obj.getString("turnTimer")) ?: throw IllegalArgumentException("Unknown turn timer"),
-            rollModifiers = rollModifiers,
-            extendedScores = extendedScores,
-            unluckyDice = decodeUnluckyDice(obj),
-            disabledCategories = disabledCategories,
-            hitList = hitList,
-            currentPlayerIndex = obj.getInt("currentPlayerIndex"),
-            rollsRemaining = rollsRemaining,
-            turnRolls = obj.getInt("turnRolls"),
-            phase = storedId<TurnPhase>(obj.getString("phase")),
-            isGameOver = obj.getBoolean("isGameOver"),
-            turnSecondsLeft = (obj["turnSecondsLeft"] as? JsonNumber)?.toInt(),
-            // Left out by encode with nothing undone. One nothing recognises is dropped, not failed on: it only decides an achievement.
-            undoneCategory = obj.optString("undoneCategory").takeIf { it.isNotEmpty() }?.let { storedIdOf<ScoreCategory>(it) },
-            // Left out by encode with nothing to undo. One that can't be read is dropped, not failed on: it only costs the undo.
-            undoSnapshot = (obj["undoSnapshot"] as? JsonObject)?.let { runCatching { decodeState(it) }.getOrNull() },
-            dice = obj.getObjectList("dice").map(::decodeDie),
-            players = obj.getObjectList("players").map { decodePlayer(it, gameMode, extendedScores, disabledCategories, hitList, rollModifiers.isActive) },
+        return checkPlayable(
+            GameState(
+                gameMode = gameMode,
+                turnTimer = TurnTimer.parse(obj.getString("turnTimer")) ?: throw IllegalArgumentException("Unknown turn timer"),
+                rollModifiers = rollModifiers,
+                extendedScores = extendedScores,
+                unluckyDice = decodeUnluckyDice(obj),
+                disabledCategories = disabledCategories,
+                hitList = hitList,
+                currentPlayerIndex = obj.getInt("currentPlayerIndex"),
+                rollsRemaining = rollsRemaining,
+                turnRolls = obj.getInt("turnRolls"),
+                phase = storedId<TurnPhase>(obj.getString("phase")),
+                isGameOver = obj.getBoolean("isGameOver"),
+                turnSecondsLeft = (obj["turnSecondsLeft"] as? JsonNumber)?.toInt(),
+                // Left out by encode with nothing undone. One nothing recognises is dropped, not failed on: it only decides an achievement.
+                undoneCategory = obj.optString("undoneCategory").takeIf { it.isNotEmpty() }?.let { storedIdOf<ScoreCategory>(it) },
+                // Left out by encode with nothing to undo. One that can't be read is dropped, not failed on: it only costs the undo.
+                undoSnapshot = (obj["undoSnapshot"] as? JsonObject)?.let { runCatching { decodeState(it) }.getOrNull() },
+                dice = obj.getObjectList("dice").map(::decodeDie),
+                players = obj.getObjectList("players").map { decodePlayer(it, gameMode, extendedScores, disabledCategories, hitList, rollModifiers.isActive) },
+            ),
         )
+    }
+
+    /**
+     * [state], or a failed decode - as a missing field is - for a game the board can't draw or play on: more seats than a
+     * game has or none for the player whose turn it is, a hand of the wrong size, a die showing what the mode's dice
+     * can't, a hold slot past the last, or rolls below none. This app never saves one, but a cloud save or a progress
+     * file comes from somewhere else.
+     */
+    private fun checkPlayable(state: GameState): GameState {
+        fun playable(holds: Boolean, what: String) {
+            if (!holds) throw JsonParseException(what)
+        }
+        playable(state.players.size in GameState.MIN_PLAYERS..GameState.MAX_PLAYERS, "${state.players.size} players")
+        playable(state.currentPlayerIndex in state.players.indices, "No player ${state.currentPlayerIndex} of ${state.players.size}")
+        playable(state.dice.size == state.gameMode.diceCount, "${state.dice.size} dice in ${state.gameMode.id}")
+        val dice = state.dice + state.players.flatMap { it.lastRoll.orEmpty() }
+        playable(dice.all { it.value in state.gameMode.dieValues }, "A die the mode's dice can't show")
+        playable(dice.all { die -> die.heldSlot == null || die.heldSlot in 0..<state.gameMode.scoringDiceCount }, "A hold slot past the last")
+        playable(state.rollsRemaining >= 0 && state.turnRolls >= 0, "Rolls below none")
+        return state
     }
 
     /**

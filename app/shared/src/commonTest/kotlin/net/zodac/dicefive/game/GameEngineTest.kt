@@ -34,6 +34,9 @@ class GameEngineTest {
     @Test
     fun `newGame - its players - mode and timer and every modifier taking it off the Leaderboard`() {
         assertFailsWith<IllegalArgumentException> { GameEngine.newGame(emptyList()) }
+        val fourPlayers = (1..GameState.MAX_PLAYERS).map { PlayerConfig(slot = it, type = PlayerType.HUMAN, name = "Player $it") }
+        assertEquals(GameState.MAX_PLAYERS, GameEngine.newGame(fourPlayers).players.size)
+        assertFailsWith<IllegalArgumentException> { GameEngine.newGame(fourPlayers + PlayerConfig(slot = 5, type = PlayerType.HUMAN, name = "Player 5")) }
 
         // The chosen mode goes to the game and every player's scorecard.
         val tricolour = GameEngine.newGame(twoPlayers, GameMode.TRICOLOUR)

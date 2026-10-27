@@ -275,6 +275,34 @@ class GameStateJsonTest {
         assertFailsWith<JsonParseException> { GameStateJson.decode(savedWithout(GameEngine.newGame(solo, GameMode.QUICKFIRE), "disabledCategories")) }
         assertFailsWith<JsonParseException> { GameStateJson.decode(savedWithout(GameEngine.newGame(solo, GameMode.HIT_LIST), "hitList")) }
     }
+
+    @Test
+    fun `a save the board can't play on fails to decode - a missing seat - too many - the wrong dice - a die its mode's dice can't show - a slot past the last - rolls below none`() {
+        val plain = GameState(players = listOf(human))
+        roundTripped(plain)
+        val unplayable = mapOf(
+            "no seat for the turn" to plain.copy(currentPlayerIndex = 1),
+            "no players at all" to plain.copy(players = emptyList()),
+            "five players" to plain.copy(players = List(5) { human }),
+            "four dice in a five-dice mode" to plain.copy(dice = plain.dice.drop(1)),
+            "a die of 9" to plain.copy(dice = plain.dice.mapIndexed { index, die -> if (index == 0) die.copy(value = 9) else die }),
+            "a die of 0" to plain.copy(dice = plain.dice.mapIndexed { index, die -> if (index == 0) die.copy(value = 0) else die }),
+            "a last roll with a die of 7" to plain.copy(players = listOf(human.copy(lastRoll = List(5) { Die(value = 7) }))),
+            "a hold slot past the last" to plain.copy(dice = plain.dice.mapIndexed { index, die -> if (index == 0) die.copy(isHeld = true, heldSlot = 5) else die }),
+            "rolls below none" to plain.copy(rollsRemaining = -1),
+        )
+        // A die is read by its mode's faces: a 17 is a D20's, never Standard's, and a 21 is neither's.
+        val d20 = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Player 1")), GameMode.D20, random = Random(3))
+        roundTripped(d20.copy(dice = List(5) { Die(value = 17) }))
+        val unplayableD20 = mapOf("a D20 die of 21" to d20.copy(dice = List(5) { Die(value = 21) }), "a Standard die of 17" to plain.copy(dice = List(5) { Die(value = 17) }))
+        for ((what, state) in unplayable + unplayableD20) {
+            assertFailsWith<JsonParseException>(what) { GameStateJson.decode(GameStateJson.encode(state)) }
+        }
+
+        // An undo that couldn't be played costs only the undo, as one that can't be read does.
+        val withBadUndo = GameStateJson.decode(GameStateJson.encode(plain.copy(undoSnapshot = unplayable.getValue("a die of 9"))))
+        assertEquals(plain, withBadUndo)
+    }
 }
 
 private fun String.toJsonObject(): JsonObject = parseJson(this) as JsonObject

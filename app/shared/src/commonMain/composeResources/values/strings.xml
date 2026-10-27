@@ -18,7 +18,7 @@
     -->
     <string name="common_locale">en-GB</string>
 
-    <!-- The app's name, passed as %1$s to the strings that mention it (about_*_body, licences_intro, rules_how_to_play_title, rules_modes_1) and drawn on the main menu. A brand name: every language keeps it. The launcher label is app/android's own app_name. -->
+    <!-- The app's name, passed as %1$s to the strings that mention it (about_*_body, common_database_failure_body, licences_intro, rules_how_to_play_title, rules_modes_1) and drawn on the main menu. A brand name: every language keeps it. The launcher label is app/android's own app_name. -->
     <string name="app_name">DiceFive</string>
 
     <!--
@@ -1570,5 +1570,12 @@
     <string name="rules_name_exact_hit">Exact Hit</string>
     <string name="rules_name_hit">Hit</string>
     <string name="rules_name_partial_hit">Partial Hit</string>
+
+    <!-- Shown in place of the whole app when the file holding the scores can't be opened, typically after an update whose database change failed (ui/common/DatabaseFailurePage.kt). %1$s is the app's name. -->
+    <string name="common_database_failure_title">Your scores can't be opened</string>
+    <string name="common_database_failure_body">%1$s couldn't open the file that holds your Leaderboard and Statistics, so it has stopped here rather than risk changing it.</string>
+    <string name="common_database_failure_advice">Nothing has been deleted. Updating the app to its latest version usually puts this right.</string>
+    <!-- Above the technical error message, shown untranslated so it can be copied into a report. -->
+    <string name="common_database_failure_details">If it keeps happening, these details will help when you report it:</string>
 
 </resources>

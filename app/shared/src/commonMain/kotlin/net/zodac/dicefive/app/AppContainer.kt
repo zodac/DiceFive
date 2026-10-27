@@ -2,6 +2,7 @@ package net.zodac.dicefive.app
 
 import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.staticCompositionLocalOf
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -12,10 +13,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import androidx.room.RoomDatabase
 import net.zodac.dicefive.data.PreferencesFile
 import net.zodac.dicefive.data.achievements.AchievementsRepository
@@ -71,6 +74,27 @@ class AppContainer(
      */
     val savedStyles: StateFlow<SavedStyles?> =
         savedStylesFlow(settingsRepository, achievementsRepository, ownsAllStyles).stateIn(scope, SharingStarted.Eagerly, null)
+
+    private val mutableDatabaseFailure = MutableStateFlow<String?>(null)
+
+    /**
+     * Why the scores database couldn't be opened (a migration missing or failing), as the error said it - null while it
+     * opens, or did. Opened as the container is built, so the app can say so in place of its pages, rather than fail on
+     * the first one to read a score.
+     */
+    val databaseFailure: StateFlow<String?> = mutableDatabaseFailure.asStateFlow()
+
+    init {
+        scope.launch {
+            try {
+                scoreRepository.open()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                mutableDatabaseFailure.value = e.toString()
+            }
+        }
+    }
 
     /** The Statistics screen's sort, loaded with the container so the screen opens already in order - null until then. */
     val statisticsSort: StateFlow<StatisticsSortOrder?> =

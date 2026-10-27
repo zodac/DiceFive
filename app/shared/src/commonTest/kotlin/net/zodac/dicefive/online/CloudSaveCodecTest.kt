@@ -128,5 +128,18 @@ class CloudSaveCodecTest {
         }
         val bytes = CloudSaveCodec.encode(CloudSave(scores = CloudScores(rows = rows)))
         assertTrue(bytes.size < 1_500_000, "${bytes.size} bytes")
+        // And are read back whole, well inside what a save may inflate to.
+        assertEquals(20_000, CloudSaveCodec.decode(bytes)?.scores?.rows?.size)
+        assertTrue(inflatedSize(bytes) < CloudSaveCodec.MAX_INFLATED_BYTES / 2, "${inflatedSize(bytes)} bytes inflated")
     }
+
+    @Test
+    fun `a save that inflates past the most a save may is read as none - not into memory`() {
+        val padding = " ".repeat((CloudSaveCodec.MAX_INFLATED_BYTES + 1).toInt())
+        val bomb = gzip("{\"version\":1,$padding\"scores\":{}}")
+        assertTrue(bomb.size < 100_000, "${bomb.size} bytes gzipped")
+        assertNull(CloudSaveCodec.decode(bomb))
+    }
+
+    private fun inflatedSize(bytes: ByteArray): Long = GzipSource(Buffer().write(bytes)).buffer().use { it.readByteArray().size.toLong() }
 }

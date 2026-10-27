@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.app.LocalAppContainer
+import net.zodac.dicefive.data.orNullOnFailure
 import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.navigation.AchievementScrollRequest
 import net.zodac.dicefive.navigation.AchievementScrollRequests
@@ -45,6 +46,7 @@ import net.zodac.dicefive.purchases.LocalStore
 import net.zodac.dicefive.purchases.NoStore
 import net.zodac.dicefive.purchases.Store
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
+import net.zodac.dicefive.ui.common.DatabaseFailurePage
 import net.zodac.dicefive.ui.common.DriftState
 import net.zodac.dicefive.ui.common.LocalAnimationLevel
 import net.zodac.dicefive.ui.common.LocalDriftState
@@ -113,7 +115,9 @@ fun DiceFiveApp(
         merge(signedIn, OnlineSyncRequests.requests).conflate().collect {
             val showProgress = signInPending
             signInPending = false
-            onlineSync.reconcile(showProgress)
+            // A sync that fails here (the scores can't be written) costs that sync: thrown on, it would take the app down,
+            // and every later sync with it.
+            orNullOnFailure { onlineSync.reconcile(showProgress) }
         }
     }
     LaunchedEffect(onlineSync) {
@@ -145,6 +149,12 @@ fun DiceFiveApp(
         ) {
             DiceFiveTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
+                    // Scores that can't be opened stop the app here, saying why, rather than on the first page to read one.
+                    val databaseFailure by container.databaseFailure.collectAsStateWithLifecycle()
+                    databaseFailure?.let {
+                        DatabaseFailurePage(details = it)
+                        return@Surface
+                    }
                     // Hoisted out of DiceFiveNavHost (which otherwise creates its own) so a banner
                     // long press, handled above the NavHost, can navigate the same controller the
                     // NavHost itself renders from.

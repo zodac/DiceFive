@@ -1229,4 +1229,10 @@
     <string name="rules_name_hit">Acierto</string>
     <string name="rules_name_partial_hit">Acierto parcial</string>
 
+    <!-- Database failure page (ui/common/DatabaseFailurePage.kt) -->
+    <string name="common_database_failure_title">No se pueden abrir tus puntuaciones</string>
+    <string name="common_database_failure_body">%1$s no ha podido abrir el archivo con tu clasificación y tus estadísticas, así que se ha detenido aquí para no arriesgarse a modificarlo.</string>
+    <string name="common_database_failure_advice">No se ha borrado nada. Normalmente se arregla actualizando la aplicación a su última versión.</string>
+    <string name="common_database_failure_details">Si sigue pasando, estos detalles te ayudarán cuando lo comuniques:</string>
+
 </resources>

@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.orNullOnFailure
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.data.settings.ScreenOrientation
@@ -180,7 +181,8 @@ class SettingsViewModel(
     fun resetLeaderboard() {
         viewModelScope.launch {
             onlineSettingsRepository.setScoresResetAt(now())
-            scoreRepository.resetLeaderboard()
+            // One that can't be written (a full disk) leaves the scores in place, rather than taking the app down.
+            orNullOnFailure { scoreRepository.resetLeaderboard() }
             OnlineSyncRequests.request()
         }
     }

@@ -38,6 +38,9 @@ object CloudSaveCodec {
     /** The snapshot's name on the service. Permanent: another name would be another, empty, save. */
     const val SNAPSHOT_NAME = "dicefive-progress"
 
+    /** The most a save is read up to once inflated: anything larger isn't one, and [decode] reads it as corrupt. */
+    internal const val MAX_INFLATED_BYTES = 16L * 1024 * 1024
+
     fun encode(save: CloudSave): ByteArray {
         val json = buildJsonObject {
             put("version", save.version)
@@ -68,7 +71,11 @@ object CloudSaveCodec {
      */
     fun decode(bytes: ByteArray): CloudSave? {
         val root = runCatching {
-            val text = GzipSource(Buffer().write(bytes)).buffer().use { it.readUtf8() }
+            val text = GzipSource(Buffer().write(bytes)).buffer().use { source ->
+                // A few kilobytes can inflate to gigabytes: a save that would is no save, rather than the app's memory.
+                check(!source.request(MAX_INFLATED_BYTES + 1)) { "Larger than a save" }
+                source.readUtf8()
+            }
             parseJson(text) as JsonObject
         }.getOrNull() ?: return null
         val version = (root["version"] as? JsonNumber)?.let { runCatching { it.toInt() }.getOrNull() } ?: return null

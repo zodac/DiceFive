@@ -18,6 +18,7 @@ import net.zodac.dicefive.data.newerOf
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerColour
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
@@ -429,8 +430,8 @@ class SettingsRepository(
         fun playerColourKey(slot: Int) = stringPreferencesKey("player_colour_$slot")
         fun playerDifficultyKey(slot: Int) = stringPreferencesKey("player_difficulty_$slot")
 
-        /** How many player slots the setup form remembers - `GameSetupState.MAX_PLAYERS`. */
-        private const val PLAYER_SLOTS = 4
+        /** How many player slots the setup form remembers: one a seat. */
+        private const val PLAYER_SLOTS = GameState.MAX_PLAYERS
 
         val STYLE_KEYS = listOf(DICE_STYLE_ID_KEY, DICE_CUP_STYLE_ID_KEY, TABLE_BACKGROUND_ID_KEY, DICE_MAT_ID_KEY, SCORE_FRAME_ID_KEY)
 

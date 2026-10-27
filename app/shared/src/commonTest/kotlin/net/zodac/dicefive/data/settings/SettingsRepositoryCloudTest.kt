@@ -10,8 +10,8 @@ import kotlinx.coroutines.test.runTest
 import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.Stamped
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.RollModifiers
-import net.zodac.dicefive.ui.game.GameSetupState
 
 /** The settings' side of the cloud save: the New Game setup and Styles picks, each stamped when it changes. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -171,8 +171,8 @@ class SettingsRepositoryCloudTest {
 
     @Test
     fun `every player slot the setup form has is synced`() = runTest {
-        repository.setPlayerName(GameSetupState.MAX_PLAYERS, "Dee")
-        assertEquals(Stamped(SettingValue.Text("Dee"), 100L), repository.cloudSettings()["player_name_${GameSetupState.MAX_PLAYERS}"])
+        repository.setPlayerName(GameState.MAX_PLAYERS, "Dee")
+        assertEquals(Stamped(SettingValue.Text("Dee"), 100L), repository.cloudSettings()["player_name_${GameState.MAX_PLAYERS}"])
     }
 
     @Test

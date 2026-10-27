@@ -88,6 +88,14 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
     override suspend fun totalCountForMode(gameMode: GameMode): Int = scoreDao.countForMode(gameMode.id)
 
     /**
+     * Opens the database with a read, so it is migrated to this build's schema now: throws whatever the opening does (a
+     * migration missing or failing, a schema this build doesn't know).
+     */
+    suspend fun open() {
+        scoreDao.count()
+    }
+
+    /**
      * Wipes every recorded score, which necessarily empties the Statistics screen too - it's
      * computed from these same rows (see [playerStatistics]) - so nothing is left to dismiss either.
      */

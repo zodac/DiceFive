@@ -248,7 +248,12 @@ will map to Play Games.
     `ScoreDatabaseMigrationTest` from the exported schema it migrates from. There is **deliberately no destructive
     fallback**: a missing migration must fail loudly, never wipe scores. A change to `playerNameKey` changes stored
     keys, so it needs a migration too.
-- **Preferences.** Five DataStore files (`PreferencesFile`), kept apart so a reset can clear one:
+  - **Failing loudly is a page, not a crash.** `AppContainer` opens the database as it's built; if that throws, its
+    `databaseFailure` holds the error and `DatabaseFailurePage` replaces the whole app: what happened, that nothing was
+    deleted, to update, and the error text to copy into a report.
+- **Preferences.** Five DataStore files (`PreferencesFile`), kept apart so a reset can clear one. Each is a
+  `ResilientDataStore`: a write that fails (a full disk) is skipped and a read that fails is empty, never thrown into
+  the coroutine that asked.
   - `settings`. Every key but the Animations level and the Styles page fit is synced
     (`SettingsRepository.SYNCED_KEYS`) and stamped `synced_at:<key>` when it changes.
   - `achievements`: unlock times and counters, plus the cloud save's counter shares (this file's own share id and the
@@ -265,8 +270,9 @@ will map to Play Games.
 - **The in-progress game.** `InProgressGameRepository` holds at most one, saved as JSON (`GameStateJson`).
   - It's saved after every change and cleared when the game ends.
   - Writes are queued and conflated in a process-lifetime scope, so leaving a game can't lose its last move.
-  - An undecodable save is treated as nothing to resume: a missing required field, an unknown mode, or a mode's draw
-    missing.
+  - An undecodable save is treated as nothing to resume: a missing required field, an unknown mode, a mode's draw
+    missing, or a game the board can't play (`checkPlayable`: the seats, the dice count, each die within the mode's
+    `dieValues`, the hold slots, the rolls). A cloud save or progress file can bring in what this app never wrote.
   - Fields a modifier adds are left out when it's off.
   - What Undo goes back to is saved as a nested game (`undoSnapshot`), and the box an undo took back as
     `undoneCategory`. One that can't be read only loses the undo; the game still loads.

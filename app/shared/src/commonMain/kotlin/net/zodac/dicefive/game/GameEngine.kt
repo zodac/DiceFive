@@ -29,7 +29,7 @@ object GameEngine {
         unluckyDice: UnluckyDice? = null,
         random: Random = Random.Default,
     ): GameState {
-        require(players.isNotEmpty()) { "At least one player is required" }
+        require(players.size in GameState.MIN_PLAYERS..GameState.MAX_PLAYERS) { "A game seats ${GameState.MIN_PLAYERS} to ${GameState.MAX_PLAYERS} players, not ${players.size}" }
         val disabledCategories = gameMode.drawDisabledCategories(random)
         val hitList = gameMode.drawHitList(random)
         // A mode that doesn't allow the Extended Scores boxes plays without them, whatever was asked for.

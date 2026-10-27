@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.AppContainer
+import net.zodac.dicefive.data.orNullOnFailure
 import net.zodac.dicefive.data.scores.PlayerStatistics
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
@@ -57,7 +58,8 @@ class StatisticsViewModel(
     /** Hides [playerName]'s card from this screen - their leaderboard history is untouched. */
     fun dismissPlayer(playerName: String) {
         viewModelScope.launch {
-            scoreRepository.dismissPlayerStatistics(playerName)
+            // One that can't be written (a full disk) leaves the card in place, rather than taking the app down.
+            orNullOnFailure { scoreRepository.dismissPlayerStatistics(playerName) }
             load()
         }
     }
