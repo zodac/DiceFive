@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Cloud backup and device-to-device transfer from Android 12 (dataExtractionRules): everything but Play Games'
-     start-at-launch choice - see backup_rules.xml, the same for older Androids. -->
+     start-at-launch choice - see backup_rules.xml, which keeps less for older Androids, where adb backup reads it. -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="sharedpref" path="play_games.xml" />

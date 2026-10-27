@@ -12,8 +12,9 @@
         android:name="android.permission.ACCESS_NETWORK_STATE"
         tools:node="remove" />
 
-    <!-- Backups and device transfers leave out Play Games' start-at-launch choice, which is this device's own: see
-         res/xml/backup_rules.xml (up to Android 11) and data_extraction_rules.xml (from 12). -->
+    <!-- Backups and device transfers leave out Play Games' start-at-launch choice, which is this device's own, and up to
+         Android 11, where adb can edit and restore a backup, everything but the settings: see res/xml/backup_rules.xml
+         (up to Android 11) and data_extraction_rules.xml (from 12). -->
     <application
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"

@@ -1,5 +1,6 @@
 package net.zodac.dicefive.data.game
 
+import kotlin.uuid.Uuid
 import net.zodac.dicefive.data.JsonArray
 import net.zodac.dicefive.data.JsonNumber
 import net.zodac.dicefive.data.JsonObject
@@ -51,6 +52,7 @@ object GameStateJson {
     }
 
     private fun encodeState(state: GameState): JsonObject = buildJsonObject {
+        state.id?.let { put("id", it.toHexString()) }
         put("gameMode", state.gameMode.id)
         put("turnTimer", state.turnTimer.name)
         put("currentPlayerIndex", state.currentPlayerIndex)
@@ -91,6 +93,8 @@ object GameStateJson {
         val hitList = decodeHitList(obj, gameMode)
         return checkPlayable(
             GameState(
+                // Left out by encode for a game without one; one that can't be read is dropped, as if never given.
+                id = obj.stringOrNull("id")?.let(Uuid::parseHexOrNull),
                 gameMode = gameMode,
                 turnTimer = TurnTimer.parse(obj.string("turnTimer")) ?: throw IllegalArgumentException("Unknown turn timer"),
                 rollModifiers = rollModifiers,

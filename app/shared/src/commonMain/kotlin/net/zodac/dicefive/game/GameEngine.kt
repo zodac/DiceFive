@@ -2,6 +2,7 @@ package net.zodac.dicefive.game
 
 import kotlin.math.abs
 import kotlin.random.Random
+import kotlin.uuid.Uuid
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
@@ -33,6 +34,7 @@ object GameEngine {
         extendedScores: Boolean = false,
         unluckyDice: UnluckyDice? = null,
         random: Random = Random.Default,
+        id: Uuid = Uuid.random(),
     ): GameState {
         require(players.size in GameState.MIN_PLAYERS..GameState.MAX_PLAYERS) { "A game seats ${GameState.MIN_PLAYERS} to ${GameState.MAX_PLAYERS} players, not ${players.size}" }
         // Seat 1 is the player holding the phone, whose achievements and records are "You". Only a table of CPUs alone (a
@@ -45,6 +47,7 @@ object GameEngine {
         // A mode that doesn't allow the Extended Scores boxes plays without them, whatever was asked for.
         val extended = extendedScores && gameMode.allowsExtendedScores
         return GameState(
+            id = id,
             gameMode = gameMode,
             turnTimer = turnTimer,
             rollModifiers = rollModifiers,

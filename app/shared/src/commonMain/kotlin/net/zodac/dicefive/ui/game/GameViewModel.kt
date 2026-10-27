@@ -908,7 +908,7 @@ class GameViewModel(
     private fun persistInProgressGame(state: GameState) {
         // The tutorial is never saved: Continue stays on the player's own game.
         if (tutorial != null) return
-        if (state.isGameOver) inProgressGameRepository.clear() else inProgressGameRepository.save(savedCopy(state))
+        if (state.isGameOver) inProgressGameRepository.clear(finished = state) else inProgressGameRepository.save(savedCopy(state))
     }
 
     /** [state] as it's saved: with the box an undo took back and what Undo goes back to, which the live game doesn't carry -

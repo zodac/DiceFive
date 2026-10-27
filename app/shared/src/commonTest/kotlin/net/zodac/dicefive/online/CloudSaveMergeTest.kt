@@ -5,9 +5,13 @@ import kotlin.test.assertEquals
 import kotlin.uuid.Uuid
 import net.zodac.dicefive.data.Stamped
 import net.zodac.dicefive.data.achievements.CloudAchievements
+import net.zodac.dicefive.data.game.GameStateJson
 import net.zodac.dicefive.data.scores.CloudScores
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.data.settings.SettingValue
+import net.zodac.dicefive.model.GameState
+import net.zodac.dicefive.model.PlayerState
+import net.zodac.dicefive.model.PlayerType
 
 /** A readable stand-in for a row's uuid: [label]'s bytes (16 at most), padded with zeros. */
 internal fun testUuid(label: String): Uuid = Uuid.fromByteArray(label.encodeToByteArray().copyOf(Uuid.SIZE_BYTES))
@@ -157,6 +161,18 @@ class CloudSaveMergeTest {
         assertEquals(Stamped<String?>(null, 200L), merge(playing, finished).inProgressGame)
         val newer = CloudSave(inProgressGame = Stamped("{\"game\":2}", 300L))
         assertEquals(Stamped<String?>("{\"game\":2}", 300L), merge(finished, newer).inProgressGame)
+    }
+
+    @Test
+    fun `of two copies of the same game in progress the further on wins - whatever their stamps, in either order`() {
+        val id = Uuid.parse("00000000-0000-0000-0000-000000000001")
+        fun copy(rolls: Int) = GameStateJson.encode(
+            GameState(id = id, players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, rollCount = rolls))),
+        )
+        val further = CloudSave(inProgressGame = Stamped(copy(rolls = 5), 100L))
+        val behind = CloudSave(inProgressGame = Stamped(copy(rolls = 4), 900L))
+        assertEquals(further.inProgressGame, merge(further, behind).inProgressGame)
+        assertEquals(further.inProgressGame, merge(behind, further).inProgressGame)
     }
 
     @Test

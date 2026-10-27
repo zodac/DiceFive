@@ -1,11 +1,16 @@
 package net.zodac.dicefive.model
 
+import kotlin.uuid.Uuid
+
 /**
  * Live state for an in-progress (or just-finished) game. Built via
  * `GameEngine.newGame` and evolved by `GameEngine`'s roll/hold/score
  * reducers; see `net.zodac.dicefive.game`.
  */
 data class GameState(
+    /** This game's own id, given by `GameEngine.newGame` and kept however the game is saved or copied between devices,
+     * so two copies of it can be told apart from two games; null for a game saved without one. */
+    val id: Uuid? = null,
     val gameMode: GameMode = GameMode.default,
     val turnTimer: TurnTimer = TurnTimer.NONE,
     val rollModifiers: RollModifiers = RollModifiers(),
@@ -56,6 +61,11 @@ data class GameState(
      */
     val scoresEntered: Int
         get() = players.sumOf { player -> player.scorecard.values.sumOf { it.size } }
+
+    /** How many rolls every player has made this game: only ever goes up, since nothing takes a roll back (Undo takes
+     * back only a score), so of two copies of a game the one with more is further on. */
+    val rollsMade: Int
+        get() = players.sumOf { it.rollCount }
 
     /**
      * The dice this turn would be scored with: every die, or - in a mode where only held dice score

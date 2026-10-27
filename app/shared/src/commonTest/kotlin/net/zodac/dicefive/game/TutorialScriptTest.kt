@@ -3,10 +3,14 @@ package net.zodac.dicefive.game
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.uuid.Uuid
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
+
+/** One id for every game played here, so two play-throughs compare equal. */
+private val GAME_ID = Uuid.parse("00000000-0000-0000-0000-000000000001")
 
 /** The Standard tutorial's script is a legal solo game that scores what its coach card says, turn by turn. */
 class TutorialScriptTest {
@@ -17,6 +21,7 @@ class TutorialScriptTest {
         var state = GameEngine.newGame(
             listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "You")),
             script.gameMode,
+            id = GAME_ID,
         )
         val scored = mutableListOf<Int>()
         // The game as it was before the last score, for an Undo step to put back.
@@ -98,7 +103,7 @@ class TutorialScriptTest {
     @Test
     fun `replaying every step is the game played through - and each turn starts on a fresh turn`() {
         val script = TutorialScript.STANDARD
-        val start = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "You")), script.gameMode)
+        val start = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "You")), script.gameMode, id = GAME_ID)
         assertEquals(playThrough().first, script.replay(start, script.steps.size))
         assertEquals(13, script.turnStarts.size)
         script.turnStarts.forEachIndexed { turn, index ->

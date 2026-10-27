@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -34,7 +35,9 @@ import net.zodac.dicefive.model.GameState
  * queued, so it never reads a move older than the last one asked for.
  *
  * Every write, the clearing one too, is stamped with when it was written ([STAMP_KEY]): the cloud save keeps
- * whichever device's game is newest, and a finished game's clearing beats an older copy of it.
+ * whichever device's game is newest, and a finished game's clearing beats an older copy of it. A stamp is always later
+ * than the one before it, even with the device's clock set back, and of two copies of the same game the one further on
+ * wins whatever their stamps ([furtherOn]); a game finished here ([FINISHED_KEY]) is never taken from the cloud again.
  */
 class InProgressGameRepository(
     private val dataStore: DataStore<Preferences>,
@@ -60,11 +63,12 @@ class InProgressGameRepository(
                     when (next) {
                         is Pending.Save -> dataStore.edit {
                             it[STATE_KEY] = GameStateJson.encode(next.state)
-                            it[STAMP_KEY] = now()
+                            it[STAMP_KEY] = nextStamp(it)
                         }
                         is Pending.Clear -> dataStore.edit {
                             it.remove(STATE_KEY)
-                            it[STAMP_KEY] = now()
+                            it[STAMP_KEY] = nextStamp(it)
+                            next.finished?.let { id -> it[FINISHED_KEY] = id.toHexString() }
                         }
                     }
                 }
@@ -72,6 +76,9 @@ class InProgressGameRepository(
             }
         }
     }
+
+    /** Now, or just after the last stamp if the clock says earlier: a later write never looks older than the one before. */
+    private fun nextStamp(prefs: Preferences): Long = maxOf(now(), (prefs[STAMP_KEY] ?: 0) + 1)
 
     /** Queues [state] to be saved, replacing whatever was still waiting to be. */
     fun save(state: GameState) {
@@ -92,15 +99,18 @@ class InProgressGameRepository(
     }
 
     /**
-     * Takes the cloud save's game in place of this device's if it was written later - one this app can't read is
-     * skipped, rather than offering a Continue that can't load.
+     * Takes the cloud save's game in place of this device's if it's a copy of the same game further on ([furtherOn]), or
+     * else was written later - but never a copy of a game finished here, and never one this app can't read, rather than
+     * offering a Continue that can't load.
      */
     suspend fun mergeCloud(remote: Stamped<String?>) {
-        if (remote.value != null && runCatching { GameStateJson.decode(remote.value) }.isFailure) return
+        val remoteGame = remote.value?.let { runCatching { GameStateJson.decode(it) }.getOrNull() ?: return }
         dataStore.edit { prefs ->
-            if (remote.atEpochMillis <= (prefs[STAMP_KEY] ?: 0)) return@edit
+            if (remoteGame?.id != null && remoteGame.id.toHexString() == prefs[FINISHED_KEY]) return@edit
+            val local = Stamped(prefs[STATE_KEY], prefs[STAMP_KEY] ?: 0)
+            if (!furtherOn(remote, local) && (remote.atEpochMillis <= local.atEpochMillis || furtherOn(local, remote))) return@edit
             remote.value?.let { prefs[STATE_KEY] = it } ?: prefs.remove(STATE_KEY)
-            prefs[STAMP_KEY] = remote.atEpochMillis
+            prefs[STAMP_KEY] = maxOf(remote.atEpochMillis, local.atEpochMillis)
         }
     }
 
@@ -110,9 +120,14 @@ class InProgressGameRepository(
         dataStore.edit { it.clear() }
     }
 
-    /** Queues the saved game to be removed, replacing whatever was still waiting to be saved. */
-    fun clear() {
-        pending.update { current -> current as? Pending.Clear ?: Pending.Clear(current.nextSequence()) }
+    /**
+     * Queues the saved game to be removed, replacing whatever was still waiting to be saved. With [finished], the game
+     * just over, no copy of that game is taken from the cloud again.
+     */
+    fun clear(finished: GameState? = null) {
+        pending.update { current ->
+            if (current is Pending.Clear && current.finished == finished?.id) current else Pending.Clear(finished?.id, current.nextSequence())
+        }
     }
 
     /** One queued write, numbered in the order asked for. */
@@ -121,7 +136,7 @@ class InProgressGameRepository(
 
         data class Save(val state: GameState, override val sequence: Int) : Pending
 
-        data class Clear(override val sequence: Int) : Pending
+        data class Clear(val finished: Uuid?, override val sequence: Int) : Pending
     }
 
     private fun Pending?.nextSequence(): Int = (this?.sequence ?: 0) + 1
@@ -129,5 +144,22 @@ class InProgressGameRepository(
     private companion object {
         val STATE_KEY = stringPreferencesKey("state")
         val STAMP_KEY = longPreferencesKey("saved_at")
+
+        /** The [GameState.id] of the last game finished here. */
+        val FINISHED_KEY = stringPreferencesKey("finished_id")
     }
 }
+
+/**
+ * Whether [a] is a copy of the same game as [b] (the same [GameState.id]) further on: more rolls made
+ * ([GameState.rollsMade]). Of two copies of one game the further one wins whatever their stamps, so a copy set back by
+ * a device's clock, or kept on another device, never takes back a roll. False when either is cleared, can't be read
+ * or has no id.
+ */
+internal fun furtherOn(a: Stamped<String?>, b: Stamped<String?>): Boolean {
+    val ours = a.value?.let(::readableGame) ?: return false
+    val theirs = b.value?.let(::readableGame) ?: return false
+    return ours.id != null && ours.id == theirs.id && ours.rollsMade > theirs.rollsMade
+}
+
+private fun readableGame(json: String): GameState? = runCatching { GameStateJson.decode(json) }.getOrNull()

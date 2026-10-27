@@ -6,6 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.uuid.Uuid
 import net.zodac.dicefive.data.JsonArray
 import net.zodac.dicefive.data.JsonObject
 import net.zodac.dicefive.data.JsonParseException
@@ -58,6 +59,13 @@ class GameStateJsonTest {
                 isGameOver = false,
             ),
         )
+
+        // The game's id - and none, for a save made without one, or with one that can't be read.
+        val id = Uuid.parse("12345678-90ab-cdef-1234-567890abcdef")
+        assertEquals(id, roundTripped(GameState(id = id, players = listOf(human))).id)
+        assertEquals(null, roundTripped(GameState(players = listOf(human))).id)
+        val unreadableId = GameStateJson.encode(GameState(id = id, players = listOf(human))).replace(id.toHexString(), "not-an-id")
+        assertEquals(GameState(players = listOf(human)), GameStateJson.decode(unreadableId))
 
         // A non-default turn timer and the seconds left on it.
         val timed = roundTripped(GameState(turnTimer = TurnTimer.SECONDS_60, players = listOf(human), turnSecondsLeft = 23))

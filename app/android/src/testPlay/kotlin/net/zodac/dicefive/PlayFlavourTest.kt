@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import net.zodac.dicefive.data.PreferencesFile
+import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.online.PlayGamesServices
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -28,16 +30,27 @@ class PlayFlavourTest {
     }
 
     @Test
-    fun `backups and device transfers carry everything but Play Games' sign-in at launch - on every Android`() {
+    fun `backups and device transfers carry everything but Play Games' sign-in at launch - from Android 12`() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         assertEquals(R.xml.data_extraction_rules, applicationManifestResource(context, "dataExtractionRules"))
-        assertEquals(R.xml.backup_rules, applicationManifestResource(context, "fullBackupContent"))
 
         val playGames = "sharedpref:${PlayGamesServices.PREFERENCES_FILE}.xml"
-        assertEquals(listOf("full-backup-content/exclude $playGames"), rules(context, R.xml.backup_rules))
         assertEquals(
             listOf("cloud-backup/exclude $playGames", "device-transfer/exclude $playGames"),
             rules(context, R.xml.data_extraction_rules),
+        )
+    }
+
+    @Test
+    fun `backups up to Android 11 carry only the settings - adb can edit and restore one there`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        assertEquals(R.xml.backup_rules, applicationManifestResource(context, "fullBackupContent"))
+
+        val database = listOf("", "-journal", "-shm", "-wal").map { "database:${AppDatabase.FILE_NAME}$it" }
+        val preferences = PreferencesFile.entries.filter { it != PreferencesFile.SETTINGS }.map { "file:datastore/${it.fileName}" }
+        assertEquals(
+            (listOf("sharedpref:${PlayGamesServices.PREFERENCES_FILE}.xml") + database + preferences).map { "full-backup-content/exclude $it" },
+            rules(context, R.xml.backup_rules),
         )
     }
 

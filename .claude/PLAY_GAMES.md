@@ -57,7 +57,10 @@ app/android/src/play/.../online/  PlayGamesServices, PlayGamesIds, PlayGamesAchi
   starts with the app and signs in quietly.
 - **That choice stays on its device.** Backups and device transfers leave `play_games` out (`res/xml/backup_rules.xml`
   up to Android 11, `data_extraction_rules.xml` from 12; `PlayFlavourTest`), so a restored phone asks before signing
-  in. Everything else is backed up, the `online` store included: its mirroring block must survive a restore.
+  in. From Android 12 everything else is backed up, the `online` store included: its mirroring block must survive a
+  restore. **Up to Android 11 only the settings are** (`backup_rules.xml`): there `adb backup` and `adb restore` need
+  only USB debugging, so an edited backup would otherwise reach Play Games (a file import by another name). The cloud
+  save restores the rest for a signed-in player; an excluded file isn't restored either. `PlayFlavourTest` pins both.
 - **A failed sign-in says why** on the card, in red: "Couldn't sign in: " and the first failure's log message
   (`GameServicesState.SignedOut.failure`), untranslated, for a player to report. It goes on the next Sign in tap.
   Cancelling the account picker shows it too ("not authenticated"): the SDK can't tell the two apart.
@@ -111,7 +114,7 @@ Always on while signed in, with no switch and no prompt. Every sync merges; noth
 | Scores                                                         | Union by `ScoreEntry.uuid`, less any at or before `scores_reset_at`                                                                         |
 | Dismissed stats cards                                          | Union, later kept; dropped once a later game under the name is in the save                                                                  |
 | Style picks, New Game setup, Statistics sort, sound, vibration, confirm-leaving | Last writer wins per key (`synced_at:<key>`); an unstamped one (a pick after Reset achievements) beats one never set                        |
-| In-progress game                                               | Newest wins (`saved_at`); one this app can't read is never taken                                                                            |
+| In-progress game                                               | Newest wins (`saved_at`, never earlier than the last); of two copies of one game (`GameState.id`) the one with more rolls wins (`furtherOn`), so neither a clock set back nor another device takes back a roll; one finished here (`finished_id`) or one this app can't read is never taken |
 | Animations level, Orientation, Styles page fit, Locked and Unlocked only switches                           | Not saved: they're about the device                                                                                                         |
 
 - **Ids, not enums**, so an older app carries a newer one's achievements, counters and settings through a merge.

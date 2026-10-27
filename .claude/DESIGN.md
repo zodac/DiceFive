@@ -275,6 +275,9 @@ will map to Play Games.
   below.
 - **The in-progress game.** `InProgressGameRepository` holds at most one, saved as JSON (`GameStateJson`).
   - It's saved after every change and cleared when the game ends.
+  - Each game has an id (`GameState.id`, from `GameEngine.newGame`), and `rollsMade` only goes up. The cloud save
+    keeps the copy of a game with more rolls, whatever the stamps say, and never brings back a game finished on this
+    device (`PLAY_GAMES.md`, "Cloud save"). A save stamp is never earlier than the last, even with the clock set back.
   - Writes are queued and conflated in a process-lifetime scope, so leaving a game can't lose its last move.
   - An undecodable save is treated as nothing to resume: a missing required field, an unknown mode, a mode's draw
     missing, or a game the board can't play (`checkPlayable`: the seats, the dice count, each die within the mode's
@@ -533,8 +536,9 @@ Two apps from one source, one per way the app reaches players: product flavours 
 
 - **Kept apart so nothing from a file reaches Play Games.** A file's progress can only be imported into the github
   app, which has no Play Games code, and the github app's data can't reach the play app's: they're separate packages
-  (data, backups and installs are per package), signed by different keys (Play re-signs the bundle). Pinned by
-  `GithubFlavourTest` and `PlayFlavourTest`.
+  (data, backups and installs are per package), signed by different keys (Play re-signs the bundle). Nor can an
+  edited `adb` backup: up to Android 11 the play app's backup holds only the settings (`PLAY_GAMES.md`, "Account and
+  sign-in"). Pinned by `GithubFlavourTest` and `PlayFlavourTest`.
 - **The github app is a different app.** It installs beside the play app, not over it; a GitHub install from before
   the split (`net.zodac.dicefive`, 1.0.0) doesn't update to it.
 - **Progress files** (`online/ProgressFileCodec`, `ProgressTransfer`; on Android `AndroidProgressFiles`, through the

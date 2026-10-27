@@ -4,6 +4,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runCurrent
@@ -15,10 +17,14 @@ import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 
-private fun game(dieValue: Int) = GameState(
-    players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)),
+private fun game(dieValue: Int, id: Uuid? = null, rolls: Int = 0) = GameState(
+    id = id,
+    players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, rollCount = rolls)),
     dice = List(5) { Die(value = dieValue) },
 )
+
+private val ONE_GAME = Uuid.parse("00000000-0000-0000-0000-000000000001")
+private val ANOTHER_GAME = Uuid.parse("00000000-0000-0000-0000-000000000002")
 
 /** The game in progress in the cloud save: every save and clear is stamped, and the newest copy wins. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -53,6 +59,69 @@ class InProgressGameRepositoryCloudTest {
         repository.mergeCloud(Stamped(null, 250L))
         assertNull(repository.load())
         assertFalse(repository.hasInProgressGame.first())
+    }
+
+    @Test
+    fun `a stamp is always later than the last - with the clock set back too`() = runTest {
+        val repository = InProgressGameRepository(InMemoryPreferences(), backgroundScope, now = { clock })
+        repository.save(game(3))
+        runCurrent()
+        clock = 40L
+        repository.save(game(4))
+        runCurrent()
+        assertEquals(101L, repository.cloudGame().atEpochMillis)
+        repository.clear()
+        runCurrent()
+        assertEquals(102L, repository.cloudGame().atEpochMillis)
+    }
+
+    @Test
+    fun `the clock set back can't bring an earlier copy of the game back from the cloud - so a roll is never taken back`() = runTest {
+        val repository = InProgressGameRepository(InMemoryPreferences(), backgroundScope, now = { clock })
+        val beforeTheRoll = game(3, ONE_GAME, rolls = 4)
+        repository.save(beforeTheRoll)
+        runCurrent()
+        val uploaded = repository.cloudGame()
+        clock = 10L
+        repository.save(game(1, ONE_GAME, rolls = 5))
+        runCurrent()
+        repository.mergeCloud(uploaded)
+        assertEquals(game(1, ONE_GAME, rolls = 5), repository.load())
+    }
+
+    @Test
+    fun `of two copies of the same game the further on wins - whatever their stamps - and another game goes by its stamp`() = runTest {
+        val repository = InProgressGameRepository(InMemoryPreferences(), backgroundScope, now = { clock })
+        repository.save(game(3, ONE_GAME, rolls = 5))
+        runCurrent()
+        // Another device's copy from before a roll, with a later stamp from that device's clock.
+        repository.mergeCloud(Stamped(GameStateJson.encode(game(6, ONE_GAME, rolls = 4)), 900L))
+        assertEquals(game(3, ONE_GAME, rolls = 5), repository.load())
+        // A copy further on, with an earlier stamp: taken, and the stamp here doesn't go back.
+        repository.mergeCloud(Stamped(GameStateJson.encode(game(2, ONE_GAME, rolls = 6)), 50L))
+        assertEquals(game(2, ONE_GAME, rolls = 6), repository.load())
+        assertEquals(100L, repository.cloudGame().atEpochMillis)
+        // The same rolls - an undo, or a hold - go by the stamp.
+        repository.mergeCloud(Stamped(GameStateJson.encode(game(4, ONE_GAME, rolls = 6)), 150L))
+        assertEquals(game(4, ONE_GAME, rolls = 6), repository.load())
+        // Another game, with fewer rolls, by its stamp too.
+        repository.mergeCloud(Stamped(GameStateJson.encode(game(5, ANOTHER_GAME)), 200L))
+        assertEquals(game(5, ANOTHER_GAME), repository.load())
+    }
+
+    @Test
+    fun `a game finished here is never taken from the cloud again - however late its stamp`() = runTest {
+        val repository = InProgressGameRepository(InMemoryPreferences(), backgroundScope, now = { clock })
+        val playing = game(3, ONE_GAME, rolls = 2)
+        repository.save(playing)
+        runCurrent()
+        repository.clear(finished = playing.copy(isGameOver = true))
+        runCurrent()
+        repository.mergeCloud(Stamped(GameStateJson.encode(playing), 5_000L))
+        assertFalse(repository.hasInProgressGame.first())
+        // Another game still comes across.
+        repository.mergeCloud(Stamped(GameStateJson.encode(game(4, ANOTHER_GAME)), 5_000L))
+        assertTrue(repository.hasInProgressGame.first())
     }
 
     @Test

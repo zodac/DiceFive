@@ -5,7 +5,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+import kotlin.uuid.Uuid
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.GameMode
@@ -46,6 +48,20 @@ class GameEngineTest {
         assertEquals(listOf("Alex", "Alexa"), GameEngine.newGame(listOf(alex, PlayerConfig(slot = 2, type = PlayerType.HUMAN, name = "Alexa"))).players.map { it.name })
         // A CPU's name is never recorded, so it can share a Human's.
         assertEquals(listOf("Alex", "Alex"), GameEngine.newGame(listOf(alex, bot.copy(name = "Alex"))).players.map { it.name })
+    }
+
+    @Test
+    fun `newGame - each game its own id - and rollsMade counts every player's rolls - which an undone score doesn't take back`() {
+        assertNotEquals(GameEngine.newGame(onePlayer).id, GameEngine.newGame(onePlayer).id)
+        val id = Uuid.parse("00000000-0000-0000-0000-000000000001")
+        val game = GameEngine.newGame(twoPlayers, id = id)
+        assertEquals(id, game.id)
+        assertEquals(0, game.rollsMade)
+        val rolled = GameEngine.rollDice(GameEngine.rollDice(game))
+        val scored = scoreNow(rolled)
+        val nextRolled = GameEngine.rollDice(scored)
+        assertEquals(listOf(2, 2, 3), listOf(rolled, scored, nextRolled).map { it.rollsMade })
+        assertEquals(id, nextRolled.id)
     }
 
     @Test

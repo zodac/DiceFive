@@ -2,6 +2,7 @@ package net.zodac.dicefive.online
 
 import net.zodac.dicefive.data.Stamped
 import net.zodac.dicefive.data.achievements.CloudAchievements
+import net.zodac.dicefive.data.game.furtherOn
 import net.zodac.dicefive.data.newerOf
 import net.zodac.dicefive.data.scores.CloudScores
 import net.zodac.dicefive.data.settings.SettingValue
@@ -37,7 +38,8 @@ data class CloudSave(
  *   grows, so the larger of two copies is the newer. Flags are a union; a streak comes from the latest game.
  * - Scores are a union by [net.zodac.dicefive.data.scores.ScoreEntry.uuid], less any from before the latest leaderboard
  *   reset. A dismissed Statistics card stays dismissed until a later game under its name, played anywhere.
- * - Each setting, and the game in progress, is whichever was set last; an unstamped one beats one never set.
+ * - Each setting, and the game in progress, is whichever was set last; an unstamped one beats one never set. Of two
+ *   copies of the same game, though, the one further on wins ([furtherOn]).
  */
 object CloudSaveMerge {
 
@@ -58,7 +60,11 @@ object CloudSaveMerge {
             scoresResetAtEpochMillis = resetAt,
             scores = CloudScores(rows, dismissedAt),
             settings = unionBy(a.settings, b.settings) { x, y -> newerOf(x, y) { it.toString() } },
-            inProgressGame = newerOf(a.inProgressGame, b.inProgressGame) { it.orEmpty() },
+            inProgressGame = when {
+                furtherOn(a.inProgressGame, b.inProgressGame) -> a.inProgressGame
+                furtherOn(b.inProgressGame, a.inProgressGame) -> b.inProgressGame
+                else -> newerOf(a.inProgressGame, b.inProgressGame) { it.orEmpty() }
+            },
         )
     }
 
