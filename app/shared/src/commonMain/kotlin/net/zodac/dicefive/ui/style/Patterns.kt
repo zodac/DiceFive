@@ -135,17 +135,38 @@ internal fun DrawScope.cachedSurface(key: Any, paint: DrawScope.() -> Unit): Ima
     val image = surfaceImages.remove(sized) ?: ImageBitmap(width, height).also { image ->
         CanvasDrawScope().draw(this, layoutDirection, Canvas(image), Size(width.toFloat(), height.toFloat()), paint)
         surfacesPainted++
+        surfaceBytes += sized.bytes
     }
     // Re-added on every use, so the map runs least recently used first.
     surfaceImages[sized] = image
-    if (surfaceImages.size > SURFACE_CACHE_SIZE) surfaceImages.remove(surfaceImages.keys.first())
+    while (surfaceImages.size > SURFACE_CACHE_SIZE || surfaceBytes > SURFACE_CACHE_BYTES) {
+        val oldest = surfaceImages.keys.first()
+        surfaceImages.remove(oldest)
+        surfaceBytes -= oldest.bytes
+    }
     return image
 }
 
-// Only ever drawn on the main thread, so never shared between threads.
+/**
+ * Lets go of every surface [drawCachedSurface] has painted, for the platform to call when it's short of memory with the
+ * app in the background. Each is painted again on its next draw.
+ */
+fun releaseCachedSurfaces() {
+    surfaceImages.clear()
+    surfaceBytes = 0
+}
+
+// Only ever drawn (and released) on the main thread, so never shared between threads.
 private val surfaceImages = LinkedHashMap<SizedSurface, ImageBitmap>()
 
-private data class SizedSurface(val key: Any, val width: Int, val height: Int)
+// The pixel memory of everything in surfaceImages.
+private var surfaceBytes = 0L
+
+private data class SizedSurface(val key: Any, val width: Int, val height: Int) {
+    val bytes: Long get() = width.toLong() * height * BYTES_PER_PIXEL
+}
+
+private const val BYTES_PER_PIXEL = 4
 
 // How many surfaces have been painted, not stamped from surfaceImages, since the process started.
 private var surfacesPainted = 0
@@ -156,6 +177,10 @@ fun surfacesPaintedForTest(): Int = surfacesPainted
 // Every face of five dice in a couple of patterned styles, with room for another size (a held die, the
 // Styles previews) - about 90KB apiece at a phone's usual die size.
 private const val SURFACE_CACHE_SIZE = 128
+
+// And at most this much pixel memory: a whole background or mat is many dice faces' worth (a phone-sized background
+// ~8MB), and each size it's drawn at (portrait, landscape, a Styles preview) is kept as its own surface.
+private const val SURFACE_CACHE_BYTES = 48L * 1024 * 1024
 
 internal fun DrawScope.paintMarble(seed: Int, vein: Color) {
     val random = Random(seed)

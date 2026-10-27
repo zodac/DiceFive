@@ -12,7 +12,9 @@ Each of these fixed a reported stutter. New work must keep them.
 
 - **Paint costly, unchanging surfaces once.**
   - `drawCachedSurface(key)` (`Patterns.kt`) paints once per key and size into an `ImageBitmap`, then stamps it. It's
-    an LRU of 128, ~90KB each at die size. The key captures everything except size. Marble and Frosted cost 10x more
+    an LRU of 128 and at most 48MB (~90KB each at die size, ~8MB for a phone-sized background), released when Android
+    trims memory in the background (`DiceFiveApplication.onTrimMemory`). The key captures everything except size.
+    Marble and Frosted cost 10x more
     when repainted every frame.
   - A tossed die's faces are recorded once into `GraphicsLayer`s (`FaceLayers`, `RollingDie.kt`); only shading and
     perspective change per frame.
