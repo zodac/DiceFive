@@ -49,9 +49,9 @@ kotlin {
             implementation(libs.icu4j)
         }
         androidMain.dependencies {
-            // JetBrains' navigation-compose 2.9 resolves to androidx 2.9 on Android; this keeps the
-            // app on the androidx line it already shipped with (the 2.9 API the shared code compiles
-            // against is a subset of it).
+            // On Android, JetBrains' navigation-compose resolves to the androidx release it wraps; this
+            // lifts it to androidx's newer one on the same line (the JetBrains API the shared code
+            // compiles against is a subset of it).
             implementation(libs.androidx.navigation.compose)
         }
         commonTest.dependencies {
