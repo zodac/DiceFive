@@ -12,6 +12,9 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -78,8 +81,18 @@ const val CUP_VIEW_SQUASH = 0.38f
  * [rotation] is the cup's own angle. [liquidRotation] trails it on an underdamped spring, the way
  * liquid lags behind the glass holding it: it overshoots and wobbles when the cup is shaken or
  * poured, then settles back to matching it.
+ *
+ * Both are read as they're drawn: only a cup whose art reads them is drawn again as they change. The
+ * rest are only turned, by [CupCanvas]'s layer.
  */
-class CupPose(val rotation: Float, val liquidRotation: Float) {
+class CupPose internal constructor(private val readRotation: () -> Float, private val readLiquidRotation: () -> Float) {
+    /** A pose that never changes - for art painted once, still. */
+    constructor(rotation: Float, liquidRotation: Float) : this({ rotation }, { liquidRotation })
+
+    val rotation: Float get() = readRotation()
+
+    val liquidRotation: Float get() = readLiquidRotation()
+
     /**
      * The angle (degrees, clockwise) to turn a liquid's surface by, in the cup's own upright
      * drawing, so it stays level on screen - plus whatever slosh is still settling.
@@ -141,19 +154,17 @@ fun CupCanvas(
     tips: Boolean = true,
     onDraw: CupDrawScope.() -> Unit,
 ) {
+    // Read only by the layer and the art that draws with them, never here: a frame of the shake turns the cup's
+    // layer, and redraws only a cup whose art follows its pose (a liquid), rather than recomposing and repainting each one.
     val rotation = rememberCupRotation(rolling, tilted, if (tips) RESTING_TILT_DEGREES else 0f)
-    val sloshing by animateFloatAsState(
-        targetValue = rotation,
-        animationSpec = spring(dampingRatio = 0.3f, stiffness = Spring.StiffnessLow),
-        label = "cupLiquid", // i18n: not translated - an animation label, not shown
-    )
+    val sloshing = rememberSlosh(rotation)
     // No slosh under reduced motion: whatever's in the cup moves with it, on the same frame - even a snap would
     // trail the cup by one.
     val liquidRotation = if (LocalReduceMotion.current) rotation else sloshing
-    val pose = CupPose(rotation, liquidRotation)
+    val pose = remember(rotation, liquidRotation) { CupPose({ rotation.value }, { liquidRotation.value }) }
     Canvas(
         modifier = modifier.graphicsLayer {
-            rotationZ = rotation
+            rotationZ = rotation.value
             transformOrigin = TransformOrigin(0.5f, PIVOT_Y_FRACTION)
         },
     ) {
@@ -171,7 +182,7 @@ fun CupCanvas(
  * base rather than spinning around its centre.
  */
 @Composable
-fun rememberCupRotation(rolling: Boolean, tilted: Boolean, restingTiltDegrees: Float): Float {
+fun rememberCupRotation(rolling: Boolean, tilted: Boolean, restingTiltDegrees: Float): State<Float> {
     // `&& !rolling`: on the 2nd/3rd roll of a turn, `tilted` is still true from the PREVIOUS
     // roll's result at the moment a new shake starts (the phase it reflects doesn't change until
     // the roll resolves) - without this the cup would stay in its poured-out pose and shake from
@@ -180,7 +191,7 @@ fun rememberCupRotation(rolling: Boolean, tilted: Boolean, restingTiltDegrees: F
     // ends and `tilted` is genuinely true - so every roll, not just the first of a turn, starts
     // from standing.
     val restTiltTarget = if (tilted && !rolling) restingTiltDegrees else 0f
-    val restTilt by animateFloatAsState(
+    val restTilt = animateFloatAsState(
         targetValue = restTiltTarget,
         // Asymmetric on purpose. Standing up (target 0) is a near-snap: that's what makes
         // "standing" read as the shake's actual STARTING pose rather than a slow straighten
@@ -201,7 +212,7 @@ fun rememberCupRotation(rolling: Boolean, tilted: Boolean, restingTiltDegrees: F
     // +-SHAKE_AMPLITUDE_DEGREES range with nothing to smooth it out - a visible pop to a half-tilted
     // or "wrong way" pose. Worst on a turn with only one shake to begin with (Hard AI's common
     // one-roll-then-hold-everything turn), where there's no following shake to bury the jump in.
-    val wobbleWeight by animateFloatAsState(
+    val wobbleWeight = animateFloatAsState(
         targetValue = if (rolling) 1f else 0f,
         animationSpec = tween(durationMillis = WOBBLE_FADE_MILLIS),
         label = "cupWobbleFade", // i18n: not translated - an animation label, not shown
@@ -209,15 +220,47 @@ fun rememberCupRotation(rolling: Boolean, tilted: Boolean, restingTiltDegrees: F
     // The wobble's clock only exists while it counts - shaking, or fading out after one. A still
     // cup then asks for no frames at all: an infinite transition left running at weight 0 kept
     // every cup on screen (the board's, the menu logo's, each Styles tile's) recomposing every
-    // frame for nothing. It starts fresh each shake, at weight 0, so there's no pop from that either.
-    val shakeWobble = if (rolling || wobbleWeight > 0f) rememberShakeWobble() else 0f
-    return restTilt + shakeWobble * wobbleWeight
+    // frame for nothing. It starts fresh each shake, at weight 0, so there's no pop from that either. Whether it
+    // counts is read here only as it changes, not on each frame of the fade.
+    val wobbling by remember(rolling) { derivedStateOf { rolling || wobbleWeight.value > 0f } }
+    val shakeWobble = if (wobbling) rememberShakeWobble() else null
+    return remember(restTilt, wobbleWeight, shakeWobble) {
+        derivedStateOf { restTilt.value + (shakeWobble?.value ?: 0f) * wobbleWeight.value }
+    }
+}
+
+/**
+ * [rotation] as a cup's contents follow it: on an underdamped spring, chasing each new angle - see
+ * [CupPose.liquidRotation]. The spring is set going by [Slosh], the one part of the cup that recomposes as the cup turns.
+ */
+@Composable
+private fun rememberSlosh(rotation: State<Float>): State<Float> {
+    val slosh = remember { SloshState() }
+    Slosh(rotation, slosh)
+    return slosh
+}
+
+/** The liquid's angle, as [Slosh] last animated it. */
+private class SloshState : State<Float> {
+    var animated: State<Float>? = null
+
+    override val value: Float get() = animated?.value ?: 0f
+}
+
+/** Aims the liquid's spring at the cup's angle as it changes - each frame of a shake recomposes this, and nothing else. */
+@Composable
+private fun Slosh(rotation: State<Float>, into: SloshState) {
+    into.animated = animateFloatAsState(
+        targetValue = rotation.value,
+        animationSpec = spring(dampingRatio = 0.3f, stiffness = Spring.StiffnessLow),
+        label = "cupLiquid", // i18n: not translated - an animation label, not shown
+    )
 }
 
 /** The shake's back-and-forth, in degrees - see [rememberCupRotation] for when it runs. */
 @Composable
-private fun rememberShakeWobble(): Float {
-    val shakeWobble by rememberInfiniteTransition(label = "cupShake").animateFloat( // i18n: not translated - an animation label, not shown
+private fun rememberShakeWobble(): State<Float> {
+    val shakeWobble = rememberInfiniteTransition(label = "cupShake").animateFloat( // i18n: not translated - an animation label, not shown
         initialValue = -SHAKE_AMPLITUDE_DEGREES,
         targetValue = SHAKE_AMPLITUDE_DEGREES,
         animationSpec = infiniteRepeatable(

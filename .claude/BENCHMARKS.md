@@ -42,6 +42,11 @@ Each of these fixed a reported stutter. New work must keep them.
   - The Rules screen reads the current page only where it's shown (`derivedStateOf`), and remembers its tab modifiers.
   - The turn timer's seconds are read only by its badge (`RunningTurnTimer`): a tick recomposes the badge, not the
     board.
+  - A cup's shake and pour angle is read only by its `graphicsLayer` and by art that draws with its `CupPose` (a
+    liquid), and the liquid's spring is aimed from its own small `Slosh` composable (`CupRotation.kt`). A cup recomposes
+    3 times a roll, not every frame, and a cup without a liquid is only turned, not repainted, as it shakes. Measured
+    2026-10-28, desktop JVM: no change in frame time, as the harness repaints every frame anyway; unmeasured on a phone.
+    Shake and pour frames are pixel-identical to before.
   - Settings, achievements and the saved-game flag emit only when their own value changes (`distinctUntilChanged`).
 - **Load ahead of the first use.** The sound clips load a second after launch, off the main thread, not on a game's
   first roll.
