@@ -413,6 +413,8 @@ internal object SoundLog {
 /**
  * Robolectric's SoundPool, but every clip loads at once and every play is written to [SoundLog]. Its own shadow never
  * reports a clip loaded, so the app (which waits for that before playing - see AndroidSoundPlayer) would play nothing.
+ * A clip is reported loaded as it's loaded, to a listener already registered (AndroidSoundPlayer registers first), and
+ * to one registered later for those loaded before it.
  */
 @Implements(SoundPool::class)
 class RecordingSoundPool : ShadowSoundPool() {
@@ -420,7 +422,10 @@ class RecordingSoundPool : ShadowSoundPool() {
 
     @Implementation
     override fun load(context: Context, resId: Int, priority: Int): Int =
-        super.load(context, resId, priority).also { clipById[it] = resId }
+        super.load(context, resId, priority).also {
+            clipById[it] = resId
+            notifyResourceLoaded(resId, true)
+        }
 
     @Implementation
     override fun setOnLoadCompleteListener(listener: SoundPool.OnLoadCompleteListener?) {
