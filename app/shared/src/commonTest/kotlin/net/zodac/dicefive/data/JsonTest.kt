@@ -3,6 +3,7 @@ package net.zodac.dicefive.data
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 
 class JsonTest {
 
@@ -48,5 +49,42 @@ class JsonTest {
             assertFailsWith<JsonParseException>("should reject: $bad") { parseJson(bad) }
         }
         assertFailsWith<JsonParseException> { JsonNumber("2.5").toInt() }
+    }
+
+    @Test
+    fun `a required field reads as its type - and fails the read when it's missing or another type`() {
+        val obj = parseJson("""{"n":3,"big":9000000000,"b":true,"s":"x","o":{},"a":[1,2],"names":["p"],"objs":[{}]}""") as JsonObject
+        assertEquals(3, obj.int("n"))
+        assertEquals(9_000_000_000L, obj.long("big"))
+        assertEquals(true, obj.boolean("b"))
+        assertEquals("x", obj.string("s"))
+        assertEquals(JsonObject(emptyMap()), obj.obj("o"))
+        assertEquals(listOf(1, 2), obj.array("a").ints())
+        assertEquals(listOf("p"), obj.stringList("names"))
+        assertEquals(listOf(JsonObject(emptyMap())), obj.objectList("objs"))
+        assertFailsWith<JsonParseException> { obj.int("missing") }
+        assertFailsWith<JsonParseException> { obj.int("s") }
+        assertFailsWith<JsonParseException> { obj.string("n") }
+        assertFailsWith<JsonParseException> { obj.objectList("a") }
+    }
+
+    @Test
+    fun `an optional field reads as null when it's missing or another type - a flag as false when missing only`() {
+        val obj = parseJson("""{"n":3,"s":"x","f":true}""") as JsonObject
+        assertEquals(3, obj.intOrNull("n"))
+        assertNull(obj.intOrNull("s"))
+        assertNull(obj.stringOrNull("missing"))
+        assertNull(obj.objOrNull("n"))
+        assertEquals(true, obj.flag("f"))
+        assertEquals(false, obj.flag("missing"))
+        assertFailsWith<JsonParseException> { obj.flag("n") }
+    }
+
+    @Test
+    fun `maps and lists of numbers round trip`() {
+        assertEquals(mapOf("a" to 1, "b" to 2), (parseJson(jsonInts(mapOf("a" to 1, "b" to 2)).toJson()) as JsonObject).ints())
+        assertEquals(mapOf("a" to 9_000_000_000L), (parseJson(jsonLongs(mapOf("a" to 9_000_000_000L)).toJson()) as JsonObject).longs())
+        assertEquals("[4,5]", jsonInts(listOf(4, 5)).toJson())
+        assertFailsWith<JsonParseException> { (parseJson("""{"a":"x"}""") as JsonObject).ints() }
     }
 }

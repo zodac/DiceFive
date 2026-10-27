@@ -60,6 +60,68 @@ internal class JsonObjectBuilder {
     fun build(): JsonObject = JsonObject(fields)
 }
 
+// Reading a document's fields. A required field that's missing or of the wrong type fails the read with a
+// JsonParseException naming it; an optional one (`...OrNull`) reads as null.
+
+/** The value at [key]. */
+internal fun JsonObject.field(key: String): JsonValue = this[key] ?: throw JsonParseException("Missing \"$key\"")
+
+internal fun JsonObject.int(key: String): Int = (field(key) as? JsonNumber)?.toInt() ?: throw JsonParseException("\"$key\" isn't a number")
+
+internal fun JsonObject.long(key: String): Long = (field(key) as? JsonNumber)?.toLong() ?: throw JsonParseException("\"$key\" isn't a number")
+
+internal fun JsonObject.boolean(key: String): Boolean = (field(key) as? JsonBoolean)?.value ?: throw JsonParseException("\"$key\" isn't a boolean")
+
+internal fun JsonObject.string(key: String): String = (field(key) as? JsonString)?.value ?: throw JsonParseException("\"$key\" isn't a string")
+
+internal fun JsonObject.obj(key: String): JsonObject = field(key) as? JsonObject ?: throw JsonParseException("\"$key\" isn't an object")
+
+internal fun JsonObject.array(key: String): JsonArray = field(key) as? JsonArray ?: throw JsonParseException("\"$key\" isn't an array")
+
+internal fun JsonObject.stringList(key: String): List<String> =
+    array(key).items.map { (it as? JsonString)?.value ?: throw JsonParseException("\"$key\" holds a non-string") }
+
+internal fun JsonObject.objectList(key: String): List<JsonObject> =
+    array(key).items.map { it as? JsonObject ?: throw JsonParseException("\"$key\" holds a non-object") }
+
+/** The number at [key], or null if there's none - absent, or not a number. */
+internal fun JsonObject.intOrNull(key: String): Int? = (this[key] as? JsonNumber)?.toInt()
+
+/** The number at [key], or null if there's none - absent, or not a number. */
+internal fun JsonObject.longOrNull(key: String): Long? = (this[key] as? JsonNumber)?.toLong()
+
+/** The boolean at [key], or null if there's none - absent, or not a boolean. */
+internal fun JsonObject.booleanOrNull(key: String): Boolean? = (this[key] as? JsonBoolean)?.value
+
+/** The string at [key], or null if there's none - absent, or not a string. */
+internal fun JsonObject.stringOrNull(key: String): String? = (this[key] as? JsonString)?.value
+
+/** The object at [key], or null if there's none - absent, or not an object. */
+internal fun JsonObject.objOrNull(key: String): JsonObject? = this[key] as? JsonObject
+
+/** The boolean at [key] if it's there - which must be a boolean - or false: for a flag written only when set. */
+internal fun JsonObject.flag(key: String): Boolean = key in this && boolean(key)
+
+/** Every field, each a number. */
+internal fun JsonObject.ints(): Map<String, Int> =
+    fields.mapValues { (key, value) -> (value as? JsonNumber)?.toInt() ?: throw JsonParseException("\"$key\" isn't a number") }
+
+/** Every field, each a number. */
+internal fun JsonObject.longs(): Map<String, Long> =
+    fields.mapValues { (key, value) -> (value as? JsonNumber)?.toLong() ?: throw JsonParseException("\"$key\" isn't a number") }
+
+/** Every item, each a number. */
+internal fun JsonArray.ints(): List<Int> = items.map { (it as? JsonNumber)?.toInt() ?: throw JsonParseException("An item isn't a number") }
+
+/** [values] as an object of numbers, by key. */
+internal fun jsonInts(values: Map<String, Int>): JsonObject = JsonObject(values.mapValues { JsonNumber(it.value) })
+
+/** [values] as an object of numbers, by key. */
+internal fun jsonLongs(values: Map<String, Long>): JsonObject = JsonObject(values.mapValues { JsonNumber(it.value) })
+
+/** [values] as an array of numbers. */
+internal fun jsonInts(values: List<Int>): JsonArray = JsonArray(values.map(::JsonNumber))
+
 /** Parses one complete JSON document - nothing but whitespace may follow it. */
 internal fun parseJson(text: String): JsonValue = JsonParser(text).parseDocument()
 

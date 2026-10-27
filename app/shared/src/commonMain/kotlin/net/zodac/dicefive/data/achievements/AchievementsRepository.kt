@@ -14,9 +14,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import net.zodac.dicefive.data.JsonNumber
 import net.zodac.dicefive.data.JsonObject
 import net.zodac.dicefive.data.Stamped
+import net.zodac.dicefive.data.ints
+import net.zodac.dicefive.data.jsonInts
 import net.zodac.dicefive.data.parseJson
 import net.zodac.dicefive.data.toJson
 import net.zodac.dicefive.game.nowEpochMillis
@@ -121,15 +122,13 @@ class AchievementsRepository(
                 }
                 value?.let { prefs[key] = it }
             }
-            prefs[SHARES_KEY] = JsonObject(others.mapValues { (_, counters) -> JsonObject(counters.mapValues { JsonNumber(it.value) }) }).toJson()
+            prefs[SHARES_KEY] = JsonObject(others.mapValues { (_, counters) -> jsonInts(counters) }).toJson()
         }
     }
 
     /** The other devices' counter shares, as of the last merge; none if the stored copy can't be read. */
     private fun readShares(prefs: Preferences): Map<String, Map<String, Int>> = runCatching {
-        (parseJson(prefs[SHARES_KEY] ?: return emptyMap()) as JsonObject).fields.mapValues { (_, counters) ->
-            (counters as JsonObject).fields.mapValues { (it.value as JsonNumber).toInt() }
-        }
+        (parseJson(prefs[SHARES_KEY] ?: return emptyMap()) as JsonObject).fields.mapValues { (_, counters) -> (counters as JsonObject).ints() }
     }.getOrDefault(emptyMap())
 
     /**

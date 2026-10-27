@@ -10,11 +10,23 @@ import net.zodac.dicefive.data.JsonString
 import net.zodac.dicefive.data.JsonValue
 import net.zodac.dicefive.data.Stamped
 import net.zodac.dicefive.data.achievements.CloudAchievements
+import net.zodac.dicefive.data.boolean
+import net.zodac.dicefive.data.booleanOrNull
 import net.zodac.dicefive.data.buildJsonObject
+import net.zodac.dicefive.data.int
+import net.zodac.dicefive.data.intOrNull
+import net.zodac.dicefive.data.ints
+import net.zodac.dicefive.data.jsonInts
+import net.zodac.dicefive.data.jsonLongs
+import net.zodac.dicefive.data.long
+import net.zodac.dicefive.data.longOrNull
+import net.zodac.dicefive.data.longs
+import net.zodac.dicefive.data.objOrNull
 import net.zodac.dicefive.data.parseJson
 import net.zodac.dicefive.data.scores.CloudScores
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.data.settings.SettingValue
+import net.zodac.dicefive.data.string
 import net.zodac.dicefive.data.toJson
 import okio.Buffer
 import okio.GzipSink
@@ -50,7 +62,7 @@ object CloudSaveCodec {
                 buildJsonObject {
                     put("resetAt", save.scoresResetAtEpochMillis)
                     put("rows", JsonArray(save.scores.rows.map(::encodeRow)))
-                    put("dismissed", longs(save.scores.dismissedAt))
+                    put("dismissed", jsonLongs(save.scores.dismissedAt))
                 },
             )
             put(
@@ -78,36 +90,36 @@ object CloudSaveCodec {
             }
             parseJson(text) as JsonObject
         }.getOrNull() ?: return null
-        val version = (root["version"] as? JsonNumber)?.let { runCatching { it.toInt() }.getOrNull() } ?: return null
+        val version = runCatching { root.intOrNull("version") }.getOrNull() ?: return null
         return runCatching { decodeBody(root, version) }.getOrElse { if (version > VERSION) CloudSave(version = version) else null }
     }
 
     private fun decodeBody(root: JsonObject, version: Int): CloudSave {
-        val achievements = root.obj("achievements")
-        val scores = root.obj("scores")
+        val achievements = root.section("achievements")
+        val scores = root.section("scores")
         return CloudSave(
             version = version,
             achievements = CloudAchievements(
-                unlockedAt = achievements.obj("unlocked").longs(),
-                deviceCounters = achievements.obj("devices").fields.mapValues { (_, counters) -> (counters as JsonObject).ints() },
-                flagCounters = achievements.obj("flags").ints(),
-                latestCounters = achievements.obj("latest").fields.mapValues { (_, value) -> decodeStamped(value) { (it as JsonNumber).toInt() } },
+                unlockedAt = achievements.section("unlocked").longs(),
+                deviceCounters = achievements.section("devices").fields.mapValues { (_, counters) -> (counters as JsonObject).ints() },
+                flagCounters = achievements.section("flags").ints(),
+                latestCounters = achievements.section("latest").fields.mapValues { (_, value) -> decodeStamped(value) { (it as JsonNumber).toInt() } },
             ),
-            scoresResetAtEpochMillis = (scores["resetAt"] as? JsonNumber)?.toLong() ?: 0,
+            scoresResetAtEpochMillis = scores.longOrNull("resetAt") ?: 0,
             scores = CloudScores(
                 rows = ((scores["rows"] as? JsonArray)?.items ?: emptyList()).map { decodeRow(it as JsonObject) },
-                dismissedAt = scores.obj("dismissed").longs(),
+                dismissedAt = scores.section("dismissed").longs(),
             ),
-            settings = root.obj("settings").fields.mapValues { (_, value) -> decodeStamped(value, ::decodeSetting) },
-            inProgressGame = (root["game"] as? JsonObject)?.let { game -> decodeStamped(game) { (it as? JsonString)?.value } }
+            settings = root.section("settings").fields.mapValues { (_, value) -> decodeStamped(value, ::decodeSetting) },
+            inProgressGame = root.objOrNull("game")?.let { game -> decodeStamped(game) { (it as? JsonString)?.value } }
                 ?: Stamped(null, 0),
         )
     }
 
     private fun encode(achievements: CloudAchievements): JsonObject = buildJsonObject {
-        put("unlocked", longs(achievements.unlockedAt))
-        put("devices", JsonObject(achievements.deviceCounters.mapValues { (_, counters) -> ints(counters) }))
-        put("flags", ints(achievements.flagCounters))
+        put("unlocked", jsonLongs(achievements.unlockedAt))
+        put("devices", JsonObject(achievements.deviceCounters.mapValues { (_, counters) -> jsonInts(counters) }))
+        put("flags", jsonInts(achievements.flagCounters))
         put("latest", JsonObject(achievements.latestCounters.mapValues { (_, stamped) -> stamped(stamped) { JsonNumber(it) } }))
     }
 
@@ -135,8 +147,8 @@ object CloudSaveCodec {
         uuid = Uuid.parseHex(row.string("uuid")),
         playerName = row.string("playerName"),
         score = row.int("score"),
-        timestampEpochMillis = (row["timestampEpochMillis"] as JsonNumber).toLong(),
-        won = (row["won"] as? JsonBoolean)?.value,
+        timestampEpochMillis = row.long("timestampEpochMillis"),
+        won = row.booleanOrNull("won"),
         isPrimaryPlayer = row.boolean("isPrimaryPlayer"),
         fiveOfAKindCount = row.int("fiveOfAKindCount"),
         zeroedCategoryCount = row.int("zeroedCategoryCount"),
@@ -169,23 +181,9 @@ object CloudSaveCodec {
 
     private fun <T> decodeStamped(json: JsonValue, decode: (JsonValue) -> T): Stamped<T> {
         val stamped = json as JsonObject
-        return Stamped(decode(stamped["value"] ?: JsonNull), (stamped["at"] as JsonNumber).toLong())
+        return Stamped(decode(stamped["value"] ?: JsonNull), stamped.long("at"))
     }
 
-    private fun longs(map: Map<String, Long>) = JsonObject(map.mapValues { JsonNumber(it.value) })
-
-    private fun ints(map: Map<String, Int>) = JsonObject(map.mapValues { JsonNumber(it.value) })
-
     /** A missing section reads as an empty one. */
-    private fun JsonObject.obj(key: String): JsonObject = this[key] as? JsonObject ?: JsonObject(emptyMap())
-
-    private fun JsonObject.longs(): Map<String, Long> = fields.mapValues { (it.value as JsonNumber).toLong() }
-
-    private fun JsonObject.ints(): Map<String, Int> = fields.mapValues { (it.value as JsonNumber).toInt() }
-
-    private fun JsonObject.string(key: String): String = (this[key] as JsonString).value
-
-    private fun JsonObject.int(key: String): Int = (this[key] as JsonNumber).toInt()
-
-    private fun JsonObject.boolean(key: String): Boolean = (this[key] as JsonBoolean).value
+    private fun JsonObject.section(key: String): JsonObject = objOrNull(key) ?: JsonObject(emptyMap())
 }
