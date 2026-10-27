@@ -341,7 +341,7 @@ internal fun MacrobenchmarkScope.resumeGame() {
 
 /**
  * On the board: turned to landscape (the app follows the device unless its Orientation setting says otherwise), a
- * roll there, then turned back. Each turn recreates the activity, so the board is waited for after both.
+ * roll there, then turned back. Each turn lays the board out again, so it's waited for after both.
  */
 private fun MacrobenchmarkScope.rollInLandscape() {
     device.setOrientationLandscape()

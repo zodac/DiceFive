@@ -16,8 +16,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DiceFive">
 
+        <!-- configChanges: a turn, a fold, a resize or a uiMode change is laid out again by Compose rather than
+             rebuilding the Activity, which would reload the sound clips and cancel an online sync under way. Not the
+             language (locale, layoutDirection): MainActivity.attachBaseContext applies the strings' language, so a
+             change of it rebuilds the Activity. -->
         <activity
             android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|keyboard|keyboardHidden|navigation|uiMode"
             android:exported="true"
             android:theme="@style/Theme.DiceFive">
             <intent-filter>

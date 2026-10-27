@@ -7,8 +7,8 @@ import net.zodac.dicefive.data.settings.ScreenOrientation
 
 /**
  * The orientation the player's "Orientation" setting asks for (see `AndroidPlatformServices.lockOrientation`), for
- * `MainActivity` to lock its window to. Held here rather than on an Activity, so a window recreated by the turn it
- * causes picks it up at once. Null until the setting is first read: the window is left as the manifest has it till then.
+ * `MainActivity` to lock its window to. Held here rather than on an Activity, so a recreated Activity (a change of
+ * language) picks it up at once. Null until the setting is first read: the window is left as the manifest has it till then.
  */
 internal object OrientationLock {
     val requested = MutableStateFlow<ScreenOrientation?>(null)
