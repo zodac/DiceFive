@@ -511,7 +511,7 @@ Each category is two lists in the same order:
 
 ## Rules screen
 
-`ui/rules/RulesScreen.kt`.
+`ui/rules/RulesContent.kt` (the pages: `RULES_GROUPS` and its block types) and `ui/rules/RulesScreen.kt` (drawing them).
 
 - **Layout.** Two tab rows: groups (**Gameplay**, **Modes**, **Modifiers**), then the pages of the chosen group. One
   pager runs across every page.

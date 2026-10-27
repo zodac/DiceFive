@@ -90,7 +90,7 @@ has changed something there.
   `PlayConsoleLeaderboards.kt`, a board made by hand in Play Console from `scripts/export-play-console.sh`'s
   `leaderboards.csv`, and its id in `playLeaderboardIds` (`PlayGamesIdsTest` fails without it).
 
-### Rules page (`ui/rules/RulesScreen.kt`)
+### Rules page (`ui/rules/RulesContent.kt`)
 
 - **Placement.** Add a `RulesPage` (title the mode's name; `tabLabel` the same or shorter) at the end of the Modes group
   in `RULES_GROUPS`. A Leaderboard mode also joins the overview list (`rules_modes_3`).
