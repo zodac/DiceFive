@@ -198,14 +198,14 @@ class SettingsRepository(
 
         val rollModifiers: RollModifiers
             get() = RollModifiers(
-                rollsPerTurn = prefs[ROLLS_PER_TURN_KEY]?.takeIf { it in RollModifiers.MIN_ROLLS..RollModifiers.MAX_ROLLS },
+                rollsPerTurn = prefs[ROLLS_PER_TURN_KEY]?.takeIf { it in RollModifiers.ROLLS },
                 storedRolls = prefs[STORED_ROLLS_KEY] ?: false,
                 storedRollsMax = prefs[STORED_ROLLS_MAX_KEY]?.takeIf { it >= 0 },
             )
 
         val rollsPerTurnLength: Int
             get() = prefs[ROLLS_PER_TURN_LENGTH_KEY]
-                ?.takeIf { it in RollModifiers.MIN_ROLLS..RollModifiers.MAX_ROLLS } ?: RollModifiers.DEFAULT_ROLLS
+                ?.takeIf { it in RollModifiers.ROLLS } ?: RollModifiers.DEFAULT_ROLLS
 
         val extendedScores: Boolean get() = prefs[EXTENDED_SCORES_KEY] ?: false
 
@@ -214,9 +214,9 @@ class SettingsRepository(
         val unluckyDice: UnluckyDice
             get() = UnluckyDice(
                 oddsPercent = prefs[UNLUCKY_ODDS_KEY]
-                    ?.takeIf { it in UnluckyDice.MIN_ODDS_PERCENT..UnluckyDice.MAX_ODDS_PERCENT && it % UnluckyDice.ODDS_STEP_PERCENT == 0 }
+                    ?.takeIf { it in UnluckyDice.ODDS_PERCENT && it % UnluckyDice.ODDS_STEP_PERCENT == 0 }
                     ?: UnluckyDice.DEFAULT_ODDS_PERCENT,
-                maxDice = prefs[UNLUCKY_MAX_DICE_KEY]?.takeIf { it in UnluckyDice.MIN_MAX_DICE..UnluckyDice.MAX_MAX_DICE }
+                maxDice = prefs[UNLUCKY_MAX_DICE_KEY]?.takeIf { it in UnluckyDice.MAX_DICE }
                     ?: UnluckyDice.DEFAULT_MAX_DICE,
             )
 

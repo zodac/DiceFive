@@ -1,6 +1,8 @@
 package net.zodac.dicefive.ui.statistics
 
 import net.zodac.dicefive.data.scores.PlayerStatistics
+import net.zodac.dicefive.model.StoredId
+import net.zodac.dicefive.model.storedIdOf
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.stats_sort_first_played
 import net.zodac.dicefive.resources.stats_sort_highest_average
@@ -13,7 +15,12 @@ import org.jetbrains.compose.resources.StringResource
  * What the Statistics cards can be ordered by. The [id]s are stored, so they never change. [ascendingFirst] is the direction a pick starts in: A to Z and oldest
  * first for [NAME] and [FIRST_PLAYED], the most first for the rest. Ties fall back to the name, A to Z.
  */
-enum class StatisticsSort(val id: String, val label: StringResource, val ascendingFirst: Boolean, private val key: (PlayerStatistics) -> Comparable<*>) {
+enum class StatisticsSort(
+    override val id: String,
+    val label: StringResource,
+    val ascendingFirst: Boolean,
+    private val key: (PlayerStatistics) -> Comparable<*>,
+) : StoredId {
     NAME("name", Res.string.stats_sort_name, true, { it.playerName.lowercase() }),
     FIRST_PLAYED("first_played", Res.string.stats_sort_first_played, true, { it.firstPlayedEpochMillis }),
     HIGHEST_SCORE("highest_score", Res.string.stats_sort_highest_score, false, { it.maxScore }),
@@ -49,7 +56,7 @@ data class StatisticsSortOrder(val sort: StatisticsSort = StatisticsSort.NAME, v
         /** [stored] read back; the default for nothing stored or anything this build doesn't know. */
         fun parse(stored: String?): StatisticsSortOrder {
             val (id, direction) = (stored ?: return StatisticsSortOrder()).split(':', limit = 2).let { it[0] to it.getOrNull(1) }
-            val sort = StatisticsSort.entries.firstOrNull { it.id == id } ?: return StatisticsSortOrder()
+            val sort = storedIdOf<StatisticsSort>(id) ?: return StatisticsSortOrder()
             return StatisticsSortOrder(sort, ascending = when (direction) {
                 ASCENDING -> true
                 DESCENDING -> false

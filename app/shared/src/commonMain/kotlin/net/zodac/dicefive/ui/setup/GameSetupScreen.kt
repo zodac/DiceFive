@@ -651,7 +651,7 @@ private fun SetupModifierPicker(
                 steppers = listOf(
                     ModifierStepper(
                         value = setup.rollsPerTurnLength,
-                        range = RollModifiers.MIN_ROLLS..RollModifiers.MAX_ROLLS,
+                        range = RollModifiers.ROLLS,
                         onValueChange = onRollsPerTurn,
                         label = stringResource(Res.string.setup_rolls_stepper),
                         decreaseLabel = stringResource(Res.string.setup_rolls_decrease_cd),
@@ -701,7 +701,7 @@ private fun SetupModifierPicker(
                 steppers = listOf(
                     ModifierStepper(
                         value = setup.unluckyDice.oddsPercent,
-                        range = UnluckyDice.MIN_ODDS_PERCENT..UnluckyDice.MAX_ODDS_PERCENT,
+                        range = UnluckyDice.ODDS_PERCENT,
                         onValueChange = onUnluckyOdds,
                         label = stringResource(Res.string.setup_unlucky_odds),
                         decreaseLabel = stringResource(Res.string.setup_unlucky_odds_decrease_cd),
@@ -711,7 +711,7 @@ private fun SetupModifierPicker(
                     ),
                     ModifierStepper(
                         value = setup.unluckyDice.maxDice,
-                        range = UnluckyDice.MIN_MAX_DICE..UnluckyDice.MAX_MAX_DICE,
+                        range = UnluckyDice.MAX_DICE,
                         onValueChange = onUnluckyMaxDice,
                         label = stringResource(Res.string.setup_unlucky_max),
                         decreaseLabel = stringResource(Res.string.setup_unlucky_max_decrease_cd),

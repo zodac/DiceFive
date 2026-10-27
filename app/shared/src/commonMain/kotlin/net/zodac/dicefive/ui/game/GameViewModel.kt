@@ -580,12 +580,12 @@ class GameViewModel(
 
     /** Sets the Unlucky Dice odds of a rolled die being locked, in percent. */
     fun setUnluckyOdds(oddsPercent: Int) {
-        _setup.update { it.copy(unluckyDice = it.unluckyDice.copy(oddsPercent = oddsPercent.coerceIn(UnluckyDice.MIN_ODDS_PERCENT, UnluckyDice.MAX_ODDS_PERCENT))) }
+        _setup.update { it.copy(unluckyDice = it.unluckyDice.copy(oddsPercent = oddsPercent.coerceIn(UnluckyDice.ODDS_PERCENT))) }
     }
 
     /** Sets the most dice Unlucky Dice can lock on one roll. */
     fun setUnluckyMaxDice(maxDice: Int) {
-        _setup.update { it.copy(unluckyDice = it.unluckyDice.copy(maxDice = maxDice.coerceIn(UnluckyDice.MIN_MAX_DICE, UnluckyDice.MAX_MAX_DICE))) }
+        _setup.update { it.copy(unluckyDice = it.unluckyDice.copy(maxDice = maxDice.coerceIn(UnluckyDice.MAX_DICE))) }
     }
 
     /**

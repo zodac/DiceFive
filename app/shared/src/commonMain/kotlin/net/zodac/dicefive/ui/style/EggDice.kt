@@ -233,7 +233,7 @@ class EggDiceStyle(
                 drawPath(
                     egg,
                     if (held) heldRing else shade.copy(alpha = 0.9f),
-                    style = Stroke(width = if (held) 2.dp.toPx() else 0.8.dp.toPx()),
+                    style = dieEdgeStroke(held, edgeWidth = 0.8.dp),
                 )
             }
         }

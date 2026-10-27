@@ -147,7 +147,7 @@ class BestagonDiceStyle(
         drawPath(
             polygonPath(shape.corners(size, angle)),
             if (held) heldRing else lerp(dark, Color.Black, 0.35f),
-            style = Stroke(width = if (held) 2.dp.toPx() else 0.8.dp.toPx(), join = StrokeJoin.Round),
+            style = dieEdgeStroke(held, edgeWidth = 0.8.dp, join = StrokeJoin.Round),
         )
     }
 }

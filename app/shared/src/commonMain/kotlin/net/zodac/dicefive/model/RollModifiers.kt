@@ -15,7 +15,7 @@ data class RollModifiers(
     val storedRollsMax: Int? = null,
 ) {
     init {
-        require(rollsPerTurn == null || rollsPerTurn in MIN_ROLLS..MAX_ROLLS) { "Rolls per turn must be $MIN_ROLLS-$MAX_ROLLS" }
+        require(rollsPerTurn == null || rollsPerTurn in ROLLS) { "Rolls per turn must be ${ROLLS.first}-${ROLLS.last}" }
         require(storedRollsMax == null || storedRollsMax >= 0) { "The stored rolls cap can't be negative" }
     }
 
@@ -27,8 +27,8 @@ data class RollModifiers(
     fun stored(unused: Int): Int = if (storedRolls) minOf(unused, storedRollsMax ?: unused) else 0
 
     companion object {
-        const val MIN_ROLLS = 1
-        const val MAX_ROLLS = 9
+        /** The rolls a turn can be given. */
+        val ROLLS: IntRange = 1..9
         const val DEFAULT_ROLLS = 3
 
         /** The most digits the stored rolls cap's text field takes. */

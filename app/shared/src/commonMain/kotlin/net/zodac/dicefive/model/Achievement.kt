@@ -374,7 +374,7 @@ enum class AchievementVisibility {
  * rather than filed under its subject's usual category.
  */
 enum class Achievement(
-    val id: String,
+    override val id: String,
     val title: StringResource,
     val description: StringResource,
     val category: AchievementCategory,
@@ -413,7 +413,7 @@ enum class Achievement(
     val mode: GameMode? = null,
     /** Whether this is [mode]'s own win: earned by winning a game of it against at least one other player. */
     val isModeWin: Boolean = false,
-) {
+) : StoredId {
 
     // ---- Milestones: simply playing the game -------------------------------------------------
     THE_JOURNEY_BEGINS(
@@ -1217,7 +1217,7 @@ enum class Achievement(
         /** The achievements [COMPLETIONIST] waits on. */
         val COMPLETION_REQUIREMENTS: List<Achievement> = entries.filter { it.countsTowardCompletion }
 
-        fun fromId(id: String): Achievement? = entries.firstOrNull { it.id == id }
+        fun fromId(id: String): Achievement? = storedIdOf<Achievement>(id)
     }
 }
 

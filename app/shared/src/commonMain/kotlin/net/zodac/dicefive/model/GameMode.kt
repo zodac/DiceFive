@@ -82,7 +82,7 @@ private val HIT_LIST_CATEGORIES = ScoreCategory.TARGETS.take(HIT_LIST_SHAPES.siz
  * change one once released** - rename [displayName] instead.
  */
 enum class GameMode(
-    val id: String,
+    override val id: String,
     /**
      * The key this mode's online leaderboard is known by - what a platform's game service maps to its own
      * leaderboard id (see `online/GameServices`). Stable like [id], but separate from it: a rule change
@@ -178,7 +178,7 @@ enum class GameMode(
     val hasPerfectPlayTable: Boolean = false,
     /** Whether this is the official rules, unchanged - the one mode not "beyond" them, as the achievements for leaving them read it. */
     val isOfficialRules: Boolean = false,
-) {
+) : StoredId {
 
     /**
      * The official rules.
@@ -493,6 +493,6 @@ enum class GameMode(
         /** The widest any score can be, across every mode - what fixed-width score columns are sized to. */
         val HIGHEST_POSSIBLE_SCORE: Int = entries.maxOf { it.maxPossibleScore }
 
-        fun fromId(id: String): GameMode? = entries.firstOrNull { it.id == id }
+        fun fromId(id: String): GameMode? = storedIdOf<GameMode>(id)
     }
 }

@@ -66,7 +66,7 @@ class DevilDiceStyle(
             drawRoundRect(
                 if (held) heldRing else bottom.copy(alpha = 0.8f),
                 cornerRadius = corner,
-                style = Stroke(width = if (held) 2.dp.toPx() else 1.dp.toPx()),
+                style = dieEdgeStroke(held),
             )
 
             val inset = size.minDimension * 0.13f

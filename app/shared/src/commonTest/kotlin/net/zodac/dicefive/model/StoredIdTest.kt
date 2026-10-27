@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.data.settings.ScreenOrientation
+import net.zodac.dicefive.ui.statistics.StatisticsSort
 
 /**
  * Pins every [StoredId]: these strings are in players' settings and saved games, so each one is permanent once
@@ -23,6 +24,9 @@ class StoredIdTest {
         assertEquals(listOf("AWAITING_ROLL", "ROLLED"), ids(TurnPhase.entries))
         assertEquals(listOf("HIGH", "MEDIUM", "LOW", "OFF"), ids(AnimationLevel.entries))
         assertEquals(listOf("DEVICE", "PORTRAIT", "LANDSCAPE"), ids(ScreenOrientation.entries))
+        assertEquals(listOf("standard", "tricolour", "third_wind", "stud", "d20", "hit_list", "quickfire"), ids(GameMode.entries))
+        assertEquals(listOf("name", "first_played", "highest_score", "highest_average", "most_games"), ids(StatisticsSort.entries))
+        // Achievement ids are each the constant's name in lower case - AchievementEngineTest pins that.
         assertEquals(listOf("GAMES_PLAYED", "GAMES_WON", "WIN_STREAK", "SCORED_5X", "DICE_ROLLED", "FIVE_X_NUMBERS"), ids(AchievementCounter.entries))
         assertEquals(
             listOf(

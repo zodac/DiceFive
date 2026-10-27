@@ -14,20 +14,20 @@ data class UnluckyDice(
     val maxDice: Int = DEFAULT_MAX_DICE,
 ) {
     init {
-        require(oddsPercent in MIN_ODDS_PERCENT..MAX_ODDS_PERCENT) { "Unlucky odds must be $MIN_ODDS_PERCENT-$MAX_ODDS_PERCENT%" }
-        require(maxDice in MIN_MAX_DICE..MAX_MAX_DICE) { "Most unlucky dice must be $MIN_MAX_DICE-$MAX_MAX_DICE" }
+        require(oddsPercent in ODDS_PERCENT) { "Unlucky odds must be ${ODDS_PERCENT.first}-${ODDS_PERCENT.last}%" }
+        require(maxDice in MAX_DICE) { "Most unlucky dice must be ${MAX_DICE.first}-${MAX_DICE.last}" }
     }
 
     companion object {
-        const val MIN_ODDS_PERCENT = 10
-        const val MAX_ODDS_PERCENT = 50
+        /** The odds a rolled die can be given of landing unlucky, in percent. */
+        val ODDS_PERCENT: IntRange = 10..50
 
         /** How far apart the odds can be set. */
         const val ODDS_STEP_PERCENT = 10
         const val DEFAULT_ODDS_PERCENT = 10
 
-        const val MIN_MAX_DICE = 1
-        const val MAX_MAX_DICE = 5
+        /** The caps on how many dice can land unlucky on one roll. */
+        val MAX_DICE: IntRange = 1..5
         const val DEFAULT_MAX_DICE = 1
     }
 }

@@ -333,7 +333,7 @@ class D20DiceStyle(
                 }
                 close()
             }
-            drawPath(ring, if (held) heldRing else dark, style = Stroke(width = if (held) 2.dp.toPx() else 1.dp.toPx()))
+            drawPath(ring, if (held) heldRing else dark, style = dieEdgeStroke(held))
         }
     }
 }

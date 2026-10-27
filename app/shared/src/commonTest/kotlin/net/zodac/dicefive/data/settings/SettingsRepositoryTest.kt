@@ -52,9 +52,9 @@ class SettingsRepositoryTest {
         repository.setPlayerDifficulty(2, Difficulty.HARD)
         repository.setPlayerColour(2, PlayerColour.entries.last())
         repository.setTurnTimer(TurnTimer.SECONDS_60)
-        repository.setRollModifiers(RollModifiers(rollsPerTurn = RollModifiers.MAX_ROLLS, storedRolls = true), rollsPerTurnLength = RollModifiers.MAX_ROLLS)
+        repository.setRollModifiers(RollModifiers(rollsPerTurn = RollModifiers.ROLLS.last, storedRolls = true), rollsPerTurnLength = RollModifiers.ROLLS.last)
         repository.setExtendedScores(true)
-        repository.setUnluckyDice(true, UnluckyDice(UnluckyDice.MAX_ODDS_PERCENT, UnluckyDice.MAX_MAX_DICE))
+        repository.setUnluckyDice(true, UnluckyDice(UnluckyDice.ODDS_PERCENT.last, UnluckyDice.MAX_DICE.last))
         repository.setGameMode(GameMode.TRICOLOUR)
 
         val saved = repository.snapshot()

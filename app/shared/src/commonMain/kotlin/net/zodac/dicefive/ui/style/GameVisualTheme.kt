@@ -45,17 +45,17 @@ interface DiceStyle : TableArt {
     val pupilTravel: Float? get() = null
 
     /**
-     * The outline this die casts its ground shadow with when lying on the mat - its own shape, not a
-     * generic one. [dieIndex] is which die it is and [tumbleMillis] how long it's been tumbling
-     * (null at rest - see [LocalDieTumbleMillis]), for a die whose outline changes with either (the
-     * D20). A rounded square by default, like [BeveledDie].
-     */
-    /**
      * The colour of the die's material itself - what shows along the rounded edge between two faces
      * as [TossedCube] tumbles it. Its swatch, for a style that has one.
      */
     val bodyColor: Color get() = (this as? Swatched)?.swatch ?: Color.LightGray
 
+    /**
+     * The outline this die casts its ground shadow with when lying on the mat - its own shape, not a
+     * generic one. [dieIndex] is which die it is and [tumbleMillis] how long it's been tumbling
+     * (null at rest - see [LocalDieTumbleMillis]), for a die whose outline changes with either (the
+     * D20). A rounded square by default, like [BeveledDie].
+     */
     fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(cornerPercent)
 
     /**

@@ -21,6 +21,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
@@ -76,6 +77,13 @@ internal fun Modifier.dieShadow(shape: Shape): Modifier =
 @Composable
 internal fun naturalPatternSeed(value: Int, styleSeed: Int = 0): Int = LocalDieIndex.current * 97 + value * 13 + styleSeed
 
+/** How thick a held die's ring is, drawn in place of its usual edge. */
+internal val HELD_RING_WIDTH = 2.dp
+
+/** The stroke of a die's outline drawn on a canvas: [HELD_RING_WIDTH] while [held], its own [edgeWidth] otherwise. */
+internal fun DrawScope.dieEdgeStroke(held: Boolean, edgeWidth: Dp = 1.dp, join: StrokeJoin = Stroke.DefaultJoin): Stroke =
+    Stroke(width = (if (held) HELD_RING_WIDTH else edgeWidth).toPx(), join = join)
+
 /** How rounded a [StyledDie]'s corners are unless a style says otherwise, as a percentage of its size. */
 internal const val STYLED_DIE_CORNER_PERCENT = 22
 
@@ -115,7 +123,7 @@ internal fun StyledDie(
             .clip(shape)
             .background(face)
             .drawBehind { surface() }
-            .border(if (held) 2.dp else edgeWidth, if (held) heldRingColor else edge, shape),
+            .border(if (held) HELD_RING_WIDTH else edgeWidth, if (held) heldRingColor else edge, shape),
         contentAlignment = Alignment.Center,
     ) {
         when (pipShape) {
