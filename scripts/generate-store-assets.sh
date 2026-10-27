@@ -305,11 +305,12 @@ if wants video; then
         -t "${total}" "${OUT}/DiceFive-Promo-1080p60.mp4"
 
     # The video's YouTube description, pasted as it is: the full description's opening paragraph, the app's Play Store
-    # link, then the credits - any clip whose licence asks for one (from the same records the app's Licences screen is
+    # link headed with the version the video shows, then the credits - any clip whose licence asks for one (from the same records the app's Licences screen is
     # built from), and the music, whose licence only its source knows.
-    python3 - "${ROOT}" "${OUT}/video-description.txt" "${MUSIC}" "${MUSIC_CREDIT}" "${used_clips[@]}" <<'PY'
+    python3 - "${ROOT}" "${OUT}/video-description.txt" "${VERSION}" "${MUSIC}" "${MUSIC_CREDIT}" "${used_clips[@]}" <<'PY'
 import json, os, re, sys
-root, out, music, music_credit, clips = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sorted(set(sys.argv[5:]))
+root, out, version, music, music_credit = sys.argv[1:6]
+clips = sorted(set(sys.argv[6:]))
 
 with open(os.path.join(root, "assets/full-description.txt")) as f:
     opening = f.read().strip().split("\n\n")[0].strip()
@@ -345,7 +346,7 @@ elif music:
     print(f"  note: {out}: write the music's credit in by hand", file=sys.stderr)
 
 with open(out, "w") as f:
-    f.write(f"{opening}\n\nPlay Store link:\nhttps://play.google.com/store/apps/details?id={app_id}\n")
+    f.write(f"{opening}\n\nPlay Store link (v{version}):\nhttps://play.google.com/store/apps/details?id={app_id}\n")
     if credits:
         f.write("\nCredits:\n" + "\n".join(credits) + "\n")
 PY

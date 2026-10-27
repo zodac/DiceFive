@@ -1,0 +1,5 @@
+- Updated icons/symbols/glyphs throughout the application
+- Adding ability to hide locked styles
+- Fixing achievement unlock bugs
+- Worked on performance and framerate issues, hopefully resolving any lags
+- Hide achievement/style toggles when everything is unlocked

@@ -114,7 +114,8 @@ The traps:
   `sounds.txt` with its frame and volume. The script lays the build's normalised clips
   (`app/android/build/generated/normalizedAudioRes/raw/`) at those frames.
 - **The video's description.** The script writes `video-description.txt`, to paste into YouTube as it is: the opening
-  paragraph of `assets/full-description.txt`, the Play Store link (from `applicationId`), then the credits.
+  paragraph of `assets/full-description.txt`, the Play Store link (from `applicationId`) under `Play Store link
+  (v<VERSION>):`, then the credits.
   - One `Sound effects - ` line per credit a clip in the video needs (today the CC-BY 4.0 hold and unhold clicks), from
     `app/licensing/`, skipping CC0. A Freesound attribution is reshaped to `<work> (<link>) -- modified for DiceFive:
     ...`; any other description is used as it is.
