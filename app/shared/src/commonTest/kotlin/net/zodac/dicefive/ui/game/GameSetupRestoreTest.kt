@@ -38,6 +38,12 @@ private class CountingReadsStore(private val store: InMemoryPreferences = InMemo
     override val data: Flow<Preferences> = store.data.onCompletion { finishedReads++ }
 }
 
+/** [InMemoryPreferences], counting its writes. */
+private class CountingWritesStore(private val store: InMemoryPreferences = InMemoryPreferences()) : DataStore<Preferences> by store {
+    var writes = 0
+    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences = store.updateData(transform).also { writes++ }
+}
+
 /** The setup form comes back with the last game's choices, all at once - never the defaults first. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class GameSetupRestoreTest {
@@ -109,6 +115,43 @@ class GameSetupRestoreTest {
         assertEquals(1, store.finishedReads)
         assertEquals(4, viewModel.setup.value.playerCount)
         assertEquals(GameMode.TRICOLOUR, viewModel.setup.value.gameMode)
+    }
+
+    @Test
+    fun `starting a game saves its whole form in one write - and the next form has all of it`() = runTest(testDispatcher) {
+        val store = CountingWritesStore()
+        val repository = SettingsRepository(store)
+        repository.setFirstGameCompleted()
+        val first = restored(repository)
+        first.setPlayerCount(4)
+        first.setPlayerName(1, "Ann")
+        first.setPlayerName(3, "Cal")
+        first.setPlayerType(2, PlayerType.AI)
+        first.setPlayerDifficulty(2, Difficulty.HARD)
+        first.setPlayerType(4, PlayerType.AI)
+        first.setPlayerDifficulty(4, Difficulty.EASY)
+        first.setPlayerColour(1, PlayerColour.PINK)
+        first.setGameMode(GameMode.TRICOLOUR)
+        first.setTurnTimer(TurnTimer.SECONDS_30)
+        first.setRollsPerTurn(4)
+        first.setUnluckyDiceEnabled(true)
+        store.writes = 0
+
+        first.startGame()
+        advanceUntilIdle()
+
+        assertEquals(1, store.writes)
+        val second = restored(repository).setup.value
+        assertEquals(4, second.playerCount)
+        assertEquals(listOf("Ann", "", "Cal", ""), second.playerSlots.map { it.name })
+        assertEquals(listOf(PlayerType.HUMAN, PlayerType.AI, PlayerType.HUMAN, PlayerType.AI), second.playerSlots.map { it.type })
+        assertEquals(Difficulty.HARD, second.playerSlots[1].difficulty)
+        assertEquals(Difficulty.EASY, second.playerSlots[3].difficulty)
+        assertEquals(PlayerColour.PINK, second.playerSlots[0].colour)
+        assertEquals(GameMode.TRICOLOUR, second.gameMode)
+        assertEquals(TurnTimer.SECONDS_30, second.turnTimer)
+        assertEquals(4, second.rollModifiers.rollsPerTurn)
+        assertTrue(second.unluckyDiceEnabled)
     }
 
     @Test

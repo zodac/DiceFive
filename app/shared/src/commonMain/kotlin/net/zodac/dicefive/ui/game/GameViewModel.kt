@@ -630,12 +630,11 @@ class GameViewModel(
             }
             PlayerConfig(slot = slot.slot, type = slot.type, name = name, difficulty = slot.difficulty, colour = slot.colour)
         }
-        persistHumanNames(activeSlots)
         persistGameConfig(setupState)
-        // Off in a mode that doesn't allow it, whatever the switch says - the switch keeps the player's pick for the next mode.
-        val extendedScores = setupState.extendedScores && setupState.gameMode.allowsExtendedScores
+        // GameEngine.newGame leaves Extended Scores off in a mode that doesn't allow it, whatever the switch says - the
+        // switch keeps the player's pick for the next mode.
         beginGame(
-            GameEngine.newGame(playerConfigs, setupState.gameMode, setupState.turnTimer, setupState.rollModifiers, extendedScores, setupState.activeUnluckyDice),
+            GameEngine.newGame(playerConfigs, setupState.gameMode, setupState.turnTimer, setupState.rollModifiers, setupState.extendedScores, setupState.activeUnluckyDice),
             startedAtLocalHour = localHour(),
         )
 
@@ -813,13 +812,10 @@ class GameViewModel(
     }
 
     // The only undoable action: committing a category is the only one of the three human actions
-    // that actually records a score. Note the trade-off versus the old "not undoable" rule this
-    // replaces: committing a score always ends the current player's turn (advanceTurn in
-    // GameEngine), so this snapshot is still live when the NEXT player's turn opens - if nobody
-    // has rolled or held anything yet (both now non-undoable and don't touch this snapshot),
-    // "Undo" at that point reaches back into the previous player's already-finished turn. Revisit
-    // this if that turns out to matter more in practice than being able to undo a bad category
-    // pick.
+    // that actually records a score. Committing always ends the current player's turn (advanceTurn
+    // in GameEngine), so this snapshot is still live when the NEXT player's turn opens: until that
+    // player rolls (performRoll clears it), "Undo" reaches back into the previous player's
+    // already-finished turn.
     fun commitScore(category: ScoreCategory) {
         val state = _game.value ?: return
         if (tutorial != null) {
@@ -1234,36 +1230,30 @@ class GameViewModel(
         return playerOne.totalScore == state.topScore
     }
 
-    private fun persistHumanNames(slots: List<PlayerSetupSlot>) {
-        viewModelScope.launch {
-            for (slot in slots) {
-                if (slot.type == PlayerType.HUMAN) {
-                    settingsRepository.setPlayerName(slot.slot, slot.name.trim())
-                }
-            }
-        }
-    }
-
+    /** The form the game was started from, saved for the next one in a single write. */
     private fun persistGameConfig(setup: GameSetupState) {
         val slots = setup.playerSlots.take(setup.playerCount)
         viewModelScope.launch {
-            settingsRepository.setPlayerCount(setup.playerCount)
-            // Locked, the form shows the defaults rather than the saved picks, which are kept for when it unlocks.
-            if (setup.modesUnlocked) {
-                settingsRepository.setTurnTimer(setup.turnTimer)
-                settingsRepository.setTurnTimerLength(setup.turnTimerLength)
-                settingsRepository.setRollModifiers(setup.rollModifiers, setup.rollsPerTurnLength)
-                settingsRepository.setExtendedScores(setup.extendedScores)
-                settingsRepository.setUnluckyDice(setup.unluckyDiceEnabled, setup.unluckyDice)
-                settingsRepository.setGameMode(setup.gameMode)
-            }
-            // All four, not just the shown ones: they're kept distinct together (see setPlayerColour).
-            for (slot in setup.playerSlots) settingsRepository.setPlayerColour(slot.slot, slot.colour)
-            for (slot in slots) {
-                // Slot 1 is always Human, so its type and difficulty aren't worth persisting.
-                if (slot.slot == 1) continue
-                settingsRepository.setPlayerType(slot.slot, slot.type)
-                if (slot.type == PlayerType.AI) settingsRepository.setPlayerDifficulty(slot.slot, slot.difficulty)
+            settingsRepository.batch {
+                setPlayerCount(setup.playerCount)
+                // Locked, the form shows the defaults rather than the saved picks, which are kept for when it unlocks.
+                if (setup.modesUnlocked) {
+                    setTurnTimer(setup.turnTimer)
+                    setTurnTimerLength(setup.turnTimerLength)
+                    setRollModifiers(setup.rollModifiers, setup.rollsPerTurnLength)
+                    setExtendedScores(setup.extendedScores)
+                    setUnluckyDice(setup.unluckyDiceEnabled, setup.unluckyDice)
+                    setGameMode(setup.gameMode)
+                }
+                // All four, not just the shown ones: they're kept distinct together (see setPlayerColour).
+                for (slot in setup.playerSlots) setPlayerColour(slot.slot, slot.colour)
+                for (slot in slots) {
+                    if (slot.type == PlayerType.HUMAN) setPlayerName(slot.slot, slot.name.trim())
+                    // Slot 1 is always Human, so its type and difficulty aren't worth persisting.
+                    if (slot.slot == 1) continue
+                    setPlayerType(slot.slot, slot.type)
+                    if (slot.type == PlayerType.AI) setPlayerDifficulty(slot.slot, slot.difficulty)
+                }
             }
         }
     }

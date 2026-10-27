@@ -50,22 +50,80 @@ class SettingsRepository(
     /** Every write: [block], then a stamp on each synced key whose value it changed. */
     private suspend fun edit(block: (MutablePreferences) -> Unit) {
         dataStore.edit { prefs ->
-            val before = SYNCED_KEYS.map { prefs.asMap()[it] }
+            val before = SYNCED_KEYS.map { prefs[it] }
             block(prefs)
             val at = now()
-            SYNCED_KEYS.forEachIndexed { index, key -> if (prefs.asMap()[key] != before[index]) prefs[stampKey(key)] = at }
+            SYNCED_KEYS.forEachIndexed { index, key -> if (prefs[key] != before[index]) prefs[SYNCED_STAMP_KEYS[index]] = at }
+        }
+    }
+
+    /** Every setting [block] sets, written together: one write, however many it sets. */
+    suspend fun batch(block: Batch.() -> Unit) {
+        edit { Batch(it).block() }
+    }
+
+    /** The New Game form's settings, set in one [batch]. Each setter is the repository's own of the same name. */
+    class Batch internal constructor(private val prefs: MutablePreferences) {
+
+        fun setPlayerName(slot: Int, name: String) {
+            prefs[playerNameKey(slot)] = name
+        }
+
+        fun setPlayerType(slot: Int, type: PlayerType) {
+            prefs[playerTypeKey(slot)] = type.id
+        }
+
+        fun setPlayerDifficulty(slot: Int, difficulty: Difficulty) {
+            prefs[playerDifficultyKey(slot)] = difficulty.id
+        }
+
+        fun setPlayerColour(slot: Int, colour: PlayerColour) {
+            prefs[playerColourKey(slot)] = colour.id
+        }
+
+        fun setPlayerCount(count: Int) {
+            prefs[PLAYER_COUNT_KEY] = count
+        }
+
+        fun setTurnTimer(turnTimer: TurnTimer) {
+            prefs[TURN_TIMER_KEY] = turnTimer.name
+        }
+
+        fun setTurnTimerLength(length: TurnTimer) {
+            prefs[TURN_TIMER_LENGTH_KEY] = length.name
+        }
+
+        fun setRollModifiers(modifiers: RollModifiers, rollsPerTurnLength: Int) {
+            modifiers.rollsPerTurn?.let { prefs[ROLLS_PER_TURN_KEY] = it } ?: prefs.remove(ROLLS_PER_TURN_KEY)
+            prefs[ROLLS_PER_TURN_LENGTH_KEY] = rollsPerTurnLength
+            prefs[STORED_ROLLS_KEY] = modifiers.storedRolls
+            modifiers.storedRollsMax?.let { prefs[STORED_ROLLS_MAX_KEY] = it } ?: prefs.remove(STORED_ROLLS_MAX_KEY)
+        }
+
+        fun setExtendedScores(enabled: Boolean) {
+            prefs[EXTENDED_SCORES_KEY] = enabled
+        }
+
+        fun setUnluckyDice(enabled: Boolean, settings: UnluckyDice) {
+            prefs[UNLUCKY_DICE_KEY] = enabled
+            prefs[UNLUCKY_ODDS_KEY] = settings.oddsPercent
+            prefs[UNLUCKY_MAX_DICE_KEY] = settings.maxDice
+        }
+
+        fun setGameMode(gameMode: GameMode) {
+            prefs[GAME_MODE_KEY] = gameMode.id
         }
     }
 
     /** Emits each time a synced setting changes here, or arrives from the cloud save - not for the first value. */
     val syncedChanges: Flow<Unit> =
-        dataStore.data.map { prefs -> SYNCED_KEYS.map { prefs[stampKey(it)] } }.distinctUntilChanged().drop(1).map { }
+        dataStore.data.map { prefs -> SYNCED_STAMP_KEYS.map { prefs[it] } }.distinctUntilChanged().drop(1).map { }
 
     /** The synced settings, by key name, each with its stamp - every one that is set, or was set and since removed. */
     suspend fun cloudSettings(): Map<String, Stamped<SettingValue?>> {
         val prefs = dataStore.data.first()
         return SYNCED_KEYS.mapNotNull { key ->
-            val value = settingValue(prefs.asMap()[key])
+            val value = settingValue(prefs[key])
             val at = prefs[stampKey(key)]
             if (value == null && at == null) null else key.name to Stamped(value, at ?: 0)
         }.toMap()
@@ -79,7 +137,7 @@ class SettingsRepository(
         dataStore.edit { prefs ->
             for ((name, theirs) in remote) {
                 val key = SYNCED_KEYS_BY_NAME[name] ?: continue
-                val ours = Stamped(settingValue(prefs.asMap()[key]), prefs[stampKey(key)] ?: 0)
+                val ours = Stamped(settingValue(prefs[key]), prefs[stampKey(key)] ?: 0)
                 if (ours == theirs || newerOf(ours, theirs) { it.toString() } !== theirs) continue
                 if (write(prefs, key, theirs.value)) prefs[stampKey(key)] = theirs.atEpochMillis
             }
@@ -168,39 +226,27 @@ class SettingsRepository(
 
     fun playerNameFor(slot: Int): Flow<String?> = readSnapshot { it.playerNameFor(slot) }
 
-    suspend fun setPlayerName(slot: Int, name: String) {
-        edit { it[playerNameKey(slot)] = name }
-    }
+    suspend fun setPlayerName(slot: Int, name: String) = batch { setPlayerName(slot, name) }
 
     fun playerTypeFor(slot: Int): Flow<PlayerType?> = readSnapshot { it.playerTypeFor(slot) }
 
-    suspend fun setPlayerType(slot: Int, type: PlayerType) {
-        edit { it[playerTypeKey(slot)] = type.id }
-    }
+    suspend fun setPlayerType(slot: Int, type: PlayerType) = batch { setPlayerType(slot, type) }
 
     fun playerDifficultyFor(slot: Int): Flow<Difficulty?> = readSnapshot { it.playerDifficultyFor(slot) }
 
-    suspend fun setPlayerDifficulty(slot: Int, difficulty: Difficulty) {
-        edit { it[playerDifficultyKey(slot)] = difficulty.id }
-    }
+    suspend fun setPlayerDifficulty(slot: Int, difficulty: Difficulty) = batch { setPlayerDifficulty(slot, difficulty) }
 
     fun playerColourFor(slot: Int): Flow<PlayerColour?> = readSnapshot { it.playerColourFor(slot) }
 
-    suspend fun setPlayerColour(slot: Int, colour: PlayerColour) {
-        edit { it[playerColourKey(slot)] = colour.id }
-    }
+    suspend fun setPlayerColour(slot: Int, colour: PlayerColour) = batch { setPlayerColour(slot, colour) }
 
     val playerCount: Flow<Int?> = readSnapshot { it.playerCount }
 
-    suspend fun setPlayerCount(count: Int) {
-        edit { it[PLAYER_COUNT_KEY] = count }
-    }
+    suspend fun setPlayerCount(count: Int) = batch { setPlayerCount(count) }
 
     val turnTimer: Flow<TurnTimer> = readSnapshot { it.turnTimer }
 
-    suspend fun setTurnTimer(turnTimer: TurnTimer) {
-        edit { it[TURN_TIMER_KEY] = turnTimer.name }
-    }
+    suspend fun setTurnTimer(turnTimer: TurnTimer) = batch { setTurnTimer(turnTimer) }
 
     /**
      * The turn timer length last chosen, kept while the timer is switched off ([turnTimer] is then
@@ -208,9 +254,7 @@ class SettingsRepository(
      */
     val turnTimerLength: Flow<TurnTimer> = readSnapshot { it.turnTimerLength }
 
-    suspend fun setTurnTimerLength(length: TurnTimer) {
-        edit { it[TURN_TIMER_LENGTH_KEY] = length.name }
-    }
+    suspend fun setTurnTimerLength(length: TurnTimer) = batch { setTurnTimerLength(length) }
 
     /**
      * The roll modifiers the setup form last started a game with. The Number of Rolls length is read
@@ -221,21 +265,12 @@ class SettingsRepository(
     /** The Number of Rolls value last chosen, kept while the modifier is off so switching it back on restores it. */
     val rollsPerTurnLength: Flow<Int> = readSnapshot { it.rollsPerTurnLength }
 
-    suspend fun setRollModifiers(modifiers: RollModifiers, rollsPerTurnLength: Int) {
-        edit { prefs ->
-            modifiers.rollsPerTurn?.let { prefs[ROLLS_PER_TURN_KEY] = it } ?: prefs.remove(ROLLS_PER_TURN_KEY)
-            prefs[ROLLS_PER_TURN_LENGTH_KEY] = rollsPerTurnLength
-            prefs[STORED_ROLLS_KEY] = modifiers.storedRolls
-            modifiers.storedRollsMax?.let { prefs[STORED_ROLLS_MAX_KEY] = it } ?: prefs.remove(STORED_ROLLS_MAX_KEY)
-        }
-    }
+    suspend fun setRollModifiers(modifiers: RollModifiers, rollsPerTurnLength: Int) = batch { setRollModifiers(modifiers, rollsPerTurnLength) }
 
     /** Whether the Extended Scores modifier was on the last time the setup form started a game. */
     val extendedScores: Flow<Boolean> = readSnapshot { it.extendedScores }
 
-    suspend fun setExtendedScores(enabled: Boolean) {
-        edit { it[EXTENDED_SCORES_KEY] = enabled }
-    }
+    suspend fun setExtendedScores(enabled: Boolean) = batch { setExtendedScores(enabled) }
 
     /** Whether the Unlucky Dice modifier was on the last time the setup form started a game. */
     val unluckyDiceEnabled: Flow<Boolean> = readSnapshot { it.unluckyDiceEnabled }
@@ -246,21 +281,13 @@ class SettingsRepository(
      */
     val unluckyDice: Flow<UnluckyDice> = readSnapshot { it.unluckyDice }
 
-    suspend fun setUnluckyDice(enabled: Boolean, settings: UnluckyDice) {
-        edit { prefs ->
-            prefs[UNLUCKY_DICE_KEY] = enabled
-            prefs[UNLUCKY_ODDS_KEY] = settings.oddsPercent
-            prefs[UNLUCKY_MAX_DICE_KEY] = settings.maxDice
-        }
-    }
+    suspend fun setUnluckyDice(enabled: Boolean, settings: UnluckyDice) = batch { setUnluckyDice(enabled, settings) }
 
     /** The mode the setup form last started a game in - read back by id, falling back to the default
      * for one nothing recognises (see [GameMode.id]). */
     val gameMode: Flow<GameMode> = readSnapshot { it.gameMode }
 
-    suspend fun setGameMode(gameMode: GameMode) {
-        edit { it[GAME_MODE_KEY] = gameMode.id }
-    }
+    suspend fun setGameMode(gameMode: GameMode) = batch { setGameMode(gameMode) }
 
     /** Whether a game has been played to its end, won or lost. Only ever set, never cleared - not even by a reset. */
     val firstGameCompleted: Flow<Boolean> = readSnapshot { it.firstGameCompleted }
@@ -426,6 +453,9 @@ class SettingsRepository(
          */
         val SYNCED_KEYS: List<Preferences.Key<*>> = SYNCED_STRING_KEYS + SYNCED_INT_KEYS + SYNCED_BOOLEAN_KEYS
         private val SYNCED_KEYS_BY_NAME = SYNCED_KEYS.associateBy { it.name }
+
+        /** Each of [SYNCED_KEYS]' [stampKey], in the same order. */
+        private val SYNCED_STAMP_KEYS = SYNCED_KEYS.map(::stampKey)
 
         /** When [key] last changed: `synced_at:<key>`. */
         fun stampKey(key: Preferences.Key<*>) = longPreferencesKey("synced_at:${key.name}")
