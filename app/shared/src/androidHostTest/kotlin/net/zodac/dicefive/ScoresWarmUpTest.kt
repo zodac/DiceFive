@@ -1,11 +1,13 @@
 package net.zodac.dicefive
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import net.zodac.dicefive.ui.common.OFFSCREEN_WARM_UP_TAG
 import net.zodac.dicefive.ui.scores.ScoresWarmUp
 import net.zodac.dicefive.ui.scores.resetScoresWarmUpForTest
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
@@ -24,7 +26,7 @@ class ScoresWarmUpTest : UiTest() {
         resetScoresWarmUpForTest()
         compose.setContent { DiceFiveTheme { Box { ScoresWarmUp(width = 360.dp) } } }
         compose.mainClock.autoAdvance = false
-        fun onScreen() = compose.onAllNodesWithText("Leaderboard").fetchSemanticsNodes().isNotEmpty()
+        fun onScreen() = compose.onAllNodesWithTag(OFFSCREEN_WARM_UP_TAG).fetchSemanticsNodes().isNotEmpty()
 
         // Nothing before the menu has settled...
         repeat(60) { compose.mainClock.advanceTimeByFrame() }
@@ -33,7 +35,11 @@ class ScoresWarmUpTest : UiTest() {
         var drawn = false
         repeat(300) {
             compose.mainClock.advanceTimeByFrame()
-            drawn = drawn || onScreen()
+            if (onScreen()) {
+                drawn = true
+                // ...out of a screen reader's reach.
+                assertTrue(compose.onAllNodesWithText("Leaderboard").fetchSemanticsNodes().isEmpty(), "heard")
+            }
         }
         assertTrue(drawn, "never drawn")
         // ...and once both views have had their frames, it's gone.

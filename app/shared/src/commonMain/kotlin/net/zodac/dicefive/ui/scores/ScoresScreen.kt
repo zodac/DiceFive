@@ -11,14 +11,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeight
-import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,7 +34,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -45,7 +41,6 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -65,9 +60,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.data.scores.LeaderboardSource
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
@@ -92,12 +87,12 @@ import net.zodac.dicefive.resources.scores_title
 import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.LocalLandscapePage
+import net.zodac.dicefive.ui.common.OffscreenWarmUp
 import net.zodac.dicefive.ui.common.OnDemandTooltip
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.VerticalScrollbar
-import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.timestampFormatter
@@ -758,26 +753,23 @@ private const val SCORES_WARM_UP_FRAMES = 8
 @Composable
 fun ScoresWarmUp(width: Dp, modifier: Modifier = Modifier) {
     if (scoresWarmedUp) return
-    var warming by remember { mutableStateOf(false) }
     val viewModel = remember { ScoresViewModel(WarmUpBoard) }
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    LaunchedEffect(Unit) {
-        lifecycle.delayWhileResumed(SCORES_WARM_UP_DELAY_MILLIS)
-        warming = true
-        for (view in LeaderboardView.entries) {
-            viewModel.selectView(view)
-            repeat(SCORES_WARM_UP_FRAMES) { withFrameNanos { } }
-        }
-        scoresWarmedUp = true
-        warming = false
-    }
-    if (!warming) return
-    Box(modifier = modifier.size(1.dp).clipToBounds()) {
-        // As big as the page would be, so it lays out as it would there.
-        val height = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
-        Box(modifier = Modifier.requiredWidth(width).requiredHeight(height)) {
-            ScoresScreen(viewModel = viewModel, onBack = {}, driftingDice = false)
-        }
+    // As big as the page would be, so it lays out as it would there.
+    val height = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+    OffscreenWarmUp<LeaderboardView>(
+        key = Unit,
+        delayMillis = SCORES_WARM_UP_DELAY_MILLIS,
+        pageSize = DpSize(width, height),
+        modifier = modifier,
+        run = {
+            for (view in LeaderboardView.entries) {
+                viewModel.selectView(view)
+                draw(view, frames = SCORES_WARM_UP_FRAMES)
+            }
+            scoresWarmedUp = true
+        },
+    ) {
+        ScoresScreen(viewModel = viewModel, onBack = {}, driftingDice = false)
     }
 }
 

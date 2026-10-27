@@ -50,6 +50,10 @@ Each of these fixed a reported stutter. New work must keep them.
   - Settings, achievements and the saved-game flag emit only when their own value changes (`distinctUntilChanged`).
 - **Load ahead of the first use.** The sound clips load a second after launch, off the main thread, not on a game's
   first roll.
+- **Warm a page up off screen with `OffscreenWarmUp`** (`ui/common`): a 1dp clipped box under an opaque screen,
+  hidden from screen readers, that steps through passes a frame or two each once the screen above has settled.
+  `GameWarmUp`, `StylesWarmUp` and `ScoresWarmUp` are each one; a new warm-up is too. Tests see it by
+  `OFFSCREEN_WARM_UP_TAG`.
 - **Paint a game's art before it opens.** `GameWarmUp` (`GameScreen.kt`), under the setup form, draws the board,
   cup, mat and every face of every die in the player's art, once, 600ms after the form settles. It lays them out with
   the game's own `GamePage` and `GameTable`, so each surface is cached at the exact size the game uses.

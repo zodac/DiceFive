@@ -20,15 +20,13 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -115,7 +113,6 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -202,6 +199,7 @@ import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.HorizontalScrollbar
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.OffscreenWarmUp
 import net.zodac.dicefive.ui.common.PAGE_CONTENT_FADE_IN_MILLIS
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.VerticalScrollbar
@@ -237,7 +235,6 @@ import net.zodac.dicefive.ui.style.TableArt
 import net.zodac.dicefive.ui.style.TableBackground
 import net.zodac.dicefive.ui.style.TableBackgrounds
 import net.zodac.dicefive.ui.style.catalog
-import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import net.zodac.dicefive.ui.theme.GoldAccent
 import org.jetbrains.compose.resources.StringResource
 
@@ -1061,62 +1058,57 @@ private fun FramePreview(frame: ScoreFrame, modifier: Modifier = Modifier) {
 @Composable
 fun StylesWarmUp(picks: SavedStyles?, width: Dp, modifier: Modifier = Modifier, onPageFit: (String) -> Unit = {}) {
     val density = LocalDensity.current
-    val fitKey = PageFitKey(LocalWindowInfo.current.containerSize, density.density, density.fontScale)
+    val window = LocalWindowInfo.current.containerSize
+    val fitKey = PageFitKey(window, density.density, density.fontScale)
     // Done - unless the screen has changed since the page was measured for it (a resized window, a new
     // font scale), when it's measured again, though nothing else is redone.
     if (picks == null || (stylesWarmedUp && PageFit.decode(picks.stylesPageFit)?.key == fitKey)) return
-    var current by remember { mutableStateOf<WarmUpPass?>(null) }
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    LaunchedEffect(fitKey) {
-        lifecycle.delayWhileResumed(WARM_UP_DELAY_MILLIS)
-        suspend fun pass(next: WarmUpPass) {
-            current = next
-            // A frame to compose and draw it, then on to the next.
-            withFrameNanos { }
-            withFrameNanos { }
-        }
-        // First the whole page measures itself, so it can open already sized to fit (PageFit): full size,
-        // then - only if it doesn't fit - at the smallest it may be drawn. Every launch, and before the tiles,
-        // so the saved fit follows any change to the page and is in place within moments of the menu settling.
-        // Laid out but not drawn, so its tiles' first-time drawing is still spread over the passes below.
-        suspend fun measured(at: Float): PageMeasure? {
-            pageMeasure = null
-            current = WarmUpPass.Page(at, draw = false)
-            repeat(WARM_UP_MEASURE_FRAMES) {
-                withFrameNanos { }
-                pageMeasure?.let { return it }
-            }
-            return null
-        }
-        val full = measured(1f)
-        val smallest = when {
-            full == null || full.content <= full.viewport -> full?.content
-            else -> measured(MIN_PAGE_FIT_SCALE)?.content
-        }
-        // Full size where it couldn't be measured, so as not to try again for this screen. Saved only when it's
-        // changed: normally it's the same each launch, but a new version of the page can change its height.
-        val fit = PageFit(fitKey, if (full == null || smallest == null) 1f else fittedPageScale(full.content, smallest, full.viewport))
-        if (PageFit.decode(picks.stylesPageFit) != fit) onPageFit(fit.encode())
-        if (!stylesWarmedUp) {
-            for (category in StyleCategory.entries) {
-                for (first in 0 until category.tileCount(picks.access) step WARM_UP_TILES_PER_PASS) {
-                    pass(WarmUpPass.Tiles(category, first until first + WARM_UP_TILES_PER_PASS))
+    // As big as the page would be, so it lays out as it would there.
+    val page = DpSize(width, with(density) { window.height.toDp() })
+    OffscreenWarmUp<WarmUpPass>(
+        key = fitKey,
+        delayMillis = WARM_UP_DELAY_MILLIS,
+        pageSize = page,
+        modifier = modifier,
+        run = {
+            // First the whole page measures itself, so it can open already sized to fit (PageFit): full size,
+            // then - only if it doesn't fit - at the smallest it may be drawn. Every launch, and before the tiles,
+            // so the saved fit follows any change to the page and is in place within moments of the menu settling.
+            // Laid out but not drawn, so its tiles' first-time drawing is still spread over the passes below.
+            suspend fun measured(at: Float): PageMeasure? {
+                pageMeasure = null
+                current = WarmUpPass.Page(at, draw = false)
+                repeat(WARM_UP_MEASURE_FRAMES) {
+                    withFrameNanos { }
+                    pageMeasure?.let { return it }
                 }
+                return null
             }
-            for (category in StyleCategory.entries) pass(WarmUpPass.Card(category))
-            // The screen's frame on its own first, then with the page in it: each its own first-time code.
-            pass(WarmUpPass.Frame)
-            pass(WarmUpPass.Page(fit.scale, draw = true))
-            stylesWarmedUp = true
-        }
-        current = null
-    }
-    val pass = current ?: return
-    Box(modifier = modifier.size(1.dp).clipToBounds()) {
-        // As big as the page would be, so it lays out as it would there.
-        val height = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+            val full = measured(1f)
+            val smallest = when {
+                full == null || full.content <= full.viewport -> full?.content
+                else -> measured(MIN_PAGE_FIT_SCALE)?.content
+            }
+            // Full size where it couldn't be measured, so as not to try again for this screen. Saved only when it's
+            // changed: normally it's the same each launch, but a new version of the page can change its height.
+            val fit = PageFit(fitKey, if (full == null || smallest == null) 1f else fittedPageScale(full.content, smallest, full.viewport))
+            if (PageFit.decode(picks.stylesPageFit) != fit) onPageFit(fit.encode())
+            if (!stylesWarmedUp) {
+                for (category in StyleCategory.entries) {
+                    for (first in 0 until category.tileCount(picks.access) step WARM_UP_TILES_PER_PASS) {
+                        draw(WarmUpPass.Tiles(category, first until first + WARM_UP_TILES_PER_PASS))
+                    }
+                }
+                for (category in StyleCategory.entries) draw(WarmUpPass.Card(category))
+                // The screen's frame on its own first, then with the page in it: each its own first-time code.
+                draw(WarmUpPass.Frame)
+                draw(WarmUpPass.Page(fit.scale, draw = true))
+                stylesWarmedUp = true
+            }
+        },
+    ) { pass ->
         val drawn = if (pass is WarmUpPass.Page && !pass.draw) Modifier.drawWithContent { } else Modifier
-        Column(modifier = Modifier.requiredWidth(width).requiredHeight(height).then(drawn)) {
+        Column(modifier = Modifier.fillMaxSize().then(drawn)) {
             // The page's own measurer, so the names laid out here are the ones the page draws.
             CompositionLocalProvider(LocalTileLabelMeasurer provides rememberTileLabelMeasurer()) {
                 when (pass) {

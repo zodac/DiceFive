@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -40,10 +39,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
@@ -88,6 +85,7 @@ import net.zodac.dicefive.ui.common.LocalPageCover
 import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.LocalAnimationLevel
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.OffscreenWarmUp
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
@@ -379,30 +377,24 @@ private fun GameArtWarmUp(theme: GameVisualTheme, game: GameState, delayMillis: 
     val density = LocalDensity.current
     val key = GameWarmUpKey(theme, game.gameMode, game.categories, window, density.density, density.fontScale)
     if (key == gameWarmedUp) return
-    var current by remember { mutableStateOf<GameWarmUpPass?>(null) }
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    LaunchedEffect(key) {
-        current = null
+    // As big as the game's page, so it lays out as it would there.
+    val page = with(density) { DpSize(window.width.toDp(), window.height.toDp()) }
+    OffscreenWarmUp<GameWarmUpPass>(
         // Restarted by each change to the form, so a few quick taps through the modes draw only the last.
-        lifecycle.delayWhileResumed(delayMillis)
-        // Each die has a face of its own for each value (naturalPatternSeed): turned round a value a pass, every die shows every one.
-        val values = game.gameMode.dieValues.toList()
-        val faces = values.indices.map { turn -> GameWarmUpPass.Dice(game.dice.indices.map { values[(it + turn) % values.size] }) }
-        for (pass in listOf(GameWarmUpPass.Board, GameWarmUpPass.Mat) + faces) {
-            current = pass
-            // A frame to compose and draw it, then on to the next.
-            withFrameNanos { }
-            withFrameNanos { }
-        }
-        gameWarmedUp = key
-        current = null
-    }
-    val pass = current ?: return
-    Box(modifier = modifier.size(1.dp).clipToBounds().clearAndSetSemantics { }) {
-        // As big as the game's page, so it lays out as it would there.
-        val page = with(density) { DpSize(window.width.toDp(), window.height.toDp()) }
+        key = key,
+        delayMillis = delayMillis,
+        pageSize = page,
+        modifier = modifier,
+        run = {
+            // Each die has a face of its own for each value (naturalPatternSeed): turned round a value a pass, every die shows every one.
+            val values = game.gameMode.dieValues.toList()
+            val faces = values.indices.map { turn -> GameWarmUpPass.Dice(game.dice.indices.map { values[(it + turn) % values.size] }) }
+            for (pass in listOf(GameWarmUpPass.Board, GameWarmUpPass.Mat) + faces) draw(pass)
+            gameWarmedUp = key
+        },
+    ) { pass ->
         CompositionLocalProvider(LocalGameVisualTheme provides theme) {
-            GamePage(categories = game.categories, headerHeight = { _, _ -> null }, modifier = Modifier.requiredSize(page)) { layout ->
+            GamePage(categories = game.categories, headerHeight = { _, _ -> null }, modifier = Modifier.fillMaxSize()) { layout ->
                 val board = @Composable {
                     if (pass == GameWarmUpPass.Board) {
                         GameBoard(state = game, rolling = false, canUndo = false, onScoreCategory = {}, onCupTap = {}, onUndo = {}, landscape = layout.landscape)
