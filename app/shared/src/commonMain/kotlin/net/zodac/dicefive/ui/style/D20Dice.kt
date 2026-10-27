@@ -146,10 +146,15 @@ private const val D20_REST_TWIST_DEGREES = 30f
 private const val D20_EMPHASIS_START = 0.35f
 private const val D20_EMPHASIS_END = 0.8f
 
-// How tall the rolled number's text is, in camera units: about as large as a facet holds - a two-digit number is as wide
-// as it is tall, and the facet is narrower than it is high.
-private const val ROLL_ONE_DIGIT_HEIGHT = 1.05f
-private const val ROLL_TWO_DIGIT_HEIGHT = 0.95f
+// How tall a number's digits stand on their face, in camera units: every other face's, and the rolled one's - about as
+// large as a facet holds, a two-digit number being wider than it is tall and the facet narrower than it is high.
+private const val ONE_DIGIT_HEIGHT = 0.425f
+private const val TWO_DIGIT_HEIGHT = 0.375f
+private const val ROLL_ONE_DIGIT_HEIGHT = 0.64f
+private const val ROLL_TWO_DIGIT_HEIGHT = 0.575f
+
+/** How tall DiceFive D20's digits are, baseline to top, as a fraction of the font size: numbers are sized by their ink, not their line. */
+internal const val D20_DIGIT_HEIGHT_EM = 0.73f
 
 // Light from above, left and in front, in camera space.
 private val D20_LIGHT = Vec3(-0.4f, 0.6f, 1f).normalised()
@@ -271,6 +276,7 @@ class D20DiceStyle(
 
         Canvas(modifier = modifier.dieShadow(shape)) {
             val scale = size.minDimension / 2f / D20.circumradius
+            val digitPixels = style.fontSize.toPx() * D20_DIGIT_HEIGHT_EM
             val centre = Offset(size.width / 2, size.height / 2)
             fun toScreen(p: Vec3) = centre + Offset(p.x * scale, -p.y * scale)
 
@@ -301,10 +307,10 @@ class D20DiceStyle(
                 val text = measurer.measure(face.number.toString(), if (decoration != null) style.copy(textDecoration = decoration) else style)
                 val faceUp = (Vec3(0f, 1f, 0f) - normal * normal.y).normalised()
                 val faceRight = faceUp cross normal
-                // Camera units per text pixel: a number stands about 0.7 units tall on its face - the
-                // rolled one a little taller.
-                val height = lerpFloat(if (face.number >= 10) 0.62f else 0.7f, if (face.number >= 10) ROLL_TWO_DIGIT_HEIGHT else ROLL_ONE_DIGIT_HEIGHT, emphasis)
-                val perPixel = height / text.size.height * scale
+                // Camera units per text pixel, from the digits' own height: the font's line is much taller than its
+                // digits, and by how much varies from font to font.
+                val height = lerpFloat(if (face.number >= 10) TWO_DIGIT_HEIGHT else ONE_DIGIT_HEIGHT, if (face.number >= 10) ROLL_TWO_DIGIT_HEIGHT else ROLL_ONE_DIGIT_HEIGHT, emphasis)
+                val perPixel = height / digitPixels * scale
                 val middle = toScreen(view.cameraSpace(face.centre))
                 val matrix = Matrix().apply {
                     values[Matrix.ScaleX] = faceRight.x * perPixel
@@ -315,7 +321,8 @@ class D20DiceStyle(
                     values[Matrix.TranslateY] = middle.y
                 }
                 withTransform({ transform(matrix) }) {
-                    drawText(text, color = colour, topLeft = Offset(-text.size.width / 2f, -text.size.height / 2f))
+                    // Centred on the digits, not the line, whose space above them (room for accents) is far deeper than below.
+                    drawText(text, color = colour, topLeft = Offset(-text.size.width / 2f, digitPixels / 2f - text.firstBaseline))
                 }
             }
 

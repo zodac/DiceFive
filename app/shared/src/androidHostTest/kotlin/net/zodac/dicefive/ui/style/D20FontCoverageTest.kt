@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.style
 import java.awt.Color
 import java.awt.Font
 import java.awt.RenderingHints
+import java.awt.font.FontRenderContext
 import java.awt.image.BufferedImage
 import java.io.File
 import kotlin.test.Test
@@ -28,6 +29,12 @@ class D20FontCoverageTest {
     fun `the font's 7 is crossed and its 1 has a foot`() {
         assertTrue(ink(d20, '7') > ink(andika, '7') * 1.1, "The 7 should carry Andika's crossbar")
         assertEquals(ink(andika, '1'), ink(d20, '1'), "The 1 should be Andika's own")
+    }
+
+    @Test
+    fun `the digits stand as tall as the D20 sizes them by`() {
+        val bounds = d20.deriveFont(1000f).createGlyphVector(FontRenderContext(null, true, true), "0123456789").visualBounds
+        assertEquals(D20_DIGIT_HEIGHT_EM, (bounds.height / 1000).toFloat(), 0.01f, "Set D20_DIGIT_HEIGHT_EM to the font's digit height")
     }
 
     @Test
