@@ -114,6 +114,29 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `two Human seats under one name start nothing - a blank one counting as its default name`() {
+        val viewModel = gameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setPlayerCount(3)
+        viewModel.setPlayerName(1, "Sam")
+        viewModel.setPlayerName(3, "sam ")
+        assertEquals(setOf(1, 3), viewModel.setup.value.duplicateNameSlots { "Player $it" })
+        assertFalse(viewModel.startGame())
+        assertNull(viewModel.game.value)
+
+        // Seat 3 left blank is "Player 3", which seat 2 has typed.
+        viewModel.setPlayerName(3, "")
+        viewModel.setPlayerName(2, "Player 3")
+        assertEquals(setOf(2, 3), viewModel.setup.value.duplicateNameSlots { "Player $it" })
+        assertFalse(viewModel.startGame())
+
+        // A CPU seat's name is generated, so it clashes with nothing.
+        viewModel.setPlayerType(3, PlayerType.AI)
+        assertEquals(emptySet(), viewModel.setup.value.duplicateNameSlots { "Player $it" })
+        assertTrue(viewModel.startGame())
+        assertEquals(listOf("Sam", "Player 3"), viewModel.game.value!!.players.take(2).map { it.name })
+    }
+
+    @Test
     fun `a human turn - rolling and scoring and Undo taking back a score but never a roll - a hold or a CPU's move`() = runTest(testDispatcher) {
         val viewModel = started()
         assertFalse(viewModel.canUndo.value, "undo is unavailable until a human action has happened")

@@ -14,9 +14,10 @@ The working method and the drawing techniques. Elsewhere:
 - **They care about frame cost.** Hundreds of live draws per frame get refused even when the numbers are fine. Say
   plainly what's painted once and what's live, with counts.
 - **Unlocks.**
-  - If none is given, pick an unused `AchievementCount` (`StyleCatalogTest` keeps it earnable) and say which.
+  - Locks live in the registry (`game/style/StyleRegistries.kt`), never with the art.
+  - If none is given, pick an unused `AchievementCount` (`StyleRegistryTest` keeps it earnable) and say which.
   - One achievement unlocks a style through `SpecificAchievement`, shown padlocked.
-  - A secret colour uses `StyleColour.secretAchievement`, not offered until earned.
+  - A secret colour uses `StyleVariant.secretAchievement`, not offered until earned.
   - The star and tooltip follow from `styleRewards` automatically.
 - **Style over realism, where asked.** Realistic gems were "too real"; the Gems dice are flat facet tones, ink outlines
   and a crisp highlight. Offer the stylised version when it's ambiguous.
@@ -127,10 +128,14 @@ once, in a function every category calls, rather than copying it. Already shared
 
 ## Shipping a style
 
-1. **Add it.** The class, or colours of an existing one, plus its `StyleFamily` in `StyleCatalog.kt`.
+1. **Add it, in two places in the same order.**
+   - Its `StyleGroup` (or `StyleVariant`s in an existing one) in `game/style/StyleRegistries.kt`: ids, names and lock.
+   - Its art in the matching `listOf(...)` of `ui/style/StyleCatalog.kt`: the class, or colours of an existing one, as
+     `StyleArt(swatch, style)` or a helper. The catalogue joins the two by id and refuses a mismatch at load.
    - The id is the family's string key plus the colour's (`style_family_glitter` + `style_colour_gold` =
      `glitter_gold`), and it's permanent.
-   - `StyleCatalogTest` covers the invariants. Add tests for anything special.
+   - `StyleRegistryTest` (ids, locks) and `StyleCatalogTest` (art matches the registry) cover the invariants. Add tests
+     for anything special.
 2. **Render every state** for review (the `render` skill), and iterate.
 3. **Measure** frame cost if it draws every frame or paints anything heavy, and record it in `BENCHMARKS.md`.
 4. **Accessibility.** The tile reads "Family, Colour", and the tray and cup are spoken regardless of style. Say so.

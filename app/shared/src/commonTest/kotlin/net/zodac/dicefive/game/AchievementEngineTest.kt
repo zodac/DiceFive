@@ -626,6 +626,15 @@ class AchievementEngineTest {
         assertEquals(0, AchievementEngine.progressOf(Achievement.BOOKKEEPER, emptyMap(), LeaderboardTotals(distinctScores = (5..27).toSet())))
         assertEquals(46, AchievementEngine.progressOf(Achievement.TALLY, emptyMap(), LeaderboardTotals(distinctScores = (5..50).toSet())))
 
+        // What each checklist has collected: the band's scores on the board, the modes played, the numbers flagged.
+        val board = LeaderboardTotals(distinctScores = setOf(4, 5, 27, 51), modesPlayed = setOf(GameMode.STANDARD, GameMode.STUD))
+        assertEquals(setOf(5, 27), AchievementEngine.collectedOf(Achievement.TALLY, emptyMap(), board))
+        assertEquals(setOf(GameMode.STANDARD.ordinal, GameMode.STUD.ordinal), AchievementEngine.collectedOf(Achievement.GRAND_TOUR, emptyMap(), board))
+        val numbers = listOf(2, 6).fold(0, AchievementCounter.FIVE_X_NUMBERS::withFlag)
+        assertEquals(0b100010, numbers)
+        assertEquals(setOf(2, 6), AchievementEngine.collectedOf(Achievement.FULL_SET, mapOf(AchievementCounter.FIVE_X_NUMBERS to numbers), board))
+        assertEquals(emptySet(), AchievementEngine.collectedOf(Achievement.FIRST_VICTORY, emptyMap(), board))
+
         // A band announces progress at its quarter marks: 11 of 46 is under the first quarter; 12 crosses it.
         val quarter = evaluate(finishedGame(player(total = 16)), context((5..15).toSet()))
         assertTrue(quarter.progressed.any { it.achievement == Achievement.TALLY && it.current == 12 })
@@ -723,26 +732,44 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `game start - The Journey Begins once - then each flag GameViewModel hands it and no counters touched`() {
+    fun `game start - The Journey Begins once - then each judged off the game and what it replaced - and no counters touched`() {
         val first = AchievementEngine.evaluateAtGameStart(GameStartContext(), AchievementsState(), NOW)
         val second = AchievementEngine.evaluateAtGameStart(GameStartContext(), AchievementsState(unlockedAt = first.unlockedAt()), NOW)
         assertEquals(listOf(Achievement.THE_JOURNEY_BEGINS), first.newlyUnlocked)
         assertTrue(second.isEmpty)
 
-        // Already past The Journey Begins, so it doesn't muddy the rest. Each flag is decided by
-        // GameViewModel.checkGameStartAchievements - Big Fan needs a two-player game with a human P2 named exactly
-        // "zodac"; Luck of the Irish comes from GameState.isLuckOfTheIrish (see IrishEasterEggTest) - and this engine
-        // just trusts the flag it's handed.
+        // Already past The Journey Begins, so it doesn't muddy the rest.
         val begun = AchievementsState(unlockedAt = mapOf(Achievement.THE_JOURNEY_BEGINS to 1L))
         fun atStart(context: GameStartContext) = AchievementEngine.evaluateAtGameStart(context, begun, NOW)
+        fun seats(vararg players: Pair<String, PlayerType>) = players.map { (name, type) -> PlayerState(name = name, type = type) }
+        fun table(vararg players: Pair<String, PlayerType>, mode: GameMode = GameMode.STANDARD) = GameStartContext(game = GameState(gameMode = mode, players = seats(*players)))
         assertTrue(atStart(GameStartContext()).isEmpty)
         assertEquals(listOf(Achievement.FRESH_COAT_OF_PAINT), atStart(GameStartContext(playedNonDefaultStyle = true)).newlyUnlocked)
-        assertEquals(listOf(Achievement.BIG_FAN), atStart(GameStartContext(hasHumanPlayerNamedZodac = true)).newlyUnlocked)
-        assertEquals(listOf(Achievement.LUCK_OF_THE_IRISH), atStart(GameStartContext(hasIrishPlayerOneInTricolour = true)).newlyUnlocked)
+
+        // Big Fan: a two-player game's P2, a Human named exactly "zodac".
+        assertEquals(listOf(Achievement.BIG_FAN), atStart(table("You" to PlayerType.HUMAN, "zodac" to PlayerType.HUMAN)).newlyUnlocked)
+        assertTrue(atStart(table("You" to PlayerType.HUMAN, "Zodac" to PlayerType.HUMAN)).isEmpty, "case-sensitive")
+        assertTrue(atStart(table("You" to PlayerType.HUMAN, "zodac" to PlayerType.AI)).isEmpty, "a CPU")
+        assertTrue(atStart(table("zodac" to PlayerType.HUMAN, "You" to PlayerType.HUMAN)).isEmpty, "P1")
+        assertTrue(atStart(table("You" to PlayerType.HUMAN, "zodac" to PlayerType.HUMAN, "Third" to PlayerType.HUMAN)).isEmpty, "three at the table")
+
+        // Luck of the Irish: GameState.isLuckOfTheIrish (see IrishEasterEggTest). Its mode earns Rules too.
+        assertEquals(
+            setOf(Achievement.LUCK_OF_THE_IRISH, Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES),
+            atStart(table("Éire" to PlayerType.HUMAN, mode = GameMode.TRICOLOUR)).newlyUnlocked.toSet(),
+        )
         // Starting any non-Standard mode unlocks Rules - and Standard does not.
-        assertTrue(atStart(GameStartContext(gameMode = GameMode.STANDARD)).isEmpty)
-        assertEquals(listOf(Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES), atStart(GameStartContext(gameMode = GameMode.TRICOLOUR)).newlyUnlocked)
-        assertEquals(listOf(Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES), atStart(GameStartContext(gameMode = GameMode.QUICKFIRE)).newlyUnlocked)
+        assertTrue(atStart(table("You" to PlayerType.HUMAN)).isEmpty)
+        assertEquals(listOf(Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES), atStart(table("You" to PlayerType.HUMAN, mode = GameMode.TRICOLOUR)).newlyUnlocked)
+        assertEquals(listOf(Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES), atStart(table("You" to PlayerType.HUMAN, mode = GameMode.QUICKFIRE)).newlyUnlocked)
+
+        // One More Time: straight on from a finished game player 1 lost, never one won, solo or unfinished.
+        fun after(previous: GameState) = atStart(GameStartContext(previousGame = previous)).newlyUnlocked
+        val lost = finishedGame(player(total = 150), bot(total = 260))
+        assertEquals(listOf(Achievement.ONE_MORE_TIME), after(lost))
+        assertTrue(after(finishedGame(player(total = 260), bot(total = 150))).isEmpty())
+        assertTrue(after(finishedGame(player(total = 150))).isEmpty())
+        assertTrue(after(lost.copy(isGameOver = false)).isEmpty())
 
         // Game start touches no counters and skips an already-unlocked style.
         val styled = AchievementEngine.evaluateAtGameStart(

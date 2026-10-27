@@ -7,6 +7,7 @@ import kotlin.random.Random
 import kotlinx.coroutines.flow.StateFlow
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.app.BuildInfo
+import net.zodac.dicefive.app.UnlockedStyle
 import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsRepository
@@ -21,7 +22,6 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.purchases.PurchasesRepository
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
-import net.zodac.dicefive.ui.achievements.UnlockedStyle
 import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.style.StyleCatalog
 import net.zodac.dicefive.ui.style.StyleFamily

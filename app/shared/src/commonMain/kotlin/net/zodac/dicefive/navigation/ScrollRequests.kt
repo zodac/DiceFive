@@ -4,7 +4,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import net.zodac.dicefive.ui.achievements.UnlockedStyle
+import net.zodac.dicefive.app.UnlockedStyle
 
 /**
  * Where a long-pressed banner asks a list screen to scroll to and flash what it named - see

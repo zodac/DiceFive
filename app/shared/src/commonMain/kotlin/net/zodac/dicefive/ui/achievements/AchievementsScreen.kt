@@ -81,6 +81,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.game.style.styleRewards
+import net.zodac.dicefive.game.style.unlocksStyle
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.model.AchievementVisibility
@@ -141,8 +143,7 @@ import net.zodac.dicefive.ui.common.rememberFilterSwitchState
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.timestamp
 import net.zodac.dicefive.ui.icons.Symbols
-import net.zodac.dicefive.ui.style.styleRewards
-import net.zodac.dicefive.ui.style.unlocksStyle
+import net.zodac.dicefive.ui.style.description
 import net.zodac.dicefive.ui.theme.GoldAccent
 
 // contentType tags, so hiddenUnderPinnedHeader can tell a category header from a row by the list's

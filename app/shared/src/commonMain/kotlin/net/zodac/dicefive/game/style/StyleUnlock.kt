@@ -1,23 +1,17 @@
-package net.zodac.dicefive.ui.style
+package net.zodac.dicefive.game.style
 
-import androidx.compose.runtime.Composable
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.model.Achievement
-import net.zodac.dicefive.resources.Res
-import net.zodac.dicefive.resources.styles_reward_hidden_colours
-import net.zodac.dicefive.resources.styles_reward_style
-import net.zodac.dicefive.ui.common.pluralStringResource
-import net.zodac.dicefive.ui.common.stringResource
 import org.jetbrains.compose.resources.StringResource
 
 /**
- * What a [StyleFamily] takes to be usable. The lock is on the style as a whole: once it's met, every
- * one of its colours is available.
+ * What a [StyleGroup] takes to be usable. The lock is on the style as a whole: once it's met, every
+ * one of its variants is available.
  *
  * Owning the "Unlock all styles" purchase ([StyleAccess.ownsAllStyles]) meets every lock.
  *
- * A saved pick whose style is still locked isn't erased - [StyleCatalog.unlockedById] just draws the
+ * A saved pick whose style is still locked isn't erased - [StyleRegistry.unlockedId] just draws the
  * category's default in its place. (Resetting the achievements is the exception: Settings also puts
  * every pick that reset locks back to the default, so it can't return on re-earning the style.)
  */
@@ -46,7 +40,7 @@ sealed interface StyleUnlock {
         override fun isMet(access: StyleAccess): Boolean = access.ownsAllStyles || access.achievements.countedUnlocks >= count
     }
 
-    /** Earning any one of [achievements] - for a style whose colours each have an achievement of their own (see [StyleColour.secretAchievement]). */
+    /** Earning any one of [achievements] - for a style whose colours each have an achievement of their own (see [StyleVariant.secretAchievement]). */
     data class AnyAchievement(val achievements: List<Achievement>) : StyleUnlock {
         init {
             require(achievements.size > 1) { "Any of ${achievements.size} achievements isn't a choice" }
@@ -66,52 +60,30 @@ sealed interface StyleUnlock {
 /**
  * What the style locks are checked against: the [achievements] earned, and whether the "Unlock all styles" purchase is
  * owned ([net.zodac.dicefive.purchases.PurchasesRepository.ownsAllStyles], or pretended in a debug build), which meets
- * every lock - [StyleUnlock]s and secret colours ([StyleColour.secretAchievement]) alike.
+ * every lock - [StyleUnlock]s and secret variants ([StyleVariant.secretAchievement]) alike.
  */
 data class StyleAccess(val achievements: AchievementsState, val ownsAllStyles: Boolean = false)
 
 /** What these picks' locks are checked against. */
 val SavedStyles.access: StyleAccess get() = StyleAccess(achievements, ownsAllStyles)
 
-/** The table art a game is drawn in for these picks: each one, or its default while it's locked. */
-val SavedStyles.visualTheme: GameVisualTheme
-    get() = GameVisualTheme(
-        diceStyle = DiceStyles.unlockedById(diceStyleId, access),
-        diceCupStyle = DiceCupStyles.unlockedById(diceCupStyleId, access),
-        background = TableBackgrounds.unlockedById(tableBackgroundId, access),
-        mat = DiceMats.unlockedById(diceMatId, access),
-        frame = ScoreFrames.unlockedById(scoreFrameId, access),
-    )
-
-/** A style that earning one particular achievement unlocks, and what it's called: "the 'Irish' dice style". */
-data class StyleReward(val styleName: StringResource, val categoryNoun: StringResource, val hiddenColours: Int = 0) {
-    /** What it's called in a sentence, in the player's language. */
-    @Composable
-    fun description(): String {
-        val name = stringResource(styleName)
-        val noun = stringResource(categoryNoun)
-        return if (hiddenColours == 0) {
-            stringResource(Res.string.styles_reward_style, name, noun)
-        } else {
-            pluralStringResource(Res.plurals.styles_reward_hidden_colours, hiddenColours, name, noun)
-        }
-    }
-}
+/** A style that earning one particular achievement unlocks, and what it's called: "the 'Irish' dice style" (`ui.style`'s `description`). With [hiddenColours], that many hidden variants of it. */
+data class StyleReward(val styleName: StringResource, val categoryNoun: StringResource, val hiddenColours: Int = 0)
 
 /** Every style that earning this achievement unlocks, in the Styles screen's category order. */
 val Achievement.styleRewards: List<StyleReward>
     get() = styleRewardsByAchievement[this].orEmpty()
 
-// Worked out once from the catalogs, which never change, rather than by searching every style each
+// Worked out once from the registries, which never change, rather than by searching every style each
 // time an achievement row or banner asks.
 private val styleRewardsByAchievement: Map<Achievement, List<StyleReward>> by lazy {
-    StyleCatalogs.flatMap { catalog ->
-        catalog.families.flatMap { family ->
-            val familyReward = (family.unlock as? StyleUnlock.SpecificAchievement)?.let { it.achievement to StyleReward(family.name, catalog.noun) }
-            // Secret colours of a style that's otherwise available: one reward per achievement, counting its colours.
-            val colourRewards = family.colours.mapNotNull { it.secretAchievement }.groupingBy { it }.eachCount()
-                .map { (achievement, count) -> achievement to StyleReward(family.name, catalog.noun, hiddenColours = count) }
-            listOfNotNull(familyReward) + colourRewards
+    StyleCategory.entries.map { it.registry }.flatMap { registry ->
+        registry.groups.flatMap { group ->
+            val groupReward = (group.unlock as? StyleUnlock.SpecificAchievement)?.let { it.achievement to StyleReward(group.name, registry.noun) }
+            // Secret variants of a style that's otherwise available: one reward per achievement, counting its variants.
+            val variantRewards = group.variants.mapNotNull { it.secretAchievement }.groupingBy { it }.eachCount()
+                .map { (achievement, count) -> achievement to StyleReward(group.name, registry.noun, hiddenColours = count) }
+            listOfNotNull(groupReward) + variantRewards
         }
     }.groupBy({ it.first }, { it.second })
 }
@@ -131,9 +103,9 @@ val Achievement.unlocksStyle: Boolean
 fun stylesUnlockedByCount(countBefore: Int, countAfter: Int): List<StyleReward> {
     if (countAfter <= countBefore) return emptyList()
     val crossed = (countBefore + 1)..countAfter
-    return StyleCatalogs.flatMap { catalog ->
-        catalog.families
-            .filter { family -> (family.unlock as? StyleUnlock.AchievementCount)?.let { it.count in crossed } == true }
-            .map { StyleReward(it.name, catalog.noun) }
+    return StyleCategory.entries.map { it.registry }.flatMap { registry ->
+        registry.groups
+            .filter { group -> (group.unlock as? StyleUnlock.AchievementCount)?.let { it.count in crossed } == true }
+            .map { StyleReward(it.name, registry.noun) }
     }
 }

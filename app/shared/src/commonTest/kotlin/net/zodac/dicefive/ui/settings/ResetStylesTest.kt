@@ -24,12 +24,12 @@ import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingValue
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.data.settings.savedStylesFlow
+import net.zodac.dicefive.game.style.StyleCategory
+import net.zodac.dicefive.game.style.access
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.purchases.PurchasesRepository
 import net.zodac.dicefive.ui.style.DiceStyles
-import net.zodac.dicefive.ui.style.StyleCatalogs
-import net.zodac.dicefive.ui.style.access
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ResetStylesTest {
@@ -94,8 +94,8 @@ class ResetStylesTest {
         assertTrue(container.achievementsRepository.current().unlockedAt.isEmpty(), "the reset didn't happen")
         assertTrue(container.purchasesRepository.ownsAllStyles.first())
         val saved = savedStylesFlow(container.settingsRepository, container.achievementsRepository, container.ownsAllStyles).first()
-        for (catalog in StyleCatalogs) {
-            for (art in catalog.all) assertTrue(catalog.isUnlocked(art.id, saved.access), "${art.id} is locked again")
+        for (category in StyleCategory.entries) {
+            for (id in category.registry.ids) assertTrue(category.registry.isUnlocked(id, saved.access), "$id is locked again")
         }
         assertEquals(secret, saved.diceStyleId)
         assertEquals("glitch_screen", saved.tableBackgroundId)

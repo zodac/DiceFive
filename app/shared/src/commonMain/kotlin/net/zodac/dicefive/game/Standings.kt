@@ -1,5 +1,6 @@
 package net.zodac.dicefive.game
 
+import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 
 /** A player's place in the game so far: [place] counts from 1, and [tied] when they share it with another player. */
@@ -25,3 +26,11 @@ fun standings(players: List<PlayerState>): List<Standing>? {
     }
     return places.map { place -> Standing(place, tied = places.count { it == place } > 1) }
 }
+
+/**
+ * Whether the player at [index] won this finished game: first once [TieBreak] has settled level totals, so a win is
+ * shared only on a true tie, every criterion level. Null for a solo game, which has nobody to beat: neither a win nor a
+ * loss. The one rule for Statistics, the win streak and every achievement that asks who won.
+ */
+fun GameState.wonBy(index: Int): Boolean? =
+    if (players.size < 2) null else TieBreak.rank(players).first { it.originalIndex == index }.rank == 1

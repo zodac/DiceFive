@@ -312,4 +312,18 @@ class AiTurnPlayerTest {
         const val D20_SEEDED_GAMES = 30
         const val D20_HARD_SEEDED_GAMES = 10
     }
+
+    @Test
+    fun `only a Hard CPU on the card the table was built for plays by it - and a CPU keeping every die stops rolling`() {
+        assertTrue(AiTurnPlayer.usesPerfectPlayTable(soloGame(Difficulty.HARD)))
+        assertFalse(AiTurnPlayer.usesPerfectPlayTable(soloGame(Difficulty.MEDIUM)))
+        assertFalse(AiTurnPlayer.usesPerfectPlayTable(soloGame(Difficulty.HARD, extendedScores = true)))
+        assertFalse(AiTurnPlayer.usesPerfectPlayTable(soloGame(Difficulty.HARD, GameMode.TRICOLOUR)))
+        val human = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "You")))
+        assertFalse(AiTurnPlayer.usesPerfectPlayTable(human))
+
+        val state = rolledState(bot(Difficulty.MEDIUM), listOf(1, 2, 3, 4, 5))
+        assertTrue(AiTurnPlayer.stopsRolling(state, setOf(0, 1, 2, 3, 4)))
+        assertFalse(AiTurnPlayer.stopsRolling(state, setOf(0, 1, 2, 3)))
+    }
 }

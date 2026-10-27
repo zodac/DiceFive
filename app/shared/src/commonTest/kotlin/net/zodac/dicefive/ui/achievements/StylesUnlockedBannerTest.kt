@@ -7,9 +7,18 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import net.zodac.dicefive.app.AchievementEvent
+import net.zodac.dicefive.app.AchievementEvents
+import net.zodac.dicefive.app.StylesEarnedBy
+import net.zodac.dicefive.app.UnlockedStyle
+import net.zodac.dicefive.app.announce
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.achievements.countsTowardStyleLocks
 import net.zodac.dicefive.game.AchievementEngine
+import net.zodac.dicefive.game.style.StyleReward
+import net.zodac.dicefive.game.style.StyleUnlock
+import net.zodac.dicefive.game.style.styleRewards
+import net.zodac.dicefive.game.style.stylesUnlockedByCount
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.style_family_fishbowl
@@ -24,10 +33,6 @@ import net.zodac.dicefive.resources.style_noun_dice_cup
 import net.zodac.dicefive.resources.style_noun_frame
 import net.zodac.dicefive.resources.style_noun_mat
 import net.zodac.dicefive.ui.style.StyleCatalogs
-import net.zodac.dicefive.ui.style.StyleReward
-import net.zodac.dicefive.ui.style.StyleUnlock
-import net.zodac.dicefive.ui.style.styleRewards
-import net.zodac.dicefive.ui.style.stylesUnlockedByCount
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class StylesUnlockedBannerTest {

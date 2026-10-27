@@ -7,11 +7,13 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerState
+import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.UnluckyDice
+import net.zodac.dicefive.model.duplicateHumanNameSlots
 
 /**
  * Pure reducers for the turn flow. None of these touch Android APIs
@@ -19,6 +21,9 @@ import net.zodac.dicefive.model.UnluckyDice
  * caller and owns all side effects (AI pacing, score persistence).
  */
 object GameEngine {
+
+    /** The odds, one in this many per die rolled, of a golden egg where one can turn up ([rollDice]'s goldenOneIn). */
+    const val GOLDEN_EGG_ONE_IN = 500
 
     fun newGame(
         players: List<PlayerConfig>,
@@ -30,6 +35,11 @@ object GameEngine {
         random: Random = Random.Default,
     ): GameState {
         require(players.size in GameState.MIN_PLAYERS..GameState.MAX_PLAYERS) { "A game seats ${GameState.MIN_PLAYERS} to ${GameState.MAX_PLAYERS} players, not ${players.size}" }
+        // Seat 1 is the player holding the phone, whose achievements and records are "You". Only a table of CPUs alone (a
+        // simulation; the app never makes one) has nobody there.
+        require(players.none { it.type == PlayerType.HUMAN } || players.first().type == PlayerType.HUMAN) { "A Human sits in seat 1" }
+        require(players.map { it.colour }.toSet().size == players.size) { "Every player's colour differs" }
+        require(duplicateHumanNameSlots(players).isEmpty()) { "Every Human player's name differs" }
         val disabledCategories = gameMode.drawDisabledCategories(random)
         val hitList = gameMode.drawHitList(random)
         // A mode that doesn't allow the Extended Scores boxes plays without them, whatever was asked for.
@@ -143,9 +153,8 @@ object GameEngine {
             (!state.gameMode.scoresHeldDiceOnly || state.dice.count { it.isHeld } < state.gameMode.scoringDiceCount)
 
     /**
-     * Holds unheld dice, left to right, until the hand is full ([GameState.hasFullHand]) - what a turn
-     * that runs out of time is scored with in a mode where only held dice score. Nothing changes in a
-     * mode where every die scores.
+     * Holds unheld dice, left to right, until the hand is full ([GameState.hasFullHand]). Nothing changes in a mode where
+     * every die scores.
      */
     fun fillHand(state: GameState): GameState {
         var current = state
@@ -234,6 +243,19 @@ object GameEngine {
         )
         val updatedPlayers = state.players.toMutableList().apply { this[state.currentPlayerIndex] = updatedPlayer }
         return advanceTurn(state.copy(players = updatedPlayers))
+    }
+
+    /**
+     * The turn timer running out: the rest of the turn's rolls are forfeited, and a box is filled - a forced miss, never
+     * the best option picked for the player. A turn not yet rolled scores a zero ([forfeitTurn]): nothing is rolled the
+     * player didn't roll. A rolled one goes in the first box, in scorecard order, its dice can go in
+     * ([HandCompletion.timeoutCategory]), as they lie - or, where only held dice score, with the held ones completed for
+     * it - scoring nothing if they don't match. Null only if no box can take them.
+     */
+    fun timeOut(state: GameState): GameState? {
+        if (state.phase == TurnPhase.AWAITING_ROLL) return forfeitTurn(state)
+        val category = HandCompletion.timeoutCategory(state) ?: return null
+        return commitScore(HandCompletion.bestCompletion(state, category) ?: return null, category)
     }
 
     /**

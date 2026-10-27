@@ -96,25 +96,25 @@ app/android/src/play/.../purchases/  PlayBillingStore - the only com.android.bil
 
 ### Styles rule change
 
-Built (Phase 4). Every lock takes a `StyleAccess(achievements, ownsAllStyles)` (`ui/style/StyleUnlock.kt`) in place of
+Built (Phase 4). Every lock takes a `StyleAccess(achievements, ownsAllStyles)` (`game/style/StyleUnlock.kt`) in place of
 the `AchievementsState` it took. `SavedStyles` carries the flag (`SavedStyles.access`), and `savedStylesFlow` must be
 given it, so the menu logo, the game table, the Styles screen and the Fresh Coat check all read
 `AppContainer.ownsAllStyles` (the cached purchase, or a debug build's pretence).
 - With `ownsAllStyles`, every `AchievementCount`, `SpecificAchievement` and `AnyAchievement` lock is met.
-- **Secret colours** (`StyleColour.secretAchievement`, the Easter eggs) are included: `isAvailable` is met with the
+- **Secret colours** (`StyleVariant.secretAchievement`, the Easter eggs) are included: `isAvailable` is met with the
   flag too, so they appear on the Styles screen for owners. Their achievements still unlock as normal.
-- **Reset achievements** (`SettingsViewModel.resetLockedStylePicks`) re-locks picks against empty achievements; it
+- **Reset achievements** (`ProgressResets.resetAchievements`, `app/`) re-locks picks against empty achievements; it
   must use the current `ownsAllStyles`, so an owner's picks survive a reset.
-- **Fresh Coat Of Paint** reads `unlockedById`, so an owner can earn it on a bought style. Fine: Classic colours make
+- **Fresh Coat Of Paint** reads `SavedStyles.hasNonDefaultStyle` (`unlockedId`), so an owner can earn it on a bought style. Fine: Classic colours make
   it easy already.
 - **Eggcellent Discovery**: buying gives Egg dice and the Chicken cup early, so the golden egg's 1-in-500 roll comes
   sooner; the gold Egg colour itself is bought outright. The achievement still needs the roll. Record this in
   `GAME_MODES_AUDIT.md`'s style notes.
-- Unit tests: `StyleCatalogTest` (every lock met with the flag, secrets not), the reset path, `SavedStyles`.
+- Unit tests: `StyleRegistryTest` (every lock met with the flag, secrets not), the reset path, `SavedStyles`.
 
 ### Banners and achievement rows
 
-- `announce(update)` (`AchievementAnnouncements.kt`) takes `ownsAllStyles` and emits **no** `StylesUnlocked` events
+- `announce(update)` (`app/AchievementEvents.kt`) takes `ownsAllStyles` and emits **no** `StylesUnlocked` events
   when it's true: neither the per-achievement reward banner nor the count banner. Unlock and progress banners are
   unchanged. Signed in to Play Games, Play's pop-up still replaces the unlock banner, so an owner sees only Play's.
 - `AchievementAnnouncementsTest`-style tests: owned emits only unlock and progress events, in order.

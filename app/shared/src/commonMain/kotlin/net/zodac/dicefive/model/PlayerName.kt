@@ -78,6 +78,22 @@ fun sanitizePlayerName(raw: String): String {
  */
 fun playerNameKey(name: String): String = sanitizePlayerName(name).trim().lowercase()
 
+/** The name a Human seat plays under: what was [typed], sanitised and trimmed, or [default] ("Player 2") if that leaves nothing. */
+fun resolvePlayerName(typed: String, default: String): String = sanitizePlayerName(typed).trim().ifBlank { default }
+
+/**
+ * The slots of every Human player whose name matches another Human's ([playerNameKey]). A game can't seat both: the
+ * Leaderboard and Statistics tell players apart by name. An AI's name is generated, and never recorded, so it can't
+ * clash. A blank name is a seat not named yet (a preview's), never a started game's, and clashes with nothing.
+ */
+fun duplicateHumanNameSlots(players: List<PlayerConfig>): Set<Int> =
+    players.filter { it.type == PlayerType.HUMAN && playerNameKey(it.name).isNotEmpty() }
+        .groupBy { playerNameKey(it.name) }
+        .values
+        .filter { it.size > 1 }
+        .flatten()
+        .mapTo(mutableSetOf()) { it.slot }
+
 /** Common code has no `appendCodePoint`: a character above the first plane goes in as its surrogate pair. */
 private fun StringBuilder.appendScalar(codePoint: Int) {
     if (codePoint <= 0xFFFF) {

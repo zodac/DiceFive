@@ -54,7 +54,6 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.UnluckyDice
-import net.zodac.dicefive.model.playerNameKey
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_cpu_cd
 import net.zodac.dicefive.resources.common_default_player_name
@@ -65,9 +64,9 @@ import net.zodac.dicefive.resources.setup_extended_description
 import net.zodac.dicefive.resources.setup_extended_locked
 import net.zodac.dicefive.resources.setup_extended_title
 import net.zodac.dicefive.resources.setup_game_mode
+import net.zodac.dicefive.resources.setup_modes_locked
 import net.zodac.dicefive.resources.setup_modifiers
 import net.zodac.dicefive.resources.setup_modifiers_active_note
-import net.zodac.dicefive.resources.setup_modes_locked
 import net.zodac.dicefive.resources.setup_modifiers_description
 import net.zodac.dicefive.resources.setup_modifiers_locked
 import net.zodac.dicefive.resources.setup_names_unique
@@ -91,8 +90,8 @@ import net.zodac.dicefive.resources.setup_timer_none
 import net.zodac.dicefive.resources.setup_timer_seconds
 import net.zodac.dicefive.resources.setup_timer_title
 import net.zodac.dicefive.resources.setup_timer_unit
-import net.zodac.dicefive.resources.setup_tutorial_prompt
 import net.zodac.dicefive.resources.setup_title
+import net.zodac.dicefive.resources.setup_tutorial_prompt
 import net.zodac.dicefive.resources.setup_type_user
 import net.zodac.dicefive.resources.setup_unlucky_description
 import net.zodac.dicefive.resources.setup_unlucky_max
@@ -154,7 +153,7 @@ fun GameSetupScreen(
 
     val defaultNames = (1..GameState.MAX_PLAYERS).map { stringResource(Res.string.common_default_player_name, it) }
     val defaultName: (Int) -> String = { defaultNames[it - 1] }
-    val duplicateNameSlots = duplicateHumanNameSlots(activeSlots, defaultName)
+    val duplicateNameSlots = setup.duplicateNameSlots(defaultName)
     val namesMustBeUnique = stringResource(Res.string.setup_names_unique)
 
     ScreenScaffold(title = stringResource(Res.string.setup_title), onBack = onBack, modifier = modifier, wide = true) {
@@ -194,8 +193,7 @@ fun GameSetupScreen(
                     // A name field still focused would keep blinking its cursor on the fading-out page, and the
                     // keyboard up, for the frames the next screen takes to arrive.
                     focusManager.clearFocus()
-                    viewModel.startGame(defaultName)
-                    onStartGame()
+                    if (viewModel.startGame(defaultName)) onStartGame()
                 },
                 enabled = duplicateNameSlots.isEmpty(),
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
@@ -238,21 +236,6 @@ fun GameSetupScreen(
         actions()
     }
 }
-
-/**
- * Every Human seat whose name (leading/trailing whitespace ignored, case ignored) collides with
- * another Human seat's - an AI's name is generated, never typed, so it can't collide with anything
- * a player entered. A blank name counts as its slot's [defaultName] ("Player 2"), which is what it
- * becomes at [GameViewModel.startGame] - so two blank ones never collide (their defaults differ), but a
- * blank one does against another seat that typed the same words.
- */
-private fun duplicateHumanNameSlots(slots: List<PlayerSetupSlot>, defaultName: (Int) -> String): Set<Int> =
-    slots.filter { it.type == PlayerType.HUMAN }
-        .groupBy { playerNameKey(it.name).ifBlank { playerNameKey(defaultName(it.slot)) } }
-        .values
-        .filter { it.size > 1 }
-        .flatten()
-        .mapTo(mutableSetOf()) { it.slot }
 
 /** The form's first half: how many players, and each one's colour, name and type. */
 @Composable

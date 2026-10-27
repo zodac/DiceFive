@@ -12,9 +12,9 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.MainActivity
+import net.zodac.dicefive.app.AchievementEvent
+import net.zodac.dicefive.app.AchievementEvents
 import net.zodac.dicefive.app.AppContainer
-import net.zodac.dicefive.ui.achievements.AchievementEvent
-import net.zodac.dicefive.ui.achievements.AchievementEvents
 import net.zodac.dicefive.device.AndroidAppContainer
 import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.model.Achievement

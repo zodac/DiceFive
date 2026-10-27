@@ -38,7 +38,11 @@ NavHost(start = "menu")
 - **Names.**
   - An empty name field shows a localised "Player N" hint, and the game uses that name.
   - Names are sanitised as they're typed (`model/PlayerName.kt`).
-  - Names are capped by width per player count (`maxPlayerNameLength` 14/12/10/8; see `UI_BOARD.md`).
+  - Names are capped by width per player count (`model/NameWidth.kt`'s `maxPlayerNameLength` 14/12/10/8; see
+    `UI_BOARD.md`).
+  - `GameEngine.newGame` holds every table to its rules: 1-4 players, a Human in seat 1 whenever any play, distinct
+    colours, and no two Human names alike (`duplicateHumanNameSlots`; the Leaderboard and Statistics tell players apart
+    by name). The New Game form asks the same function, and `startGame` refuses a clash.
 - **Colours.** Each player picks a distinct colour (`PlayerColour`).
 - **Remembered.** The mode, the modifiers and everything on the form are saved for next time in `SettingsRepository`.
 - **Locked until a first game is finished.** Until any game reaches its end (any mode, solo or not, won or lost; a
@@ -97,7 +101,7 @@ All numbers here are Standard's. Each comes from the game's `GameMode`.
 - **Turn timer** (a modifier):
   - Running out on a rolled turn scores the first open box (in Stud, the hand is completed first).
   - Running out before the first roll forfeits the turn as a zero in the first open box, with no roll
-    (`GameEngine.forfeitTurn`).
+    (`GameEngine.forfeitTurn`). Both are `GameEngine.timeOut`.
   - CPUs time out the same way.
 - **Undo** exists in solo games only. It takes back the last score; a roll or hold clears it (they aren't undoable),
   as does any CPU move, and a finished game has none. It's saved with the game, so a resumed game can still undo.
@@ -138,7 +142,9 @@ The first criterion that differs decides it. If all match, it's a true tie with 
   screen (its caption: "Won on fewer 5x") and the Tie Break achievement.
 - **The Leaderboard** uses the same criteria minus the Tricolour one, because its Combined table mixes modes. Its SQL
   `ORDER BY` mirrors the comparator.
-- **Ranking only.** A raw-score tie at the top still counts as a win for achievements and statistics.
+- **Who won.** `GameState.wonBy` (`game/Standings.kt`): rank 1 after the tie-break, so only a true tie shares a win.
+  The one rule for Statistics' `won`, the win streak, every win-gated achievement and One More Time. Score rows
+  recorded up to Android 1.2.1 keep the raw-score rule they were saved with.
 - **Player tabs** rank by total during play ("=1st"), then take `TieBreak.rank` once every card is full.
 
 ## Game modes
@@ -334,7 +340,7 @@ will map to Play Games.
     from a name).
 - **Rules.**
   - A solo game counts for games played, feats and thresholds, but neither extends nor breaks a win streak.
-  - A tie at the top is a win.
+  - A tie at the top is a win only for whoever the tie-break ranks first (`wonBy`); a true tie is a shared win.
   - Superuser mode doesn't disqualify a game.
   - Undo can't inflate a counter: counters move only at game end, and only human rolls count dice.
   - New Personal Best is per name, and reads the best from before this game's rows are written.
@@ -350,8 +356,8 @@ will map to Play Games.
     or the dice and chosen box together (Wasted Fortune, Size Isn't Everything, Almost Famous, The Dice Hate Me,
     Commitment Issues).
   - `evaluate` at game end: everything else, and every counter.
-  - Every unlock goes through `AchievementUnlocker`, whose locks (its own and the store's `locked`) serialise them
-    all across screens, so nothing is announced twice.
+  - Every unlock goes through the app's one `AchievementUnlocker` (`app/`, `AppContainer.achievementUnlocker`), whose
+    locks (its own and the store's `locked`) serialise them all across screens, so nothing is announced twice.
 - **Modes.** Each mode's own achievements are in the Game Modes category. Achievements a mode would make trivial are
   guarded (`GAME_MODES_AUDIT.md`).
 - **Display.**
@@ -390,16 +396,21 @@ way round the tab, thinning its inward leaves beside the name, and `FrameCoverag
 band along every edge. Unlocks run from Floral at 10 to Marquee at 100, with Nautical at 15 as part of the water set and
 Starry at 45, which opens by count and not with the Starry dice, mat and background (Rolling The Midnight Dice).
 
-`StyleCatalog.kt` groups each category's art into `StyleFamily`s (a shape or pattern, which is one tile on the Styles
-screen) of `StyleColour`s.
+Each category is two lists in the same order:
 
-- **Ids** are the family's string key, then the colour's (`classic_gold`, `bestagons_honeycomb`). `StyleCatalogTest`
+- **The registry** (`game/style/StyleRegistries.kt`, pure): `StyleGroup`s (a shape or pattern, one tile on the Styles
+  screen) of `StyleVariant`s, with every id, name and lock. Anything that decides what a player may use (the unlocker,
+  the resets, achievements) reads only this, through `StyleCategory.registry`.
+- **The art** (`ui/style/StyleCatalog.kt`): each variant's `StyleArt` (swatch and drawing). `StyleCatalog` joins it to
+  the registry by id into the Styles screen's `StyleFamily`s of `StyleColour`s, and refuses a mismatch at load.
+
+- **Ids** are the family's string key, then the colour's (`classic_gold`, `bestagons_honeycomb`). `StyleRegistryTest`
   enforces this.
   - **One exception: a style folded into another family keeps the id it was released with.** The Beaker cups are
     colours of Glass (`Beaker Blue`, `Beaker Green`) but are still `beaker_blue` and `beaker_green`, because ids are
     permanent. They're listed in the test.
 - **A style with a counterpart of the same name is unlocked by the same thing** in every category that has one: Stone
-  (dice, mat, background) opens at 65 achievements, Circuit at 80, Neon at 100, Meadow at 75. `StyleCatalogTest` checks
+  (dice, mat, background) opens at 65 achievements, Circuit at 80, Neon at 100, Meadow at 75. `StyleRegistryTest` checks
   every family name across dice, cups, mats and backgrounds.
 - **The water set opens together, at 15 achievements** (`WATER_SET_UNLOCK`): the Ocean dice, mat and background, the
   Fishbowl cup and the Nautical frame. No count lock is above 100, and the 50 and 100 locks are fixed points.
@@ -412,7 +423,7 @@ screen) of `StyleColour`s.
   gold casino shaker (the launcher icon's cup), the blue mat, navy felt, a plain ring.
 - **Locks.** Every other family is locked behind an achievement count (`StyleUnlock.AchievementCount`) or a specific
   achievement (`SpecificAchievement`, `AnyAchievement`).
-  - A colour can also be secret (`StyleColour.secretAchievement`): not offered at all until earned.
+  - A colour can also be secret (`StyleVariant.secretAchievement`): not offered at all until earned.
   - Every lock takes a `StyleAccess`: the achievements, and `ownsAllStyles`, the "Unlock all styles" purchase
     (`PURCHASES.md`), which meets every lock and secret colour.
   - A locked saved pick draws the default but stays saved. Resetting achievements resets the picks it locks; an

@@ -1,8 +1,26 @@
 package net.zodac.dicefive.model
 
 /**
+ * The longest name that fits its own tab in the in-game header without being ellipsised, in [nameWidth] units: every
+ * seat shares that one row, so the more players there are, the less each name gets. A layout limit rather than a rule
+ * of play, but every name is held to it: typed, restored and generated ([maxAiNameLength]).
+ */
+fun maxPlayerNameLength(playerCount: Int): Int = when (playerCount) {
+    1 -> 14
+    2 -> 12
+    3 -> 10
+    else -> 8
+}
+
+/** How many [nameWidth] units a CPU tab's chip icon and the gap after it take: a rough conversion, not a measurement. */
+private const val CPU_ICON_ALLOWANCE = 2
+
+/** [maxPlayerNameLength], less the room the CPU chip icon takes in every AI's tab - what [net.zodac.dicefive.game.AiNameGenerator]'s names fit. */
+fun maxAiNameLength(playerCount: Int): Int = maxPlayerNameLength(playerCount) - CPU_ICON_ALLOWANCE
+
+/**
  * How much of a name tab a typed name takes, in "characters' worth" of Latin width - the unit
- * [net.zodac.dicefive.ui.game.GameSetupState.maxPlayerNameLength] is in. A character is one, except that the full-width
+ * [maxPlayerNameLength] is in. A character is one, except that the full-width
  * scripts (Chinese, Japanese, Korean and emoji) take two, and combining marks, joiners and variation selectors none:
  * counting UTF-16 units would let twelve Chinese characters through to a tab that holds six, and cut an emoji or an accent in half.
  * A rough measure - not a font's - which is all a cap that picks "about this wide" needs.

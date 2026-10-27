@@ -7,6 +7,7 @@ import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
+import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
 
@@ -263,6 +264,21 @@ object AiTurnPlayer {
     }
 
     /**
+     * Whether [state]'s CPU plays by Standard's perfect-play table: a Hard one, in a game on the card the table was
+     * built for ([GameMode.playsByPerfectPlayTable]). Every other CPU is given none.
+     */
+    fun usesPerfectPlayTable(state: GameState): Boolean {
+        val player = state.currentPlayer ?: return false
+        return player.type == PlayerType.AI && player.difficulty == Difficulty.HARD && state.gameMode.playsByPerfectPlayTable(state.extendedScores)
+    }
+
+    /**
+     * Whether a CPU choosing [holds] is done rolling: it keeps every die, so a roll would change nothing. It stops with its
+     * rolls still left, as a person can, and [GameState.rollsRemaining] still says how many.
+     */
+    fun stopsRolling(state: GameState, holds: Set<Int>): Boolean = holds.size == state.dice.size
+
+    /**
      * Pure end-to-end simulation of an AI's whole turn: roll, hold, roll, hold, roll, then - where only
      * held dice score - hold the hand, then score. Used by tests and as a reference for GameViewModel's
      * animated version.
@@ -273,7 +289,7 @@ object AiTurnPlayer {
             current = GameEngine.rollDice(current, random)
             if (current.rollsRemaining > 0) {
                 val holds = chooseHolds(current, perfectPlay)
-                if (holds.size == current.dice.size) break
+                if (stopsRolling(current, holds)) break
                 current = applyHolds(current, holds)
             }
         }

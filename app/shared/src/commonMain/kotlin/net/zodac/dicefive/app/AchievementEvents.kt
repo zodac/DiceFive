@@ -1,9 +1,12 @@
-package net.zodac.dicefive.ui.achievements
+package net.zodac.dicefive.app
 
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import net.zodac.dicefive.game.AchievementUpdate
+import net.zodac.dicefive.game.style.styleRewards
+import net.zodac.dicefive.game.style.stylesUnlockedByCount
 import net.zodac.dicefive.model.Achievement
 import org.jetbrains.compose.resources.StringResource
 
@@ -71,4 +74,36 @@ object AchievementEvents {
     fun emit(event: AchievementEvent) {
         _events.tryEmit(event)
     }
+}
+
+/**
+ * Puts everything a recorded [update] earned up as banners: each unlock, followed by a styles banner for whatever
+ * styles are locked behind that achievement ([styleRewards]); then one banner for any styles its unlocks brought
+ * within reach by count (see [stylesUnlockedByCount]) - however many, and from however many categories - then each
+ * progress nudge. A player who [ownsAllStyles] gets no styles banners: every style is already theirs. Call it only once
+ * [update] is stored, so a banner can never outlive what it announces.
+ */
+fun announce(update: AchievementUpdate, ownsAllStyles: Boolean) {
+    update.newlyUnlocked.forEach { achievement ->
+        AchievementEvents.emit(AchievementEvent.Unlocked(achievement))
+        val rewards = achievement.styleRewards
+        if (rewards.isNotEmpty() && !ownsAllStyles) {
+            AchievementEvents.emit(
+                AchievementEvent.StylesUnlocked(
+                    rewards.map { UnlockedStyle(it.styleName, it.categoryNoun, it.hiddenColours) },
+                    StylesEarnedBy.OneAchievement(achievement),
+                ),
+            )
+        }
+    }
+    val styles = if (ownsAllStyles) emptyList() else stylesUnlockedByCount(update.countedUnlocksBefore, update.countedUnlocksAfter)
+    if (styles.isNotEmpty()) {
+        AchievementEvents.emit(
+            AchievementEvent.StylesUnlocked(
+                styles.map { UnlockedStyle(it.styleName, it.categoryNoun) },
+                StylesEarnedBy.Count(update.countedUnlocksAfter),
+            ),
+        )
+    }
+    update.progressed.forEach { AchievementEvents.emit(AchievementEvent.Progressed(it.achievement, it.previous, it.current)) }
 }

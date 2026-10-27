@@ -101,7 +101,7 @@ The constants are at the top of `AchievementBannerHost.kt`:
   - `tertiaryContainer`, with the style star in a circle. It's the size of an unlock banner.
   - Title "Style(s) Unlocked"; description "Earned 23 achievements: the 'Frosted' dice style", naming two styles and
     counting the rest.
-  - **Order.** `announce(update, ownsAllStyles)` (`AchievementAnnouncements.kt`) emits each unlock followed by its own styles banner if
+  - **Order.** `announce(update, ownsAllStyles)` (`app/AchievementEvents.kt`) emits each unlock followed by its own styles banner if
     it has styles behind it (`styleRewards`: "Earned 'Big Fan': 'Glitch' dice and background", or "the hidden
     'Multicolour' dice colour"); then **at most one** styles banner for every count lock crossed
     (`stylesUnlockedByCount`, from `countedUnlocksBefore` to `countedUnlocksAfter`); then the progress nudges.
@@ -125,8 +125,8 @@ The constants are at the top of `AchievementBannerHost.kt`:
 
 ## Style locks
 
-A lock is on the style (`StyleFamily.unlock`), not the colour: once it's met, all its colours are available.
-`StyleCatalogTest` keeps the counts within what can be earned.
+A lock is on the style (`StyleGroup.unlock`, in the registry), not the colour: once it's met, all its colours are
+available. `StyleRegistryTest` keeps the counts within what can be earned.
 
 - **Behind a specific achievement**, shown padlocked:
   - Googly dice (Completionist);
@@ -138,14 +138,14 @@ A lock is on the style (`StyleFamily.unlock`), not the colour: once it's met, al
   - the Floating Dice background (Not Those Dice!: the menu's backdrop as a table background);
   - the Martini cup (Shaken, Not Tapped);
   - the D20 dice (Nat 20 or Critical Success, `AnyAchievement`).
-- **Secret colours** (`StyleColour.secretAchievement`) are left out entirely until earned:
+- **Secret colours** (`StyleVariant.secretAchievement`) are left out entirely until earned:
   - the Irish Multicolour dice (Luck of the Irish);
   - the white and black D20 (Nat 20) and the blue D20 (Critical Success);
   - the Flowerpot's plant-stage pots (Greenfingers);
   - the Top Hat with its rabbit always out (The Magician's Secret);
   - the gold Egg dice (Eggcellent Discovery).
 - **The golden egg.** With Egg dice (any colour but gold) and the Chicken cup, even once earned, each human-rolled
-  die has a 1-in-500 chance of landing golden (`GOLDEN_EGG_ONE_IN`). Any mode or modifier except D20, whose dice are
+  die has a 1-in-500 chance of landing golden (`GameEngine.GOLDEN_EGG_ONE_IN`). Any mode or modifier except D20, whose dice are
   drawn as D20s.
   - The roll: `Die.isGolden`, set by `GameEngine.rollDice(goldenOneIn = ...)` from `performRoll`. It's saved with the
     game and drawn as `GoldenEggDiceStyle`.
@@ -163,12 +163,12 @@ A lock is on the style (`StyleFamily.unlock`), not the colour: once it's met, al
   - A tap shows a tooltip with the core requirement ("23 achievements needed").
   - A long press opens a dialog with progress. That dialog is TalkBack's one action, since tooltips aren't announced.
 - **A locked saved pick is never overwritten.** Everything that draws a saved style goes through
-  `StyleCatalog.unlockedById` (never `byId`), which draws the default instead. A reset re-locks a style without losing
+  `StyleCatalog.unlockedById` (never `byId`; its rule is `StyleRegistry.unlockedId`), which draws the default instead. A reset re-locks a style without losing
   the pick.
 
 ## The Styles screen
 
-**Counts.** Every colour of a style counts as one (`StyleCatalog.unlockCount`). A secret colour isn't counted until
+**Counts.** Every colour of a style counts as one (`StyleRegistry.unlockCount`). A secret colour isn't counted until
 it's earned, so the total doesn't hint at it.
 - The unlocked/total count is drawn like the Achievements page's: a full-width card over the cards, or compact after
   the back arrow in landscape.

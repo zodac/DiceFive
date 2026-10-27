@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
@@ -43,5 +44,19 @@ class StandingsTest {
         // A finished game's places follow the tie-break house rule as the results screen does: equal totals, the second
         // scored a box the first zeroed - and the house rule ranks more zeroes higher.
         assertEquals(listOf(Standing(2, tied = false), Standing(1, tied = false)), standings(listOf(finished(30, zeroes = false), finished(30, zeroes = true))))
+    }
+
+    @Test
+    fun `a finished game is won by whoever the tie-break ranks first - shared only on a true tie - and won by nobody solo`() {
+        fun game(vararg players: PlayerState) = GameState(gameMode = GameMode.STANDARD, players = players.toList(), isGameOver = true)
+
+        assertNull(game(finished(30, zeroes = true)).wonBy(0), "a solo game is neither won nor lost")
+        val outright = game(finished(31, zeroes = true), finished(30, zeroes = true))
+        assertEquals(listOf(true, false), outright.players.indices.map { outright.wonBy(it) })
+        // Level on 30: the house rule ranks the one with more zeroed boxes first, so the other lost.
+        val tieBroken = game(finished(30, zeroes = false), finished(30, zeroes = true))
+        assertEquals(listOf(false, true), tieBroken.players.indices.map { tieBroken.wonBy(it) })
+        val trueTie = game(finished(30, zeroes = true), finished(30, zeroes = true), finished(20, zeroes = true))
+        assertEquals(listOf(true, true, false), trueTie.players.indices.map { trueTie.wonBy(it) })
     }
 }

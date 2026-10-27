@@ -1,4 +1,4 @@
-package net.zodac.dicefive.ui.achievements
+package net.zodac.dicefive.app
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first

@@ -1,4 +1,4 @@
-package net.zodac.dicefive.ui.achievements
+package net.zodac.dicefive.app
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

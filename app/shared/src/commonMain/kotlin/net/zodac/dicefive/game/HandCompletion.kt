@@ -32,6 +32,17 @@ object HandCompletion {
         return completions
     }
 
+    /**
+     * [state] ready to score [category]: as it is, when its hand is whole and can go there - or, where only held dice
+     * score, with the held dice completed for it ([bestCompletion]), so a box can be scored before the hand is whole. Null
+     * if [category] can't be scored.
+     */
+    fun readyToScore(state: GameState, category: ScoreCategory): GameState? {
+        if (!state.hasFullHand) return bestCompletion(state, category)
+        val player = state.currentPlayer ?: return null
+        return state.takeIf { category in ScoreCalculator.availableCategories(player, state.scoringDice) }
+    }
+
     /** The completion of [state]'s held dice that is worth most in [category], or null if no completion can score there. */
     fun bestCompletion(state: GameState, category: ScoreCategory): GameState? {
         val player = state.currentPlayer ?: return null

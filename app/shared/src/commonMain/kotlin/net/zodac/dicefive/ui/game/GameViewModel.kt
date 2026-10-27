@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import net.zodac.dicefive.app.AchievementUnlocker
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.game.InProgressGameRepository
@@ -42,15 +43,18 @@ import net.zodac.dicefive.game.AiTurnPlayer
 import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.game.GameStartContext
 import net.zodac.dicefive.game.HandCompletion
+import net.zodac.dicefive.game.HoldSequence
 import net.zodac.dicefive.game.LeaderboardTotals
-import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.game.StandardPerfectPlayTable
 import net.zodac.dicefive.game.TutorialDice
 import net.zodac.dicefive.game.TutorialScript
 import net.zodac.dicefive.game.TutorialStep
+import net.zodac.dicefive.game.isPlayerOneTurn
 import net.zodac.dicefive.game.localHourOfDay
 import net.zodac.dicefive.game.nowEpochMillis
+import net.zodac.dicefive.game.style.hasNonDefaultStyle
 import net.zodac.dicefive.game.toTieBreakStats
+import net.zodac.dicefive.game.wonBy
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.Difficulty
@@ -65,18 +69,17 @@ import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.UnluckyDice
+import net.zodac.dicefive.model.duplicateHumanNameSlots
 import net.zodac.dicefive.model.hasGrownSunflower
-import net.zodac.dicefive.model.isLuckOfTheIrish
+import net.zodac.dicefive.model.maxPlayerNameLength
+import net.zodac.dicefive.model.resolvePlayerName
 import net.zodac.dicefive.model.sanitizePlayerName
 import net.zodac.dicefive.model.takeNameWidth
-import net.zodac.dicefive.ui.achievements.AchievementUnlocker
 import net.zodac.dicefive.ui.style.ChickenDiceCupStyle
 import net.zodac.dicefive.ui.style.EggDiceStyle
 import net.zodac.dicefive.ui.style.FlowerpotDiceCupStyle
 import net.zodac.dicefive.ui.style.GoldenEggDiceStyle
 import net.zodac.dicefive.ui.style.PIP_FACES
-import net.zodac.dicefive.ui.style.StyleAccess
-import net.zodac.dicefive.ui.style.StyleCategory
 import net.zodac.dicefive.ui.style.visualTheme
 
 /**
@@ -120,30 +123,13 @@ data class GameSetupState(
     val activeUnluckyDice: UnluckyDice?
         get() = unluckyDice.takeIf { unluckyDiceEnabled }
 
-    companion object {
-        /**
-         * The longest name that fits its own tab in the in-game header without being ellipsised -
-         * not a database or gameplay limit, a layout one. In characters' worth of width (see [nameWidth]): full-width scripts count double. Every seat shares that one row, so the
-         * more of them there are the less width (and, for a CPU seat, the less width left over
-         * once its chip icon takes its own share) each tab - and so each name - gets.
-         */
-        fun maxPlayerNameLength(playerCount: Int): Int = when (playerCount) {
-            1 -> 14
-            2 -> 12
-            3 -> 10
-            else -> 8
-        }
-
-        /** How many characters' worth of width a CPU tab's chip icon and the gap after it cost -
-         * a rough conversion, not a pixel measurement, but enough to pick a shorter [AiNameGenerator]
-         * pool for a tighter player count rather than an AI name arriving pre-ellipsised where a
-         * Human one at the same length wouldn't have been. */
-        private const val CPU_ICON_ALLOWANCE = 2
-
-        /** [maxPlayerNameLength], minus room for the CPU chip icon every AI's own tab also carries -
-         * see [CPU_ICON_ALLOWANCE]. */
-        fun maxAiNameLength(playerCount: Int): Int = maxPlayerNameLength(playerCount) - CPU_ICON_ALLOWANCE
-    }
+    /**
+     * The shown seats whose Human names clash ([duplicateHumanNameSlots]), each blank one counted as its [defaultName] - what
+     * it becomes at [GameViewModel.startGame]. While there are any, the game can't start.
+     */
+    fun duplicateNameSlots(defaultName: (slot: Int) -> String): Set<Int> = duplicateHumanNameSlots(
+        playerSlots.take(playerCount).map { PlayerConfig(slot = it.slot, type = it.type, name = resolvePlayerName(it.name, defaultName(it.slot))) },
+    )
 }
 
 /**
@@ -179,6 +165,8 @@ class GameViewModel(
     private val tutorial: TutorialScript? = null,
     /** Whether the purchase unlocks every style ([AppContainer.ownsAllStyles]). */
     private val ownsAllStyles: Flow<Boolean> = flowOf(false),
+    /** Where its achievements are earned: the app's one ([AppContainer.achievementUnlocker]); a test's own otherwise. */
+    private val achievementUnlocker: AchievementUnlocker = AchievementUnlocker(achievementsRepository, ownsAllStyles),
 ) : ViewModel() {
 
     private val _setup = MutableStateFlow(GameSetupState())
@@ -388,8 +376,7 @@ class GameViewModel(
     fun startTutorial(defaultName: String) {
         val script = tutorial ?: return
         viewModelScope.launch {
-            val cap = GameSetupState.maxPlayerNameLength(1)
-            val name = sanitizePlayerName(settingsRepository.snapshot().playerNameFor(1).orEmpty()).trim().ifBlank { defaultName }.takeNameWidth(cap)
+            val name = resolvePlayerName(settingsRepository.snapshot().playerNameFor(1).orEmpty(), defaultName).takeNameWidth(maxPlayerNameLength(1))
             tutorialIndex = 0
             showTutorialStep(0)
             val start = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = name)), script.gameMode)
@@ -420,8 +407,7 @@ class GameViewModel(
     // 1's, ... through die 4's) - on any turn, any player's. Once active for the rest of this
     // game, holding a finger on an already-held die cycles its face once a second - see
     // DiceTray's onCycleValue wiring and GameEngine.cycleDieValue.
-    // superuserSequenceDieIndex/AwaitingUnhold track progress toward unlocking it; neither is
-    // exposed, since nothing outside trackSuperuserSequence needs them.
+    // holdSequence tracks progress toward unlocking it.
     private val _superuserModeActive = MutableStateFlow(false)
     val superuserModeActive: StateFlow<Boolean> = _superuserModeActive.asStateFlow()
     // A Channel, not a SharedFlow: a SharedFlow only buffers for collectors already subscribed at
@@ -431,14 +417,11 @@ class GameViewModel(
     // for a one-shot toast rather than state to replay.
     private val _toastMessages = Channel<String>(Channel.BUFFERED)
     val toastMessages: Flow<String> = _toastMessages.receiveAsFlow()
-    private var superuserSequenceDieIndex = 0
-    private var superuserSequenceAwaitingUnhold = false
+    private val holdSequence = HoldSequence()
 
     /** Player 1's achievement progress through the game that its final state can't show - see [AchievementTracker]. */
     private val tracker = AchievementTracker()
 
-    /** Earns achievements one read-decide-write at a time - see [AchievementUnlocker]. */
-    private val achievementUnlocker = AchievementUnlocker(achievementsRepository, ownsAllStyles)
 
     /**
      * Whether this is the first 5x the player in [playerIndex]'s seat has had this game: true once per seat, then false.
@@ -471,7 +454,7 @@ class GameViewModel(
                     playerCount = savedCount.coerceIn(GameState.MIN_PLAYERS, GameState.MAX_PLAYERS),
                 )
             }
-            val cap = GameSetupState.maxPlayerNameLength(restored.playerCount)
+            val cap = maxPlayerNameLength(restored.playerCount)
             val slots = restored.playerSlots.map { slot ->
                 // Capped on the way in, so a name saved at a player count with wider tabs is trimmed
                 // rather than reappearing over-long.
@@ -514,7 +497,7 @@ class GameViewModel(
         // of them - so every name (not just the seat(s) just added/removed) is reclamped here,
         // including ones for currently-inactive seats beyond the new count, which keeps them
         // already-valid if the count is raised back before the game starts.
-        val cap = GameSetupState.maxPlayerNameLength(newCount)
+        val cap = maxPlayerNameLength(newCount)
         _setup.update { state -> state.copy(playerSlots = state.playerSlots.map { it.copy(name = it.name.takeNameWidth(cap)) }) }
     }
 
@@ -527,10 +510,10 @@ class GameViewModel(
      * Enforced here rather than only in the text field, so the cap holds for every path into a
      * name - including a longer one restored from a previous version's saved preferences - and at
      * whatever length fits the player count in the form right now (see
-     * [GameSetupState.maxPlayerNameLength]).
+     * [maxPlayerNameLength]).
      */
     fun setPlayerName(slot: Int, name: String) {
-        val cap = GameSetupState.maxPlayerNameLength(_setup.value.playerCount)
+        val cap = maxPlayerNameLength(_setup.value.playerCount)
         updateSlot(slot) { it.copy(name = sanitizePlayerName(name).takeNameWidth(cap)) }
     }
 
@@ -609,13 +592,16 @@ class GameViewModel(
      * Builds the initial [GameState] from the current setup form, generating AI names now. A Human seat
      * with no name typed gets [defaultName] for its slot ("Player 2", in the player's language - the
      * screen passes it; the English here is for tests, which have no screen).
+     *
+     * Returns whether the game started: not while two Human names clash ([GameSetupState.duplicateNameSlots]).
      */
-    fun startGame(defaultName: (slot: Int) -> String = { "Player $it" }) { // i18n: not translated - for tests, the screen always passes the translated one
+    fun startGame(defaultName: (slot: Int) -> String = { "Player $it" }): Boolean { // i18n: not translated - for tests, the screen always passes the translated one
         // Read before anything below overwrites it: "One More Time" is about the game THIS call is
         // replacing, not the one it's about to create.
         val previousGame = _game.value
 
         val setupState = _setup.value
+        if (setupState.duplicateNameSlots(defaultName).isNotEmpty()) return false
         val activeSlots = setupState.playerSlots.take(setupState.playerCount)
         val aiNames = AiNameGenerator.generateNames(
             count = activeSlots.count { it.type == PlayerType.AI },
@@ -623,7 +609,7 @@ class GameViewModel(
         ).iterator()
         val playerConfigs = activeSlots.map { slot ->
             val name = when (slot.type) {
-                PlayerType.HUMAN -> sanitizePlayerName(slot.name).trim().ifBlank { defaultName(slot.slot) }
+                PlayerType.HUMAN -> resolvePlayerName(slot.name, defaultName(slot.slot))
                 PlayerType.AI -> aiNames.next()
             }
             PlayerConfig(slot = slot.slot, type = slot.type, name = name, difficulty = slot.difficulty, colour = slot.colour)
@@ -634,11 +620,10 @@ class GameViewModel(
         beginGame(
             GameEngine.newGame(playerConfigs, setupState.gameMode, setupState.turnTimer, setupState.rollModifiers, setupState.extendedScores, setupState.activeUnluckyDice),
             startedAtLocalHour = localHour(),
+            previousGame = previousGame,
         )
 
-        if (previousGame != null && previousGame.isGameOver && !humanWonGame(previousGame)) {
-            unlockAchievements(setOf(Achievement.ONE_MORE_TIME))
-        }
+        return true
     }
 
     /**
@@ -686,6 +671,7 @@ class GameViewModel(
         resumedUndo: ScoreCategory? = null,
         resumedUndoSnapshot: GameState? = null,
         startedAtLocalHour: Int? = null,
+        previousGame: GameState? = null,
     ) {
         // Before the state goes on the table, which saves it with whatever there is to undo.
         setUndoSnapshot(resumedUndoSnapshot)
@@ -697,7 +683,7 @@ class GameViewModel(
         this.resumedSecondsLeft = null
         prepareHardCpus()
         checkInProgressAchievements()
-        checkGameStartAchievements(startedAtLocalHour)
+        checkGameStartAchievements(startedAtLocalHour, previousGame)
     }
 
     /**
@@ -822,21 +808,18 @@ class GameViewModel(
         // A tap that lands after its turn has moved on - the timer ran out, or another box was scored, in the same frame -
         // scores nothing: not before a roll, and not in a box the dice can't go in.
         if (state.phase != TurnPhase.ROLLED) return
-        val player = state.currentPlayer ?: return
-        if (state.hasFullHand && category !in ScoreCalculator.availableCategories(player, state.scoringDice)) return
+        val ready = HandCompletion.readyToScore(state, category) ?: return
         if (tutorial != null) {
             if ((currentTutorialStep as? TutorialStep.Score)?.category != category || state.currentPlayer?.type != PlayerType.HUMAN) return
             advanceTutorial()
         }
-        if (state.hasFullHand) {
+        if (ready === state) {
             finishCommit(category, undoTo = state)
             return
         }
-        // Where only held dice score, a box can be tapped before the hand is whole: the held dice are completed
-        // with whichever others score best in it (see HandCompletion), and scored in the same tap.
+        // A hand completed for the box (see HandCompletion.readyToScore) is shown as held, and scored in the same tap.
         if (state.currentPlayer?.type != PlayerType.HUMAN) return
-        val completed = HandCompletion.bestCompletion(state, category) ?: return
-        applyGameState(completed, checkForAiTurn = false)
+        applyGameState(ready, checkForAiTurn = false)
         finishCommit(category, undoTo = state)
     }
 
@@ -882,11 +865,7 @@ class GameViewModel(
     /** A tap on the dice cup once a turn's last roll is already spent - it does nothing for the
      * game, but it's counted anyway for [Achievement.NO_MORE_ROLLS]. */
     fun tapCupWithNoRollsLeft() {
-        val state = _game.value ?: return
-        // Only player 1 - "You" - earns achievements.
-        if (!state.isPlayerOneTurn) return
-        if (state.rollsRemaining != 0) return
-        unlockAchievements(tracker.onCupTapWithNoRollsLeft())
+        unlockAchievements(tracker.onCupTapWithNoRollsLeft(_game.value ?: return))
     }
 
     /** A phone-shake roll actually happened - see [ShakeDetectorEffect]/[Achievement
@@ -897,12 +876,9 @@ class GameViewModel(
         unlockAchievements(setOf(Achievement.SHAKEN_NOT_TAPPED))
     }
 
-    /** The Top Hat cup's rabbit just peeked out - see [Achievement.THE_MAGICIANS_SECRET]. Only on a human's
-     * turn: the hat has to have been left alone by someone at the table, not tipped by an AI. */
+    /** The Top Hat cup's rabbit just peeked out - see [AchievementTracker.onRabbitSeen]. */
     fun onRabbitSeen() {
-        val state = _game.value ?: return
-        if (state.currentPlayer?.type != PlayerType.HUMAN) return
-        unlockAchievements(setOf(Achievement.THE_MAGICIANS_SECRET))
+        unlockAchievements(tracker.onRabbitSeen(_game.value ?: return))
     }
 
     /**
@@ -913,17 +889,13 @@ class GameViewModel(
      */
     private fun performRoll(state: GameState, checkForAiTurn: Boolean = true): GameState {
         // The golden egg: a human's roll only, with the Egg dice and the Chicken cup both in use.
-        val goldenOneIn = GOLDEN_EGG_ONE_IN.takeIf { state.currentPlayer?.type == PlayerType.HUMAN && showsGoldenEggs(state) && tutorial == null }
+        val goldenOneIn = GameEngine.GOLDEN_EGG_ONE_IN.takeIf { state.currentPlayer?.type == PlayerType.HUMAN && showsGoldenEggs(state) && tutorial == null }
         val step = currentTutorialStep
         val scripted = (step as? TutorialStep.Roll)?.let { TutorialDice(it.dice, state.dice.map(Die::isHeld)) }
         val rolled = GameEngine.rollDice(state, scripted ?: random, goldenOneIn)
         if (step is TutorialStep.Roll) advanceTutorial(shownAfterMillis = pacing.diceTossMillis)
         setUndoSnapshot(null)
         applyGameState(rolled, checkForAiTurn)
-        // Only player 1 - "You" - earns it, once a golden die has landed (held back with the rest of the roll's unlocks).
-        if (state.currentPlayerIndex == 0 && rolled.dice.indices.any { rolled.dice[it].isGolden && !state.dice[it].isGolden }) {
-            unlockAchievements(setOf(Achievement.EGGCELLENT_DISCOVERY))
-        }
         return rolled
     }
 
@@ -956,61 +928,28 @@ class GameViewModel(
     }
 
     /**
-     * Advances (or resets) progress toward the superuser-mode unlock sequence, called on every
-     * hold/unhold BEFORE it's applied - piggybacking on ordinary play rather than a separate
-     * input mode, so the cheat stays hidden until it triggers.
-     *
-     * Tracked in every build, debug or release, on any seat's turn - the cheat itself stays "any
-     * player's", per its own doc comment above. [Achievement.TIME_WASTING] is the one part of this
-     * gated to player 1: it rewards performing the sequence itself, whether or not it actually goes
-     * on to do anything, but only when player 1 is the one doing it. Only the cheat's effect once
-     * completed - flipping [_superuserModeActive] and the toast - stays behind [isDebugBuild],
-     * which is the only gate the cheat itself needs: [cycleHeldDieValue] already requires
-     * [_superuserModeActive], and every UI entry point (DiceTray's onCycleValue wiring) is itself
-     * conditional on that same flag.
+     * Reports every hold/release, before it's applied, to [holdSequence] - piggybacking on ordinary play rather than a
+     * separate input mode, so the cheat stays hidden until it triggers. Tracked in every build, on any seat's turn: the
+     * sequence earns [Achievement.TIME_WASTING] for player 1 ([AchievementTracker.onHoldSequenceDone]) whether or not it
+     * goes on to do anything. Only the cheat itself - [_superuserModeActive] and the toast - stays behind [isDebugBuild],
+     * the only gate it needs: [cycleHeldDieValue] already requires [_superuserModeActive], and every UI entry point
+     * (DiceTray's onCycleValue wiring) is itself conditional on that same flag.
      */
     private fun trackSuperuserSequence(dieIndex: Int) {
         if (_superuserModeActive.value) return
         val state = _game.value ?: return
-        val willBeHeld = state.dice.getOrNull(dieIndex)?.isHeld == false
-        val isExpectedStep = dieIndex == superuserSequenceDieIndex &&
-            willBeHeld == !superuserSequenceAwaitingUnhold
-
-        if (!isExpectedStep) {
-            resetSuperuserSequence()
-            // A toggle that happens to BE a valid opening move (holding die 0) restarts the
-            // sequence from there, rather than also requiring an unrelated action first.
-            if (dieIndex == 0 && willBeHeld) {
-                superuserSequenceAwaitingUnhold = true
-            }
-            return
+        val holding = state.dice.getOrNull(dieIndex)?.isHeld == false
+        if (!holdSequence.onToggle(dieIndex, holding, state.dice.size)) return
+        unlockAchievements(tracker.onHoldSequenceDone(state))
+        if (isDebugBuild) {
+            _superuserModeActive.value = true
+            _toastMessages.trySend("Superuser mode activated!") // i18n: not translated - a debug-build developer toast
         }
-
-        if (superuserSequenceAwaitingUnhold) {
-            // This die's hold-then-unhold pair just completed.
-            superuserSequenceDieIndex++
-            superuserSequenceAwaitingUnhold = false
-            if (superuserSequenceDieIndex == state.dice.size) {
-                resetSuperuserSequence()
-                if (state.currentPlayerIndex == 0) unlockAchievements(setOf(Achievement.TIME_WASTING))
-                if (isDebugBuild) {
-                    _superuserModeActive.value = true
-                    _toastMessages.trySend("Superuser mode activated!") // i18n: not translated - a debug-build developer toast
-                }
-            }
-        } else {
-            superuserSequenceAwaitingUnhold = true
-        }
-    }
-
-    private fun resetSuperuserSequence() {
-        superuserSequenceDieIndex = 0
-        superuserSequenceAwaitingUnhold = false
     }
 
     private fun resetSuperuserMode() {
         _superuserModeActive.value = false
-        resetSuperuserSequence()
+        holdSequence.reset()
     }
 
     private fun updateSlot(slot: Int, transform: (PlayerSetupSlot) -> PlayerSetupSlot) {
@@ -1085,17 +1024,13 @@ class GameViewModel(
     }
 
     /**
-     * The turn timer running out: forfeits the rest of this turn's rolls and commits into the first
-     * open category - with the dice as they lie (scoring zero if they don't match it), or with a zero
-     * and no roll at all if the turn was never rolled ([GameEngine.forfeitTurn]): nothing is rolled
-     * that the player didn't roll themselves.
-     * A forced miss rather than picking the player's best option for them. Applies equally to an AI
+     * The turn timer running out ([GameEngine.timeOut]). Applies equally to an AI
      * seat that's taken too long to decide - Hard's exhaustive search is the only realistic way
      * this fires for one - cancelling its in-flight turn job first so it can't keep acting after
      * being timed out from under it.
      */
     private fun autoScoreOnTimeout() {
-        var state = _game.value ?: return
+        val state = _game.value ?: return
         if (state.currentPlayer?.type == PlayerType.AI) {
             aiTurnJob?.cancel()
             aiTurnJob = null
@@ -1105,14 +1040,7 @@ class GameViewModel(
         // it just doesn't feed Achievement tracking.
         val isPlayerOneTurn = state.isPlayerOneTurn
 
-        val scored = if (state.phase != TurnPhase.ROLLED) {
-            GameEngine.forfeitTurn(state)
-        } else {
-            // Where only held dice score, the first box that can be scored is chosen, and the hand completed for it.
-            val category = HandCompletion.timeoutCategory(state) ?: return
-            state = HandCompletion.bestCompletion(state, category) ?: return
-            GameEngine.commitScore(state, category)
-        }
+        val scored = GameEngine.timeOut(state) ?: return
         // Counted before the state goes out: a timeout on the game's last turn ends it, and the results' achievements read these.
         if (isPlayerOneTurn) tracker.onTimeout(scored)
         setUndoSnapshot(null)
@@ -1164,28 +1092,16 @@ class GameViewModel(
      * game-start achievement is a new field on [GameStartContext] and a line in that engine
      * function, not a new method here.
      */
-    private fun checkGameStartAchievements(startedAtLocalHour: Int?) {
+    private fun checkGameStartAchievements(startedAtLocalHour: Int?, previousGame: GameState?) {
         if (tutorial != null) return
+        val game = _game.value ?: return
         viewModelScope.launch {
-            val game = _game.value
-            val players = game?.players.orEmpty()
-            val gameMode = game?.gameMode ?: GameMode.default
-            // Specifically a two-player game's P2 - "You" (P1, index 0) never counts, and neither
-            // does P2 in a 3P/4P game, since Big Fan is about who's sitting across from you, not
-            // just who's at the table.
-            val playerTwo = players.getOrNull(1)
-            val hasZodacAsPlayerTwo = players.size == 2 && playerTwo?.type == PlayerType.HUMAN && playerTwo.name == ZODAC_PLAYER_NAME
-            val isLuckOfTheIrish = game?.isLuckOfTheIrish == true
             // A pick whose style is still locked can't count, since the default is drawn in its place.
-            val access = StyleAccess(achievementsRepository.current(), ownsAllStyles.first())
-            val playedNonDefaultStyle = StyleCategory.entries.any { category ->
-                category.catalog.unlockedById(category.savedId(settingsRepository).first(), access).id != category.catalog.default.id
-            }
+            val playedNonDefaultStyle = savedStylesFlow(settingsRepository, achievementsRepository, ownsAllStyles).first().hasNonDefaultStyle
             val context = GameStartContext(
                 playedNonDefaultStyle = playedNonDefaultStyle,
-                hasHumanPlayerNamedZodac = hasZodacAsPlayerTwo,
-                hasIrishPlayerOneInTricolour = isLuckOfTheIrish,
-                gameMode = gameMode,
+                game = game,
+                previousGame = previousGame,
                 startedAtLocalHour = startedAtLocalHour,
             )
             achievementUnlocker.apply { state -> AchievementEngine.evaluateAtGameStart(context, state, nowEpochMillis()) }
@@ -1228,14 +1144,6 @@ class GameViewModel(
         viewModelScope.launch { achievementUnlocker.unlock(achievements) }
     }
 
-    /** Whether player 1 finished [state] with the top score - "One More Time" reads this off the
-     * game [startGame] is about to replace, mirroring how [AchievementEngine] itself treats a tie
-     * at the top as a win, and its player-1-only rule. */
-    private fun humanWonGame(state: GameState): Boolean {
-        val playerOne = state.players.firstOrNull()?.takeIf { it.type == PlayerType.HUMAN } ?: return false
-        return playerOne.totalScore == state.topScore
-    }
-
     /** The form the game was started from, saved for the next one in a single write. */
     private fun persistGameConfig(setup: GameSetupState) {
         val slots = setup.playerSlots.take(setup.playerCount)
@@ -1267,18 +1175,13 @@ class GameViewModel(
     // Suspending rather than launching its own coroutine: finishGame sequences this against the
     // leaderboard read that has to happen before it.
     private suspend fun persistHumanScores(state: GameState) {
-        // A solo game has nobody to beat, so it's recorded with no outcome at all - the same
-        // "doesn't count toward win/loss" treatment AchievementEngine gives the WIN_STREAK counter.
-        val multiplayer = state.players.size > 1
-        val topScore = state.topScore
         val results = state.players.withIndex().filter { (_, player) -> player.type == PlayerType.HUMAN }.map { (index, player) ->
             PlayerResult(
                 playerName = player.name,
-                // Feeds the leaderboard's own tie-break ordering (see TieBreak.kt) - unrelated to
-                // won below, which keeps its existing "a tie at the top counts as a win" rule for
-                // achievements/statistics untouched.
+                // Feeds the leaderboard's own tie-break ordering (see TieBreak.kt).
                 stats = player.toTieBreakStats(),
-                won = if (multiplayer) player.totalScore == topScore else null,
+                // Null for a solo game: nobody to beat.
+                won = state.wonBy(index),
                 // Index 0 is always the primary player ("You") - see AchievementEngine's class doc.
                 isPrimaryPlayer = index == 0,
             )
@@ -1350,11 +1253,8 @@ class GameViewModel(
     }
 
     /** The perfect-play table if [state]'s current player is a Hard CPU playing Standard - see [standardPerfectPlay]. */
-    private suspend fun perfectPlayFor(state: GameState): StandardPerfectPlayTable? {
-        val player = state.currentPlayer ?: return null
-        if (!state.gameMode.playsByPerfectPlayTable(state.extendedScores) || player.type != PlayerType.AI || player.difficulty != Difficulty.HARD) return null
-        return standardPerfectPlay?.invoke()
-    }
+    private suspend fun perfectPlayFor(state: GameState): StandardPerfectPlayTable? =
+        if (AiTurnPlayer.usesPerfectPlayTable(state)) standardPerfectPlay?.invoke() else null
 
     /**
      * Starts a job that plays out every AI turn in a row from here (not just one) - e.g. with a
@@ -1410,15 +1310,9 @@ class GameViewModel(
                     // before the dice's held state updates changes, not any animation. It runs during
                     // the toss, so the pause is only whatever it takes beyond the toss itself.
                     val holds = holdsChoice.await()
-                    // Every die is being kept, so the turn is over: stop before the holds are applied, as
-                    // showing every die held just before scoring is noise. A further roll would only ever
-                    // reroll nothing (GameEngine.rollDice skips held dice) - stop here, same as a human choosing to
-                    // score early with rolls still legally available. `rollsRemaining` is left
-                    // exactly as the rules say: "x$rollsRemaining" on the cup means legal rolls
-                    // still available, not how many the player intends to use, so this must never
-                    // force it down to fake an early stop - it was doing exactly that before, and a
-                    // roll that still had legal rerolls left was showing as none remaining.
-                    if (holds.size == current.dice.size) break
+                    // Done rolling: stop before the holds are applied, as showing every die held just before scoring
+                    // is noise. "x$rollsRemaining" on the cup still shows the rolls left - see AiTurnPlayer.stopsRolling.
+                    if (AiTurnPlayer.stopsRolling(current, holds)) break
 
                     // A human's beat to take in the settled dice before reaching for them - with the
                     // choice worked out during the toss, the holds would otherwise land the instant the
@@ -1473,9 +1367,6 @@ class GameViewModel(
     }
 
     companion object {
-        /** The odds, one in this many per die rolled, of a golden egg - see [Achievement.EGGCELLENT_DISCOVERY]. */
-        internal const val GOLDEN_EGG_ONE_IN = 500
-
         /** The AI's pause, dice settled, before it scores. Its rolls shake for CUP_SHAKE_MILLIS, same as a tap's. */
         private const val AI_STEP_DELAY_MS = 250L
 
@@ -1494,13 +1385,6 @@ class GameViewModel(
         /** [ROLL_GAP_MS] when the AI has just let go of a die: long enough to see it land on the mat before the shake sweeps it up. */
         private const val RELEASE_GAP_MS = 500L
 
-        /** Whether it's player 1's turn - "You", the only seat that earns achievements. */
-        private val GameState.isPlayerOneTurn: Boolean
-            get() = currentPlayerIndex == 0 && currentPlayer?.type == PlayerType.HUMAN
-
-        /** Case-sensitive - "Big Fan"'s exact match, not just a case-insensitive namesake. */
-        private const val ZODAC_PLAYER_NAME = "zodac"
-
         /** Builds a [GameViewModel] backed by real Room/DataStore persistence. */
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -1510,6 +1394,7 @@ class GameViewModel(
                     inProgressGameRepository = container.inProgressGameRepository,
                     achievementsRepository = container.achievementsRepository,
                     ownsAllStyles = container.ownsAllStyles,
+                    achievementUnlocker = container.achievementUnlocker,
                     random = container.diceRandom,
                     isDebugBuild = container.buildInfo.isDebug,
                     standardPerfectPlay = container::standardPerfectPlayTable,
@@ -1526,6 +1411,7 @@ class GameViewModel(
                     inProgressGameRepository = container.inProgressGameRepository,
                     achievementsRepository = container.achievementsRepository,
                     ownsAllStyles = container.ownsAllStyles,
+                    achievementUnlocker = container.achievementUnlocker,
                     tutorial = script,
                 )
             }

@@ -231,6 +231,6 @@ Nothing guarded, nothing blocked.
 ## The "Unlock all styles" purchase (not a mode)
 
 Owning every style (`PURCHASES.md`) changes what a player can pick, not any rule, so no guard:
-- Fresh Coat Of Paint counts a bought style, as `unlockedById` draws it.
+- Fresh Coat Of Paint counts a bought style, as `StyleRegistry.unlockedId` draws it.
 - Eggcellent Discovery: buying gives the Egg dice and the Chicken cup early, so the 1-in-500 golden egg can come
   sooner. It still needs the roll; the gold Egg colour itself is bought outright.

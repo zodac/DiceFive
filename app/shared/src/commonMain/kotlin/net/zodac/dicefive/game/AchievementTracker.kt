@@ -10,6 +10,10 @@ import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.heldIndices
 
+/** Whether it's player 1's turn - "You", the only seat that earns achievements ([AchievementEngine]). */
+val GameState.isPlayerOneTurn: Boolean
+    get() = currentPlayerIndex == 0 && currentPlayer?.type == PlayerType.HUMAN
+
 /**
  * What player 1 - "You", the only seat that earns achievements (see [AchievementEngine]) - did through a game that
  * the finished scorecard can't show afterwards: how each turn's rolls and holds played out, and the running counts
@@ -175,6 +179,8 @@ class AchievementTracker {
 
         // Counted before the roll, while it's clear which dice moved.
         diceRolledByPlayerOne += before.dice.count { !it.isHeld }
+        // A golden egg landing: a die golden now that wasn't before the roll.
+        if (rolled.dice.indices.any { rolled.dice[it].isGolden && !before.dice[it].isGolden }) add(Achievement.EGGCELLENT_DISCOVERY)
 
         addAll(firstRollAchievements(rolled))
         addAll(postRollAchievements(rolled, before.rollsRemaining, before.dice))
@@ -449,11 +455,20 @@ class AchievementTracker {
         pendingUndoneCategory = null
     }
 
-    /** Player 1 tapped the cup with no rolls left - see [Achievement.NO_MORE_ROLLS]. */
-    fun onCupTapWithNoRollsLeft(): Set<Achievement> {
+    /** The cup was tapped in [state] with no rolls left - counted on player 1's turn only, for [Achievement.NO_MORE_ROLLS]. */
+    fun onCupTapWithNoRollsLeft(state: GameState): Set<Achievement> {
+        if (!state.isPlayerOneTurn || state.rollsRemaining != 0) return emptySet()
         outOfRollsCupTaps++
         return if (outOfRollsCupTaps >= NO_MORE_ROLLS_TAP_TARGET) setOf(Achievement.NO_MORE_ROLLS) else emptySet()
     }
+
+    /** The Top Hat cup's rabbit peeked out in [state]: [Achievement.THE_MAGICIANS_SECRET], when the hat was left alone on a Human's turn, not tipped by a CPU. */
+    fun onRabbitSeen(state: GameState): Set<Achievement> =
+        if (state.currentPlayer?.type == PlayerType.HUMAN) setOf(Achievement.THE_MAGICIANS_SECRET) else emptySet()
+
+    /** Someone finished the hidden [HoldSequence] in [state]: [Achievement.TIME_WASTING], when it was player 1. */
+    fun onHoldSequenceDone(state: GameState): Set<Achievement> =
+        if (state.isPlayerOneTurn) setOf(Achievement.TIME_WASTING) else emptySet()
 
     /** The turn timer ran out on player 1 and scored [scored]'s last box for them. */
     fun onTimeout(scored: GameState) {

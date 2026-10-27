@@ -75,6 +75,12 @@ class AppContainer(
     val savedStyles: StateFlow<SavedStyles?> =
         savedStylesFlow(settingsRepository, achievementsRepository, ownsAllStyles).stateIn(scope, SharingStarted.Eagerly, null)
 
+    /** The one way an achievement is earned, shared by every screen - see [AchievementUnlocker]. */
+    val achievementUnlocker: AchievementUnlocker = AchievementUnlocker(achievementsRepository, ownsAllStyles)
+
+    /** Settings' achievements and Leaderboard resets - see [ProgressResets]. */
+    val progressResets: ProgressResets = ProgressResets(achievementsRepository, settingsRepository, scoreRepository, onlineSettingsRepository, ownsAllStyles)
+
     private val mutableDatabaseFailure = MutableStateFlow<String?>(null)
 
     /**

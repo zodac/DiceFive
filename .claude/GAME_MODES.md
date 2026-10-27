@@ -54,7 +54,7 @@ When a new rule adds a field, add it here.
 | `hitListShapes` (`hasHitList`; a game's targets: `GameState`/`PlayerState.hitList`, drawn in `newGame`)                                                 | `ScoreCalculator.scoreFor` (`DiceScoring` refuses them), `GameStateJson`, `AiTurnPlayer` (hands the turn to `HitListPlay`; `prepareHard` does nothing), `CategoryCell`/`CategoryIcon`, guards and Right On Target                                                                                                                             |
 | `sectionBonuses` (`SectionBonus`)                                                                                                                       | `PlayerState.sectionBonusTotal`/`hasSectionBonus`, Hard's bonus stake, Critical Success, the Totals Bonus line                                                                                                                                                                                                                                |
 | `allowsExtendedScores`                                                                                                                                  | `categoriesWith`, `GameEngine.newGame`, `GameViewModel.startGame`, the setup screen's locked row                                                                                                                                                                                                                                              |
-| `hasPerfectPlayTable` (`playsByPerfectPlayTable(extendedScores)`)                                                                                       | `AiTurnPlayer` (Hard's table), `GameViewModel` (reading the table ahead, `perfectPlayFor`)                                                                                                                                                                                                                                                    |
+| `hasPerfectPlayTable` (`playsByPerfectPlayTable(extendedScores)`)                                                                                       | `AiTurnPlayer` (Hard's table), `GameViewModel` (reading the table ahead, `AiTurnPlayer.usesPerfectPlayTable`)                                                                                                                                                                                                                                 |
 
 ## What kind of mode is it?
 
@@ -270,8 +270,9 @@ still count it.
   - **A roll can land after its turn has gone.** Undo stays enabled during the shake, so `rollDice` ignores a roll with
     none left (`GameEngine.rollDice` throws on one). Any delayed action re-checks the state it acts on.
   - **Undo** reaches only the last human action, and any CPU move clears it.
-  - **The timer.** `syncTurnTimer` restarts it each turn. A timeout calls `autoScoreOnTimeout`, which scores a rolled
-    turn in `timeoutCategory` (completing the hand in Stud) or forfeits an unrolled one (`forfeitTurn`). A timeout's
+  - **The timer.** `syncTurnTimer` restarts it each turn. A timeout calls `autoScoreOnTimeout`, which plays
+    `GameEngine.timeOut`: a rolled turn scored in `timeoutCategory` (completing the hand in Stud) or an unrolled one
+    forfeited (`forfeitTurn`). A tapped box goes through `HandCompletion.readyToScore` the same way. A timeout's
     score is final: it clears the undo.
   - **Holding after the last roll.** `GameScreen.canHold` ignores rolls left, so dice can still be held then. That keeps
     the hold achievements alive at 1 roll.

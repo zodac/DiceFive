@@ -12,18 +12,18 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.app.AchievementUnlocker
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.data.settings.savedStylesFlow
+import net.zodac.dicefive.game.style.access
 import net.zodac.dicefive.model.Achievement
-import net.zodac.dicefive.ui.achievements.AchievementUnlocker
 import net.zodac.dicefive.ui.style.DiceCupStyle
 import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DiceStyle
 import net.zodac.dicefive.ui.style.DiceStyles
-import net.zodac.dicefive.ui.style.access
 
 /** The dice and cup the menu's logo is drawn with - the player's own picks from the Styles screen. */
 data class LogoStyles(val dice: DiceStyle, val cup: DiceCupStyle)
@@ -39,6 +39,8 @@ class MenuViewModel(
     savedStyles: StateFlow<SavedStyles?>? = null,
     /** Whether the purchase unlocks every style ([AppContainer.ownsAllStyles]). */
     ownsAllStyles: Flow<Boolean> = flowOf(false),
+    /** Where its achievements are earned: the app's one ([AppContainer.achievementUnlocker]); a test's own otherwise. */
+    private val achievementUnlocker: AchievementUnlocker = AchievementUnlocker(achievementsRepository, ownsAllStyles),
 ) : ViewModel() {
 
     /**
@@ -58,7 +60,6 @@ class MenuViewModel(
         DiceCupStyles.unlockedById(saved.diceCupStyleId, saved.access),
     )
 
-    private val achievementUnlocker = AchievementUnlocker(achievementsRepository, ownsAllStyles)
 
     fun onDiceTapped() {
         viewModelScope.launch { achievementUnlocker.unlock(setOf(Achievement.NOT_THOSE_DICE)) }
@@ -66,7 +67,7 @@ class MenuViewModel(
 
     companion object {
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
-            initializer { MenuViewModel(container.achievementsRepository, container.settingsRepository, container.savedStyles, container.ownsAllStyles) }
+            initializer { MenuViewModel(container.achievementsRepository, container.settingsRepository, container.savedStyles, container.ownsAllStyles, container.achievementUnlocker) }
         }
     }
 }

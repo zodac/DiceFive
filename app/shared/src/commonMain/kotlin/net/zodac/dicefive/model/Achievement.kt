@@ -258,6 +258,12 @@ enum class AchievementCounter(
 
     /** How far [stored] - this counter's stored value - counts towards an achievement's target. */
     fun progressOf(stored: Int): Int = if (isFlags) stored.countOneBits() else stored
+
+    /** [stored] with [number] (from 1) marked, for a counter of flags ([isFlags]): bit `number - 1`. */
+    fun withFlag(stored: Int, number: Int): Int = stored or (1 shl (number - 1))
+
+    /** Whether [stored] has [number] marked - see [withFlag]. */
+    fun hasFlag(stored: Int, number: Int): Boolean = stored and (1 shl (number - 1)) != 0
 }
 
 /** How the cloud save combines one [AchievementCounter] from several devices. */

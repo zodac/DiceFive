@@ -18,11 +18,12 @@ import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.achievements.InMemoryAchievementStore
 import net.zodac.dicefive.data.settings.SettingsRepository
+import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.ui.style.ChickenDiceCupStyle
 import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DiceStyles
-import net.zodac.dicefive.ui.style.ChickenDiceCupStyle
 import net.zodac.dicefive.ui.style.PIP_FACES
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -79,7 +80,7 @@ class GameTableSettingsTest {
     /** Every golden egg draw comes up, and every other draw is the lowest it can be. */
     private object GoldenEveryTime : Random() {
         override fun nextBits(bitCount: Int): Int = 0
-        override fun nextInt(until: Int): Int = if (until == GameViewModel.GOLDEN_EGG_ONE_IN) 0 else 1
+        override fun nextInt(until: Int): Int = if (until == GameEngine.GOLDEN_EGG_ONE_IN) 0 else 1
     }
 
     /** The first roll of a solo game with [diceId] and [cupId] picked; every other achievement is earned, and Eggcellent
@@ -147,6 +148,6 @@ class GameTableSettingsTest {
 
     @Test
     fun `a golden egg is one in 500 per die`() {
-        assertEquals(500, GameViewModel.GOLDEN_EGG_ONE_IN)
+        assertEquals(500, GameEngine.GOLDEN_EGG_ONE_IN)
     }
 }

@@ -19,13 +19,15 @@ app/
 │   ├── schemas/                 Room's exported schemas (commit every new version)
 │   └── src/
 │       ├── commonMain/kotlin/net/zodac/dicefive/
-│       │   ├── model/ game/     the rules engine
+│       │   ├── model/ game/     the rules engine; game/style/ is which styles exist and what unlocks them (no art)
 │       │   ├── data/            Room (scores), DataStore (settings, achievements, in-progress game), GameStateJson
-│       │   ├── app/             AppContainer, BuildInfo
+│       │   ├── app/             AppContainer, BuildInfo, and the services every screen shares: AchievementUnlocker,
+│       │   │                    the achievement events (AchievementEvents, announce), ProgressResets
 │       │   ├── platform/        PlatformServices and its parts (+ SilentPlatformServices for previews/tests)
 │       │   ├── online/          the Play Games seam (PLAY_GAMES.md)
 │       │   ├── purchases/       the store seam, for the one purchase (PURCHASES.md)
-│       │   └── navigation/ ui/  Compose; ui/DiceFiveApp.kt is the root
+│       │   └── navigation/ ui/  Compose; ui/DiceFiveApp.kt is the root. ui/ draws and asks; a rule or constraint it
+│       │                        needs lives below it (a check the form shows is model/'s or game/'s to own)
 │       ├── commonMain/composeResources/   strings, drawables, fonts, files (Res.*)
 │       ├── androidMain/         Android's actuals
 │       ├── jvmMain/             the JVM's actuals (formatting through ICU4J); in no app yet

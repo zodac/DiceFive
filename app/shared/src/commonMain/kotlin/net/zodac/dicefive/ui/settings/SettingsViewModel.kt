@@ -13,35 +13,30 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.app.AchievementUnlocker
 import net.zodac.dicefive.app.AppContainer
+import net.zodac.dicefive.app.ProgressResets
 import net.zodac.dicefive.data.achievements.AchievementStore
-import net.zodac.dicefive.data.achievements.AchievementsState
-import net.zodac.dicefive.data.orNullOnFailure
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.data.settings.ScreenOrientation
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
-import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.online.ImportStep
 import net.zodac.dicefive.online.LocalCloudSave
-import net.zodac.dicefive.online.OnlineSyncRequests
+import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.online.PROGRESS_FILE_EXTENSION
 import net.zodac.dicefive.online.ProgressImport
 import net.zodac.dicefive.online.ProgressTransfer
-import net.zodac.dicefive.platform.ProgressFileResult
 import net.zodac.dicefive.platform.PlatformServices
+import net.zodac.dicefive.platform.ProgressFileResult
 import net.zodac.dicefive.platform.ProgressFiles
-import net.zodac.dicefive.ui.achievements.AchievementUnlocker
 import net.zodac.dicefive.ui.common.formatTimestamp
-import net.zodac.dicefive.ui.style.StyleAccess
-import net.zodac.dicefive.ui.style.StyleCategory
 
 /** The Settings screen's switches, its animation level and its orientation, as saved. */
 data class SettingsToggles(
@@ -55,13 +50,17 @@ data class SettingsToggles(
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
     private val achievementsRepository: AchievementStore,
-    private val scoreRepository: ScoreRepository,
-    private val onlineSettingsRepository: OnlineSettingsRepository,
+    scoreRepository: ScoreRepository,
+    onlineSettingsRepository: OnlineSettingsRepository,
     private val now: () -> Long = ::nowEpochMillis,
     /** This device's progress to and from a file, for a build with progress files ([PlatformServices.progressFiles]). */
     private val progressTransfer: ProgressTransfer? = null,
     /** Whether the purchase unlocks every style ([AppContainer.ownsAllStyles]): an owner's picks survive a reset. */
-    private val ownsAllStyles: Flow<Boolean> = flowOf(false),
+    ownsAllStyles: Flow<Boolean> = flowOf(false),
+    /** Where its achievements are earned: the app's one ([AppContainer.achievementUnlocker]); a test's own otherwise. */
+    private val achievementUnlocker: AchievementUnlocker = AchievementUnlocker(achievementsRepository, ownsAllStyles),
+    /** The resets it offers: the app's ([AppContainer.progressResets]); a test's own otherwise. */
+    private val progressResets: ProgressResets = ProgressResets(achievementsRepository, settingsRepository, scoreRepository, onlineSettingsRepository, ownsAllStyles, now),
 ) : ViewModel() {
 
     /**
@@ -97,7 +96,6 @@ class SettingsViewModel(
         viewModelScope.launch { settingsRepository.setScreenOrientation(orientation) }
     }
 
-    private val achievementUnlocker = AchievementUnlocker(achievementsRepository, ownsAllStyles)
 
     /** Backs the one achievement this screen itself can earn - opening the About dialog
      * ("Who Made This?"). Same fire-and-check-once pattern as
@@ -142,49 +140,14 @@ class SettingsViewModel(
         }
     }
 
-    /**
-     * Wipes every unlock and every progress counter. Only the achievements DataStore file is
-     * cleared - the theme, the remembered player names and any game in progress are on their own
-     * files and are deliberately untouched. The one exception is the Styles picks: any saved pick
-     * that the reset locks again goes back to its category's default, so earning the style a second
-     * time doesn't quietly bring the old pick back. Picks that need no achievement are kept, and so is every pick of a
-     * player who owns every style ([ownsAllStyles]): the purchase isn't reset.
-     *
-     * Only on this device: nothing marks the reset for the cloud save, so the same account's next sync brings the
-     * achievements back, and the picks with them ([SettingsRepository.unstampStylePicks]).
-     */
+    /** Wipes every unlock and progress counter, and the Styles picks that locks again - see [ProgressResets.resetAchievements]. */
     fun resetAchievements() {
-        viewModelScope.launch {
-            achievementsRepository.resetAll()
-            resetLockedStylePicks(settingsRepository)
-        }
+        viewModelScope.launch { progressResets.resetAchievements() }
     }
 
-    private suspend fun resetLockedStylePicks(settings: SettingsRepository) {
-        val afterReset = StyleAccess(AchievementsState(), ownsAllStyles.first())
-        for (category in StyleCategory.entries) {
-            if (!category.catalog.isUnlocked(category.savedId(settings).first(), afterReset)) category.saveId(settings, category.catalog.default.id)
-        }
-        settings.unstampStylePicks()
-    }
-
-    /**
-     * Wipes every recorded score, clearing both the Leaderboard and Statistics screens - the latter
-     * is computed from the same rows, so there's nothing left to show once they're gone.
-     * Achievements measured live against the board (the score-collection ones) lose their progress
-     * too, though their unlock timestamps live in the separate achievements DataStore and are
-     * untouched.
-     *
-     * On every device of the synced account too: the reset is marked with its time, and the cloud save drops every score
-     * from before it ([OnlineSettingsRepository.scoresResetAt]). The online service's own leaderboards keep theirs.
-     */
+    /** Wipes every recorded score, here and in the cloud save - see [ProgressResets.resetLeaderboard]. */
     fun resetLeaderboard() {
-        viewModelScope.launch {
-            onlineSettingsRepository.setScoresResetAt(now())
-            // One that can't be written (a full disk) leaves the scores in place, rather than taking the app down.
-            orNullOnFailure { scoreRepository.resetLeaderboard() }
-            OnlineSyncRequests.request()
-        }
+        viewModelScope.launch { progressResets.resetLeaderboard() }
     }
 
     private val _progressFilesStatus = MutableStateFlow<ProgressFilesStatus?>(null)
@@ -256,6 +219,8 @@ class SettingsViewModel(
                     scoreRepository = container.scoreRepository,
                     onlineSettingsRepository = container.onlineSettingsRepository,
                     ownsAllStyles = container.ownsAllStyles,
+                    achievementUnlocker = container.achievementUnlocker,
+                    progressResets = container.progressResets,
                     progressTransfer = ProgressTransfer(
                         LocalCloudSave(
                             container.achievementsRepository,

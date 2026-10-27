@@ -88,4 +88,18 @@ class HandCompletionTest {
 
         assertEquals(ScoreCategory.ONES, HandCompletion.timeoutCategory(rolledStud(1, 2, 3, 4, 5, 6, 6)))
     }
+
+    @Test
+    fun `a box is ready to score as the dice lie with a whole hand - completed for it where only held dice score - never when it can't take them`() {
+        val standard = GameEngine.newGame(onePlayer).copy(dice = listOf(2, 2, 2, 5, 5).map { Die(value = it) }, phase = TurnPhase.ROLLED)
+        assertTrue(HandCompletion.readyToScore(standard, ScoreCategory.ONES) === standard, "a whole hand goes in as it is, even for nothing")
+        val chanceFilled = GameEngine.commitScore(standard, ScoreCategory.CHANCE).let { it.copy(dice = standard.dice, phase = TurnPhase.ROLLED) }
+        assertNull(HandCompletion.readyToScore(chanceFilled, ScoreCategory.CHANCE), "a filled box takes nothing more")
+
+        val stud = held(rolledStud(1, 2, 6, 6, 3, 6, 5), 0)
+        val ready = HandCompletion.readyToScore(stud, ScoreCategory.SIXES)!!
+        assertTrue(ready.hasFullHand)
+        // Every filler scores the same nothing in Sixes, so the leftmost free die (the 2) makes up the hand.
+        assertEquals(listOf(1, 2, 6, 6, 6), ready.heldValues())
+    }
 }

@@ -31,6 +31,7 @@ import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.UnluckyDice
+import net.zodac.dicefive.model.maxPlayerNameLength
 
 /** [InMemoryPreferences], counting the reads of it that finish: a `first()`, not a flow held open. */
 private class CountingReadsStore(private val store: InMemoryPreferences = InMemoryPreferences()) : DataStore<Preferences> by store {
@@ -95,7 +96,7 @@ class GameSetupRestoreTest {
         assertEquals(GameMode.TRICOLOUR, restored.gameMode)
         assertEquals(TurnTimer.SECONDS_60, restored.turnTimer)
         assertEquals(3, restored.playerCount)
-        assertEquals("Alexandra the Great".take(GameSetupState.maxPlayerNameLength(3)), restored.playerSlots[0].name)
+        assertEquals("Alexandra the Great".take(maxPlayerNameLength(3)), restored.playerSlots[0].name)
         assertEquals(PlayerType.AI, restored.playerSlots[1].type)
         assertEquals(Difficulty.HARD, restored.playerSlots[1].difficulty)
         assertEquals(restored, viewModel.setup.value)

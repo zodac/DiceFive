@@ -10,6 +10,7 @@ import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
+import net.zodac.dicefive.model.PlayerColour
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
@@ -30,6 +31,22 @@ class GameEngineTest {
 
     private fun scoreNow(state: GameState, category: ScoreCategory = ScoreCategory.CHANCE) =
         GameEngine.commitScore(state, category)
+
+    @Test
+    fun `newGame - seats a Human first - distinct colours - and Human names that differ`() {
+        val bot = PlayerConfig(slot = 2, type = PlayerType.AI, name = "Bot")
+        assertFailsWith<IllegalArgumentException> { GameEngine.newGame(listOf(bot.copy(slot = 1), onePlayer.single().copy(slot = 2))) }
+        // A table of CPUs alone has no "You" to seat.
+        assertEquals(2, GameEngine.newGame(listOf(bot.copy(slot = 1, colour = PlayerColour.defaultFor(0)), bot.copy(name = "Robo"))).players.size)
+
+        assertFailsWith<IllegalArgumentException> { GameEngine.newGame(listOf(onePlayer.single(), bot.copy(colour = onePlayer.single().colour))) }
+
+        val alex = PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Alex")
+        assertFailsWith<IllegalArgumentException> { GameEngine.newGame(listOf(alex, PlayerConfig(slot = 2, type = PlayerType.HUMAN, name = " ALEX "))) }
+        assertEquals(listOf("Alex", "Alexa"), GameEngine.newGame(listOf(alex, PlayerConfig(slot = 2, type = PlayerType.HUMAN, name = "Alexa"))).players.map { it.name })
+        // A CPU's name is never recorded, so it can share a Human's.
+        assertEquals(listOf("Alex", "Alex"), GameEngine.newGame(listOf(alex, bot.copy(name = "Alex"))).players.map { it.name })
+    }
 
     @Test
     fun `newGame - its players - mode and timer and every modifier taking it off the Leaderboard`() {
@@ -582,5 +599,21 @@ class GameEngineTest {
         assertEquals(30, ScoreCalculator.scoreFor(player, ScoreCategory.THREE_OF_A_KIND, sixes))
         val threeX = GameEngine.commitScore(rolled(thirdWind) { player }, ScoreCategory.THREE_OF_A_KIND).players.single()
         assertEquals(setOf(0), threeX.jokerBonusSlots[ScoreCategory.THREE_OF_A_KIND])
+    }
+
+    @Test
+    fun `a turn timing out forfeits an unrolled turn - and scores a rolled one in its first box that takes the dice - as they lie`() {
+        val unrolled = GameEngine.newGame(onePlayer)
+        assertEquals(GameEngine.forfeitTurn(unrolled), GameEngine.timeOut(unrolled))
+
+        // Three 2s and two 5s would score 6 in Twos, but Ones comes first: a forced miss, not the best box.
+        val rolled = unrolled.copy(dice = listOf(2, 2, 2, 5, 5).map { Die(value = it) }, phase = TurnPhase.ROLLED)
+        val missed = GameEngine.timeOut(rolled)!!.players.single()
+        assertEquals(listOf(0), missed.scoresIn(ScoreCategory.ONES))
+        assertEquals(listOf(2, 2, 2, 5, 5), missed.lastRoll?.map { it.value })
+
+        // Where only held dice score, the hand is completed for that box: the Ones it can take.
+        val stud = GameEngine.newGame(onePlayer, GameMode.STUD).copy(dice = listOf(6, 1, 6, 1, 6, 6, 6).map { Die(value = it) }, phase = TurnPhase.ROLLED)
+        assertEquals(listOf(2), GameEngine.timeOut(stud)!!.players.single().scoresIn(ScoreCategory.ONES))
     }
 }

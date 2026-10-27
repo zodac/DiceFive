@@ -14,6 +14,7 @@ import net.zodac.dicefive.model.ProgressStyle
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.hasGrownSunflower
+import net.zodac.dicefive.model.isLuckOfTheIrish
 import net.zodac.dicefive.model.isPhilWoodward
 
 /**
@@ -65,9 +66,8 @@ data class GameAchievementContext(
 )
 
 /**
- * What's already decided the moment a game begins, before a single die is rolled - today, just
- * which table-art style is in play, but the natural home for anything else `GameViewModel` can
- * only answer by reading outside the [GameState] itself (settings, persisted history, ...) at
+ * What's already decided the moment a game begins, before a single die is rolled: the [game] itself, and what
+ * `GameViewModel` can only answer by reading outside it (the table's styles, the game it replaced) at
  * `startGame`/`resumeGame` time. See [AchievementEngine.evaluateAtGameStart].
  */
 data class GameStartContext(
@@ -79,14 +79,10 @@ data class GameStartContext(
      * [Achievement.FRESH_COAT_OF_PAINT]'s trigger.
      */
     val playedNonDefaultStyle: Boolean = false,
-    /** Whether this is a two-player game where P2 specifically - never P1, and never a 3P/4P
-     * game's P2 - is a human named exactly "zodac" (case-sensitive) - [Achievement.BIG_FAN]'s
-     * trigger. */
-    val hasHumanPlayerNamedZodac: Boolean = false,
-    /** [net.zodac.dicefive.model.isLuckOfTheIrish] - [Achievement.LUCK_OF_THE_IRISH]'s trigger. */
-    val hasIrishPlayerOneInTricolour: Boolean = false,
-    /** The rules this game is played under - [Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES]'s trigger. */
-    val gameMode: GameMode = GameMode.default,
+    /** The game starting or resuming: its players and mode. */
+    val game: GameState = GameState(),
+    /** The finished game a new one replaced, straight from its results - [Achievement.ONE_MORE_TIME]'s, when player 1 lost it. Null otherwise, and for a resumed game. */
+    val previousGame: GameState? = null,
     /** The hour (0-23) on the phone's clock a new game started at, or null for a resumed one - [Achievement.ROLLING_THE_MIDNIGHT_DICE]'s trigger. */
     val startedAtLocalHour: Int? = null,
 )
@@ -170,6 +166,9 @@ object AchievementEngine {
     private const val LOWER_CLASS_THRESHOLD = 150
     private const val NICE_SCORE = 69
     private const val TON_SCORE = 100
+
+    /** [Achievement.BIG_FAN]'s name, matched exactly. */
+    private const val ZODAC_PLAYER_NAME = "zodac"
     private const val THE_SOLUTION_SCORE = 255
     private const val LANDSLIDE_MARGIN = 100
     private const val PHOTO_FINISH_MARGIN = 1
@@ -284,9 +283,13 @@ object AchievementEngine {
             // as newly unlocked once, which is exactly "the very first time" means here.
             add(Achievement.THE_JOURNEY_BEGINS)
             if (context.playedNonDefaultStyle) add(Achievement.FRESH_COAT_OF_PAINT)
-            if (context.hasHumanPlayerNamedZodac) add(Achievement.BIG_FAN)
-            if (context.hasIrishPlayerOneInTricolour) add(Achievement.LUCK_OF_THE_IRISH)
-            if (context.gameMode != GameMode.STANDARD) add(Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES)
+            // A two-player game's P2 specifically - never P1, and never a 3P/4P game's P2 - a Human named exactly
+            // "zodac", case-sensitive: Big Fan is about who's sitting across from you.
+            val players = context.game.players
+            if (players.size == 2 && players[1].type == PlayerType.HUMAN && players[1].name == ZODAC_PLAYER_NAME) add(Achievement.BIG_FAN)
+            if (context.game.isLuckOfTheIrish) add(Achievement.LUCK_OF_THE_IRISH)
+            if (context.game.gameMode != GameMode.STANDARD) add(Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES)
+            if (context.previousGame?.let { it.isGameOver && it.wonBy(0) == false } == true) add(Achievement.ONE_MORE_TIME)
             if (context.startedAtLocalHour in MIDNIGHT_DICE_HOURS) add(Achievement.ROLLING_THE_MIDNIGHT_DICE)
         }
         return update(earned, before.counters, before, now)
@@ -309,6 +312,25 @@ object AchievementEngine {
         else -> 0
     }
 
+    /**
+     * The entries of [achievement]'s [Achievement.checklist] already collected, for the achievements screen to tick off:
+     * a score band's scores on the leaderboard, Grand Tour's modes played (by ordinal), Full Set's numbers scored as a
+     * 5x. Empty for an achievement without a checklist.
+     */
+    fun collectedOf(
+        achievement: Achievement,
+        counters: Map<AchievementCounter, Int>,
+        leaderboard: LeaderboardTotals,
+    ): Set<Int> {
+        val counter = achievement.counter
+        return when {
+            achievement.scoreBand != null -> achievement.scoreBand.filterTo(HashSet()) { it in leaderboard.distinctScores }
+            achievement.isEveryMode -> leaderboard.modesPlayed.mapTo(HashSet()) { it.ordinal }
+            counter != null && counter.isFlags -> achievement.checklist.orEmpty().filterTo(HashSet()) { counter.hasFlag(counters[counter] ?: 0, it) }
+            else -> emptySet()
+        }
+    }
+
     private fun countersAfter(
         state: GameState,
         humans: List<PlayerState>,
@@ -316,7 +338,7 @@ object AchievementEngine {
         before: AchievementsState,
     ): Map<AchievementCounter, Int> {
         val multiplayer = state.players.size > 1
-        val humanWon = humanWon(state, humans)
+        val humanWon = state.wonBy(0) == true
         // The 5x that seven dice hand out (Stud) don't count toward Total 5x.
         val fiveOfAKindsThisGame = humans.filter { it.scoresRolledHand }.sumOf { it.fiveOfAKindCount }
 
@@ -324,9 +346,7 @@ object AchievementEngine {
             AchievementCounter.GAMES_PLAYED to before.counter(AchievementCounter.GAMES_PLAYED) + 1,
             AchievementCounter.SCORED_5X to before.counter(AchievementCounter.SCORED_5X) + fiveOfAKindsThisGame,
             AchievementCounter.DICE_ROLLED to before.counter(AchievementCounter.DICE_ROLLED) + context.diceRolledByPlayerOne,
-            AchievementCounter.FIVE_X_NUMBERS to context.fiveOfAKindNumbers.fold(before.counter(AchievementCounter.FIVE_X_NUMBERS)) { flags, number ->
-                flags or (1 shl (number - 1))
-            },
+            AchievementCounter.FIVE_X_NUMBERS to context.fiveOfAKindNumbers.fold(before.counter(AchievementCounter.FIVE_X_NUMBERS), AchievementCounter.FIVE_X_NUMBERS::withFlag),
             AchievementCounter.GAMES_WON to before.counter(AchievementCounter.GAMES_WON) +
                 if (multiplayer && humanWon) 1 else 0,
             // A solo game has nobody to beat, so it neither extends nor breaks a streak.
@@ -435,7 +455,7 @@ object AchievementEngine {
         val noTimeouts = context.playerOneTimeouts == 0
         val multiplayer = players.size > 1
         val primaryPlayerRank = TieBreak.rank(players).first { it.originalIndex == 0 }
-        val humanWon = primaryPlayerRank.rank == 1
+        val humanWon = state.wonBy(0) == true
         val bestHumanScore = humans.maxOf { it.totalScore }
         val margin = winningMargin(players, humans)
         val aiPlayers = players.filter { it.type == PlayerType.AI }
@@ -701,13 +721,6 @@ object AchievementEngine {
      * .target] cadence. */
     private fun milestone(value: Int, achievement: Achievement): Int =
         achievement.progressStepSize?.let { value / it } ?: (value * PROGRESS_MILESTONES / achievement.target)
-
-    /** A tie at the top counts as a win for the human - nobody beat them. */
-    // Rank, not raw score: a raw-score tie that the house rule (TieBreak.kt) then loses is not a
-    // win, even though `totalScore == state.topScore` alone would say otherwise. `humans` is always
-    // just player 1 (see the class doc's first rule), so their `originalIndex` is always 0.
-    private fun humanWon(state: GameState, humans: List<PlayerState>): Boolean =
-        humans.isNotEmpty() && TieBreak.rank(state.players).first { it.originalIndex == 0 }.rank == 1
 
     /**
      * How far the leading human finished ahead of the next player along, or null in a solo game.

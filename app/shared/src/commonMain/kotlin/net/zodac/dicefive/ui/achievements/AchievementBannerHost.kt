@@ -66,7 +66,11 @@ import kotlin.math.roundToInt
 import kotlin.time.TimeSource
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.app.AchievementEvent
+import net.zodac.dicefive.app.AchievementEvents
 import net.zodac.dicefive.app.LocalAppContainer
+import net.zodac.dicefive.app.UnlockedStyle
+import net.zodac.dicefive.game.style.unlocksStyle
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.achievements_banner_pause_action
@@ -87,7 +91,6 @@ import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.LocalLeaveGameConfirmation
 import net.zodac.dicefive.ui.icons.Symbols
-import net.zodac.dicefive.ui.style.unlocksStyle
 
 /**
  * How long a banner sits at full opacity before it starts to go - with the fades either side, 5s on

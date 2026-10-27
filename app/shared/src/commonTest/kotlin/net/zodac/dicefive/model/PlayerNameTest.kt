@@ -99,4 +99,18 @@ class PlayerNameTest {
         val name = sanitizePlayerName("ệ".repeat(3) + "abc")
         assertEquals("ệệ", name.takeNameWidth(2).take(2))
     }
+
+    @Test
+    fun `a Human seat plays under its typed name - or its default when nothing is left of it`() {
+        assertEquals("Ana", resolvePlayerName("  Ana ", "Player 2"))
+        assertEquals("Player 2", resolvePlayerName(" \u200B\t", "Player 2"))
+    }
+
+    @Test
+    fun `Human names that match by key clash - a CPU's or a blank one never does`() {
+        fun seat(slot: Int, name: String, type: PlayerType = PlayerType.HUMAN) = PlayerConfig(slot = slot, type = type, name = name)
+        assertEquals(setOf(1, 3), duplicateHumanNameSlots(listOf(seat(1, "Zoë"), seat(2, "Zoe"), seat(3, " ZOË"))))
+        assertEquals(emptySet(), duplicateHumanNameSlots(listOf(seat(1, "Bot"), seat(2, "bot", PlayerType.AI))))
+        assertEquals(emptySet(), duplicateHumanNameSlots(listOf(seat(1, ""), seat(2, " "))))
+    }
 }

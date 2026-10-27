@@ -1,5 +1,6 @@
 package net.zodac.dicefive.game
 
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -114,13 +115,42 @@ class AchievementTrackerTest {
         tracker.roll(soloGame())
         assertEquals(5, tracker.endOfGameContext(null, LeaderboardTotals()).diceRolledByPlayerOne)
 
-        assertEquals(emptySet(), tracker.onCupTapWithNoRollsLeft())
-        assertEquals(emptySet(), tracker.onCupTapWithNoRollsLeft())
-        assertEquals(setOf(Achievement.NO_MORE_ROLLS), tracker.onCupTapWithNoRollsLeft())
+        // Only a tap with no rolls left counts, and only on player 1's turn.
+        val outOfRolls = soloGame().copy(rollsRemaining = 0)
+        val bot = PlayerConfig(slot = 2, type = PlayerType.AI, name = "Bot")
+        val botsTurn = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "P1"), bot)).copy(currentPlayerIndex = 1, rollsRemaining = 0)
+        repeat(3) {
+            assertEquals(emptySet(), tracker.onCupTapWithNoRollsLeft(soloGame()))
+            assertEquals(emptySet(), tracker.onCupTapWithNoRollsLeft(botsTurn))
+        }
+        assertEquals(emptySet(), tracker.onCupTapWithNoRollsLeft(outOfRolls))
+        assertEquals(emptySet(), tracker.onCupTapWithNoRollsLeft(outOfRolls))
+        assertEquals(setOf(Achievement.NO_MORE_ROLLS), tracker.onCupTapWithNoRollsLeft(outOfRolls))
 
         tracker.startGame()
         assertEquals(0, tracker.endOfGameContext(null, LeaderboardTotals()).diceRolledByPlayerOne)
-        assertEquals(emptySet(), tracker.onCupTapWithNoRollsLeft(), "the taps start again")
+        assertEquals(emptySet(), tracker.onCupTapWithNoRollsLeft(outOfRolls), "the taps start again")
+    }
+
+    @Test
+    fun `the rabbit is a Human turn's - the hold sequence player 1's - and a golden egg landing player 1's roll`() {
+        val tracker = AchievementTracker()
+        tracker.startGame()
+        val twoHumans = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "P1"), PlayerConfig(slot = 2, type = PlayerType.HUMAN, name = "P2")))
+        val withBot = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "P1"), PlayerConfig(slot = 2, type = PlayerType.AI, name = "Bot")))
+        assertEquals(setOf(Achievement.THE_MAGICIANS_SECRET), tracker.onRabbitSeen(twoHumans.copy(currentPlayerIndex = 1)))
+        assertEquals(emptySet(), tracker.onRabbitSeen(withBot.copy(currentPlayerIndex = 1)))
+
+        assertEquals(setOf(Achievement.TIME_WASTING), tracker.onHoldSequenceDone(twoHumans))
+        assertEquals(emptySet(), tracker.onHoldSequenceDone(twoHumans.copy(currentPlayerIndex = 1)))
+
+        val before = soloGame()
+        val golden = GameEngine.rollDice(before, Random(1), goldenOneIn = 1)
+        assertTrue(Achievement.EGGCELLENT_DISCOVERY in tracker.onRoll(before, golden))
+        // Golden already, and rolled again: nothing new landed.
+        val rerolled = GameEngine.rollDice(golden, Random(1), goldenOneIn = 1)
+        assertTrue(Achievement.EGGCELLENT_DISCOVERY !in tracker.onRoll(golden, rerolled))
+        assertTrue(Achievement.EGGCELLENT_DISCOVERY !in tracker.onRoll(before, GameEngine.rollDice(before, Random(1))))
     }
 
     @Test

@@ -6,7 +6,6 @@ import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import net.zodac.dicefive.data.settings.ScreenOrientation
-import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 
 /**
  * What the shared game and UI need from the device underneath them - sound, vibration, the
@@ -119,8 +118,8 @@ enum class HapticEffect(val millis: Long) {
      * resolves just before the click finishes. */
     HOLD_TICK(150L),
 
-    /** The dice cup being shaken: 20% shorter than [CUP_SHAKE_MILLIS], so it ends before the shake does. */
-    SHAKE_BUZZ(CUP_SHAKE_MILLIS * 4 / 5),
+    /** The dice cup being shaken: 20% shorter than the shake (`ui.game.CUP_SHAKE_MILLIS`, `CupShakeTest`), so it ends before the shake does. */
+    SHAKE_BUZZ(336L),
 }
 
 interface HapticsPlayer {

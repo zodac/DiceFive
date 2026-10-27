@@ -19,8 +19,8 @@ import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.data.settings.savedStylesFlow
+import net.zodac.dicefive.game.style.StyleCategory
 import net.zodac.dicefive.online.OnlineSettingsRepository
-import net.zodac.dicefive.ui.style.StyleCategory
 
 class StylesViewModel(
     private val settingsRepository: SettingsRepository,

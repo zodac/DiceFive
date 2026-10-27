@@ -1,7 +1,8 @@
 package net.zodac.dicefive.ui.achievements
 
 import androidx.compose.runtime.Composable
-import net.zodac.dicefive.game.AchievementUpdate
+import net.zodac.dicefive.app.AchievementEvent
+import net.zodac.dicefive.app.StylesEarnedBy
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.achievements_styles_unlocked_announce_join
 import net.zodac.dicefive.resources.achievements_styles_unlocked_announcement
@@ -19,40 +20,6 @@ import net.zodac.dicefive.ui.common.joinClauses
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.spokenList
 import net.zodac.dicefive.ui.common.stringResource
-import net.zodac.dicefive.ui.style.styleRewards
-import net.zodac.dicefive.ui.style.stylesUnlockedByCount
-
-/**
- * Puts everything a recorded [update] earned up as banners: each unlock, followed by a styles banner for whatever
- * styles are locked behind that achievement ([styleRewards]); then one banner for any styles its unlocks brought
- * within reach by count (see [stylesUnlockedByCount]) - however many, and from however many categories - then each
- * progress nudge. A player who [ownsAllStyles] gets no styles banners: every style is already theirs. Call it only once
- * [update] is stored, so a banner can never outlive what it announces.
- */
-fun announce(update: AchievementUpdate, ownsAllStyles: Boolean) {
-    update.newlyUnlocked.forEach { achievement ->
-        AchievementEvents.emit(AchievementEvent.Unlocked(achievement))
-        val rewards = achievement.styleRewards
-        if (rewards.isNotEmpty() && !ownsAllStyles) {
-            AchievementEvents.emit(
-                AchievementEvent.StylesUnlocked(
-                    rewards.map { UnlockedStyle(it.styleName, it.categoryNoun, it.hiddenColours) },
-                    StylesEarnedBy.OneAchievement(achievement),
-                ),
-            )
-        }
-    }
-    val styles = if (ownsAllStyles) emptyList() else stylesUnlockedByCount(update.countedUnlocksBefore, update.countedUnlocksAfter)
-    if (styles.isNotEmpty()) {
-        AchievementEvents.emit(
-            AchievementEvent.StylesUnlocked(
-                styles.map { UnlockedStyle(it.styleName, it.categoryNoun) },
-                StylesEarnedBy.Count(update.countedUnlocksAfter),
-            ),
-        )
-    }
-    update.progressed.forEach { AchievementEvents.emit(AchievementEvent.Progressed(it.achievement, it.previous, it.current)) }
-}
 
 /** How many styles a styles banner names before it just counts the rest - two fit its two lines. */
 private const val STYLES_NAMED_ON_BANNER = 2

@@ -14,6 +14,8 @@ import androidx.compose.ui.text.TextLayoutResult
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.MutableStateFlow
+import net.zodac.dicefive.app.AchievementEvent
+import net.zodac.dicefive.app.AchievementEvents
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.achievements.AchievementsState
@@ -29,8 +31,6 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
-import net.zodac.dicefive.ui.achievements.AchievementEvent
-import net.zodac.dicefive.ui.achievements.AchievementEvents
 import net.zodac.dicefive.ui.achievements.AchievementsScreen
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
 import net.zodac.dicefive.ui.achievements.resetAchievementsScrollMemory

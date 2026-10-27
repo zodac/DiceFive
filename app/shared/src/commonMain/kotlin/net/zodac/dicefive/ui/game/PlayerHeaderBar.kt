@@ -191,7 +191,7 @@ private fun PlayerTab(
             // icon, at four players on a narrow phone), but never below MIN_READABLE_FONT_SIZE: past
             // that it wraps to a second line rather than getting smaller - only reached at a large
             // system font, or by a very wide name, since the caps on name length (see
-            // GameSetupState.maxPlayerNameLength) are sized to fit one line at that size.
+            // maxPlayerNameLength) are sized to fit one line at that size.
             ShrinkThenWrapText(
                 text = name,
                 style = nameStyle,

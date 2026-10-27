@@ -16,6 +16,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.app.AchievementEvent
+import net.zodac.dicefive.app.AchievementEvents
+import net.zodac.dicefive.app.AchievementUnlocker
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
@@ -72,6 +75,8 @@ class AchievementsViewModel(
     lockedOnly: StateFlow<Boolean?>? = null,
     /** Whether the purchase unlocks every style ([AppContainer.ownsAllStyles]): an owner's unlocks get no styles banners. */
     ownsAllStyles: Flow<Boolean> = flowOf(false),
+    /** Where its achievements are earned: the app's one ([AppContainer.achievementUnlocker]); a test's own otherwise. */
+    private val achievementUnlocker: AchievementUnlocker = AchievementUnlocker(achievementsRepository, ownsAllStyles),
 ) : ViewModel() {
 
     /** Whether only the achievements not yet unlocked are shown - null until it has loaded, when the page shows them all. */
@@ -105,7 +110,6 @@ class AchievementsViewModel(
     // corrupt a shared counter or seed the leaderboard with fake rows.
     private val superuserProgressOverride = MutableStateFlow<Map<Achievement, Int>>(emptyMap())
 
-    private val achievementUnlocker = AchievementUnlocker(achievementsRepository, ownsAllStyles)
 
     private val _toastMessages = Channel<String>(Channel.BUFFERED)
     val toastMessages: Flow<String> = _toastMessages.receiveAsFlow()
@@ -220,13 +224,7 @@ class AchievementsViewModel(
             .map {
                 val progress = (AchievementEngine.progressOf(it, state.counters, leaderboard) + (progressOverride[it] ?: 0))
                     .coerceAtMost(it.target)
-                val flags = it.counter?.takeIf { counter -> counter.isFlags }?.let(state::counter) ?: 0
-                val collected = when {
-                    it.scoreBand != null -> it.scoreBand.filter { score -> score in leaderboard.distinctScores }.toSet()
-                    it.isEveryMode -> leaderboard.modesPlayed.map { mode -> mode.ordinal }.toSet()
-                    else -> it.checklist?.filter { number -> flags and (1 shl (number - 1)) != 0 }.orEmpty().toSet()
-                }
-                AchievementItem(it, state.unlockedAt[it], progress, collected)
+                AchievementItem(it, state.unlockedAt[it], progress, AchievementEngine.collectedOf(it, state.counters, leaderboard))
             }
 
         return AchievementsUiState(
@@ -267,6 +265,7 @@ class AchievementsViewModel(
                     settingsRepository = container.settingsRepository,
                     lockedOnly = container.lockedOnlyAchievements,
                     ownsAllStyles = container.ownsAllStyles,
+                    achievementUnlocker = container.achievementUnlocker,
                 )
             }
         }

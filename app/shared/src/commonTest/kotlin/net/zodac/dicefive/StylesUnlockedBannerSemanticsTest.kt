@@ -12,17 +12,17 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import kotlin.test.Test
+import net.zodac.dicefive.app.AchievementEvent
+import net.zodac.dicefive.app.AchievementEvents
 import net.zodac.dicefive.app.LocalAppContainer
+import net.zodac.dicefive.app.StylesEarnedBy
+import net.zodac.dicefive.app.UnlockedStyle
+import net.zodac.dicefive.game.style.styleRewards
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
-import net.zodac.dicefive.ui.achievements.AchievementEvent
-import net.zodac.dicefive.ui.achievements.AchievementEvents
-import net.zodac.dicefive.ui.achievements.StylesEarnedBy
-import net.zodac.dicefive.ui.achievements.UnlockedStyle
 import net.zodac.dicefive.ui.style.DiceMats
 import net.zodac.dicefive.ui.style.DiceStyles
 import net.zodac.dicefive.ui.style.TableBackgrounds
-import net.zodac.dicefive.ui.style.styleRewards
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /**
