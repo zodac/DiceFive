@@ -52,6 +52,10 @@ android {
     // has a values-xx/strings.xml here with app_name, only to be listed. See .claude/I18N.md.
     androidResources {
         generateLocaleConfig = true
+        // Only those languages' resources, and English's: in any other the app is wholly English (MainActivity's
+        // stringsLanguageConfiguration), so the libraries' other translations could never be read.
+        localeFilters += listOf("en") + file("src/main/res").list().orEmpty()
+            .filter { it.startsWith("values-") }.map { it.removePrefix("values-") }
     }
 
     defaultConfig {
