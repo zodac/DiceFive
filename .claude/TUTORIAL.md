@@ -20,7 +20,7 @@ outlined in pulsing gold. Nothing in it is kept.
 | Where | What |
 |---|---|
 | `game/Tutorial.kt` | Pure: `TutorialScript` (mode + steps, `turns`, `turnOf`, `turnStarts`, `replay`), `TutorialStep`, `TutorialMessage`, `TutorialDice`. `TutorialScript.STANDARD` is the script |
-| `ui/game/GameViewModel.kt` | `tutorial: TutorialScript?` (null in real games), `tutorialFactory`, `startTutorial`, `tutorialStep`/`tutorialTurn`, `tutorialTotalsOpened`, `jumpToTutorialTurn`, and the gates (below) |
+| `ui/game/GameViewModel.kt` | `tutorial: TutorialScript?` (null in real games), `tutorialFactory`, `startTutorial`, `tutorialStep`/`tutorialTurn`, `tutorialTotalsOpened`, `jumpToTutorialTurn` (the progress itself is `TutorialProgress`'s), and the gates (below) |
 | `ui/game/TutorialGuide.kt` | `TutorialGuide` (the shown step, the pulse, totals callback, whether the cup is rolling), `LocalTutorialGuide`, `Modifier.tutorialOutline`, `rememberTutorialPulse` |
 | `ui/game/CoachCard.kt` | `CoachCard` and `coachCardHeight`; the `TutorialMessage` → string map |
 | `ui/game/GameScreen.kt` | Provides the guide; the card replaces `PlayerHeaderBar`; the cup and tray are gated on the step; tutorial Game Over |

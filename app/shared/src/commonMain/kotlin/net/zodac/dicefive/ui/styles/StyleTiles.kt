@@ -162,7 +162,6 @@ import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.HorizontalScrollbar
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.PAGE_CONTENT_FADE_IN_MILLIS
-import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.accessibleCombinedClickable
 import net.zodac.dicefive.ui.common.ambientMotion
 import net.zodac.dicefive.ui.common.categoryHeaderStyle

@@ -10,7 +10,6 @@ import kotlin.random.Random
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +23,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import net.zodac.dicefive.app.AchievementUnlocker
@@ -184,9 +182,28 @@ class GameViewModel(
         }
     }
 
-    /** Whether a CPU's cup is shaking for its roll - see [maybeStartAiTurn]. */
-    private val _aiRolling = MutableStateFlow(false)
-    val aiRolling: StateFlow<Boolean> = _aiRolling.asStateFlow()
+    /** The CPUs' turns, played on this table. */
+    private val cpuTurns = CpuTurns(
+        viewModelScope,
+        aiDispatcher,
+        object : CpuTurns.Host {
+            override val pacing: GamePacing get() = this@GameViewModel.pacing
+
+            override suspend fun pause(millis: Long) = pausableDelay(millis)
+
+            override fun roll(state: GameState): GameState = performRoll(state, checkForAiTurn = false)
+
+            override fun publish(state: GameState) {
+                setUndoSnapshot(null)
+                applyGameState(state, checkForAiTurn = false)
+            }
+
+            override suspend fun perfectPlayFor(state: GameState): StandardPerfectPlayTable? = this@GameViewModel.perfectPlayFor(state)
+        },
+    )
+
+    /** Whether a CPU's cup is shaking for its roll - see [CpuTurns]. */
+    val aiRolling: StateFlow<Boolean> = cpuTurns.rolling
 
     /** Whether a human's cup is shaking for the roll they asked for - see [shakeAndRoll]. */
     private val _tapRolling = MutableStateFlow(false)
@@ -222,86 +239,45 @@ class GameViewModel(
     val tutorialSteps: List<TutorialStep>
         get() = tutorial?.steps.orEmpty()
 
-    /** How far through [tutorial]'s steps the guided game is. */
-    private var tutorialIndex = 0
+    /** How far through [tutorial]'s guided game the player is - null outside one. */
+    private val tutorialProgress: TutorialProgress? = tutorial?.let { TutorialProgress(it, viewModelScope, ::pausableDelay) }
 
-    private val _tutorialStep = MutableStateFlow(tutorial?.steps?.firstOrNull())
-
-    private val _tutorialTurn = MutableStateFlow(1)
-
-    /** Which of [tutorial]'s turns [tutorialStep] is part of, from 1 - see [TutorialScript.turnOf]. */
-    val tutorialTurn: StateFlow<Int> = _tutorialTurn.asStateFlow()
+    /** Which of [tutorial]'s turns [tutorialStep] is part of, from 1 - see [TutorialProgress.turn]. */
+    val tutorialTurn: StateFlow<Int> = tutorialProgress?.turn ?: MutableStateFlow(1)
 
     /** How many turns [tutorial] has. */
     val tutorialTurns: Int
         get() = tutorial?.turns ?: 0
 
-    /**
-     * The guided game's step, for the coach card and the board - null outside a tutorial, and once its last step is done.
-     * After a roll it's the step after once the dice have settled; what the player may do moves on as the roll lands.
-     */
-    val tutorialStep: StateFlow<TutorialStep?> = _tutorialStep.asStateFlow()
+    /** The guided game's step, for the coach card and the board - see [TutorialProgress.shown]. Null outside a tutorial. */
+    val tutorialStep: StateFlow<TutorialStep?> = tutorialProgress?.shown ?: MutableStateFlow(null)
 
     private val currentTutorialStep: TutorialStep?
-        get() = tutorial?.steps?.getOrNull(tutorialIndex)
-
-    /** The guided game as it began, for [jumpToTutorialTurn] to replay from. */
-    private var tutorialStart: GameState? = null
+        get() = tutorialProgress?.current
 
     /**
-     * The coach card's back (-1) and forward (+1): to the start of the previous or next turn - or, going back from part
-     * way through a turn, to the start of this one. The game is rebuilt as if every step before it had been played
-     * ([TutorialScript.replay]); a roll still shaking or landing is dropped.
+     * The coach card's back (-1) and forward (+1) - see [TutorialProgress.jump]. A roll still shaking or landing is
+     * dropped.
      */
     fun jumpToTutorialTurn(direction: Int) {
-        val script = tutorial ?: return
-        val start = tutorialStart ?: return
-        val starts = script.turnStarts
-        val current = starts.indexOfLast { it <= tutorialIndex }
-        val target = when {
-            direction < 0 && tutorialIndex > starts[current] -> starts[current]
-            direction < 0 -> starts.getOrNull(current - 1) ?: return
-            else -> starts.getOrNull(current + 1) ?: return
-        }
+        val replayed = tutorialProgress?.jump(direction) ?: return
         tapRollJob?.cancel()
         _tapRolling.value = false
-        tutorialStepJob?.cancel()
-        tutorialIndex = target
-        showTutorialStep(target)
         setUndoSnapshot(null)
-        applyGameState(script.replay(start, target), checkForAiTurn = false)
+        applyGameState(replayed, checkForAiTurn = false)
     }
 
     /** Whether [jumpToTutorialTurn] can go back: anywhere but the very start. */
     val canJumpBack: Boolean
-        get() = tutorial != null && tutorialIndex > 0
+        get() = tutorialProgress?.canJumpBack == true
 
     /** Whether [jumpToTutorialTurn] can go forward: before the last turn. */
     val canJumpForward: Boolean
-        get() = tutorial?.let { script -> script.turnStarts.any { it > tutorialIndex } } == true
+        get() = tutorialProgress?.canJumpForward == true
 
-    /** Showing the next step once a roll's dice have settled - see [tutorialStep]. */
-    private var tutorialStepJob: Job? = null
-
-    /** On to the next step, shown after [shownAfterMillis]. */
+    /** On to the tutorial's next step, shown after [shownAfterMillis]. */
     private fun advanceTutorial(shownAfterMillis: Long = 0L) {
-        tutorialIndex++
-        val index = tutorialIndex
-        tutorialStepJob?.cancel()
-        if (shownAfterMillis <= 0L) {
-            showTutorialStep(index)
-        } else {
-            tutorialStepJob = viewModelScope.launch {
-                pausableDelay(shownAfterMillis)
-                showTutorialStep(index)
-            }
-        }
-    }
-
-    private fun showTutorialStep(index: Int) {
-        val script = tutorial ?: return
-        _tutorialStep.value = script.steps.getOrNull(index)
-        _tutorialTurn.value = script.turnOf(index).coerceAtMost(script.turns)
+        tutorialProgress?.advance(shownAfterMillis)
     }
 
     /** The totals were opened: moves on from a step that asked for them. */
@@ -314,10 +290,8 @@ class GameViewModel(
         val script = tutorial ?: return
         viewModelScope.launch {
             val name = resolvePlayerName(settingsRepository.snapshot().playerNameFor(1).orEmpty(), defaultName).takeNameWidth(maxPlayerNameLength(1))
-            tutorialIndex = 0
-            showTutorialStep(0)
             val start = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = name)), script.gameMode)
-            tutorialStart = start
+            tutorialProgress?.begin(start)
             beginGame(start)
         }
     }
@@ -631,9 +605,7 @@ class GameViewModel(
             advanceTutorial()
         }
         tracker.onUndo()
-        aiTurnJob?.cancel()
-        aiTurnJob = null
-        _aiRolling.value = false
+        cpuTurns.cancel()
         cancelTurnTimer()
         setUndoSnapshot(null)
         applyGameState(snapshot, checkForAiTurn = false)
@@ -660,7 +632,7 @@ class GameViewModel(
 
     /**
      * Every roll in the game - a human's via [rollDice],
-     * and an AI's via [maybeStartAiTurn] - so they all land the same way. Not undoable, like
+     * and an AI's via [CpuTurns] - so they all land the same way. Not undoable, like
      * rolling always has been: only a committed score is. Returns the rolled state for the AI loop,
      * which carries its own copy of it.
      */
@@ -741,7 +713,7 @@ class GameViewModel(
             finishGame(newState)
         }
         syncTurnTimer(newState)
-        if (checkForAiTurn) maybeStartAiTurn()
+        if (checkForAiTurn) cpuTurns.startIfDue(newState)
     }
 
     private var turnTimerJob: Job? = null
@@ -803,9 +775,7 @@ class GameViewModel(
     private fun autoScoreOnTimeout() {
         val state = _game.value ?: return
         if (state.currentPlayer?.type == PlayerType.AI) {
-            aiTurnJob?.cancel()
-            aiTurnJob = null
-            _aiRolling.value = false
+            cpuTurns.cancel()
         }
         // Only player 1 - "You" - earns achievements; another human seat can still be timed out,
         // it just doesn't feed Achievement tracking.
@@ -945,8 +915,6 @@ class GameViewModel(
      * see [GameState.undoneCategory] and [GameState.undoSnapshot]. */
     private fun savedCopy(state: GameState): GameState = state.copy(undoneCategory = tracker.undoneCategory, undoSnapshot = undoSnapshot)
 
-    private var aiTurnJob: Job? = null
-
     /**
      * Gets a Hard CPU's first decision ready while the humans before it play: its mode's hands scored
      * (most of a second for Tricolour's coloured dice - see [AiTurnPlayer.prepareHard]) and, in
@@ -961,170 +929,11 @@ class GameViewModel(
         }
     }
 
-    /**
-     * Flips each of [indices]' holds in turn, left to right, [AI_HOLD_STEP_MS] apart, publishing every
-     * one - a CPU reaching for its dice one by one. Returns the state with all of them flipped.
-     */
-    private suspend fun toggleHoldsOneByOne(state: GameState, indices: List<Int>): GameState {
-        var current = state
-        for ((step, index) in indices.withIndex()) {
-            if (step > 0) pausableDelay(AI_HOLD_STEP_MS)
-            current = GameEngine.toggleHold(current, index)
-            applyGameState(current, checkForAiTurn = false)
-        }
-        return current
-    }
-
-    /**
-     * The CPU's hold changes: every release, then every new hold. One die at a time while the dice are animated
-     * ([toggleHoldsOneByOne]), as a hand would; with them not animated ([GamePacing.diceAnimated] off) that stepping is just
-     * motion, so every change lands at once, published together. Returns the state with all of them made.
-     */
-    private suspend fun changeHolds(state: GameState, toRelease: List<Int>, toHold: List<Int>): GameState {
-        if (!pacing.diceAnimated) {
-            val current = (toRelease + toHold).fold(state, GameEngine::toggleHold)
-            if (current !== state) applyGameState(current, checkForAiTurn = false)
-            return current
-        }
-        var current = toggleHoldsOneByOne(state, toRelease)
-        if (toRelease.isNotEmpty() && toHold.isNotEmpty()) pausableDelay(AI_RELEASE_TO_HOLD_GAP_MS)
-        current = toggleHoldsOneByOne(current, toHold)
-        return current
-    }
-
     /** The perfect-play table if [state]'s current player is a Hard CPU playing Standard - see [standardPerfectPlay]. */
     private suspend fun perfectPlayFor(state: GameState): StandardPerfectPlayTable? =
         if (AiTurnPlayer.usesPerfectPlayTable(state)) standardPerfectPlay?.invoke() else null
 
-    /**
-     * Starts a job that plays out every AI turn in a row from here (not just one) - e.g. with a
-     * human followed by three AI, this single job carries players 2, 3 and 4 through their whole
-     * turns before handing back to the human. Looping in place rather than recursively re-launching
-     * itself matters: `aiTurnJob` isn't reassigned - and so isn't `isActive` - until this whole
-     * coroutine returns, so a self re-launch from its own tail would see itself as still active and
-     * bail out, silently dropping every AI turn after the first.
-     */
-    private fun maybeStartAiTurn() {
-        val state = _game.value ?: return
-        if (state.isGameOver) return
-        if (state.currentPlayer?.type != PlayerType.AI) return
-        if (aiTurnJob?.isActive == true) return
-
-        aiTurnJob = viewModelScope.launch {
-            var current = state
-            while (!current.isGameOver && current.currentPlayer?.type == PlayerType.AI) {
-                val perfectPlay = perfectPlayFor(current)
-                while (current.rollsRemaining > 0) {
-                    // The delay doubles as the cup's shake animation window - the same CUP_SHAKE_MILLIS
-                    // a human's tap shakes for, whatever the difficulty, and the roll itself goes
-                    // through the same performRoll. aiRolling is true for the shake's whole span
-                    // and false the moment the roll (never the hold decision below - see that
-                    // comment) is published.
-                    _aiRolling.value = true
-                    try {
-                        pausableDelay(pacing.cupShakeMillis)
-                        current = performRoll(current, checkForAiTurn = false)
-                    } finally {
-                        _aiRolling.value = false
-                    }
-                    // Nothing left to decide on the turn's last roll - there's no further reroll to
-                    // hold dice FOR.
-                    val rolled = current
-                    val holdsChoice = if (rolled.rollsRemaining > 0) async(aiDispatcher) { AiTurnPlayer.chooseHolds(rolled, perfectPlay) } else null
-
-                    // The roll is published but the dice are still tossing onto the mat: let them settle
-                    // before holding, rerolling or scoring, as a human has to. The hold choice above is
-                    // already being worked out meanwhile, so the toss covers up to its own length of thinking.
-                    pausableDelay(pacing.diceTossMillis)
-                    if (holdsChoice == null) break
-
-                    // Deliberately outside the block above: choosing what to hold happens once
-                    // the cup has already stopped shaking and this roll's dice are already on
-                    // screen, never while the shake itself is still playing. Hard's hold choice
-                    // is an exhaustive search over every 32 hold/reroll subsets, each averaged
-                    // over every possible reroll outcome - expensive enough that computing it
-                    // during the shake (as this used to) stretched the shake's own on-screen
-                    // duration out past Easy/Medium's, whose choices are next to free. Now every
-                    // difficulty's shake is the same fixed length, and "thinking" is just a
-                    // static pause with nothing animating - however long it takes, only the pause
-                    // before the dice's held state updates changes, not any animation. It runs during
-                    // the toss, so the pause is only whatever it takes beyond the toss itself.
-                    val holds = holdsChoice.await()
-                    // Done rolling: stop before the holds are applied, as showing every die held just before scoring
-                    // is noise. "x$rollsRemaining" on the cup still shows the rolls left - see AiTurnPlayer.stopsRolling.
-                    if (AiTurnPlayer.stopsRolling(current, holds)) break
-
-                    // A human's beat to take in the settled dice before reaching for them - with the
-                    // choice worked out during the toss, the holds would otherwise land the instant the
-                    // dice stop. Scoring gets the same beat from AI_STEP_DELAY_MS below.
-                    pausableDelay(AI_REACTION_DELAY_MS)
-                    // One die at a time, as a hand would: every release first, then every new hold, each
-                    // published as it happens - all at once, a swap of held dice read as a jump cut.
-                    val toRelease = current.dice.indices.filter { current.dice[it].isHeld && it !in holds }
-                    val toHold = current.dice.indices.filter { !current.dice[it].isHeld && it in holds }
-                    val releasedAny = toRelease.isNotEmpty()
-                    setUndoSnapshot(null)
-                    current = changeHolds(current, toRelease, toHold)
-
-                    // A beat with the cup settled and the result visible before the next roll's
-                    // shake starts - without it, back-to-back rolls (routine for Easy, which never
-                    // holds anything and so never gets to skip a roll) read as one continuous blur
-                    // rather than distinct rolls. Only between rolls: the very first roll and the
-                    // score are already paced by the shake above and AI_STEP_DELAY_MS below. A die just
-                    // let go of gets longer: it drops from its slot onto the mat, and the shake sweeps
-                    // every loose die off the mat - so after only ROLL_GAP_MS it would be gone again
-                    // almost as soon as it landed, reading as a die vanishing rather than being released.
-                    // With the dice not animated, a released die is simply back on the mat: nothing to watch land.
-                    pausableDelay(if (releasedAny && pacing.diceAnimated) RELEASE_GAP_MS else ROLL_GAP_MS)
-                }
-                // Where only held dice score, the CPU picks out its hand now it's done rolling - held as a
-                // human would, so the hand it scores is the one in its slots.
-                if (current.gameMode.scoresHeldDiceOnly) {
-                    val toHold = current
-                    val handChoice = async(aiDispatcher) { AiTurnPlayer.chooseHand(toHold, perfectPlay) }
-                    pausableDelay(AI_REACTION_DELAY_MS)
-                    val hand = handChoice.await()
-                    setUndoSnapshot(null)
-                    current = changeHolds(
-                        current,
-                        toRelease = current.dice.indices.filter { current.dice[it].isHeld && it !in hand },
-                        toHold = current.dice.indices.filter { !current.dice[it].isHeld && it in hand },
-                    )
-                }
-                // Also off the main thread: Hard's category choice compares against
-                // HardCpu.CATEGORY_BASELINES, a `by lazy` average-over-every-outcome computed once per
-                // process on whichever call touches it first - same cost/rationale as the hold
-                // choice above. Worked out during the pause before scoring, not after it.
-                val toScore = current
-                val categoryChoice = async(aiDispatcher) { AiTurnPlayer.chooseCategory(toScore, perfectPlay) }
-                pausableDelay(AI_STEP_DELAY_MS)
-                val category = categoryChoice.await()
-                current = GameEngine.commitScore(current, category)
-                setUndoSnapshot(null)
-                applyGameState(current, checkForAiTurn = false)
-            }
-        }
-    }
-
     companion object {
-        /** The AI's pause, dice settled, before it scores. Its rolls shake for CUP_SHAKE_MILLIS, same as a tap's. */
-        private const val AI_STEP_DELAY_MS = 250L
-
-        /** The AI's pause, dice settled, before it holds any of them for its next roll. */
-        private const val AI_REACTION_DELAY_MS = 200L
-
-        /** Between one die the AI holds (or releases) and the next, when it changes several. */
-        private const val AI_HOLD_STEP_MS = 50L
-
-        /** Between the last die the AI releases and the first it then holds in their place. */
-        private const val AI_RELEASE_TO_HOLD_GAP_MS = 125L
-
-        /** Pause between one roll settling and the next one's shake starting, within the same AI turn. */
-        private const val ROLL_GAP_MS = 100L
-
-        /** [ROLL_GAP_MS] when the AI has just let go of a die: long enough to see it land on the mat before the shake sweeps it up. */
-        private const val RELEASE_GAP_MS = 500L
-
         /** Builds a [GameViewModel] backed by real Room/DataStore persistence. */
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
             initializer {

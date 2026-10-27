@@ -200,7 +200,7 @@ Renders cover 1280x800, 960x600, 891x411 and 800x360 in every mode, and 360x640 
 
 - **The cap varies with player count** (`maxPlayerNameLength`, `model/NameWidth.kt`: 14/12/10/8 characters at 1-4 players).
   - The binding constraint is the in-game header, where every seat shares one row. It's a layout limit only.
-  - It's enforced in `GameViewModel.setPlayerName` against the current count, so restored names are clamped too.
+  - It's enforced in `GameSetupForm.setPlayerName` against the current count, so restored names are clamped too.
     `setPlayerCount` re-clamps every slot either way.
   - Width counts, not UTF-16 units (`model/NameWidth.kt`: full-width characters count 2, combining marks 0).
 - **CPU names are tighter** (`maxAiNameLength`, which allows for the chip icon) and are **never truncated**.

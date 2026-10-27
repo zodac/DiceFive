@@ -16,7 +16,6 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.game.GameScreen
-import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /** The screen this class's tests are drawn on. */

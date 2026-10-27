@@ -259,7 +259,7 @@ still count it.
 - **Every roll lands through `GameViewModel.performRoll`.**
   - **A human's roll** is always a cup tap (`GameScreen.onCupTap`; a finger or a shake): a `CUP_SHAKE_MILLIS` shake,
     sound and haptics, then `rollDice()`, where player 1's achievement tracking runs.
-  - **A CPU's roll** comes from `GameViewModel.maybeStartAiTurn`: the same shake (`aiRolling`), then `performRoll`. It
+  - **A CPU's roll** comes from `CpuTurns` (the view model's): the same shake (`aiRolling`), then `performRoll`. It
     lives in the view model, so recomposition can't interrupt it, but it pauses when out of sight (`setForeground`
     from lifecycle callbacks).
   - **Any new wait in the CPU loop or the timer uses `pausableDelay`, never `delay`.** A plain one forfeits turns or
