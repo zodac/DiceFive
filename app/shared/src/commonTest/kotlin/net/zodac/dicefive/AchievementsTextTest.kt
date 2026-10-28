@@ -10,6 +10,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasContentDescription
@@ -25,9 +26,11 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
+import kotlin.math.abs
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.MutableStateFlow
 import net.zodac.dicefive.app.AchievementEvent
 import net.zodac.dicefive.app.AchievementEvents
@@ -306,5 +309,24 @@ class AchievementsTextTest : UiTest() {
         switch.performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Grand Tour").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Flipping the switch at the top keeps the top - no row is left behind the pinned header`() = uiTest {
+        val store = InMemoryAchievementStore(AchievementsState(unlockedAt = mapOf(Achievement.THE_JOURNEY_BEGINS to 0L)))
+        showAchievements(achievementsViewModel(store = store, settings = SettingsRepository(InMemoryPreferences())))
+        val switch = compose.onNode(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
+        val firstRowTop = compose.onNodeWithText("The Journey Begins").getUnclippedBoundsInRoot().top
+
+        // The first locked row takes the first row's place, under its header: its title within a dp or two of the earned
+        // row's, which sits a little differently in its card - behind the header, it was 55dp higher.
+        switch.performClick()
+        compose.waitForIdle()
+        val lockedTop = compose.onNodeWithText("Practice Makes Perfect").getUnclippedBoundsInRoot().top
+        assertTrue(abs((lockedTop - firstRowTop).value) <= 2f, "The first locked row's title is at $lockedTop, not $firstRowTop")
+
+        switch.performClick()
+        compose.waitForIdle()
+        assertEquals(firstRowTop, compose.onNodeWithText("The Journey Begins").getUnclippedBoundsInRoot().top)
     }
 }

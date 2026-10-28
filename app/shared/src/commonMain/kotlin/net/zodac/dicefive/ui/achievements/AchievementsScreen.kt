@@ -236,6 +236,9 @@ private val MISSING_SCROLLBAR_WIDTH = 8.dp
 /** The pinned category header's height (48dp arrows plus card padding), until it's measured. */
 private val ESTIMATED_HEADER_HEIGHT_DP = 56.dp
 
+/** The gap between the list's items. */
+private val LIST_SPACING = 8.dp
+
 /** The `scrollOffset` to pass to `animateScrollToItem`/`scrollToItem` so the item lands roughly
  * centred rather than pinned to the very top. That parameter's sign is the opposite of what it
  * looks like it should be: positive scrolls the item *further towards/off the top* (it's "how far
@@ -332,14 +335,34 @@ fun AchievementsScreen(
     val scope = rememberCoroutineScope()
     val currentGroups by rememberUpdatedState(groups)
     var restoredScroll by remember { mutableStateOf(false) }
-    // The row at the top when the filter was flipped, and how far down it sat, for keeping the list where it was once the filter has applied.
+    // What was at the top when the filter was flipped - a header (its group's top was showing) or else the first row - and its
+    // scroll offset, for keeping the list where it was once the filter has applied.
     var filterAnchor by remember { mutableStateOf<Pair<String, Int>?>(null) }
+    val headerEstimatePx = with(LocalDensity.current) { ESTIMATED_HEADER_HEIGHT_DP.roundToPx() }
+    val listSpacingPx = with(LocalDensity.current) { LIST_SPACING.roundToPx() }
     LaunchedEffect(onlyLocked) {
-        val (anchorId, offset) = filterAnchor ?: return@LaunchedEffect
+        val (anchorKey, offset) = filterAnchor ?: return@LaunchedEffect
         filterAnchor = null
+        val anchorGroup = fullGroups.firstOrNull { headerKey(it.category) == anchorKey }
+        if (anchorGroup != null) {
+            // A group's top stays its top, while the filter leaves the group anything to show.
+            indexOfKey(currentGroups, anchorKey, columns)?.let { index -> return@LaunchedEffect listState.scrollToItem(index, offset) }
+        }
+        val anchorId = anchorGroup?.items?.first()?.achievement?.id ?: anchorKey
         val target = nearestShownAchievementId(fullGroups, currentGroups, anchorId) ?: return@LaunchedEffect
         val index = flatIndexOf(currentGroups, target, columns) ?: return@LaunchedEffect
-        listState.scrollToItem(index, if (target == anchorId) offset else 0)
+        val targetGroup = currentGroups.first { group -> group.items.any { it.achievement.id == target } }
+        val headerIndex = indexOfKey(currentGroups, headerKey(targetGroup.category), columns)
+        when {
+            target == anchorId && anchorGroup == null -> listState.scrollToItem(index, offset)
+            // Its group's first row: the group's top, header and all.
+            headerIndex == index - 1 -> listState.scrollToItem(headerIndex, 0)
+            // Any other row lands just under the pinned header, not behind it.
+            else -> {
+                val headerPx = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.contentType == HEADER_CONTENT_TYPE }?.size ?: headerEstimatePx
+                listState.scrollToItem(index, -(headerPx + listSpacingPx))
+            }
+        }
     }
     val listLoaded = state.isLoaded
     LaunchedEffect(listLoaded) {
@@ -393,7 +416,10 @@ fun AchievementsScreen(
     DisposableEffect(listState) {
         onDispose {
             if (restoredScroll) {
-                AchievementsScrollMemory.firstVisibleItemKey = listState.layoutInfo.visibleItemsInfo.firstOrNull()?.key
+                // The item at firstVisibleItemIndex, which its scroll offset is measured from - not the first in
+                // visibleItemsInfo, which is the pinned header once its group's own header has scrolled off.
+                val firstIndex = listState.firstVisibleItemIndex
+                AchievementsScrollMemory.firstVisibleItemKey = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == firstIndex }?.key
                 AchievementsScrollMemory.firstVisibleItemScrollOffset = listState.firstVisibleItemScrollOffset
             }
         }
@@ -404,7 +430,6 @@ fun AchievementsScreen(
     // list's end, under the unlock banner). Sized as viewport - pinned header - last row, both
     // measured once seen; the header/row estimates only cover the first frames.
     var tailSpacePx by remember { mutableIntStateOf(0) }
-    val headerEstimatePx = with(LocalDensity.current) { ESTIMATED_HEADER_HEIGHT_DP.roundToPx() }
     LaunchedEffect(listState) {
         var headerPx = headerEstimatePx
         var lastRowPx = estimatedRowHeightPx
@@ -458,11 +483,16 @@ fun AchievementsScreen(
                 indication = null,
                 role = Role.Switch,
             ) {
-                // The first row on show (not a header or the tail): the list is put back at it, or the nearest one left.
-                filterAnchor = listState.layoutInfo.visibleItemsInfo
-                    .filter { info -> (info.key as? String)?.let { key -> !key.startsWith("group-") && key != "empty" && key != "tail-space" } == true }
-                    .minByOrNull { info -> info.offset }
-                    ?.let { info -> info.key as String to -info.offset }
+                // The header at the top while its group's top shows there, or else the first row on show (not a header or the
+                // tail): the list is put back at it, or the nearest one left.
+                val visible = listState.layoutInfo.visibleItemsInfo
+                val firstIndex = listState.firstVisibleItemIndex
+                filterAnchor = visible.firstOrNull { info -> info.index == firstIndex && info.contentType == HEADER_CONTENT_TYPE }
+                    ?.let { info -> info.key as String to listState.firstVisibleItemScrollOffset }
+                    ?: visible
+                        .filter { info -> (info.key as? String)?.let { key -> !key.startsWith("group-") && key != "empty" && key != "tail-space" } == true }
+                        .minByOrNull { info -> info.offset }
+                        ?.let { info -> info.key as String to -info.offset }
                 viewModel.setLockedOnly(it)
             },
         ) {
@@ -505,7 +535,7 @@ fun AchievementsScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 state = listState,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(LIST_SPACING),
             ) {
                 if (groups.isEmpty()) {
                     item(key = "empty") {
