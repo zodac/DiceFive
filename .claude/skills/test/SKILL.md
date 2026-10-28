@@ -31,7 +31,10 @@ failure stops what follows.
   builds unsigned, which is fine here.
 - No `-q`, so Gradle's warnings show. Read what's left after the task lines. Known and left (third-party, already
   on their newest versions): AGP's `Configuration.setVisible` deprecation, and the AboutLibraries plugin's
-  "resolved during configuration time" lines. Anything else is new: fix it.
+  "resolved during configuration time" lines. Also left, by the maintainer's choice: the manifest merger's two "tagged
+  ... to remove other declarations but no other declaration present" warnings (INTERNET, ACCESS_NETWORK_STATE) from
+  `mergePlayDebugUnitTestManifest`. The unit-test merge has no Billing library manifest to remove them from; the app
+  builds are clean. Anything else is new: fix it.
 
 ## While iterating
 
