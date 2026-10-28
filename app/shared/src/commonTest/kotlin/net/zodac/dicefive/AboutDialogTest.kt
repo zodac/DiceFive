@@ -67,8 +67,8 @@ class AboutDialogTest : UiTest() {
     fun `without an online service the privacy section says everything stays on this device`() = uiTest {
         showDialog()
         compose.onNodeWithText(
-            "DiceFive holds no user data. Your games, scores and settings stay on this device, and there are no ads, " +
-                "analytics or tracking.",
+            "DiceFive holds no user data. Your games, scores, and settings stay on this device, and there are no ads, " +
+                "analytics, or tracking.",
         ).performScrollTo()
     }
 

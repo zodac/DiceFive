@@ -119,8 +119,8 @@ class ProgressFilesSettingsTest : UiTest() {
     @Test
     fun `each row is one button - its label and line spoken together - naming its action`() = uiTest {
         show(FilesPlatform(PickerFiles()))
-        // TalkBack: "Export progress, Save achievements, scores and settings to a file, button, double-tap to export".
-        assertEquals(listOf("Export progress", "Save achievements, scores and settings to a file"), spoken("Export progress"))
+        // TalkBack: "Export progress, Save achievements, scores, and settings to a file, button, double-tap to export".
+        assertEquals(listOf("Export progress", "Save achievements, scores, and settings to a file"), spoken("Export progress"))
         assertEquals(listOf("Import progress", "Add progress from an exported file"), spoken("Import progress"))
         for ((row, action) in listOf("Export progress" to "Export", "Import progress" to "Import")) {
             val node = compose.onNode(hasText(row) and hasClickAction())

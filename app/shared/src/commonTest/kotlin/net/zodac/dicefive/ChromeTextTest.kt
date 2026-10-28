@@ -61,7 +61,7 @@ class ChromeTextTest : UiTest() {
         }
         compose.onNodeWithText("DiceFive is created by zodac.").assertExists()
         compose.onNodeWithText("DiceFive was inspired by Dice Me Online, created by Arturo Gutierrez.").assertExists()
-        compose.onNodeWithText("DiceFive holds no user data. Your games, scores and settings stay on this device, and there are no ads, analytics or tracking.")
+        compose.onNodeWithText("DiceFive holds no user data. Your games, scores, and settings stay on this device, and there are no ads, analytics, or tracking.")
             .assertExists()
     }
 }

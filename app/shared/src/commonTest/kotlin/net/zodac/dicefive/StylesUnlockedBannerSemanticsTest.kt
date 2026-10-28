@@ -64,7 +64,7 @@ class StylesUnlockedBannerSemanticsTest : UiTest() {
         compose.onNode(hasContentDescription("Styles unlocked: Glitch dice, Glitch background. Earned Big Fan")).assertExists()
 
         showBannerHostAndEmit(Achievement.ROLLING_THE_MIDNIGHT_DICE.stylesUnlocked(), StylesEarnedBy.OneAchievement(Achievement.ROLLING_THE_MIDNIGHT_DICE))
-        compose.onNodeWithText("Earned 'Rolling The Midnight Dice': 'Starry' dice, mat and background", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Earned 'Rolling The Midnight Dice': 'Starry' dice, mat, and background", useUnmergedTree = true).assertExists()
 
         showBannerHostAndEmit(Achievement.LUCK_OF_THE_IRISH.stylesUnlocked(), StylesEarnedBy.OneAchievement(Achievement.LUCK_OF_THE_IRISH))
         compose.onNodeWithText("Style Unlocked", useUnmergedTree = true).assertExists()

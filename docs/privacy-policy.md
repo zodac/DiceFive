@@ -106,7 +106,7 @@ Google Play; copies downloaded from elsewhere offer no purchases.
   and the styles you haven't earned lock again; the styles you picked are kept, ready for when you earn them. If you
   reinstall the App, or use another device with the same Google Play account, the purchase is restored automatically.
 - **Google.** Google collects and processes information about purchases, such as your order history, under the Google
-  Play Terms of Service, the Google Payments Privacy Notice and Google's Privacy Policy
+  Play Terms of Service, the Google Payments Privacy Notice, and Google's Privacy Policy
   (<https://policies.google.com/privacy>). You can see and manage your Google Play orders in your Google account.
 
 ## 7. Third-Party Services

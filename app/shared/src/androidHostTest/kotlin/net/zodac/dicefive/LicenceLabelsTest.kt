@@ -44,7 +44,7 @@ class LicenceLabelsTest : UiTest() {
                 "Used by 1 library",
                 "Used by 1 library and 1 font",
                 "Used by 2 sounds",
-                "Used by 2 libraries, 1 font, 1 sound and 1 image",
+                "Used by 2 libraries, 1 font, 1 sound, and 1 image",
             ),
             report.groups.map { labels.usageOf(it) },
         )

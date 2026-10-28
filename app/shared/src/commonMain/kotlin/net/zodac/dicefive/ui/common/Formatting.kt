@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_clauses_join
+import net.zodac.dicefive.resources.common_list_locale
 import net.zodac.dicefive.resources.common_locale
 import net.zodac.dicefive.resources.common_sentences_join
 import net.zodac.dicefive.resources.common_timestamp_pattern
@@ -79,11 +80,12 @@ internal expect fun formatInteger(number: Int, languageTag: String): String
 internal expect fun isRightToLeft(languageTag: String): Boolean
 
 /**
- * [items] as a spoken list in the strings' own language - "6, 6 and 6" in English. The platform's list
- * formatter does the joining, because the last separator and its spacing differ by language.
+ * [items] as a spoken list in the strings' own language - "6, 6, and 6" in English. The platform's list
+ * formatter does the joining, because the last separator and its spacing differ by language; the style is
+ * `common_list_locale`'s, so English has its Oxford comma.
  */
 @Composable
-internal fun spokenList(items: List<String>): String = formatList(items, stringResource(Res.string.common_locale))
+internal fun spokenList(items: List<String>): String = formatList(items, stringResource(Res.string.common_list_locale))
 
 /** [items] joined as a list in the language [languageTag] (BCP 47) names. Use [spokenList] in the UI. */
 internal expect fun formatList(items: List<String>, languageTag: String): String

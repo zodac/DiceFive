@@ -59,6 +59,9 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
   - Match the surrounding code's comment density and idiom.
   - Doc comments state rules, not guessed rationale.
   - British spelling in player text.
+  - **Oxford comma** in every English list of three or more: player text, the store listing, `README.md`, docs,
+    comments, and reports ("scores, styles, and settings"). Lists the app joins go through `spokenList`, whose
+    `common_list_locale` is en-US for it.
 
 ## Rules that always apply
 

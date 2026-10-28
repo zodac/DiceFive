@@ -18,6 +18,13 @@
     -->
     <string name="common_locale">en-GB</string>
 
+    <!--
+        The BCP 47 tag whose style joins a list ("'Standard', 'Tricolour', and 'D20'"): its separators and last
+        "and". Usually the same as common_locale. English uses en-US for the Oxford comma before the last item, which
+        en-GB leaves out.
+    -->
+    <string name="common_list_locale">en-US</string>
+
     <!-- The app's name, passed as %1$s to the strings that mention it (about_*_body, common_database_failure_body, licences_intro, rules_how_to_play_title, rules_modes_1) and drawn on the main menu. A brand name: every language keeps it. The launcher label is app/android's own app_name. -->
     <string name="app_name">DiceFive</string>
 
@@ -460,7 +467,7 @@
     <string name="rules_example_tile_alibi_spoken">The Alibi lights up.</string>
     <string name="rules_example_roll_spoken">Example roll: %1$s.</string>
     <string name="rules_example_nothing_held_spoken">Nothing held.</string>
-    <!-- %1$s is the held dice, joined into a list: "6, 6 and 6". -->
+    <!-- %1$s is the held dice, joined into a list: "6, 6, and 6". -->
     <string name="rules_example_held_spoken">Held: %1$s.</string>
     <string name="rules_example_pressed_takes_spoken">Pressing the box takes: %1$s.</string>
     <string name="rules_example_pressed_alternatives_spoken">Would score the same: %1$s.</string>
@@ -509,7 +516,7 @@
     <string name="about_inspiration_body">%1$s was inspired by `Dice Me Online`, created by `Arturo Gutierrez`.</string>
     <string name="about_inspiration_link">Dice Me Online on Google Play</string>
     <string name="about_privacy_heading">Privacy</string>
-    <string name="about_privacy_body">%1$s holds no user data. Your games, scores and settings stay on this device, and there are no ads, analytics or tracking.</string>
+    <string name="about_privacy_body">%1$s holds no user data. Your games, scores, and settings stay on this device, and there are no ads, analytics, or tracking.</string>
     <!-- about_privacy_body where the device has an online game service: %2$s is its name (Google Play Games). -->
     <string name="about_privacy_body_online">%1$s holds no user data. Your games, scores, and settings stay on this device, unless you sign in to %2$s. There are no ads, analytics, or tracking.</string>
     <string name="about_privacy_link">Full privacy policy</string>
@@ -517,7 +524,7 @@
     <!-- Licences dialog (ui/settings/LicensesDialog.kt, ComposeLicenceDocument.kt, and Android's TextViewLicenceDocument via LicenceLabels). -->
     <string name="licences_title">Licences</string>
     <string name="licences_close_cd">Close licences</string>
-    <string name="licences_intro">%1$s is built with the open-source software, fonts and sounds below, each used under the licence it's listed with.</string>
+    <string name="licences_intro">%1$s is built with the open-source software, fonts, and sounds below, each used under the licence it's listed with.</string>
     <string name="licences_show_text">Show licence text</string>
     <string name="licences_hide_text">Hide licence text</string>
     <string name="licences_notices_title">Notices</string>
@@ -531,7 +538,7 @@
     <!-- Shown on Android 12 and older after a copy; newer versions confirm it themselves. -->
     <string name="licences_link_copied">Link copied</string>
     <string name="licences_text_copied">Text copied</string>
-    <!-- Under each licence's name. %1$s is a list of what it covers, from the four plurals below: "2 libraries, 1 font and 1 sound". -->
+    <!-- Under each licence's name. %1$s is a list of what it covers, from the four plurals below: "2 libraries, 1 font, and 1 sound". -->
     <string name="licences_used_by">Used by %1$s</string>
     <plurals name="licences_count_library">
         <item quantity="one">%1$d library</item>
@@ -561,7 +568,7 @@
     <string name="menu_new_game">New Game</string>
     <string name="menu_continue">Continue</string>
 
-    <!-- Score box and die names, spoken by TalkBack (ui/game/BoardSemantics.kt). 3x, 4x, 5x and Alibi are the game's marks and stay in code. -->
+    <!-- Score box and die names, spoken by TalkBack (ui/game/BoardSemantics.kt). 3x, 4x, 5x, and Alibi are the game's marks and stay in code. -->
     <string name="score_ones">Ones</string>
     <string name="score_twos">Twos</string>
     <string name="score_threes">Threes</string>
@@ -722,17 +729,17 @@
     <string name="game_tutorial_roll_other_dice">Roll the other dice.</string>
     <string name="game_tutorial_roll_last_try">Your last roll this turn.</string>
     <string name="game_tutorial_hold_it_too">Another one! Hold it too.</string>
-    <string name="game_tutorial_hold_chase_straight">Wow, you've almost got a `Large Straight`, you just need a 5. Hold 2, 3, 4 and 6.</string>
+    <string name="game_tutorial_hold_chase_straight">Wow, you've almost got a `Large Straight`, you just need a 5. Hold 2, 3, 4, and 6.</string>
     <string name="game_tutorial_roll_for_five">Roll for the 5.</string>
     <string name="game_tutorial_roll_for_five_again">No 5. You have one roll left, so try again.</string>
     <string name="game_tutorial_score_chance">No `Large Straight` this time. Instead of taking a **0**, score in `Chance`. This is a 'freebie', which scores the total all your dice: **18** points.</string>
-    <string name="game_tutorial_hold_run">2, 3 and 4 are great to chase a `Large Straight` and a `Small Straight`. Hold one of each; the spare 4 and 2 don't help, so roll those.</string>
+    <string name="game_tutorial_hold_run">2, 3, and 4 are great to chase a `Large Straight` and a `Small Straight`. Hold one of each; the spare 4 and 2 don't help, so roll those.</string>
     <string name="game_tutorial_hold_run_five">A 5! Hold it too. You've got enough for a `Small Straight`, but one more in the run makes a `Large Straight`.</string>
     <string name="game_tutorial_roll_for_run_end">Your last roll: a 1 or a 6 finishes the run.</string>
     <string name="game_tutorial_score_large_straight">A 6! Five dice in a row is a `Large Straight`, worth **40** points. Score it.</string>
     <string name="game_tutorial_hold_threes">Each upper box scores for one dice number: Any rolled `Threes` adds up the 3s category. Hold the 3 and roll for more.</string>
     <string name="game_tutorial_score_threes">Three 3s scores **9** in `Threes`. If you score **63** in the upper section you earn a **35**-point bonus - that's an average of three of each number.</string>
-    <string name="game_tutorial_hold_straight_again">2, 3 and 5: a 4 would make a `Small Straight`. Hold them; the 6s don't help, so roll those.</string>
+    <string name="game_tutorial_hold_straight_again">2, 3, and 5: a 4 would make a `Small Straight`. Hold them; the 6s don't help, so roll those.</string>
     <string name="game_tutorial_roll_for_four">Roll for the 4.</string>
     <string name="game_tutorial_roll_for_four_again">No 4. You have one roll left.</string>
     <string name="game_tutorial_score_zero">Still no straight, and `Chance` is used. Take a **0** in `Small Straight`. You could also have taken a **0** in the upper section, but let's target the bonus instead.</string>
@@ -808,7 +815,7 @@
     <!-- Shown in the empty "most rolls you can store" field. -->
     <string name="setup_stored_hint">No max</string>
     <string name="setup_extended_title">Extended Scores</string>
-    <string name="setup_extended_description">Adds Two Pair, Evens and Odds</string>
+    <string name="setup_extended_description">Adds Two Pair, Evens, and Odds</string>
     <!-- Shown instead of the description when the chosen game mode can't use Extended Scores. %1$s is the mode's name. -->
     <string name="setup_extended_locked">Not used in %1$s mode</string>
     <string name="setup_unlucky_title">Unlucky Dice</string>
@@ -904,7 +911,7 @@
     <string name="settings_reset_leaderboard_online_note">Scores already sent to %1$s stay there.</string>
     <!-- Progress files, in a build with no online game service (the GitHub APK): the player's own copy of their progress, to keep or carry to another device. -->
     <string name="settings_export_progress">Export progress</string>
-    <string name="settings_export_progress_description">Save achievements, scores and settings to a file</string>
+    <string name="settings_export_progress_description">Save achievements, scores, and settings to a file</string>
     <!-- What a screen reader says a tap on the export row does (it opens the system's "save as" picker). -->
     <string name="settings_export_progress_action">Export</string>
     <string name="settings_import_progress">Import progress</string>
@@ -1211,7 +1218,7 @@
     <string name="styles_all_unlocked">All styles unlocked</string>
     <!-- The dialog Unlock All opens, before the store's own purchase sheet (which shows the price). Two paragraphs; %1$s is the app's name. -->
     <string name="styles_unlock_all_dialog_title">Unlock all styles</string>
-    <string name="styles_unlock_all_dialog_message">Unlock every style instantly, without needing to earn achievements. Includes all dice, dice cups, mats, backgrounds, frames and even secret colours.\n\nAll styles can also be earned for free through gameplay, and this app will never lock anything behind a purchase. This is purely an optional shortcut and a way to support %1$s!</string>
+    <string name="styles_unlock_all_dialog_message">Unlock every style instantly, without needing to earn achievements. Includes all dice, dice cups, mats, backgrounds, frames, and even secret colours.\n\nAll styles can also be earned for free through gameplay, and this app will never lock anything behind a purchase. This is purely an optional shortcut and a way to support %1$s!</string>
     <!-- Goes on to the store's purchase sheet: nothing is bought yet. -->
     <string name="styles_unlock_all_continue">Continue</string>
     <string name="styles_gallery_row_action">Show %1$s as a row</string>
@@ -1375,7 +1382,7 @@
     <string name="rules_how_to_play_2">You may hold any dice you want after a roll, then roll the remaining dice.</string>
     <string name="rules_how_to_play_3">Once you're happy with the roll (or you've rolled three times), score it in any open category on your scorecard.</string>
     <string name="rules_how_to_play_4">The game ends once every category is filled.</string>
-    <string name="rules_how_to_play_tutorial">Want to see it played? The tutorial takes you through a whole game, one step at a time. Nothing in it counts: no scores, achievements or saved game.</string>
+    <string name="rules_how_to_play_tutorial">Want to see it played? The tutorial takes you through a whole game, one step at a time. Nothing in it counts: no scores, achievements, or saved game.</string>
     <!-- The button under rules_how_to_play_tutorial that starts it. -->
     <string name="rules_tutorial_start">Start Tutorial</string>
     <string name="rules_upper_section_title">Scoring: Upper Section</string>
@@ -1425,7 +1432,7 @@
     <string name="rules_tricolour_title">Tricolour</string>
     <!-- A tab: keep it short. -->
     <string name="rules_tricolour_tab">Tricolour</string>
-    <string name="rules_tricolour_1">Similar to *Standard*, but every die also rolls a colour (red, yellow or blue) alongside its number.</string>
+    <string name="rules_tricolour_1">Similar to *Standard*, but every die also rolls a colour (red, yellow, or blue) alongside its number.</string>
     <string name="rules_tricolour_2">There are four extra scoring categories:</string>
     <string name="rules_tricolour_3">All five dice are red</string>
     <string name="rules_tricolour_4">All five dice are yellow</string>
@@ -1451,7 +1458,7 @@
     <string name="rules_stud_4">If multiple dice give the same highest score, the leftmost ones are chosen. Here, `Large Straight` is worth **40pts** with the 1 to 5 or the 2 to 6:</string>
     <string name="rules_stud_5">To override this, hold the dice you want first. Holding the 6 makes it the 2 to 6:</string>
     <string name="rules_stud_6">If the *Turn Timer* runs out, the first box that can still be scored is chosen.</string>
-    <string name="rules_stud_7">Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules. You just get more dice to choose your hand from!</string>
+    <string name="rules_stud_7">Scoring, bonuses, and the Joker rule are exactly the same as the *Standard* rules. You just get more dice to choose your hand from!</string>
     <string name="rules_stud_8">Since you choose your best hand from seven dice, totals here don't compare with other modes, so the achievements for a high score, a scorecard with no zeroes, rolling 5x or a straight, or filling a section, can't be earned in it. Scores from this mode don't go on the *Leaderboard*, but they still count towards your *Statistics*.</string>
     <string name="rules_stud_9">Press and hold a box to see which dice it would take: a solid gold outline for the dice that score, a dashed one for any that would have scored the same, and the rest fade back. Here, holding `Large Straight`:</string>
     <string name="rules_third_wind_title">Third Wind</string>
@@ -1507,7 +1514,7 @@
     <string name="rules_turn_timer_title">Turn Timer</string>
     <!-- A tab: keep it short. -->
     <string name="rules_turn_timer_tab">Turn Timer</string>
-    <string name="rules_turn_timer_1">*Turn Timer* sets a limit on how long each player has to finish their turn (not each roll). Choose **30**, **60** or **120** seconds. Optionally, you may select your own value between **5**s and **999**s. The remaining time will begin to flash red when there are 5 seconds remaining.</string>
+    <string name="rules_turn_timer_1">*Turn Timer* sets a limit on how long each player has to finish their turn (not each roll). Choose **30**, **60**, or **120** seconds. Optionally, you may select your own value between **5**s and **999**s. The remaining time will begin to flash red when there are 5 seconds remaining.</string>
     <string name="rules_turn_timer_2">If a player's time runs out, their turn is scored for them in the first open category on the scorecard: with their dice as they lie, or as a zero if they hadn't rolled yet.</string>
     <string name="rules_number_of_rolls_title">Number of Rolls</string>
     <!-- A tab: keep it short. -->
@@ -1525,8 +1532,8 @@
     <string name="rules_extended_scores_tab">Extended Scores</string>
     <string name="rules_extended_scores_1">*Extended Scores* adds three more scoring categories to every player's scorecard, after the others. It works in every game mode, so the game lasts three turns longer.</string>
     <string name="rules_extended_scores_2">Total of the four dice making two pairs of different numbers. A fifth die is never counted, even if it matches a pair</string>
-    <string name="rules_extended_scores_3">Total of the dice showing 2, 4 or 6</string>
-    <string name="rules_extended_scores_4">Total of the dice showing 1, 3 or 5</string>
+    <string name="rules_extended_scores_3">Total of the dice showing 2, 4, or 6</string>
+    <string name="rules_extended_scores_4">Total of the dice showing 1, 3, or 5</string>
     <string name="rules_extended_scores_5">The extra categories have their own section, so they don't count towards the upper bonus or the lower section's total. With *Extended Scores* on, certain achievements (like for a high score, winning with multiple zero categories, etc.) can't be earned.</string>
     <string name="rules_unlucky_dice_title">Unlucky Dice</string>
     <!-- A tab: keep it short. -->

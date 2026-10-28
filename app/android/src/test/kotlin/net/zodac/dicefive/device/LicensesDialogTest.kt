@@ -161,7 +161,7 @@ class LicensesDialogTest {
         showDialog()
         compose.onNodeWithContentDescription("Close licences", useUnmergedTree = true).assertExists()
         compose.onNodeWithText("Licences").assertExists()
-        compose.onNodeWithText("DiceFive is built with the open-source software, fonts and sounds below, each used under the licence it's listed with.").assertExists()
+        compose.onNodeWithText("DiceFive is built with the open-source software, fonts, and sounds below, each used under the licence it's listed with.").assertExists()
 
         // Each licence is its own card, so a selection can't run on into the next: each card opens with its own heading,
         // and no licence is split across two.

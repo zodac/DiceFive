@@ -230,7 +230,7 @@ class UnlockAllStylesButtonTest : UiTest() {
 
     private companion object {
         const val DIALOG_MESSAGE = "Unlock every style instantly, without needing to earn achievements. Includes all dice, dice cups, " +
-            "mats, backgrounds, frames and even secret colours.\n\nAll styles can also be earned for free through gameplay, and this " +
+            "mats, backgrounds, frames, and even secret colours.\n\nAll styles can also be earned for free through gameplay, and this " +
             "app will never lock anything behind a purchase. This is purely an optional shortcut and a way to support DiceFive!"
     }
 

@@ -6,6 +6,7 @@
 <resources>
 
     <string name="common_locale">es-ES</string>
+    <string name="common_list_locale">es-ES</string>
     <string name="app_name">DiceFive</string>
     <string name="common_timestamp_pattern">MMM dd, yyyy HH:mm</string>
     <string name="common_clauses_join">%1$s, %2$s</string>

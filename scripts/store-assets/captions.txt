@@ -4,7 +4,7 @@
 #
 # The trademark rule in CLAUDE.md applies here too: never the banned word, and "3x", "4x" and "5x" - never
 # "three/four/five of a kind".
-game=Roll, hold and score
+game=Roll, hold, and score
 modes=Twists on the classic rules
 styles=Unlock dozens of styles
 game-over=Beat friends or the computer
