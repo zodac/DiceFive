@@ -1074,11 +1074,10 @@ class AchievementEngineTest {
 
     @Test
     fun `Third Wind's 5x box and Sixes count per slot`() {
-        // Three 50s in its 5x box are a Hat Trick with no bonus chip.
-        val hatTrick = evaluate(finishedGame(thirdWindPlayer { category, _ -> if (category == ScoreCategory.FIVE_OF_A_KIND) 50 else 10 }))
-        assertEquals(3, hatTrick.counters[AchievementCounter.SCORED_5X])
-        assertTrue(Achievement.ENCORE in hatTrick.newlyUnlocked)
-        assertTrue(Achievement.HAT_TRICK in hatTrick.newlyUnlocked)
+        // Three 50s in its 5x box are three 5x with no bonus chip - though not Encore or Hat Trick, which it guards.
+        val threeFiveX = evaluate(finishedGame(thirdWindPlayer { category, _ -> if (category == ScoreCategory.FIVE_OF_A_KIND) 50 else 10 }))
+        assertEquals(3, threeFiveX.counters[AchievementCounter.SCORED_5X])
+        assertTrue(Achievement.FIVE_X in threeFiveX.newlyUnlocked)
 
         // Six Appeal needs a 30 in one Sixes slot - not three slots adding up to it.
         assertTrue(Achievement.SIX_APPEAL in unlocked(finishedGame(thirdWindPlayer { category, slot -> if (category == ScoreCategory.SIXES && slot == 1) 30 else 6 })))
@@ -1255,6 +1254,16 @@ class AchievementEngineTest {
                 "Third Wind - three zeroes in a win",
                 unlocked(finishedGame(thirdWindPlayer { category, _ -> if (category == ScoreCategory.LARGE_STRAIGHT) 0 else 10 }, thirdWindBot)),
                 listOf(Achievement.ZERO_TO_HERO),
+            ),
+            Guarded(
+                "Third Wind - three 5x and two chips",
+                unlocked(finishedGame(thirdWindPlayer(fiveOfAKindBonusCount = 2) { category, _ -> if (category == ScoreCategory.FIVE_OF_A_KIND) 50 else 10 })),
+                listOf(Achievement.ENCORE, Achievement.HAT_TRICK),
+            ),
+            Guarded(
+                "Third Wind - three 5x mid-game",
+                unlockedMidGame(thirdWindPlayer { category, _ -> if (category == ScoreCategory.FIVE_OF_A_KIND) 50 else 10 }),
+                listOf(Achievement.ENCORE, Achievement.HAT_TRICK),
             ),
             // Stud: the best five of seven dice.
             Guarded("Stud - best-of-seven feats", unlocked(finishedGame(player(total = 340, overrides = feats, gameMode = GameMode.STUD))), studFeats),

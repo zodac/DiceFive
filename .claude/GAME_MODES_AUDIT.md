@@ -141,13 +141,14 @@ The mode's own: Lucky Seven (all seven showing one number).
 | New Personal Best          | Read off the Leaderboard                    |
 | Zero To Hero               | Three zeros in 39 turns is normal           |
 | Spotless                   | Replaced by Third Time's The Charm          |
+| Encore, Hat Trick          | Three times the turns make them routine     |
 
 **Can't be earned**: Rock Bottom (the minimum is 15), and the score bands.
 
 **Still earnable**:
 - Bonus Round (105, as hard as Standard's 35);
 - Landslide (easier);
-- Encore, Hat Trick and Dice Whisperer (three times the turns);
+- Dice Whisperer (three times the turns);
 - Cold Dice, Low Rolls, Ton! and Nice (harder);
 - Professional Roller;
 - Greenfingers (117 rolls).

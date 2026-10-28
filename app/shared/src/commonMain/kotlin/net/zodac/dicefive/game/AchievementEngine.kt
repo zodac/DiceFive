@@ -388,9 +388,10 @@ object AchievementEngine {
         // Dice feats. 5x are counted, not bonus chips: where the 5x box has more than one slot
         // (Third Wind), the second and third 5x can go in it with no chip.
         // Nor where the best five of more dice score (Stud): a 5x or a straight among seven dice is no feat.
+        // Nor over a card scored three times over (Third Wind): three times the turns make a second or third 5x routine.
         award(Achievement.FIVE_X, anyHuman { it.scoresRolledHand && it.fiveOfAKindCount > 0 })
-        award(Achievement.ENCORE, anyHuman { it.scoresRolledHand && it.fiveOfAKindCount >= ENCORE_5X_COUNT })
-        award(Achievement.HAT_TRICK, anyHuman { it.scoresRolledHand && it.fiveOfAKindCount >= HAT_TRICK_5X_COUNT })
+        award(Achievement.ENCORE, anyHuman { it.scoresRolledHand && it.gameMode.scoresPerCategory == 1 && it.fiveOfAKindCount >= ENCORE_5X_COUNT })
+        award(Achievement.HAT_TRICK, anyHuman { it.scoresRolledHand && it.gameMode.scoresPerCategory == 1 && it.fiveOfAKindCount >= HAT_TRICK_5X_COUNT })
         award(
             Achievement.STRAIGHT_TALKER,
             anyHuman { it.scoresRolledHand && it.scored(ScoreCategory.SMALL_STRAIGHT) && it.scored(ScoreCategory.LARGE_STRAIGHT) },
