@@ -4,6 +4,7 @@
 #
 # Description:  Lints every tracked Markdown file with markdownlint, from markdownlint-cli2's official Docker image -
 #               except RELEASE_NOTES.md: the maintainer's own text, published as the release's notes as written.
+#               New files not yet added to git count too (unless ignored), so a run before a commit checks them.
 #
 #               The rules are code-quality-config/markdown/.markdownlint.json (the code-quality-config submodule),
 #               passed with --config.
@@ -27,7 +28,8 @@ if [[ ! -f "${MARKDOWNLINT_CONFIG}" ]]; then
 fi
 
 files=()
-mapfile -t files < <(git ls-files '*.md' ':!:RELEASE_NOTES.md')
+file_list="$(git ls-files --cached --others --exclude-standard '*.md' ':!:RELEASE_NOTES.md')"
+mapfile -t files <<< "${file_list}"
 
 docker run --rm -v "${PWD}:/workdir:ro" -w /workdir "${MARKDOWNLINT_IMAGE}" \
     --config "${MARKDOWNLINT_CONFIG}" "${files[@]}"

@@ -4,6 +4,7 @@
 #
 # Description:  Lints every tracked shell script (*.sh, and the git hooks in .githooks) with ShellCheck, from its
 #               official Docker image. gradlew is Gradle's generated wrapper, so it is left out.
+#               New files not yet added to git count too (unless ignored), so a run before a commit checks them.
 #
 #               The rules are code-quality-config/shellscript/.shellcheckrc (the code-quality-config submodule),
 #               passed with --rcfile: ShellCheck would otherwise look for a .shellcheckrc above each script.
@@ -27,6 +28,7 @@ if [[ ! -f "${SHELLCHECKRC}" ]]; then
 fi
 
 scripts=()
-mapfile -t scripts < <(git ls-files '*.sh' '.githooks/*')
+script_list="$(git ls-files --cached --others --exclude-standard '*.sh' '.githooks/*')"
+mapfile -t scripts <<< "${script_list}"
 
 docker run --rm -v "${PWD}:/repo:ro" -w /repo "${SHELLCHECK_IMAGE}" --rcfile "${SHELLCHECKRC}" "${scripts[@]}"
