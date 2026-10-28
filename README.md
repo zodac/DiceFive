@@ -88,12 +88,12 @@ achievements and scores to the ones already there.
 
 ---
 
-## License
+## Licence
 
 Copyright (c) 2026 zodac.net. **All rights reserved** - DiceFive's own code and artwork are proprietary. This
 repository is public so the source can be read; that does not grant permission to copy, modify, redistribute or
 publish it. See [`LICENSE`](LICENSE).
 
-Third-party components are not covered by that notice and remain under their own licenses - the libraries the app is
-built with, any fonts used , and the sound effects. Each is listed, with its license text, in the app under
+Third-party components are not covered by that notice and remain under their own licences - the libraries the app is
+built with, any fonts used, and the sound effects. Each is listed, with its licence text, in the app under
 **Settings > Licences**; the records behind that list live in [`asset-sources.json`](app/licensing/asset-sources.json).
