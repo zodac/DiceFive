@@ -1148,19 +1148,19 @@ class AchievementEngineTest {
     @Test
     fun `Critical Success unlocks mid-game once both D20 halves have earned their bonus - not one half - not with extra rolls - not on another card`() {
         fun earned(player: PlayerState) = Achievement.CRITICAL_SUCCESS in unlockedMidGame(player)
-        val bothScored = mapOf(ScoreCategory.D20_1 to 138, ScoreCategory.D20_11 to 388)
+        val bothScored = mapOf(ScoreCategory.D20_1 to 150, ScoreCategory.D20_11 to 400)
 
         assertTrue(earned(midGamePlayer(bothScored, gameMode = GameMode.D20)))
         // Scored across several boxes, not just one.
-        assertTrue(earned(midGamePlayer(mapOf(ScoreCategory.D20_4 to 100, ScoreCategory.D20_10 to 38, ScoreCategory.D20_12 to 200, ScoreCategory.D20_20 to 188), gameMode = GameMode.D20)))
-        assertFalse(earned(midGamePlayer(mapOf(ScoreCategory.D20_1 to 138, ScoreCategory.D20_11 to 387), gameMode = GameMode.D20)))
-        assertFalse(earned(midGamePlayer(mapOf(ScoreCategory.D20_1 to 137, ScoreCategory.D20_11 to 388), gameMode = GameMode.D20)))
-        assertFalse(earned(midGamePlayer(mapOf(ScoreCategory.D20_1 to 138), gameMode = GameMode.D20)))
-        // A wildcard counts towards its half: 100 + 38 and 350 + 38 are enough, a point less in either is not.
-        val withWildcards = mapOf(ScoreCategory.D20_1 to 100, ScoreCategory.D20_WILD_LOW to 38, ScoreCategory.D20_11 to 350, ScoreCategory.D20_WILD_HIGH to 38)
+        assertTrue(earned(midGamePlayer(mapOf(ScoreCategory.D20_4 to 100, ScoreCategory.D20_10 to 50, ScoreCategory.D20_12 to 200, ScoreCategory.D20_20 to 200), gameMode = GameMode.D20)))
+        assertFalse(earned(midGamePlayer(mapOf(ScoreCategory.D20_1 to 150, ScoreCategory.D20_11 to 399), gameMode = GameMode.D20)))
+        assertFalse(earned(midGamePlayer(mapOf(ScoreCategory.D20_1 to 149, ScoreCategory.D20_11 to 400), gameMode = GameMode.D20)))
+        assertFalse(earned(midGamePlayer(mapOf(ScoreCategory.D20_1 to 150), gameMode = GameMode.D20)))
+        // A wildcard counts towards its half: 100 + 50 and 350 + 50 are enough, a point less in either is not.
+        val withWildcards = mapOf(ScoreCategory.D20_1 to 100, ScoreCategory.D20_WILD_LOW to 50, ScoreCategory.D20_11 to 350, ScoreCategory.D20_WILD_HIGH to 50)
         assertTrue(earned(midGamePlayer(withWildcards, gameMode = GameMode.D20)))
-        assertFalse(earned(midGamePlayer(withWildcards + (ScoreCategory.D20_WILD_LOW to 37), gameMode = GameMode.D20)))
-        assertFalse(earned(midGamePlayer(withWildcards + (ScoreCategory.D20_WILD_HIGH to 37), gameMode = GameMode.D20)))
+        assertFalse(earned(midGamePlayer(withWildcards + (ScoreCategory.D20_WILD_LOW to 49), gameMode = GameMode.D20)))
+        assertFalse(earned(midGamePlayer(withWildcards + (ScoreCategory.D20_WILD_HIGH to 49), gameMode = GameMode.D20)))
         assertFalse(earned(midGamePlayer(bothScored, gameMode = GameMode.D20).copy(rollsModified = true)))
         assertFalse(earned(midGamePlayer(emptyMap(), gameMode = GameMode.STANDARD)))
         // Only a human earns it.
@@ -1277,8 +1277,8 @@ class AchievementEngineTest {
             Guarded("Hit List on 15", unlocked(finishedGame(hitListPlayer(total = 15))), listOf(Achievement.LOW_ROLLS)),
             Guarded("Hit List - a win with zeroes", unlocked(finishedGame(hitListPlayer(total = 200), hitListBot)), listOf(Achievement.ZERO_TO_HERO)),
             Guarded("Hit List - no zero", unlocked(finishedGame(hitListPlayer(scores = GameMode.HIT_LIST.categories.associateWith { 5 }))), listOf(Achievement.SPOTLESS)),
-            // D20: its totals are a different measure. Both halves in: 138 + 388 + 150 = 676.
-            Guarded("D20 on 676", unlocked(finishedGame(d20Player(firstHalf = 138, secondHalf = 388))), listOf(Achievement.SOLID_ROUND, Achievement.DICE_DEITY)),
+            // D20: its totals are a different measure. Both halves in: 150 + 400 + 150 = 700.
+            Guarded("D20 on 700", unlocked(finishedGame(d20Player(firstHalf = 150, secondHalf = 400))), listOf(Achievement.SOLID_ROUND, Achievement.DICE_DEITY)),
             Guarded("D20 on 30", unlocked(finishedGame(d20Player(firstHalf = 10, secondHalf = 20))), listOf(Achievement.COLD_DICE, Achievement.LOW_ROLLS)),
             Guarded("D20 - a win with zeroes", unlocked(finishedGame(d20Player(firstHalf = 100, secondHalf = 300), d20Bot)), listOf(Achievement.ZERO_TO_HERO)),
             Guarded("D20 - no zero", unlocked(finishedGame(d20Player(scores = GameMode.D20.categories.associateWith { 5 }))), listOf(Achievement.SPOTLESS)),

@@ -181,8 +181,8 @@ internal object HardCpu : CpuStrategy {
 
         /**
          * For each box in a section with a bonus, the bonus's stake in each point scored there, for the estimate:
-         * it's earned at an average of so many of each number (in every slot of each box) - three for the upper bonus, about
-         * two and a half for each of D20's halves - so each point above that par (or below it) moves the player that
+         * it's earned at an average of so many of each number (in every slot of each box) - three for the upper bonus, a little
+         * over two and a half for each of D20's halves - so each point above that par (or below it) moves the player that
          * share of the bonus nearer to (or further from) it - the bonus's amount over its threshold. Nothing once the
          * bonus is won, or out of reach even with five of every open number. Zero for a box in no such section.
          */

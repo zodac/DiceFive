@@ -218,9 +218,9 @@ each colour's `secretAchievement`). The mode always has white.
 The mode's own: Nat 20 (a multiplayer win) and Critical Success (both half bonuses, judged mid-game, not with roll
 modifiers).
 
-**Tuning data.** At thresholds 138 / 388, with the wildcards counting toward their half, Hard reaches the first bonus
-in 58% of games, the second in 93% and both in 53% (60 seeded games). With the wildcards in, the half medians were
-146 / 432 for Hard and 99 / 367 for Medium.
+**Tuning data.** At thresholds 150 / 400, with the wildcards counting toward their half, Hard reaches the first bonus
+in 37% of games, the second in 83% and both in 27% (60 seeded games); Medium reaches only the second, in 22%. With
+the wildcards in, the half medians were 144 / 429 for Hard and 99 / 366 for Medium.
 
 ## Tricolour (coloured dice, four colour boxes)
 

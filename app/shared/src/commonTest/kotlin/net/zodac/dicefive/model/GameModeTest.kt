@@ -115,7 +115,7 @@ class GameModeTest {
         assertEquals(1350, d20.maxPossibleScore)
         assertFalse(d20.allowsExtendedScores)
         assertFalse(d20.hasStandardCard)
-        assertEquals(listOf(ScoreSection.FIRST_HALF to 138, ScoreSection.SECOND_HALF to 388), d20.sectionBonuses.map { it.section to it.threshold })
+        assertEquals(listOf(ScoreSection.FIRST_HALF to 150, ScoreSection.SECOND_HALF to 400), d20.sectionBonuses.map { it.section to it.threshold })
         assertEquals(listOf(75, 75), d20.sectionBonuses.map { it.amount })
         // Each half is ten numbers and a wildcard, and every other card is Standard's or has none of these.
         assertEquals(11, d20.categories.count { it.section == ScoreSection.FIRST_HALF })
@@ -137,27 +137,27 @@ class GameModeTest {
                 second.associateWith { listOf(if (it == second.first()) secondHalf else 0) }
             return PlayerState(name = "P", type = PlayerType.HUMAN, gameMode = GameMode.D20, scorecard = card)
         }
-        assertEquals(0, player(137, 387).sectionBonusTotal)
-        assertEquals(75, player(138, 387).sectionBonusTotal)
-        assertEquals(75, player(137, 388).sectionBonusTotal)
-        assertEquals(150, player(138, 388).sectionBonusTotal)
-        assertEquals(137 + 387, player(137, 387).totalScore)
-        assertEquals(138 + 388 + 150, player(138, 388).totalScore)
-        assertEquals(138, player(138, 388).firstHalfTotal)
-        assertEquals(388, player(138, 388).secondHalfTotal)
+        assertEquals(0, player(149, 399).sectionBonusTotal)
+        assertEquals(75, player(150, 399).sectionBonusTotal)
+        assertEquals(75, player(149, 400).sectionBonusTotal)
+        assertEquals(150, player(150, 400).sectionBonusTotal)
+        assertEquals(149 + 399, player(149, 399).totalScore)
+        assertEquals(150 + 400 + 150, player(150, 400).totalScore)
+        assertEquals(150, player(150, 400).firstHalfTotal)
+        assertEquals(400, player(150, 400).secondHalfTotal)
     }
 
     @Test
     fun `a D20 wildcard counts towards its half and so towards that half's bonus`() {
         val card = ScoreCategory.D20_CARD.associateWith { emptyList<Int>() } +
-            mapOf(ScoreCategory.D20_1 to listOf(100), ScoreCategory.D20_WILD_LOW to listOf(38), ScoreCategory.D20_11 to listOf(350), ScoreCategory.D20_WILD_HIGH to listOf(37))
+            mapOf(ScoreCategory.D20_1 to listOf(100), ScoreCategory.D20_WILD_LOW to listOf(50), ScoreCategory.D20_11 to listOf(350), ScoreCategory.D20_WILD_HIGH to listOf(49))
         val player = PlayerState(name = "P", type = PlayerType.HUMAN, gameMode = GameMode.D20, scorecard = card)
-        // 100 + 38 = 138 and 350 + 37 = 387: the wildcard takes the first half over its threshold, the second a point short.
-        assertEquals(138, player.firstHalfTotal)
-        assertEquals(387, player.secondHalfTotal)
+        // 100 + 50 = 150 and 350 + 49 = 399: the wildcard takes the first half over its threshold, the second a point short.
+        assertEquals(150, player.firstHalfTotal)
+        assertEquals(399, player.secondHalfTotal)
         assertEquals(75, player.sectionBonusTotal)
-        assertEquals(138 + 387 + 75, player.totalScore)
-        assertEquals(150, player.copy(scorecard = card + (ScoreCategory.D20_WILD_HIGH to listOf(38))).sectionBonusTotal)
+        assertEquals(150 + 399 + 75, player.totalScore)
+        assertEquals(150, player.copy(scorecard = card + (ScoreCategory.D20_WILD_HIGH to listOf(50))).sectionBonusTotal)
     }
 
     @Test

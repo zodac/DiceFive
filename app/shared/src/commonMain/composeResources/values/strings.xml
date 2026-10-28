@@ -627,7 +627,7 @@
     <string name="game_totals_targets">Targets</string>
     <string name="game_totals_first_half">1st half</string>
     <string name="game_totals_second_half">2nd half</string>
-    <!-- A half's points out of the target that earns its bonus, in the totals popup: "95 / 138". -->
+    <!-- A half's points out of the target that earns its bonus, in the totals popup: "95 / 150". -->
     <string name="game_totals_progress">%1$d / %2$d</string>
     <!-- TalkBack's name for the totals button. -->
     <string name="game_totals_cd">Totals</string>
@@ -1476,7 +1476,7 @@
     <string name="rules_d20_2">Each category adds up the dice showing its number, like the *Upper Section*. This roll is worth **51pts** in `17`:</string>
     <string name="rules_d20_7">Each half also has a wildcard, `1-10` and `11-20`. It adds up every die showing a number from its half, whichever numbers they are. This roll is worth **43pts** in the `11-20` wildcard:</string>
     <string name="rules_d20_8">A wildcard's points count towards its half, and so towards that half's bonus.</string>
-    <string name="rules_d20_3">The numbers are split into two halves, `1` to `10` and `11` to `20`. Add up **138pts** in the *1st half* for a bonus of **75pts**, and **388pts** in the *2nd half* for another **75pts**. Both can be earned in the same game. Those are about two and a half dice of each number.</string>
+    <string name="rules_d20_3">The numbers are split into two halves, `1` to `10` and `11` to `20`. Add up **150pts** in the *1st half* for a bonus of **75pts**, and **400pts** in the *2nd half* for another **75pts**. Both can be earned in the same game. Those are a little over two and a half dice of each number.</string>
     <string name="rules_d20_4">With no `5x` category there is no Joker rule and no bonus for a repeat 5x. The *Totals* button shows each half and the bonuses.</string>
     <string name="rules_d20_5">The *Extended Scores* modifier can't be used in this mode. The *Number of Rolls* modifier changes the **5** rolls, and the achievement for earning both bonuses can't be earned with it.</string>
     <string name="rules_d20_6">Totals here don't compare with other modes, so the achievements for a high or low score, a scorecard with no zeroes, or for winning from behind after scoring three zeroes, can't be earned in it. Scores from this mode don't go on the *Leaderboard*, but they still count towards your *Statistics*.</string>

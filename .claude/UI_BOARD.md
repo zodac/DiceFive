@@ -68,9 +68,9 @@ indexes), not summed on the 5x tile.
   - Each column is a traversal group, so TalkBack reads a half's boxes in order, then the cup and buttons.
   - Tiles are number badges: 1st half sky blue (`TileSky*`), 2nd half indigo (`TileIndigo*`). The colour repeats the
     number, so it needs no spoken twin.
-  - The Totals popup shows each half against its target ("95 / 138", gold once reached, wildcard included) plus the
+  - The Totals popup shows each half against its target ("95 / 150", gold once reached, wildcard included) plus the
     Bonus. The glyph lights its top half for the 1st bonus and its bottom half for the 2nd (`litHalves`). Spoken: "1st
-    half 95 of 138".
+    half 95 of 150".
   - Dice past six are D20s (`d20Like`).
 - **Hit List.** No 5x.
   - The Alibi is the featured box (`ScoreCategory.featured`, `BoardLayout.featured`), and the twelve targets fill the

@@ -310,8 +310,8 @@ enum class GameMode(
      * adding up the dice showing its number like an upper box - and two wildcards, one for each half, each adding up every
      * die showing a number of its half (1 to 10, or 11 to 20), whichever numbers they are. No lower section and no 5x (so no joker either).
      * Five dice and five rolls a turn, unless the Number of Rolls modifier says otherwise. The first half (1 to 10) earns
-     * 75 at 138 or more, and the second half (11 to 20) 75 at 388 or more, each half's total counting its wildcard - both
-     * thresholds about two and a half dice of each number, as Standard's 63 is three - and a game can earn both. Extended Scores isn't allowed, and its
+     * 75 at 150 or more, and the second half (11 to 20) 75 at 400 or more, each half's total counting its wildcard - both
+     * thresholds a little over two and a half dice of each number, as Standard's 63 is three - and a game can earn both. Extended Scores isn't allowed, and its
      * scores don't go on the Leaderboard, since a total over twenty boxes is nothing like Standard's.
      *
      * Max score: five dice of every number, `5*(1+2+...+20) = 1050`, `+5*10 = 50` and `+5*20 = 100` the wildcards, `+75+75` the
@@ -338,8 +338,8 @@ enum class GameMode(
         countsOnLeaderboard = false,
         allowsExtendedScores = false,
         sectionBonuses = listOf(
-            SectionBonus(ScoreSection.FIRST_HALF, threshold = 138, amount = 75),
-            SectionBonus(ScoreSection.SECOND_HALF, threshold = 388, amount = 75),
+            SectionBonus(ScoreSection.FIRST_HALF, threshold = 150, amount = 75),
+            SectionBonus(ScoreSection.SECOND_HALF, threshold = 400, amount = 75),
         ),
     ),
 

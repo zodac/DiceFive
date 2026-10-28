@@ -159,7 +159,7 @@ The first criterion that differs decides it. If all match, it's a true tie with 
 | Tricolour  | Dice also land red, yellow or blue. Four colour boxes: Reds/Yellows/Blues (40 for all five that colour) and Coloured House (25, a joker free-fill like Full House).                            | Yes         |
 | Third Wind | Every box scored three times (39 turns). One upper bonus, tripled (189 earns 105). The joker starts once the 5x box's three slots are used with a 50 among them.                               | No          |
 | Stud       | Seven dice rolled, five hold slots; only the held hand scores. A box can be scored with fewer held, and `HandCompletion` completes the hand.                                                   | No          |
-| D20        | Twenty-sided dice, five rolls. A box per number 1-20 plus a wildcard per half. A 75 bonus per half (at 138 and 388). No 5x, no lower section, no Extended Scores. Always drawn in a D20 style. | No          |
+| D20        | Twenty-sided dice, five rolls. A box per number 1-20 plus a wildcard per half. A 75 bonus per half (at 150 and 400). No 5x, no lower section, no Extended Scores. Always drawn in a D20 style. | No          |
 | Hit List   | Twelve targets drawn per game plus the Alibi. Hits, exact hits (double) and partial hits. No Extended Scores.                                                                                  | No          |
 | Quickfire  | 5x plus three random upper and three random lower boxes are off each game: six turns. The upper bonus threshold scales to the upper boxes left.                                                | No          |
 
