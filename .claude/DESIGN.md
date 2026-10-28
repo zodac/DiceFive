@@ -588,7 +588,7 @@ Two apps from one source, one per way the app reaches players: product flavours 
   - parallel jobs, each on that commit: Android tests (a runner per flavour), shared tests, lint, the Baseline Profile
     (generated fresh on an emulator from the play app, and given to both; see `EMULATOR.md`), and the github APK plus
     the play App Bundle;
-  - then a `release` job that publishes GitHub release `android-v<version>` (plain `v<version>` up to 1.0.1) once every check has passed, with
+  - then a `release` job that publishes GitHub release `android-v<version>` once every check has passed, with
     `DiceFive-<version>.apk` (github), `.aab` (play), `-mapping.txt` (the APK's) and `-play-mapping.txt` (the bundle's),
     tagging the commit built;
   - then a commit that bumps the patch and empties `RELEASE_NOTES.md` (`[Release] Bump Android version to X
@@ -600,7 +600,7 @@ Two apps from one source, one per way the app reaches players: product flavours 
   `scripts/release-changelog.sh`, grouped by each commit's `[Category]`.
   - The notes are the whole file, as written; it's kept blank between releases. A release takes it all, then empties
     it (`scripts/release-notes.sh`, tested by `scripts/tests/release-notes-test.sh`).
-  - The changelog lists the commits since the previous `android-v` tag (plain `v` up to 1.0.1).
+  - The changelog lists the commits since the previous `android-v` tag.
 - **Signing.** Four `ANDROID_RELEASE_*` env vars (repo secrets in CI); without them the build is unsigned. The keystore
   (alias `upload`) is the Play upload key, and signs both the bundle and the github APK.
 - **`PROGRESS_FILE_KEY`** (a repo secret): the github APK's progress file key ("Distribution"). The apk job fails

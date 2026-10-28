@@ -25,7 +25,7 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 
 | | |
 |---|---|
-| Repo | `github.com/zodac/DiceFive`, default branch `main`. Every push to `main` that changes what an app ships cuts a GitHub release for that app (`android-v*` Android, `v*` up to 1.0.1; `DESIGN.md`, "Release pipeline") |
+| Repo | `github.com/zodac/DiceFive`, default branch `main`. Every push to `main` that changes what an app ships cuts a GitHub release for that app (`android-v*`; `DESIGN.md`, "Release pipeline") |
 | Package | `net.zodac.dicefive` (Kotlin root package; the play app's `applicationId`; the github APK is `net.zodac.dicefive.github`) |
 | Version | `VERSION` at the repo root (released from 1.0.0). Never hand-edit for a debug install |
 | Platforms | Android minSdk 26, targetSdk/compileSdk 37 (`gradle/android-sdk.properties`). The shared code also targets the JVM (desktop), with no app yet |

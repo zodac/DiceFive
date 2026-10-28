@@ -13,10 +13,9 @@
 # Used by the release workflow to build a GitHub release's description, after RELEASE_NOTES.md.
 # Run it locally to preview what the next release will list.
 #
-# Android's releases are tagged android-v<version> (plain v<version> up to 1.0.1). "Since the previous
-# release" means since the newest such tag reachable from HEAD other than this release's own tag (so
-# re-running a release that already has a tag still lists the same changes); a plain v<version> tag
-# counts only when there is no android-v one. With none, the whole history is listed. Left out: merge
+# Android's releases are tagged android-v<version>. "Since the previous release" means since the newest
+# such tag reachable from HEAD other than this release's own tag (so re-running a release that already
+# has a tag still lists the same changes). With none, the whole history is listed. Left out: merge
 # commits, and the release workflow's own version-bump commits (authored by github-actions[bot]). Subjects that don't follow the format - anything from before it
 # was enforced - are listed under "Other", after every real category.
 #
@@ -33,15 +32,11 @@ fi
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 version="${1:-$(tr -d '[:space:]' < "$root_dir/VERSION")}"
 
-tag_prefixes=("android-v" "v")
-this_tag="${tag_prefixes[0]}$version"
+tag_prefix="android-v"
+this_tag="$tag_prefix$version"
 
-previous_tag=""
-for tag_prefix in "${tag_prefixes[@]}"; do
-  previous_tag="$(git -C "$root_dir" tag --merged HEAD --list "$tag_prefix*" --sort=-version:refname \
-    | grep -vxF "$this_tag" | head -n 1 || true)"
-  [ -n "$previous_tag" ] && break
-done
+previous_tag="$(git -C "$root_dir" tag --merged HEAD --list "$tag_prefix*" --sort=-version:refname \
+  | grep -vxF "$this_tag" | head -n 1 || true)"
 if [ -n "$previous_tag" ]; then
   range="$previous_tag..HEAD"
 else

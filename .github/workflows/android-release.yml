@@ -92,8 +92,8 @@ jobs:
           ref: main
           fetch-depth: 0 # the tags, and the commits since the previous release
 
-      # Android's tags are android-v<version>, plain v<version> up to 1.0.1. The bot's own commits (the version bumps,
-      # which scripts/release-changelog.sh leaves out of the notes too) are not something new to release.
+      # The bot's own commits (the version bumps, which scripts/release-changelog.sh leaves out of the notes too) are
+      # not something new to release.
       - name: Read version
         id: version
         run: |
@@ -105,11 +105,7 @@ jobs:
             echo "::error::android-v$version is already released, and VERSION on main still says $version - set the next version (scripts/set-version.sh), push it, and run this again"
             exit 1
           fi
-          previous_tag=""
-          for pattern in 'android-v*' 'v*'; do
-            previous_tag="$(git tag --merged HEAD --list "$pattern" --sort=-version:refname | head -n 1 || true)"
-            [ -n "$previous_tag" ] && break
-          done
+          previous_tag="$(git tag --merged HEAD --list 'android-v*' --sort=-version:refname | head -n 1 || true)"
           release=true
           if [ -n "$previous_tag" ] && [ -z "$(git log --format='%an' "$previous_tag..HEAD" | grep -vxF 'github-actions[bot]' || true)" ]; then
             release=false
@@ -272,13 +268,8 @@ jobs:
       - name: Pick the number of laps
         id: laps
         run: |
-          # Android's tags are android-v<version>, plain v<version> up to 1.0.1.
-          previous_tag=""
-          for pattern in 'android-v*' 'v*'; do
-            previous_tag="$(git tag --merged HEAD --list "$pattern" --sort=-version:refname \
-              | grep -vxF "android-v${{ needs.version.outputs.name }}" | head -n 1 || true)"
-            [ -n "$previous_tag" ] && break
-          done
+          previous_tag="$(git tag --merged HEAD --list 'android-v*' --sort=-version:refname \
+            | grep -vxF "android-v${{ needs.version.outputs.name }}" | head -n 1 || true)"
           laps=3
           if [ -z "$previous_tag" ] || ! git diff --quiet --ignore-blank-lines \
               -I '^[[:space:]]*//' -I '^[[:space:]]*/\*' -I '^[[:space:]]*\*' -I '^[[:space:]]*#' \
