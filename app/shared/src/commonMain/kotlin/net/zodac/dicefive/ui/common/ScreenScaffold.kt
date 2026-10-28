@@ -375,6 +375,9 @@ private val FIXED_PAGE_HORIZONTAL_PADDING = 20.dp
 /** A [PageColumn]'s side margin, unless the page asks for another. */
 private val PAGE_HORIZONTAL_PADDING = 24.dp
 
+/** A [PageColumn]'s margin above and below its content. */
+internal val PAGE_VERTICAL_PADDING = 16.dp
+
 /**
  * A page body that fills the screen but scrolls if it can't fit - the case on a short screen
  * (landscape, split-screen, a large display font) - with a scrollbar in its right-hand margin while it does.
@@ -418,7 +421,7 @@ fun PageColumn(
                     modifier = Modifier
                         .widthIn(max = if (landscape && wide) wideColumnMaxWidth(horizontalPadding) else CONTENT_MAX_WIDTH)
                         .heightIn(min = viewportHeight)
-                        .padding(horizontal = horizontalPadding, vertical = 16.dp),
+                        .padding(horizontal = horizontalPadding, vertical = PAGE_VERTICAL_PADDING),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = verticalArrangement,
                     content = content,

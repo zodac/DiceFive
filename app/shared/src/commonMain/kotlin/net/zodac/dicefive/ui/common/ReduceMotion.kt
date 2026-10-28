@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.common
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.compositionLocalOf
+import kotlin.concurrent.Volatile
 import net.zodac.dicefive.data.settings.AnimationLevel
 
 /**
@@ -21,6 +22,15 @@ val LocalReduceMotion = compositionLocalOf { false }
  * [LocalReduceMotion] provided further down (a Styles tile off screen holds still that way).
  */
 val LocalAnimationLevel = compositionLocalOf { AnimationLevel.default }
+
+/**
+ * The [LocalAnimationLevel] the app last drew with, kept for the process: the crash page, drawn in a process of its
+ * own where the settings aren't read, is handed it.
+ */
+object LastAnimationLevel {
+    @Volatile
+    var value: AnimationLevel = AnimationLevel.default
+}
 
 /**
  * Whether decoration that moves on its own while nothing is happening may move - drifting and floating dice,

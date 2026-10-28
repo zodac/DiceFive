@@ -158,6 +158,8 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
     boundary `clearAndSetSemantics` doesn't reach), and holds the game's clocks (`GameViewModel.setHeld`).
   - A change asked for while one runs is ignored. One asked for from a page that a back press has left in the
     meantime is dropped.
+  - A page in a window of its own (the crash page) has nothing before it to fade out: `RevealedPage` starts it under
+    the cover, which comes down the same way.
   - Every page is opened this way: the menu's buttons, Start Game, the tutorial, and a banner's long press.
   - **Going back is never covered**: the system's back, a page's back arrow, leaving a game and Back to Menu show the
     page they return to at once (the maintainer's choice). Back to a game is a couple of frames' work: its state is in

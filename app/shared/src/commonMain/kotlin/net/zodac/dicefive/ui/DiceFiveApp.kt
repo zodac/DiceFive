@@ -5,6 +5,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import net.zodac.dicefive.app.AppContainer
+import net.zodac.dicefive.app.Breadcrumbs
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.data.orNullOnFailure
 import net.zodac.dicefive.data.settings.AnimationLevel
@@ -48,6 +50,7 @@ import net.zodac.dicefive.purchases.Store
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
 import net.zodac.dicefive.ui.common.DatabaseFailurePage
 import net.zodac.dicefive.ui.common.DriftState
+import net.zodac.dicefive.ui.common.LastAnimationLevel
 import net.zodac.dicefive.ui.common.LocalAnimationLevel
 import net.zodac.dicefive.ui.common.LocalDriftState
 import net.zodac.dicefive.ui.common.LocalReduceMotion
@@ -87,6 +90,7 @@ fun DiceFiveApp(
     LaunchedEffect(platform, orientation) { orientation?.let(platform::lockOrientation) }
     val animationLevel = if (systemReduceMotion) AnimationLevel.OFF else savedLevel
     val reduceMotion = !animationLevel.gameplayMotion
+    SideEffect { LastAnimationLevel.value = animationLevel }
     val leaveConfirmation = remember { LeaveGameConfirmation() }
     // Achievements, scores and the cloud save are synced with the online service on signing in (and at each launch once
     // signed in), after every recorded change, a few seconds after a synced setting changes (a Styles pick), on leaving
@@ -161,6 +165,11 @@ fun DiceFiveApp(
                     val navController = rememberNavController()
                     // Likewise the page cover, so a banner opens its page the way the pages open each other.
                     val pageCover = rememberPageCover()
+                    // Each page opened, for a crash report to say where the player was.
+                    LaunchedEffect(navController) {
+                        navController.currentBackStackEntryFlow.map { it.destination.route }.distinctUntilChanged()
+                            .collect { Breadcrumbs.record("Opened $it") } // i18n: not translated - a crash report's breadcrumb
+                    }
                     // A game left part-way through is saved as it was left, for another device's Continue.
                     LaunchedEffect(navController) {
                         navController.currentBackStackEntryFlow.map { it.destination.route }.leaving(Screen.PLAY_GAME)

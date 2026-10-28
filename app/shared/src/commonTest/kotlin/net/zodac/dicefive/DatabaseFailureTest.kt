@@ -50,7 +50,7 @@ class DatabaseFailureTest : UiTest() {
     )
 
     @Test
-    fun `the container opens the scores as it's built - and keeps why it couldn't`() = runTest {
+    fun `the container opens the scores as it's built - and keeps the stack trace of why it couldn't`() = runTest {
         val opens = container(InMemoryScoreDao())
         runCurrent()
         assertNull(opens.databaseFailure.value)
@@ -60,7 +60,7 @@ class DatabaseFailureTest : UiTest() {
             override suspend fun count(): Int = throw migration
         })
         runCurrent()
-        assertEquals(migration.toString(), fails.databaseFailure.value)
+        assertEquals(migration.stackTraceToString(), fails.databaseFailure.value)
     }
 
     @Test

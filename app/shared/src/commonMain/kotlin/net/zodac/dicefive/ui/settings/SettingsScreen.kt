@@ -439,7 +439,7 @@ fun SettingsScreen(
     }
 
     if (showAbout) {
-        AboutDialog(onDismissRequest = { showAbout = false })
+        AboutDialog(onDismissRequest = { showAbout = false }, debugCrashes = LocalAppContainer.current.buildInfo.isDebug)
     }
 
     if (showResetAchievementsConfirmation) {

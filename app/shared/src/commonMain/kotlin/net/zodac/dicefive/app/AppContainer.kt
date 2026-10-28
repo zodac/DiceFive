@@ -84,9 +84,9 @@ class AppContainer(
     private val mutableDatabaseFailure = MutableStateFlow<String?>(null)
 
     /**
-     * Why the scores database couldn't be opened (a migration missing or failing), as the error said it - null while it
-     * opens, or did. Opened as the container is built, so the app can say so in place of its pages, rather than fail on
-     * the first one to read a score.
+     * Why the scores database couldn't be opened (a migration missing or failing), as the error's stack trace - null
+     * while it opens, or did. Opened as the container is built, so the app can say so in place of its pages, rather than
+     * fail on the first one to read a score.
      */
     val databaseFailure: StateFlow<String?> = mutableDatabaseFailure.asStateFlow()
 
@@ -97,7 +97,7 @@ class AppContainer(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                mutableDatabaseFailure.value = e.toString()
+                mutableDatabaseFailure.value = e.stackTraceToString()
             }
         }
     }

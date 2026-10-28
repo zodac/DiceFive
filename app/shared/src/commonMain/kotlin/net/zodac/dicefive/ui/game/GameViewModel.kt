@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import net.zodac.dicefive.app.AchievementUnlocker
 import net.zodac.dicefive.app.AppContainer
+import net.zodac.dicefive.app.Breadcrumbs
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.data.orNullOnFailure
@@ -187,7 +188,10 @@ class GameViewModel(
 
             override suspend fun pause(millis: Long) = pausableDelay(millis)
 
-            override fun roll(state: GameState): GameState = performRoll(state, checkForAiTurn = false)
+            override fun roll(state: GameState): GameState {
+                Breadcrumbs.record("CPU rolled, player ${state.currentPlayerIndex + 1}") // i18n: not translated - a crash report's breadcrumb
+                return performRoll(state, checkForAiTurn = false)
+            }
 
             override fun publish(state: GameState) {
                 setUndoSnapshot(null)
@@ -420,6 +424,8 @@ class GameViewModel(
         startedAtLocalHour: Int? = null,
         previousGame: GameState? = null,
     ) {
+        val seats = state.players.joinToString { if (it.type == PlayerType.HUMAN) it.type.id else "${it.type.id} ${it.difficulty.id}" } // i18n: not translated - a crash report's breadcrumb
+        Breadcrumbs.record("${if (startedAtLocalHour == null) "Resumed" else "Started"} ${state.gameMode.id}: $seats") // i18n: not translated - a crash report's breadcrumb
         // Before the state goes on the table, which saves it with whatever there is to undo.
         setUndoSnapshot(resumedUndoSnapshot)
         resetSuperuserMode()
@@ -463,6 +469,7 @@ class GameViewModel(
         // roll lands, and Undo in that window restores the previous turn - with no rolls left when
         // a turn has only one.
         if (state.rollsRemaining <= 0) return
+        Breadcrumbs.record("Rolled, player ${state.currentPlayerIndex + 1}") // i18n: not translated - a crash report's breadcrumb
 
         // Only player 1 - "You" - earns achievements; another human seat still plays normally
         // below, it just doesn't feed any of the tracking that leads to one.
@@ -521,6 +528,7 @@ class GameViewModel(
         val isPlayerOneTurn = state?.isPlayerOneTurn == true
 
         onHumanAction(undoable = false) { GameEngine.toggleHold(it, dieIndex) }
+        Breadcrumbs.record("${if (wasHeld) "Released" else "Held"} die ${dieIndex + 1}") // i18n: not translated - a crash report's breadcrumb
 
         if (isPlayerOneTurn) _game.value?.let { unlockAchievements(tracker.onHold(dieIndex, wasHeld, it)) }
     }
@@ -584,6 +592,7 @@ class GameViewModel(
         // Noted before the commit is applied: a commit that ends the game clears the tracker's undo memory (see
         // AchievementTracker.onGameOver), and an undo into the game's last box still counts. Announced after, as before.
         val committedUnlocks = tracker.onCommitted(category, byPlayerOne = isPlayerOneTurn)
+        Breadcrumbs.record("Scored ${category.id}, player ${committing.currentPlayerIndex + 1}") // i18n: not translated - a crash report's breadcrumb
         setUndoSnapshot(undoTo)
         applyGameState(GameEngine.commitScore(committing, category))
 
@@ -600,6 +609,7 @@ class GameViewModel(
             if (currentTutorialStep !is TutorialStep.Undo) return
             advanceTutorial()
         }
+        Breadcrumbs.record("Undid") // i18n: not translated - a crash report's breadcrumb
         tracker.onUndo()
         cpuTurns.cancel()
         cancelTurnTimer()

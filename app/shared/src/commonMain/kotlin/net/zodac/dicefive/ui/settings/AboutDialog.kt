@@ -1,5 +1,6 @@
 package net.zodac.dicefive.ui.settings
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,18 +23,26 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
+import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.about_author_body
 import net.zodac.dicefive.resources.about_author_heading
@@ -107,10 +116,31 @@ private val ABOUT_SECTIONS = listOf(
  * title and the links, the only things here that respond to a tap. Headings are `onSurface`, body
  * text `onSurfaceVariant`, and names are just a brighter, medium-weight version of the body text,
  * so headings, highlights and links no longer all share one colour.
+ *
+ * With [debugCrashes] (a debug build), [DebugCrashes.TAP_TARGET] taps on the author's name turn on the crash mode, with a
+ * toast, and each link then crashes the app its own way ([DebugCrashes.Kind], in the links' order) instead of opening.
  */
 @Composable
-fun AboutDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
+fun AboutDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier, debugCrashes: Boolean = false) {
     val uriHandler = LocalUriHandler.current
+    var nameTaps by remember { mutableIntStateOf(0) }
+    var crashMode by remember { mutableStateOf(false) }
+    var crashWhileDrawn by remember { mutableStateOf(false) }
+    if (crashWhileDrawn) throw DebugCrashes.error(DebugCrashes.Kind.COMPOSITION)
+    val platform = if (debugCrashes) LocalPlatformServices.current else null
+    val onNameTapped: (() -> Unit)? = platform?.let {
+        {
+            if (!crashMode && ++nameTaps >= DebugCrashes.TAP_TARGET) {
+                crashMode = true
+                it.showTransientMessage(DebugCrashes.ACTIVATED_MESSAGE)
+            }
+        }
+    }
+    fun crash(kind: DebugCrashes.Kind) = when (kind) {
+        DebugCrashes.Kind.MAIN_THREAD -> throw DebugCrashes.error(kind)
+        DebugCrashes.Kind.BACKGROUND -> DebugCrashes.crashInBackground()
+        DebugCrashes.Kind.COMPOSITION -> crashWhileDrawn = true
+    }
     val services = LocalGameServices.current
     // Null without a service: no Settings card, so nothing to sign in to.
     val serviceName = services.serviceName.takeIf { services.state.collectAsStateWithLifecycle().value != GameServicesState.Unavailable }
@@ -125,12 +155,13 @@ fun AboutDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
                 val nameStyle = SpanStyle(fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
 
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    for (section in ABOUT_SECTIONS) {
+                    ABOUT_SECTIONS.forEachIndexed { index, section ->
                         AboutSectionCard(
                             section = section,
                             serviceName = serviceName,
                             nameStyle = nameStyle,
-                            onOpenLink = uriHandler::openUri,
+                            onOpenLink = if (crashMode) { _ -> crash(DebugCrashes.Kind.entries[index]) } else uriHandler::openUri,
+                            onNameTapped = onNameTapped.takeIf { section.heading == Res.string.about_author_heading },
                         )
                     }
                 }
@@ -146,7 +177,13 @@ fun AboutDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun AboutSectionCard(section: AboutSection, serviceName: String?, nameStyle: SpanStyle, onOpenLink: (String) -> Unit) {
+private fun AboutSectionCard(
+    section: AboutSection,
+    serviceName: String?,
+    nameStyle: SpanStyle,
+    onOpenLink: (String) -> Unit,
+    onNameTapped: (() -> Unit)? = null,
+) {
     // One step above the dialog's surfaceContainerHigh, so the card reads as raised on it.
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -167,11 +204,26 @@ private fun AboutSectionCard(section: AboutSection, serviceName: String?, nameSt
             } else {
                 stringResource(section.body, appName)
             }
+            val text = parseInlineMarkup(body, nameStyle)
+            var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
             Text(
-                text = parseInlineMarkup(body, nameStyle),
+                text = text,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp),
+                onTextLayout = { layout = it },
+                modifier = Modifier.padding(top = 4.dp).then(
+                    // Raw taps, and only on a highlighted name: a debug build's crash mode, never a button for TalkBack.
+                    if (onNameTapped == null) {
+                        Modifier
+                    } else {
+                        Modifier.pointerInput(text, onNameTapped) {
+                            detectTapGestures { position ->
+                                val offset = layout?.getOffsetForPosition(position) ?: return@detectTapGestures
+                                if (text.spanStyles.any { it.item == nameStyle && offset in it.start..<it.end }) onNameTapped()
+                            }
+                        }
+                    },
+                ),
             )
             section.link?.let { link ->
                 // Pulled left by the button's own start padding, so its icon lines up with the

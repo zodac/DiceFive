@@ -44,6 +44,7 @@ import net.zodac.dicefive.ui.common.LocalAnimationLevel
 import net.zodac.dicefive.ui.common.LocalPageCover
 import net.zodac.dicefive.ui.common.PageCover
 import net.zodac.dicefive.ui.common.PageCoverOverlay
+import net.zodac.dicefive.ui.common.RevealedPage
 import net.zodac.dicefive.ui.common.rememberPageCover
 import net.zodac.dicefive.ui.game.GameScreen
 import net.zodac.dicefive.ui.game.GameViewModel
@@ -120,6 +121,32 @@ class PageCoverTest : UiTest() {
         assertEquals(0f, opacities.last(), "the cover never cleared: $opacities")
         assertFalse(cover.changing)
         compose.onNodeWithText("Page B").assertExists()
+    }
+
+    @Test
+    fun `a page revealed in a window of its own starts under the opaque cover, which fades away once it has settled`() = uiTest {
+        var revealed: PageCover? = null
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            CompositionLocalProvider(LocalAnimationLevel provides AnimationLevel.MEDIUM) {
+                DiceFiveTheme {
+                    RevealedPage {
+                        revealed = LocalPageCover.current
+                        Text("Crash page")
+                    }
+                }
+            }
+        }
+        compose.mainClock.advanceTimeByFrame()
+        val shown = checkNotNull(revealed)
+        assertTrue(shown.changing)
+        assertEquals(1f, shown.opacity, "the page was seen before its cover was up")
+        val opacities = (1..FRAMES).map { frame(); shown.opacity }
+
+        assertTrue(opacities.any { it > 0f && it < 1f }, "the cover never faded: $opacities")
+        assertEquals(0f, opacities.last(), "the cover never cleared: $opacities")
+        assertFalse(shown.changing)
+        compose.onNodeWithText("Crash page").assertExists()
     }
 
     @Test

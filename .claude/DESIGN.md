@@ -254,9 +254,7 @@ will map to Play Games.
     `ScoreDatabaseMigrationTest` from the exported schema it migrates from. There is **deliberately no destructive
     fallback**: a missing migration must fail loudly, never wipe scores. A change to `playerNameKey` changes stored
     keys, so it needs a migration too.
-  - **Failing loudly is a page, not a crash.** `AppContainer` opens the database as it's built; if that throws, its
-    `databaseFailure` holds the error and `DatabaseFailurePage` replaces the whole app: what happened, that nothing was
-    deleted, to update, and the error text to copy into a report.
+  - **Failing loudly is a page, not a crash**: `DatabaseFailurePage` (see "Errors").
 - **Preferences.** Five DataStore files (`PreferencesFile`), kept apart so a reset can clear one. Each is a
   `ResilientDataStore`: a write that fails (a full disk) is skipped and a read that fails is empty, never thrown into
   the coroutine that asked. A failed read is retried three times, after 1s, 3s and 5s, and a retry that reads the file
@@ -288,6 +286,69 @@ will map to Play Games.
     `undoneCategory`. One that can't be read only loses the undo; the game still loads.
 - **Style picks.** Five ids (dice, cup, mat, background, frame) in `settings`. An id nothing recognises draws the
   default.
+
+## Errors
+
+The rule: **an error may cost a game, never the app.** What can be recovered from is caught where it happens. What
+can't is a page saying so, with the stack trace to report. The app never just closes.
+
+- **Recovered where it happens**, so nothing reaches the pages:
+  - storage: `ResilientDataStore` (see "Persistence"), and `orNullOnFailure` (`data/Failures.kt`, which rethrows a
+    `CancellationException`) around writes and loads that can fail;
+  - a saved, cloud or progress-file game that can't be read or played (`GameStateJson.checkPlayable`) is "nothing to
+    continue";
+  - a failed cloud sync costs that sync (`DiceFiveApp`), and a progress file that won't open is reported on its card;
+  - Hard's perfect-play table that can't be read leaves Hard estimating (`AppContainer`).
+- **The scores database won't open** (a migration missing or failing): `AppContainer` opens it as it's built and keeps
+  the stack trace in `databaseFailure`. `DiceFiveApp` then shows `DatabaseFailurePage` in place of every page: what
+  happened, that nothing was deleted, to update, and the trace. The process stays up.
+- **An error nothing caught**, on any thread (a coroutine's included): `CrashHandler` (`device/`), installed by
+  `DiceFiveApplication`, opens `CrashActivity` with a `CrashReport` (`device/`). Then it logs the error and ends the
+  app's process itself.
+  - It doesn't hand the error to the platform's handler. That handler puts Android's "has stopped" dialog over the
+    page (on some phones at the first crash) and reports to Play's crash reports, so those reports don't see these
+    crashes: the GitHub issues and the log are their record.
+  - An error with no page goes to the platform's handler, as before there was a page: one whose page couldn't be
+    opened, and one while the app isn't on screen (`CrashHandler.isOnScreen`), where Android quietly refuses to open
+    a page and shows no dialog either.
+  - The report holds the build and flavour, the Android version, the device, the screen and font scale, the language,
+    the thread, the last actions, and the stack trace, cut to 100,000 characters to fit an Intent. It's developer
+    text, never translated.
+  - **Last actions** are `Breadcrumbs` (`app/`): the last 12 pages opened (`DiceFiveApp`) and moves made (a game
+    started or resumed, a roll, a hold or release, a score, an undo, and a CPU's roll, in `GameViewModel`), oldest
+    first. They hold ids and numbers, never a name or anything typed.
+  - Only a process's first error opens the page; another thread's waits for it, then ends with it. Installing again (each Robolectric test's Application) replaces the
+    handler rather than stacking it. With no platform handler (a plain JVM), the error is printed.
+  - `CrashActivity` runs in a process of its own (`:crash`, the manifest's), since the app's own is on its way down.
+    `DiceFiveApplication` sets up nothing there except Compose resources' context. Their ContentProvider gives it
+    only to the app's own process, so `CrashActivity.provideComposeResourcesContext` sets the library's field by
+    name. `r8-rules.pro` keeps it, and `CrashActivityTest` fails if a library update moves it.
+  - It shows `CrashPage`: a heading, what happened, what's kept, the buttons, and the report, collapsed.
+    `CrashPage`, `DatabaseFailurePage`, and their shared layout (`FailurePage`, `FailureDetails`) are in `ui/common`.
+    - It opens as a page from the menu does: under the page cover, which fades away once it has settled
+      (`RevealedPage`). Android's own window animation is off (`FLAG_ACTIVITY_NO_ANIMATION`). The crash process
+      doesn't read the settings, so it's handed the Animations level the app last drew with (`LastAnimationLevel`).
+    - **Restart** (filled) and **Report on GitHub** (tonal) sit side by side, one above the other at a large font.
+      Restart starts the app in a fresh process and ends the crash page's.
+    - **Report on GitHub** opens the browser at a new issue on the repo, filled in with the report
+      (`CrashReport.issueUrl`), titled `[Crash]` and the error's first line: a line for the player to say what they
+      were doing, a table of the details, the last actions, and the trace. The player reads it and posts it
+      themselves; the app sends nothing. The link stays within 7,500 characters, under GitHub's limit, by cutting the
+      trace from its end and saying so. With no browser, nothing opens.
+    - **Show details** opens the collapsed section (Hide details closes it): what the details are for, **Copy
+      details** (tonal), then the report. Copy details puts the report on the clipboard, then reads "Copied", a
+      polite live region; both labels are laid out, so the button keeps its width. The section opens downward
+      under the page, never moving what's above it (`FailurePage`'s `below`): that part is centred as the page first
+      opens and stays where it is. The section fills the room left down to the screen's foot and scrolls in it, the
+      whole of it (`ScrollingColumn`, its bar in the page's margin); on a screen too short to leave 160dp it gets that
+      much, and the page scrolls too. The database page's details are
+      always shown.
+- **Not caught**: native crashes and ANRs.
+- **Trying it**: a debug build's crash mode on Settings > About (see "Superuser modes"). The taps on the name are
+  raw gestures, attached only in a debug build, so no other build has them and TalkBack is never handed a dead link.
+  For a crash anywhere else, throw from a temporary line, and take it out again.
+- **Tests**: `CrashHandlerTest`, `CrashReportTest`, `CrashActivityTest`, `CrashPageTest`, `BreadcrumbsTest`,
+  `GameBreadcrumbsTest`, `AboutDebugCrashesTest`, and `DatabaseFailureTest`.
 
 ## Leaderboard and Statistics
 
@@ -380,6 +441,10 @@ will map to Play Games.
   - On the Styles page, tapping the unlocked count `PRETEND_TAP_TARGET` times turns "pretend all styles are owned" on
     or off (`AppContainer.pretendOwnsAllStyles`), with a toast: for the process, never written. Turning it on blocks
     online mirroring, as superuser mode does.
+  - On Settings > About, tapping the author's name (`zodac`) `DebugCrashes.TAP_TARGET` (5) times turns on the crash
+    mode, with a toast, for as long as the page is open. Each link then crashes the app instead of opening, each its
+    own way (`DebugCrashes.Kind`): the GitHub link on the main thread, the inspiration link in a coroutine off it,
+    and the privacy link while the page is drawn. See "Errors".
 - **Untested automatically.** Let's Finish This (leave and resume), and the end-to-end settings read behind the style
   achievements.
 

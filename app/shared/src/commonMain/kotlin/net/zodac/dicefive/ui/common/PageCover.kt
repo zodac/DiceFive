@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -37,11 +38,11 @@ import kotlinx.coroutines.launch
  * Under reduced motion the cover is put up and taken down without fading, still hiding a page that isn't ready.
  */
 @Stable
-class PageCover internal constructor(private val scope: CoroutineScope) {
-    private val alpha = Animatable(0f)
+class PageCover internal constructor(private val scope: CoroutineScope, covered: Boolean = false) {
+    private val alpha = Animatable(if (covered) 1f else 0f)
 
     /** True from the moment a change starts until the next page is in full view. A page's clocks wait for it. */
-    var changing by mutableStateOf(false)
+    var changing by mutableStateOf(covered)
         private set
 
     /** True while the cover is up waiting on the next page, when a slow one earns a spinner. */
@@ -76,14 +77,44 @@ class PageCover internal constructor(private val scope: CoroutineScope) {
         try {
             val pace = cover(reduceMotion)
             change()
-            waiting = true
-            settle(pace)
-            waiting = false
-            if (reduceMotion) alpha.snapTo(0f) else alpha.animateTo(0f, tween(FADE_IN_MILLIS, easing = LinearEasing))
+            uncover(reduceMotion, pace)
         } finally {
             waiting = false
             changing = false
         }
+    }
+
+    /**
+     * Takes down a cover made up (`covered`) once the page under it has settled, as [change] does: for a page opened in
+     * a window of its own ([RevealedPage]), with no page before it to fade out.
+     */
+    internal suspend fun reveal(reduceMotion: Boolean) {
+        try {
+            uncover(reduceMotion, pace())
+        } finally {
+            waiting = false
+            changing = false
+        }
+    }
+
+    /** Waits for the next page to settle, then fades the cover away. */
+    private suspend fun uncover(reduceMotion: Boolean, pace: Long) {
+        waiting = true
+        settle(pace)
+        waiting = false
+        if (reduceMotion) alpha.snapTo(0f) else alpha.animateTo(0f, tween(FADE_IN_MILLIS, easing = LinearEasing))
+    }
+
+    /** The shortest gap between this screen's next few frames: [cover]'s measure, with no fade to measure it during. */
+    private suspend fun pace(): Long {
+        var last = withFrameNanos { it }
+        var shortest = Long.MAX_VALUE
+        repeat(PACE_FRAMES) {
+            val now = withFrameNanos { it }
+            shortest = minOf(shortest, now - last)
+            last = now
+        }
+        return shortest
     }
 
     /**
@@ -142,6 +173,7 @@ class PageCover internal constructor(private val scope: CoroutineScope) {
 
         // The next page's first composition, then its first frame drawn.
         const val MIN_FRAMES = 2
+        const val PACE_FRAMES = 3
         const val SETTLED_FRAMES = 2
         const val MAX_SETTLE_MILLIS = 400L
         const val MAX_HOLD_MILLIS = 3000L
@@ -163,6 +195,22 @@ class PageCover internal constructor(private val scope: CoroutineScope) {
 fun rememberPageCover(): PageCover {
     val scope = rememberCoroutineScope()
     return remember(scope) { PageCover(scope) }
+}
+
+/**
+ * [content], opened as a page from the menu is: under the cover, which fades away once [content] has settled. For a
+ * page in a window of its own (the crash page), with no page before it to fade out.
+ */
+@Composable
+fun RevealedPage(content: @Composable () -> Unit) {
+    val reduceMotion = LocalReduceMotion.current
+    val scope = rememberCoroutineScope()
+    val cover = remember(scope) { PageCover(scope, covered = true) }
+    LaunchedEffect(cover) { cover.reveal(reduceMotion) }
+    Box(modifier = Modifier.fillMaxSize()) {
+        CompositionLocalProvider(LocalPageCover provides cover, content = content)
+        PageCoverOverlay(cover)
+    }
 }
 
 /** The app's [PageCover], provided by the NavHost. Null in a copy of a page built out of sight (a warm-up), and in tests of one page. */

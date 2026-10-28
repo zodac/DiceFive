@@ -1381,6 +1381,16 @@
     <string name="common_database_failure_title">تعذّر فتح نتائجك</string>
     <string name="common_database_failure_body">لم يتمكن %1$s من فتح الملف الذي يحفظ لوحة المتصدرين والإحصائيات، لذا توقّف هنا بدلًا من المخاطرة بتغييره.</string>
     <string name="common_database_failure_advice">لم يُحذف أي شيء. عادةً ما يُصلح تحديثُ التطبيق إلى أحدث إصدار هذه المشكلة.</string>
-    <string name="common_database_failure_details">إذا تكرر ذلك، فستساعد هذه التفاصيل عند الإبلاغ عنه:</string>
+    <string name="common_failure_details">إذا تكرر ذلك، فستساعد هذه التفاصيل عند الإبلاغ عنه:</string>
+
+    <string name="common_crash_title">حدث خطأ ما</string>
+    <string name="common_crash_body">واجه %1$s مشكلة لم يتمكن من التعافي منها، لذا توقّف هنا.</string>
+    <string name="common_crash_advice">نتائجك وإنجازاتك وإعداداتك محفوظة، لكن ربما فقدت اللعبة الجارية آخر حركة فيها.</string>
+    <string name="common_crash_restart">إعادة التشغيل</string>
+    <string name="common_crash_copy">نسخ التفاصيل</string>
+    <string name="common_crash_copied">تم النسخ</string>
+    <string name="common_crash_report">الإبلاغ عبر GitHub</string>
+    <string name="common_crash_show_details">إظهار التفاصيل</string>
+    <string name="common_crash_hide_details">إخفاء التفاصيل</string>
 
 </resources>

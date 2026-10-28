@@ -1247,6 +1247,16 @@
     <string name="common_database_failure_title">No se pueden abrir tus puntuaciones</string>
     <string name="common_database_failure_body">%1$s no ha podido abrir el archivo con tu clasificación y tus estadísticas, así que se ha detenido aquí para no arriesgarse a modificarlo.</string>
     <string name="common_database_failure_advice">No se ha borrado nada. Normalmente se arregla actualizando la aplicación a su última versión.</string>
-    <string name="common_database_failure_details">Si sigue pasando, estos detalles te ayudarán cuando lo comuniques:</string>
+    <string name="common_failure_details">Si sigue pasando, estos detalles te ayudarán cuando lo comuniques:</string>
+
+    <string name="common_crash_title">Algo ha salido mal</string>
+    <string name="common_crash_body">%1$s ha tenido un problema del que no ha podido recuperarse, así que se ha detenido aquí.</string>
+    <string name="common_crash_advice">Tus puntuaciones, logros y ajustes se conservan, pero una partida en curso puede haber perdido su última jugada.</string>
+    <string name="common_crash_restart">Reiniciar</string>
+    <string name="common_crash_copy">Copiar detalles</string>
+    <string name="common_crash_copied">Copiado</string>
+    <string name="common_crash_report">Informar en GitHub</string>
+    <string name="common_crash_show_details">Mostrar detalles</string>
+    <string name="common_crash_hide_details">Ocultar detalles</string>
 
 </resources>
