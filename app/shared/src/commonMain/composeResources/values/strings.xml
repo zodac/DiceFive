@@ -184,13 +184,13 @@
     <string name="achievement_ton_title">Ton!</string>
     <string name="achievement_ton_description">Finish a game on exactly 100</string>
     <string name="achievement_solid_round_title">Solid Round</string>
-    <string name="achievement_solid_round_description">Score 200 or more in a game</string>
+    <string name="achievement_solid_round_description">Score 200 or more in a Standard game</string>
     <string name="achievement_sharpshooter_title">Sharpshooter</string>
-    <string name="achievement_sharpshooter_description">Score 300 or more in a game</string>
+    <string name="achievement_sharpshooter_description">Score 300 or more in a Standard game</string>
     <string name="achievement_high_roller_title">High Roller</string>
-    <string name="achievement_high_roller_description">Score 400 or more in a game</string>
+    <string name="achievement_high_roller_description">Score 400 or more in a Standard game</string>
     <string name="achievement_dice_deity_title">Dice Deity</string>
-    <string name="achievement_dice_deity_description">Score 500 or more in a game</string>
+    <string name="achievement_dice_deity_description">Score 500 or more in a Standard game</string>
     <string name="achievement_first_victory_title">First Victory</string>
     <string name="achievement_first_victory_description">Win a game against at least one opponent</string>
     <string name="achievement_landslide_title">Landslide</string>

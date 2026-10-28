@@ -280,6 +280,9 @@ class AchievementEngineTest {
         assertTrue(Achievement.SOLID_ROUND in unlocked(finishedGame(player(total = 200))), "200 should unlock Solid Round")
         assertTrue(Achievement.SOLID_ROUND in unlocked(finishedGame(player(total = 250))), "250 is over 200, so it should unlock Solid Round")
         assertTrue(Achievement.SHARPSHOOTER in unlocked(finishedGame(player(total = 300))), "300 should unlock Sharpshooter")
+        // Tricolour earns the whole ladder too, as Standard does.
+        val ladder = setOf(Achievement.SOLID_ROUND, Achievement.SHARPSHOOTER, Achievement.HIGH_ROLLER, Achievement.DICE_DEITY)
+        assertEquals(ladder, ladder.intersect(unlocked(finishedGame(player(total = 520, gameMode = GameMode.TRICOLOUR))).toSet()))
 
         // Exact Change needs every upper box to hold precisely its own pip count; one box over its target - two 2s in
         // Twos instead of one - doesn't count.

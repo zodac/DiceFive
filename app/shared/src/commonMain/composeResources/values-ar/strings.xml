@@ -133,13 +133,13 @@
     <string name="achievement_ton_title">المئة!</string>
     <string name="achievement_ton_description">أنهِ لعبة بمجموع ١٠٠ بالضبط</string>
     <string name="achievement_solid_round_title">جولة متينة</string>
-    <string name="achievement_solid_round_description">سجّل ٢٠٠ نقطة أو أكثر في لعبة</string>
+    <string name="achievement_solid_round_description">سجّل ٢٠٠ نقطة أو أكثر في لعبة قياسية</string>
     <string name="achievement_sharpshooter_title">القنّاص</string>
-    <string name="achievement_sharpshooter_description">سجّل ٣٠٠ نقطة أو أكثر في لعبة</string>
+    <string name="achievement_sharpshooter_description">سجّل ٣٠٠ نقطة أو أكثر في لعبة قياسية</string>
     <string name="achievement_high_roller_title">المقامر الكبير</string>
-    <string name="achievement_high_roller_description">سجّل ٤٠٠ نقطة أو أكثر في لعبة</string>
+    <string name="achievement_high_roller_description">سجّل ٤٠٠ نقطة أو أكثر في لعبة قياسية</string>
     <string name="achievement_dice_deity_title">إله النرد</string>
-    <string name="achievement_dice_deity_description">سجّل ٥٠٠ نقطة أو أكثر في لعبة</string>
+    <string name="achievement_dice_deity_description">سجّل ٥٠٠ نقطة أو أكثر في لعبة قياسية</string>
     <string name="achievement_first_victory_title">أول انتصار</string>
     <string name="achievement_first_victory_description">افز في لعبة ضد خصم واحد على الأقل</string>
     <string name="achievement_landslide_title">فوز ساحق</string>

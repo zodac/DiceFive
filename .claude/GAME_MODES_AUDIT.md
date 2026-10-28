@@ -23,7 +23,7 @@ mode changes, decide:
 | Holds            | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues, Hands Off! (Standard only)                                                                | Can dice still be held?                                                   |
 | Timer            | The timeout guards on low or zeroed cards (`GAME_MODES.md`)                                                                                                         | Always or never a timer?                                                  |
 | Card contents    | How Do You Play This Game?, Spotless, Bonus Round, Upper/Lower Class, Exact Change, the 5x ones                                                                     | Is each box still there, and do totals mean the same?                     |
-| Score thresholds | Solid Round ... Dice Deity, Cold Dice, Low Rolls, Ton!, Nice, Rock Bottom, the score bands                                                                          | Trivial or impossible at this ceiling?                                    |
+| Score thresholds | Solid Round ... Dice Deity (Standard and Tricolour only), Cold Dice, Low Rolls, Ton!, Nice, Rock Bottom, the score bands                                                                          | Trivial or impossible at this ceiling?                                    |
 | Dice look        | Fresh Coat Of Paint, Luck of the Irish                                                                                                                              | Does the mode draw the player's dice style?                               |
 
 The roll helpers `rollsRemainingAfterFirst`/`AfterSecond` are `rollsPerTurn - 1`/`- 2`. With fewer than three rolls
@@ -203,7 +203,8 @@ player's pick if it's one (white or blue, faces in `D20_VIEWS`), else white (`D2
 **The style unlock.** Nat 20 opens white and black (white numerals); Critical Success opens blue (`AnyAchievement` plus
 each colour's `secretAchievement`). The mode always has white.
 
-**Guarded** (`!hasStandardCard`): Solid Round ... Dice Deity, Cold Dice, Low Rolls, Zero To Hero, Spotless.
+**Guarded** (`!hasStandardCard`): Cold Dice, Low Rolls, Zero To Hero, Spotless. Solid Round ... Dice Deity are
+Standard and Tricolour only.
 
 **Can't be earned**:
 - the 5x ones, Upper/Lower Class, Bonus Round, Exact Change, Six Appeal, Taking A Chance and Both Straights;
@@ -226,7 +227,7 @@ the wildcards in, the half medians were 144 / 429 for Hard and 99 / 366 for Medi
 
 ## Tricolour (coloured dice, four colour boxes)
 
-Nothing guarded, nothing blocked.
+Nothing guarded. Solid Round ... Dice Deity are earnable here as in Standard (`alsoEarnableIn`), and in no other mode.
 - Déjà Vu compares number *and* colour.
 - Fresh Coat Of Paint counts the style, which is recoloured.
 - How Do You Play This Game? needs the colour boxes zeroed too.

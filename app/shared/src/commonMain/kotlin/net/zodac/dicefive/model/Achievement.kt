@@ -411,6 +411,8 @@ enum class Achievement(
      * game and keeps it only in this mode's ([isEarnableIn]).
      */
     val mode: GameMode? = null,
+    /** The modes besides [mode] this achievement can also be earned in ([isEarnableIn]). Empty when [mode] is null. */
+    val alsoEarnableIn: Set<GameMode> = emptySet(),
     /** Whether this is [mode]'s own win: earned by winning a game of it against at least one other player. */
     val isModeWin: Boolean = false,
 ) : StoredId {
@@ -608,29 +610,30 @@ enum class Achievement(
         Res.string.achievement_ton_description,
         AchievementCategory.SCORING,
     ),
+    // The score ladder: Standard and Tricolour only, judged on the finished game.
     SOLID_ROUND(
         "solid_round",
         Res.string.achievement_solid_round_title,
         Res.string.achievement_solid_round_description,
-        AchievementCategory.SCORING,
+        AchievementCategory.SCORING, mode = GameMode.STANDARD, alsoEarnableIn = setOf(GameMode.TRICOLOUR),
     ),
     SHARPSHOOTER(
         "sharpshooter",
         Res.string.achievement_sharpshooter_title,
         Res.string.achievement_sharpshooter_description,
-        AchievementCategory.SCORING,
+        AchievementCategory.SCORING, mode = GameMode.STANDARD, alsoEarnableIn = setOf(GameMode.TRICOLOUR),
     ),
     HIGH_ROLLER(
         "high_roller",
         Res.string.achievement_high_roller_title,
         Res.string.achievement_high_roller_description,
-        AchievementCategory.SCORING,
+        AchievementCategory.SCORING, mode = GameMode.STANDARD, alsoEarnableIn = setOf(GameMode.TRICOLOUR),
     ),
     DICE_DEITY(
         "dice_deity",
         Res.string.achievement_dice_deity_title,
         Res.string.achievement_dice_deity_description,
-        AchievementCategory.SCORING,
+        AchievementCategory.SCORING, mode = GameMode.STANDARD, alsoEarnableIn = setOf(GameMode.TRICOLOUR),
     ),
 
     // ---- Winning: beating whoever else was at the table ---------------------------------------
@@ -1209,8 +1212,8 @@ enum class Achievement(
             else -> null
         }
 
-    /** Whether this can be earned in a game of [gameMode]: any, unless it belongs to one [mode]. */
-    fun isEarnableIn(gameMode: GameMode): Boolean = mode == null || mode == gameMode
+    /** Whether this can be earned in a game of [gameMode]: any, unless it belongs to [mode] (and [alsoEarnableIn]). */
+    fun isEarnableIn(gameMode: GameMode): Boolean = mode == null || mode == gameMode || gameMode in alsoEarnableIn
 
     companion object {
 

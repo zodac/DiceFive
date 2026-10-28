@@ -491,15 +491,14 @@ object AchievementEngine {
         )
 
         // Score thresholds - see earnedDuringPlay's doc comment for why these wait for the actual
-        // result rather than firing off a total that's already passed the mark mid-game. Not on a
-        // card scored three times over, whose totals clear every rung as a matter of course.
-        // Nor with the Extended Scores modifier's three extra boxes, which add around 50 points to a card.
-        // Nor on a card of targets (Hit List), whose totals are a different measure altogether.
-        val standardCard = singleScoreCard && !state.extendedScores && state.gameMode.hasStandardCard
-        award(Achievement.SOLID_ROUND, standardCard && bestHumanScore >= 200)
-        award(Achievement.SHARPSHOOTER, standardCard && bestHumanScore >= 300)
-        award(Achievement.HIGH_ROLLER, standardCard && bestHumanScore >= 400)
-        award(Achievement.DICE_DEITY, standardCard && bestHumanScore >= 500)
+        // result rather than firing off a total that's already passed the mark mid-game. Standard and
+        // Tricolour only (Achievement.mode). Not with roll modifiers, nor with the Extended Scores modifier's three
+        // extra boxes, which add around 50 points to a card.
+        val unmodifiedCard = singleScoreCard && !state.extendedScores
+        award(Achievement.SOLID_ROUND, unmodifiedCard && bestHumanScore >= 200)
+        award(Achievement.SHARPSHOOTER, unmodifiedCard && bestHumanScore >= 300)
+        award(Achievement.HIGH_ROLLER, unmodifiedCard && bestHumanScore >= 400)
+        award(Achievement.DICE_DEITY, unmodifiedCard && bestHumanScore >= 500)
 
         // Winning.
         // Judged directly off this game's own result, not off the GAMES_WON counter (unlike
