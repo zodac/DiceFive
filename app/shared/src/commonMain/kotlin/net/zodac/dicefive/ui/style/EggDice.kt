@@ -111,6 +111,7 @@ class EggDiceStyle(
     override val tumblesItself: Boolean = true
     override val lockedChainReach: Float = 0.66f
     override val standsUpright: Boolean = true
+    override val rollsGoldenEggs: Boolean get() = id != GoldenEggDiceStyle.id
 
     override fun recoloured(palette: DieColourPalette): DiceStyle =
         EggDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, palette.heldRing, speckled, metallic = false, speckleColour, sparkle)

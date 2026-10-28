@@ -37,6 +37,12 @@ interface DiceStyle : TableArt {
     val standsUpright: Boolean get() = false
 
     /**
+     * Whether a golden egg can be rolled among these dice (the Egg, in any colour but gold), with a cup that
+     * [DiceCupStyle.laysGoldenEggs] - the table [net.zodac.dicefive.model.Achievement.EGGCELLENT_DISCOVERY] is found at.
+     */
+    val rollsGoldenEggs: Boolean get() = false
+
+    /**
      * For a style with loose pupils on its faces that the die's movement throws about (googly eyes),
      * how far each can roll from its socket's centre, as a fraction of the die's size - the tray then
      * keeps each die a [DieMotion] to move them, handed down as [LocalDieMotion]. Null for a style
@@ -132,6 +138,15 @@ interface DiceCupStyle : TableArt {
      * False for one that only plays something as it pours and is then just as it was (the Chicken).
      */
     val changesWhenPoured: Boolean get() = true
+
+    /** Whether a golden egg can be rolled from this cup (the Chicken), with dice that [DiceStyle.rollsGoldenEggs]. */
+    val laysGoldenEggs: Boolean get() = false
+
+    /**
+     * Whether the cup's plant grows with the player's rolls through a game (the Flowerpot, not one held at a fixed stage) -
+     * [net.zodac.dicefive.model.Achievement.GREENFINGERS]'s cup.
+     */
+    val growsPlant: Boolean get() = false
 }
 
 /**

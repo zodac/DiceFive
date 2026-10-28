@@ -65,10 +65,6 @@ import net.zodac.dicefive.model.hasGrownSunflower
 import net.zodac.dicefive.model.maxPlayerNameLength
 import net.zodac.dicefive.model.resolvePlayerName
 import net.zodac.dicefive.model.takeNameWidth
-import net.zodac.dicefive.ui.style.ChickenDiceCupStyle
-import net.zodac.dicefive.ui.style.EggDiceStyle
-import net.zodac.dicefive.ui.style.FlowerpotDiceCupStyle
-import net.zodac.dicefive.ui.style.GoldenEggDiceStyle
 import net.zodac.dicefive.ui.style.PIP_FACES
 import net.zodac.dicefive.ui.style.visualTheme
 
@@ -655,13 +651,11 @@ class GameViewModel(
      */
     private fun showsGoldenEggs(state: GameState): Boolean {
         val theme = tableSettings.value?.visualTheme ?: return false
-        val dice = theme.diceStyle
-        return dice is EggDiceStyle && dice.id != GoldenEggDiceStyle.id && theme.diceCupStyle is ChickenDiceCupStyle &&
-            state.gameMode.dieValues.last <= PIP_FACES
+        return theme.diceStyle.rollsGoldenEggs && theme.diceCupStyle.laysGoldenEggs && state.gameMode.dieValues.last <= PIP_FACES
     }
 
     /** Whether the cup picked is the Flowerpot that grows its plant, not one of its fixed-stage pots - [Achievement.GREENFINGERS]'s cup. */
-    private fun growsFlowerpot(): Boolean = (tableSettings.value?.visualTheme?.diceCupStyle as? FlowerpotDiceCupStyle)?.growsPlant == true
+    private fun growsFlowerpot(): Boolean = tableSettings.value?.visualTheme?.diceCupStyle?.growsPlant == true
 
     private fun onHumanAction(undoable: Boolean = true, transform: (GameState) -> GameState) {
         val state = _game.value ?: return

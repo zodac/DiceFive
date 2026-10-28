@@ -70,6 +70,7 @@ class ChickenDiceCupStyle(override val id: String, private val palette: HenPalet
     override val shape: CupShape = CupShape.MEDIUM
     override val swatch: Color = palette.feather
     override val changesWhenPoured: Boolean = false
+    override val laysGoldenEggs: Boolean = true
 
     @Composable
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
