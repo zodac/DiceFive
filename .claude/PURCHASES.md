@@ -85,9 +85,15 @@ app/android/src/play/.../purchases/  PlayBillingStore - the only com.android.bil
   clears it. `Loading` and `Unavailable` (no answer, or a failed one) change nothing (`StoreState.ownsAllStyles`).
 - **Revoking keeps picks.** Existing rule: a locked saved pick draws the default but stays saved, so a refund just
   re-locks, and earning the style later brings the pick back.
-- **No server verification.** There's no backend, the source is public, and it's cosmetic. Optionally verify
-  `Purchase.signature` against the app's licence key (Play Console > Monetise with Play > Monetisation setup) on the
-  device. A patched APK can unlock styles anyway; that's accepted.
+- **No server verification.** There's no backend, the source is public, and it's cosmetic. A patched APK can unlock
+  styles anyway; that's accepted.
+- **Signatures are checked on the device.** A purchase counts only if `Purchase.signature` is the app's licence key's
+  SHA1withRSA signature of `Purchase.originalJson` (`PurchaseSignature`, in `PlayBillingStore.unlockAllStyles`), so a
+  fake billing service's purchase is treated as none: not owned, not acknowledged. The key is Play Console's Base64
+  licence key (Monetise with Play > Monetisation setup > Licensing), from the `PLAY_LICENCE_KEY` repository
+  variable (a public key, so not a secret; set 2026-10-28) as `BuildConfig.PLAY_LICENCE_KEY` (play flavour only). A
+  local or debug build has no key and counts every purchase Play reports. The release workflow's apk job fails without
+  a one-line Base64 key, so a release never ships unchecked. Tests: `PlayBillingStoreTest`.
 - **Debug builds**: "pretend all styles are owned" (decided 2026-10-23): tap the Styles page's unlocked count
   `PRETEND_TAP_TARGET` (5) times, as the Achievements page's superuser mode is entered; a toast says on or off. It's
   `AppContainer.pretendOwnsAllStyles`, ORed into `ownsAllStyles` only in a debug build, for the process and never

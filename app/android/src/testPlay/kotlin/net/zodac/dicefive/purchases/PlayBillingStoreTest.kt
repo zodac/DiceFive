@@ -6,6 +6,10 @@ import androidx.activity.ComponentActivity
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.android.billingclient.api.Purchase
+import java.security.KeyPair
+import java.security.KeyPairGenerator
+import java.security.Signature
+import java.util.Base64
 import net.zodac.dicefive.purchases.PlayBillingStore.Companion.storeState
 import net.zodac.dicefive.purchases.PlayBillingStore.Companion.unlockAllStyles
 import org.json.JSONObject
@@ -79,8 +83,29 @@ class PlayBillingStoreTest {
         assertEquals("pending", listOf(other, pending).unlockAllStyles()?.purchaseToken)
     }
 
-    /** A purchase as Play sends it: its JSON's purchaseState is 0 once paid and 4 while pending. */
-    private fun purchase(state: Int, product: String = ProductKey.UNLOCK_ALL_STYLES, token: String = "token"): Purchase {
+    @Test
+    fun `with a licence key only a purchase it signed counts - one signed by another key, or changed since, doesn't`() {
+        val play = keyPair()
+        val signed = purchase(PURCHASED, signedBy = play)
+        assertSame(signed, listOf(signed).unlockAllStyles(licenceKey = play.licenceKey))
+        assertNull(listOf(purchase(PURCHASED, signedBy = keyPair())).unlockAllStyles(licenceKey = play.licenceKey))
+        assertNull(listOf(Purchase(signed.originalJson.replace("\"token\"", "\"forged\""), signed.signature)).unlockAllStyles(licenceKey = play.licenceKey))
+        assertNull(listOf(purchase(PURCHASED)).unlockAllStyles(licenceKey = play.licenceKey))
+    }
+
+    @Test
+    fun `a licence key that can't be read counts no purchase - and with none, every purchase counts`() {
+        val signed = purchase(PURCHASED, signedBy = keyPair())
+        assertNull(listOf(signed).unlockAllStyles(licenceKey = "not a key"))
+        assertSame(signed, listOf(signed).unlockAllStyles(licenceKey = ""))
+    }
+
+    private val KeyPair.licenceKey: String get() = Base64.getEncoder().encodeToString(public.encoded)
+
+    private fun keyPair(): KeyPair = KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }.generateKeyPair()
+
+    /** A purchase as Play sends it: its JSON's purchaseState is 0 once paid and 4 while pending - signed by [signedBy], if given. */
+    private fun purchase(state: Int, product: String = ProductKey.UNLOCK_ALL_STYLES, token: String = "token", signedBy: KeyPair? = null): Purchase {
         val json = JSONObject()
             .put("orderId", "GPA.0000-0000-0000-00000")
             .put("packageName", "net.zodac.dicefive")
@@ -89,7 +114,15 @@ class PlayBillingStoreTest {
             .put("purchaseState", state)
             .put("purchaseToken", token)
             .put("acknowledged", false)
-        return Purchase(json.toString(), "signature")
+            .toString()
+        val signature = signedBy?.let { pair ->
+            Signature.getInstance("SHA1withRSA").run {
+                initSign(pair.private)
+                update(json.toByteArray(Charsets.UTF_8))
+                Base64.getEncoder().encodeToString(sign())
+            }
+        }
+        return Purchase(json, signature ?: "signature")
     }
 
     private companion object {

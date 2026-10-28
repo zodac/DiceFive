@@ -248,8 +248,14 @@ class PlayBillingStore private constructor(application: Application) : Store {
             else -> StoreState.ForSale(price)
         }
 
-        /** The account's purchase of [ProductKey.UNLOCK_ALL_STYLES] among these, a paid one first; null if it has none. */
-        internal fun List<Purchase>.unlockAllStyles(): Purchase? = filter { ProductKey.UNLOCK_ALL_STYLES in it.products }
+        /**
+         * The account's purchase of [ProductKey.UNLOCK_ALL_STYLES] among these, a paid one first; null if it has none. With a
+         * [licenceKey], only a purchase it signed counts ([PurchaseSignature]); with none, every one does.
+         */
+        internal fun List<Purchase>.unlockAllStyles(licenceKey: String = BuildConfig.PLAY_LICENCE_KEY): Purchase? = filter {
+            ProductKey.UNLOCK_ALL_STYLES in it.products &&
+                (licenceKey.isEmpty() || PurchaseSignature.isValid(licenceKey, it.originalJson, it.signature))
+        }
             .let { ours -> ours.firstOrNull { it.purchaseState == Purchase.PurchaseState.PURCHASED } ?: ours.firstOrNull() }
     }
 }
