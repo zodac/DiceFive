@@ -12,16 +12,18 @@ failure stops what follows.
 ## The full gate (before a commit)
 
 ```sh
-./gradlew testDebugUnitTest :app:shared:lint lintDebug lintRelease assembleDebug compileDebugAndroidTestKotlin :app:android:assembleRelease \
+./gradlew testDebugUnitTest :app:shared:lint lintDebug lintRelease assembleDebug :app:baselineprofile:compileNonMinifiedReleaseKotlin :app:android:assembleRelease \
   --console=plain 2>&1 | grep -v -E '^> Task|^$'
 ```
 
 - The root `testDebugUnitTest` runs both modules' test suites: `:app:shared`'s as Android runs them (`commonTest`
   and `androidHostTest`; compiled for the JVM too), and `:app:android`'s. `:app:shared:jvmTest` runs `commonTest` on
   the JVM: monthly in CI, and by hand after changing a `commonTest` UI test or the harness.
-- `app/android` has two flavours, `play` and `github` (`.claude/DESIGN.md`, "Distribution"). Its `testDebugUnitTest`,
-  `lintDebug` and `compileDebugAndroidTestKotlin` run both (`testPlayDebugUnitTest`, `testGithubDebugUnitTest`, ...),
-  so `src/test` runs twice, once in each app, with `src/testPlay` and `src/testGithub` once in their own.
+- `app/android` has two flavours, `play` and `github` (`.claude/DESIGN.md`, "Distribution"). Its `testDebugUnitTest`
+  and `lintDebug` run both (`testPlayDebugUnitTest`, `testGithubDebugUnitTest`, ...), so `src/test` runs twice, once
+  in each app, with `src/testPlay` and `src/testGithub` once in their own.
+- `:app:baselineprofile:compileNonMinifiedReleaseKotlin` compiles the Baseline Profile journey, the only on-device test
+  code (the app has no `src/androidTest`). Nothing else compiles it before CI's emulator job.
 - `lintRelease` is both release builds' full lint (`lintPlayRelease`, `lintGithubRelease`): the release-only source
   sets and manifests, which `lintDebug` never sees.
 - `:app:android:assembleRelease` is the release job's build for both apps: R8, and the release lint

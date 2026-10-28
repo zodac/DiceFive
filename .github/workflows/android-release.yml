@@ -6,6 +6,13 @@ name: Android release
 # continues one patch ahead of the last release. That bump-commit is pushed with the default GITHUB_TOKEN,
 # which GitHub does not use to re-trigger workflows, so this can't loop.
 #
+# What a run builds is main as it is when the run starts (the version job), not the commit whose push started it.
+# Runs queue one at a time (concurrency below), so a push made during a run waits, and starts only after that run has
+# pushed its bump: built from its own commit, it would read the VERSION just released and release it a second time.
+# A run that finds nothing new on main since the last release (only the bot's bump, as when two pushes queued and the
+# first run built them both) releases nothing. A run that finds VERSION already tagged fails rather than replace that
+# release's files.
+#
 # For a minor/major bump, edit VERSION by hand (or run scripts/set-version.sh) and
 # push that - the next run releases that version, then resumes patch-bumping from it (1.1.0 -> 1.1.1 -> ...).
 #
@@ -70,20 +77,46 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # What's being released, read once for the jobs that need it.
+  # What's being released, read once for every other job: the commit (main as it is now - see the top of this file),
+  # its VERSION, and whether there's anything to release. Every other job checks out that commit and runs only if so.
   version:
     runs-on: ubuntu-latest
     outputs:
       name: ${{ steps.version.outputs.name }}
+      sha: ${{ steps.version.outputs.sha }}
+      release: ${{ steps.version.outputs.release }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0 # the tags, and the commits since the previous release
 
+      # Android's tags are android-v<version>, plain v<version> up to 1.0.1. The bot's own commits (the version bumps,
+      # which scripts/release-changelog.sh leaves out of the notes too) are not something new to release.
       - name: Read version
         id: version
         run: |
           version="$(tr -d '[:space:]' < VERSION)"
+          sha="$(git rev-parse HEAD)"
           echo "name=$version" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/android-v$version" > /dev/null; then
+            echo "::error::android-v$version is already released, and VERSION on main still says $version - set the next version (scripts/set-version.sh), push it, and run this again"
+            exit 1
+          fi
+          previous_tag=""
+          for pattern in 'android-v*' 'v*'; do
+            previous_tag="$(git tag --merged HEAD --list "$pattern" --sort=-version:refname | head -n 1 || true)"
+            [ -n "$previous_tag" ] && break
+          done
+          release=true
+          if [ -n "$previous_tag" ] && [ -z "$(git log --format='%an' "$previous_tag..HEAD" | grep -vxF 'github-actions[bot]' || true)" ]; then
+            release=false
+            echo "::notice::Nothing on main since $previous_tag but the version bump - nothing to release"
+          fi
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "Releasing: $release (android-v$version, $sha; previous release: ${previous_tag:-none})"
 
   # app:android's unit tests - Robolectric, so the slowest of the checks. One runner per flavour, side by side: each
   # runs src/test plus its own src/test<Flavour> (the play and github apps; .claude/DESIGN.md, "Distribution"). Neither
@@ -94,10 +127,14 @@ jobs:
       fail-fast: false
       matrix:
         flavour: [Play, Github]
+    needs: version
+    if: needs.version.outputs.release == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.version.outputs.sha }}
 
       - name: Set up the build
         uses: ./.github/actions/build-setup
@@ -154,10 +191,14 @@ jobs:
   # compile for the JVM target - see the testDebugUnitTest task in app/shared/build.gradle.kts. Run on the JVM monthly
   # (update-dependencies.yml) until an app for another platform ships, when they belong here too.
   shared-tests:
+    needs: version
+    if: needs.version.outputs.release == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.version.outputs.sha }}
 
       - name: Set up the build
         uses: ./.github/actions/build-setup
@@ -167,22 +208,26 @@ jobs:
 
   # Deprecation gates. Any compile already fails on a deprecated API (allWarningsAsErrors, from build-logic's
   # StrictChecks.kt) or a build-script warning (org.gradle.kotlin.dsl.allWarningsAsErrors in
-  # gradle.properties); this extends that to the instrumented-test code, which nothing else here
-  # compiles, and runs lint, where Deprecated / ObsoleteSdkInt findings are errors - on the release builds too
-  # (lintRelease), whose own source sets and manifests the debug lint never sees.
+  # gradle.properties); this extends that to the Baseline Profile journey (app/baselineprofile), which nothing else
+  # compiles before the emulator job, and runs lint, where Deprecated / ObsoleteSdkInt findings are errors - on the
+  # release builds too (lintRelease), whose own source sets and manifests the debug lint never sees.
   lint:
+    needs: version
+    if: needs.version.outputs.release == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.version.outputs.sha }}
 
       - name: Set up the build
         uses: ./.github/actions/build-setup
         with:
           ffmpeg: "true"
 
-      - name: Check instrumented tests compile and lint passes
-        run: ./gradlew compileDebugAndroidTestKotlin lintDebug lintRelease --console=plain
+      - name: Check the profile journey compiles and lint passes
+        run: ./gradlew :app:baselineprofile:compileNonMinifiedReleaseKotlin lintDebug lintRelease --console=plain
 
   # A fresh Baseline Profile for every APK: the profile journey (app/baselineprofile) run on an
   # emulator, from this commit. Only when there's an APK to put it in. The profile is not committed (it is
@@ -206,6 +251,7 @@ jobs:
   # watches them and stops itself when one does - see watch_checks.sh.
   baseline-profile:
     needs: version
+    if: needs.version.outputs.release == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 210
     permissions:
@@ -215,6 +261,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.version.outputs.sha }}
           fetch-depth: 0 # the lap count below diffs against the previous release's tag
 
       # 3 laps are enough for a profile (a rule is recorded once). 10 only when the journey or a
@@ -290,6 +337,8 @@ jobs:
       # (Gradle prints nothing until the tests end).
       - name: Generate the Baseline Profile
         timeout-minutes: 190
+        env:
+          JOURNEY_LAPS: ${{ steps.laps.outputs.laps }}
         run: |
           # adb for the logcat below: ci_emulator.sh puts platform-tools on its own PATH, not this step's.
           export PATH="$ANDROID_HOME/platform-tools:$PATH"
@@ -311,7 +360,7 @@ jobs:
             adb logcat -v time -s Benchmark:D -e "Compile iteration" &
             trap 'kill $! 2>/dev/null || true' EXIT
             if ./gradlew :app:android:generatePlayReleaseBaselineProfile \
-                -Pandroid.testInstrumentationRunnerArguments.journeyLaps=${{ steps.laps.outputs.laps }} \
+                -Pandroid.testInstrumentationRunnerArguments.journeyLaps="$JOURNEY_LAPS" \
                 --console=plain; then
               # The plugin only warns when the tests yield no profile, so Gradle can pass without one. That
               # means the APKs never installed (the emulator's framework fell over), not that the journey
@@ -339,7 +388,7 @@ jobs:
             # A failed journey is run once more, in a short run only: a renamed label fails both runs, a race on a
             # starved runner rarely does. The 10-lap soak is there to find races, so it fails on the first. The
             # failed run's saved screen and results are kept apart, as the next run replaces them.
-            if [ "${{ steps.laps.outputs.laps }}" -le 3 ] && [ -z "$journey_retried" ] && [ "$attempt" -lt 3 ]; then
+            if [ "$JOURNEY_LAPS" -le 3 ] &&[ -z "$journey_retried" ] && [ "$attempt" -lt 3 ]; then
               journey_retried=1
               mkdir -p "$RUNNER_TEMP/journey-attempt$attempt"
               cp -r app/baselineprofile/build/outputs/connected_android_test_additional_output \
@@ -397,6 +446,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.version.outputs.sha }}
 
       - name: Set up the build
         uses: ./.github/actions/build-setup
@@ -426,6 +477,18 @@ jobs:
             exit 1
           fi
 
+      # The play app checks each purchase's signature with this (app/android/build.gradle.kts, PLAY_LICENCE_KEY): the
+      # app's Base64 RSA licence key from Play Console. A public key, so a repository variable, not a secret. Without it
+      # the play app would count every purchase Play reports, so the release is refused instead.
+      - name: Check the Play licence key
+        env:
+          PLAY_LICENCE_KEY: ${{ vars.PLAY_LICENCE_KEY }}
+        run: |
+          if ! [[ "$PLAY_LICENCE_KEY" =~ ^[A-Za-z0-9+/]+=*$ ]]; then
+            echo "::error::The PLAY_LICENCE_KEY repository variable must be set to Play Console's Base64 licence key, on one line - see .claude/PURCHASES.md, \"Entitlement\""
+            exit 1
+          fi
+
       # Through env, never ${{ }} in the script: the secret is then never part of the script's text.
       - name: Decode release keystore
         env:
@@ -442,6 +505,7 @@ jobs:
           ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
           PROGRESS_FILE_KEY: ${{ secrets.PROGRESS_FILE_KEY }}
+          PLAY_LICENCE_KEY: ${{ vars.PLAY_LICENCE_KEY }}
         run: ./gradlew :app:android:assembleGithubRelease :app:android:bundlePlayRelease --console=plain
 
       # app/android/build.gradle.kts names the APK DiceFive-<version>-<flavour>-<buildType>.apk (signed here, so no
@@ -481,6 +545,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.version.outputs.sha }}
           fetch-depth: 0
 
       - name: Fetch the release files
@@ -507,10 +572,13 @@ jobs:
           cat "$body"
           echo "path=$body" >> "$GITHUB_OUTPUT"
 
-      - name: Create/update GitHub release
+      # The tag is made on the commit built, not on main's tip, which may have moved on since (the action's default).
+      # The version job has already made sure the tag is new, so this never replaces a release's files.
+      - name: Create GitHub release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: android-v${{ needs.version.outputs.name }}
+          target_commitish: ${{ needs.version.outputs.sha }}
           name: DiceFive Android v${{ needs.version.outputs.name }}
           files: release-files/*
           body_path: ${{ steps.notes.outputs.path }}
@@ -519,17 +587,30 @@ jobs:
       # never bumps the version. Re-syncs with the current main tip first in
       # case it moved during this run.
       #
+      # VERSION is bumped only if main still says the version just released: one set by hand while this run was going
+      # (scripts/set-version.sh, for a minor or major) is the next release's, and is left as it is.
       # RELEASE_NOTES.md is emptied for the next release - only if it still holds exactly what this release
       # shipped with. If notes for the next release were pushed while this run was going, they're left alone.
       - name: Bump version for next development iteration
         run: |
+          released="${{ needs.version.outputs.name }}"
           git fetch origin main
           git checkout main
           git reset --hard origin/main
-          ./scripts/bump-patch-version.sh
+          if [ "$(tr -d '[:space:]' < VERSION)" = "$released" ]; then
+            ./scripts/bump-patch-version.sh
+            subject="[Release] Bump Android version to $(cat VERSION) [skip ci]"
+          else
+            echo "::notice::VERSION on main was set to $(cat VERSION) during this run - left as it is"
+            subject="[Release] Clear the release notes after $released [skip ci]"
+          fi
           ./scripts/release-notes.sh clear "$RUNNER_TEMP/released-notes.md"
+          git add VERSION RELEASE_NOTES.md
+          if git diff --cached --quiet; then
+            echo "Nothing to commit after the release"
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add VERSION RELEASE_NOTES.md
-          git commit -m "[Release] Bump Android version to $(cat VERSION) [skip ci]"
+          git commit -m "$subject"
           git push origin main

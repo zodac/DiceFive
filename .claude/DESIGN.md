@@ -259,7 +259,8 @@ will map to Play Games.
     deleted, to update, and the error text to copy into a report.
 - **Preferences.** Five DataStore files (`PreferencesFile`), kept apart so a reset can clear one. Each is a
   `ResilientDataStore`: a write that fails (a full disk) is skipped and a read that fails is empty, never thrown into
-  the coroutine that asked.
+  the coroutine that asked. A failed read is retried three times, after 1s, 3s and 5s, and a retry that reads the file
+  gives it to the collector; after the third, it stops.
   - `settings`. Every key but the Animations level and the Styles page fit is synced
     (`SettingsRepository.SYNCED_KEYS`) and stamped `synced_at:<key>` when it changes.
   - `achievements`: unlock times and counters, plus the cloud save's counter shares (this file's own share id and the
@@ -569,7 +570,8 @@ Two apps from one source, one per way the app reaches players: product flavours 
 ## Release pipeline
 
 - **Version.** `VERSION` at the repo root, the one app's single source: `versionName` is its contents, and
-  `versionCode` is `major*10000 + minor*100 + patch`.
+  `versionCode` is `major*1000000 + minor*1000 + patch` (`AppVersion`). Up to 1.2.1 it was `major*10000 + minor*100 +
+    patch`; every new code is above every old one, so updates install over them.
   - `scripts/set-version.sh X.Y.Z` writes it, and `scripts/bump-patch-version.sh` bumps its patch. The `android-v` tag
     prefix leaves room for another app.
   - Debug builds are signed with the repo's `app/android/debug.keystore`, so every debug APK shares one SHA-1 (which
@@ -579,13 +581,19 @@ Two apps from one source, one per way the app reaches players: product flavours 
     and lint runs stay up to date. The minute is read through a `ValueSource` when the build runs, never while the
     script is evaluated, or the configuration cache would hand every build the same one.
 - **On every push to `main` that changes what Android ships**, `.github/workflows/android-release.yml` runs:
-  - parallel jobs: Android tests (a runner per flavour), shared tests, lint, the Baseline Profile
+  - a `version` job that picks what's built: `main` as it is when the run starts, never the pushed commit. Runs queue
+    one at a time, so a push made during a run builds after that run's bump, not the version just released. It fails
+    when `android-v<VERSION>` already exists (a release's files are never replaced), and releases nothing when the
+    only commits since the last release are the bot's own (every other job is then skipped);
+  - parallel jobs, each on that commit: Android tests (a runner per flavour), shared tests, lint, the Baseline Profile
     (generated fresh on an emulator from the play app, and given to both; see `EMULATOR.md`), and the github APK plus
     the play App Bundle;
   - then a `release` job that publishes GitHub release `android-v<version>` (plain `v<version>` up to 1.0.1) once every check has passed, with
-    `DiceFive-<version>.apk` (github), `.aab` (play), `-mapping.txt` (the APK's) and `-play-mapping.txt` (the bundle's);
+    `DiceFive-<version>.apk` (github), `.aab` (play), `-mapping.txt` (the APK's) and `-play-mapping.txt` (the bundle's),
+    tagging the commit built;
   - then a commit that bumps the patch and empties `RELEASE_NOTES.md` (`[Release] Bump Android version to X
-    [skip ci]`).
+    [skip ci]`). A `VERSION` set by hand on `main` during the run is left as it is (`[Release] Clear the release notes
+    after X [skip ci]`).
 - **Beside it, not part of it**, `readme-assets.yml` renders the README's feature graphic and screenshots from the
   same push and replaces the files on the `readme-assets` release (`STORE_ASSETS.md`, "The README's images").
 - **Release description.** `RELEASE_NOTES.md` (the maintainer's), then "## Changes since X" from
@@ -597,11 +605,17 @@ Two apps from one source, one per way the app reaches players: product flavours 
   (alias `upload`) is the Play upload key, and signs both the bundle and the github APK.
 - **`PROGRESS_FILE_KEY`** (a repo secret): the github APK's progress file key ("Distribution"). The apk job fails
   without it.
+- **`PLAY_LICENCE_KEY`** (a repository variable, not a secret: it's a public key): the play app's licence key, which
+  purchase signatures are checked with (`PURCHASES.md`, "Entitlement"). The apk job fails without it, or on one that
+  isn't one-line Base64.
 - **R8** shrinks and obfuscates release builds (`app/android/r8-rules.pro`). Release dex is stored uncompressed.
   - It lays the dex out from the startup profile (`dexLayoutOptimization`): the code a cold start runs to the menu
     (`StartupProfileGenerator`) goes first. The release workflow fails if it generates no `startup-prof.txt`.
 - **Dependencies.** `.github/workflows/update-dependencies.yml` bumps every pinned version monthly, re-runs the gates,
-  commits `[Dependencies] Update dependency versions` and starts a release. It never moves targetSdk.
+  commits `[Dependencies] Update dependency versions` and starts a release. It never moves targetSdk. The update and
+  its gates run read-only, with no credentials in the checkout; a separate job that runs no build applies their patch,
+  pushes and starts the release.
+- **The Gradle wrapper** pins `distributionSha256Sum`, which the update script moves with the version.
 - **Warnings are errors**: deprecated APIs, build-script warnings, and lint's `Deprecated`/`ObsoleteSdkInt`.
 - **Two known plugin warnings** can't be silenced. Revisit each on a plugin upgrade.
   - AboutLibraries resolves configurations during configuration time ("`playDebugCompileClasspath` was resolved during

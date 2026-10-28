@@ -6,6 +6,11 @@ name: Update dependencies
 # committed to main and a release started; a failure anywhere leaves main untouched (the run just
 # fails, with the reason in its log).
 #
+# Two jobs, so the versions it has just moved to never run with a token that can write: the update job runs the script
+# and the gates - Gradle, its plugins and every newly bumped library - with read-only access and no credentials left in
+# the checkout, and hands over the change as a patch. The commit job, the only one that can write, runs no build: it
+# applies that patch to the commit it was made from, pushes it and starts the release.
+#
 # Everything runs on the default GITHUB_TOKEN - no extra secret - which GitHub limits in two ways,
 # both designed around here:
 #   - It may not change files under .github/workflows/. So no version the update moves lives in a
@@ -26,9 +31,9 @@ on:
     - cron: "0 6 2 * *"
   workflow_dispatch:
 
+# Read-only by default: only the commit job, which runs no build, gets write access.
 permissions:
-  contents: write # push the update commit
-  actions: write # start android-release.yml
+  contents: read
 
 concurrency:
   group: update-dependencies
@@ -38,11 +43,21 @@ jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    outputs:
+      changed: ${{ steps.changes.outputs.changed }}
+      base: ${{ steps.base.outputs.sha }}
     steps:
+      # No credentials kept in .git/config: nothing this job runs pushes.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
+          persist-credentials: false
+
+      # The commit the patch below is made against, which the commit job applies it to.
+      - name: Read the commit updated
+        id: base
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       # The JDK and SDK packages the build builds against (gradle/android-sdk.properties), ffmpeg (normalizeOggAudio) and Gradle.
       # A newer platform or NDK the script tries is installed by the script itself.
@@ -56,13 +71,15 @@ jobs:
       # job here, before anything is committed.
       - name: Update dependency versions
         env:
-          # Raises the GitHub API rate limit for the version lookups.
+          # Raises the GitHub API rate limit for the version lookups. Read-only, like the job.
           GITHUB_TOKEN: ${{ github.token }}
           # The script writes each change it made here ("what: old → new"): the commit message body.
-          UPDATE_SUMMARY_FILE: ${{ runner.temp }}/update-summary.txt
+          UPDATE_SUMMARY_FILE: ${{ runner.temp }}/dependency-update/update-summary.txt
           # ...and each update it found but did not apply (newer actions) here.
           UPDATE_NOTES_FILE: ${{ runner.temp }}/update-notes.txt
-        run: .github/scripts/update_dependency_versions.sh --no-workflow-edits
+        run: |
+          mkdir -p "$RUNNER_TEMP/dependency-update"
+          .github/scripts/update_dependency_versions.sh --no-workflow-edits
 
       - name: Report actions to update by hand
         if: always()
@@ -98,12 +115,12 @@ jobs:
 
       # The release workflow's gates, run on exactly the tree that would be committed, whatever the
       # script touched (it only builds when a Gradle input changed): the debug build, unit tests, the
-      # instrumented tests compiling, and lint - with the deprecation checks the build carries - and both
+      # Baseline Profile journey compiling, and lint - with the deprecation checks the build carries - and both
       # flavours' release builds, unsigned, so a bump R8 can't build with never reaches main.
       - name: Build, test and lint
         if: steps.changes.outputs.changed == 'true'
         run: |
-          ./gradlew assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lintDebug lintRelease \
+          ./gradlew assembleDebug testDebugUnitTest :app:baselineprofile:compileNonMinifiedReleaseKotlin lintDebug lintRelease \
             :app:android:assembleGithubRelease :app:android:bundlePlayRelease --console=plain
 
       # Also exercises a freshly bumped actionlint image before it is committed.
@@ -111,43 +128,94 @@ jobs:
         if: steps.changes.outputs.changed == 'true'
         run: .github/scripts/lint_workflows.sh
 
+      # Everything the update changed, binary files (the wrapper jar) included, as one patch against the base commit.
+      - name: Make the patch
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git add -A
+          git diff --cached --binary > "$RUNNER_TEMP/dependency-update/update.patch"
+          git diff --cached --stat
+
+      - name: Hand the patch to the commit job
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dependency-update
+          path: ${{ runner.temp }}/dependency-update/
+          if-no-files-found: error
+          retention-days: 1
+
+  # The one job with write access, and it runs nothing but git and gh: the patch is applied to the commit it was made
+  # against, so what's pushed is exactly the tree the update job's gates passed.
+  commit:
+    needs: update
+    if: needs.update.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the update commit
+      actions: write # start android-release.yml
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.update.outputs.base }}
+
+      - name: Fetch the patch
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dependency-update
+          path: ${{ runner.temp }}/dependency-update/
+
       # Authored under its own name, not github-actions[bot]: scripts/release-changelog.sh leaves that
       # author's commits (android-release.yml's version bumps) out of the release notes, and this one belongs
       # in them. The push is a plain fast-forward - if main moved during the run it is rejected rather
-      # than rebased, so what lands is exactly the tree the gates above passed.
+      # than rebased, so what lands is exactly the tree the gates passed.
       - name: Commit and push
-        if: steps.changes.outputs.changed == 'true'
         run: |
+          update="$RUNNER_TEMP/dependency-update"
+          git apply --index "$update/update.patch"
           {
             echo "[Dependencies] Update dependency versions"
             echo
-            sed 's/^/- /' "$RUNNER_TEMP/update-summary.txt"
+            sed 's/^/- /' "$update/update-summary.txt"
           } > "$RUNNER_TEMP/commit-message.txt"
           {
             echo "## Dependency updates"
             echo
-            sed 's/^/- /' "$RUNNER_TEMP/update-summary.txt"
+            sed 's/^/- /' "$update/update-summary.txt"
           } >> "$GITHUB_STEP_SUMMARY"
 
           git config user.name "DiceFive dependency updater"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
           git commit -F "$RUNNER_TEMP/commit-message.txt"
           git push origin HEAD:main
 
       # The push above triggers nothing (GITHUB_TOKEN), so the release is started explicitly.
       - name: Release the update
-        if: steps.changes.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh workflow run android-release.yml --ref main
           echo "Started android-release.yml on main - see the Actions tab for the release run." >> "$GITHUB_STEP_SUMMARY"
 
-      # The shared tests on the JVM target, which no app ships on yet, so a push only compiles them there
-      # (app/shared/build.gradle.kts): run here instead, so one that comes to depend on Android is caught within a
-      # month. Last, and whether or not anything was updated, so a failure turns the run red without holding back the
-      # updates already committed. Once an app for another platform ships, they belong in android-release.yml.
+  # The shared tests on the JVM target, which no app ships on yet, so a push only compiles them there
+  # (app/shared/build.gradle.kts): run here instead, so one that comes to depend on Android is caught within a
+  # month. Last, on main as the commit job left it, and whether or not anything was updated, so a failure turns the run
+  # red without holding back the updates already committed. Once an app for another platform ships, they belong in
+  # android-release.yml.
+  shared-jvm-tests:
+    needs: [update, commit]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Set up the build
+        uses: ./.github/actions/build-setup
+
       - name: Shared tests on the JVM
-        if: ${{ !cancelled() }}
         run: ./gradlew :app:shared:jvmTest --console=plain

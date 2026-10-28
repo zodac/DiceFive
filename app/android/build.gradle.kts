@@ -76,6 +76,10 @@ android {
     productFlavors {
         create("play") {
             dimension = "distribution"
+            // Play Console's Base64 licence key, which a purchase's signature is checked with (purchases/PurchaseSignature):
+            // CI's PLAY_LICENCE_KEY repository variable (a public key, so not a secret). Without it (a local build) purchases
+            // go unchecked.
+            buildConfigField("String", "PLAY_LICENCE_KEY", "\"${System.getenv("PLAY_LICENCE_KEY")?.trim().orEmpty()}\"")
         }
         create("github") {
             dimension = "distribution"
@@ -243,11 +247,13 @@ tasks.withType<Test>().configureEach {
 }
 
 // Both flavours' debug checks under the names they had before there were flavours, so `./gradlew testDebugUnitTest
-// lintDebug compileDebugAndroidTestKotlin` from the root (CI, the update script, the test skill's gate) still covers the
-// whole app rather than quietly matching nothing here. One flavour's own task takes --tests: testPlayDebugUnitTest.
+// lintDebug` from the root (CI, the update script, the test skill's gate) still covers the whole app rather than
+// quietly matching nothing here. One flavour's own task takes --tests: testPlayDebugUnitTest.
 // lintRelease is both release builds' full lint: what only they have (src/release, src/playRelease, the release
 // manifests), which lintDebug never sees and the release build's own lintVital only checks for fatal issues.
-for (check in listOf("test%sDebugUnitTest", "lint%sDebug", "lint%sRelease", "compile%sDebugAndroidTestKotlin")) {
+// The app has no instrumented tests of its own: its one on-device code is the Baseline Profile journey, which the gates
+// compile with :app:baselineprofile:compileNonMinifiedReleaseKotlin.
+for (check in listOf("test%sDebugUnitTest", "lint%sDebug", "lint%sRelease")) {
     tasks.register(check.format("")) {
         group = "verification"
         description = "Runs ${check.format("<Flavour>")} for every flavour."
@@ -419,11 +425,6 @@ dependencies {
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
     testImplementation(libs.androidx.espresso.core)
-
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(libs.androidx.ui.test.junit4)
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

@@ -50,12 +50,14 @@ val Project.androidSdk: AndroidSdk
 
 /**
  * The app's version, from the repo root's VERSION file - bump that to release a new one. [code] packs it as
- * MMmmpp: two digits each for minor and patch, so a part of 100 or more would collide with the next minor or major.
+ * MMmmmppp: three digits each for minor and patch, so a part of 1000 or more would collide with the next minor or
+ * major. Every code it gives is above every one the two-digit packing it replaced gave (up to 1.2.1, 10201), so an
+ * update always installs over a version released before it.
  */
 class AppVersion(val name: String) {
     val code: Int = name.split(".").map { it.toInt() }.let { (major, minor, patch) ->
-        require(minor < 100 && patch < 100) { "VERSION $name: minor and patch must each be below 100" }
-        major * 10_000 + minor * 100 + patch
+        require(minor < 1_000 && patch < 1_000) { "VERSION $name: minor and patch must each be below 1000" }
+        major * 1_000_000 + minor * 1_000 + patch
     }
 }
 
