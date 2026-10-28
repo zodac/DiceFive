@@ -92,12 +92,16 @@ private fun MacrobenchmarkScope.tap(what: String, find: () -> UiObject2) {
 /**
  * Taps what [find] returns until [done] says the tap took. A starved emulator drops taps - two in a row went with the
  * unlock banners animating at the foot of the screen - and the step after one then waits for what never comes. Tapped
- * again only after [TIMEOUT_MS] without [done], so a slow tap isn't doubled into one that undoes it.
+ * again only after [TIMEOUT_MS] without [done], so a slow tap isn't doubled into one that undoes it. The first tap is
+ * on [found] when the caller has just looked it up, saving a lookup; later ones look again.
  */
-private fun MacrobenchmarkScope.tapUntil(what: String, find: () -> UiObject2, done: () -> Boolean) {
+private fun MacrobenchmarkScope.tapUntil(what: String, find: () -> UiObject2, found: UiObject2? = null, done: () -> Boolean) {
+    var next = found
     repeat(TAP_ATTEMPTS) {
+        val target = next ?: find()
+        next = null
         try {
-            find().click()
+            target.click()
         } catch (_: StaleObjectException) {
             // Re-composed between the lookup and the tap - look again.
             return@repeat
@@ -110,17 +114,21 @@ private fun MacrobenchmarkScope.tapUntil(what: String, find: () -> UiObject2, do
     error("Baseline Profile journey: tapping '$what' never took (on screen: ${screenText()})")
 }
 
-private fun MacrobenchmarkScope.tapTextUntil(text: String, done: () -> Boolean) = tapUntil(text, { await(By.text(text), text) }, done)
+private fun MacrobenchmarkScope.tapTextUntil(text: String, done: () -> Boolean) = tapUntil(text, { await(By.text(text), text) }, done = done)
 
 private fun MacrobenchmarkScope.tapDescUntil(description: String, done: () -> Boolean) =
-    tapUntil(description, { await(By.desc(description), description) }, done)
+    tapUntil(description, { await(By.desc(description), description) }, done = done)
 
-/** True once [done] is, within [TIMEOUT_MS]; a node gone stale while it's read counts as not yet. */
+/**
+ * True once [done] is, within [TIMEOUT_MS]; a node gone stale while it's read counts as not yet. Read without waiting
+ * for the screen to go idle (see [withShortIdleWait]): it is read again until it holds, and the tap that follows waits
+ * for idle as usual.
+ */
 private fun waitUntil(done: () -> Boolean): Boolean {
     val deadline = System.currentTimeMillis() + TIMEOUT_MS
     while (System.currentTimeMillis() < deadline) {
         try {
-            if (done()) return true
+            if (withShortIdleWait(done)) return true
         } catch (_: StaleObjectException) {
             // Re-composed while it was read - read it again.
         }
@@ -134,8 +142,17 @@ private fun waitUntil(done: () -> Boolean): Boolean {
  * tapped: a second tap would undo the first.
  */
 private fun MacrobenchmarkScope.setChecked(label: BySelector, what: String, checked: Boolean) {
-    if (await(By.checkable(true).hasDescendant(label), what).isChecked == checked) return
-    tapUntil(what, { await(label, what) }) { device.hasObject(By.checkable(true).checked(checked).hasDescendant(label)) }
+    val control = await(By.checkable(true).hasDescendant(label), what)
+    if (control.isChecked == checked) return
+    // Within the node just found, so without another wait for idle; gone stale, the tap looks it up afresh.
+    val found = try {
+        control.findObject(label)
+    } catch (_: StaleObjectException) {
+        null
+    }
+    tapUntil(what, { await(label, what) }, found) {
+        device.hasObject(By.checkable(true).checked(checked).hasDescendant(label))
+    }
 }
 
 /** Whether the switch around [text] is on. */
@@ -156,16 +173,22 @@ internal fun MacrobenchmarkScope.selectTab(text: String) {
 private fun MacrobenchmarkScope.cupDescription(): String? = device.findObject(CUP)?.contentDescription
 
 /**
- * Taps what [find] returns until the dice cup's description changes: a roll uses one of the turn's rolls, and a score
- * hands the next turn a full cup.
+ * Taps what [find] returns (first [found], if given) until the dice cup's description changes from [before]: a roll
+ * uses one of the turn's rolls, and a score hands the next turn a full cup. A cup not found counts as unchanged: a
+ * lookup that doesn't wait for idle can miss it mid-recomposition.
  */
-private fun MacrobenchmarkScope.tapChangingCup(what: String, find: () -> UiObject2) {
-    val before = await(CUP, "the dice cup").contentDescription
-    tapUntil(what, find) { cupDescription() != before }
-}
+private fun MacrobenchmarkScope.tapChangingCup(
+    what: String,
+    before: String? = await(CUP, "the dice cup").contentDescription,
+    found: UiObject2? = null,
+    find: () -> UiObject2,
+) = tapUntil(what, find, found) { cupDescription().let { it != null && it != before } }
 
-/** Rolls the dice: the cup, tapped until a roll has been used. */
-private fun MacrobenchmarkScope.roll() = tapChangingCup("the dice cup") { await(CUP, "the dice cup") }
+/** Rolls the dice: the cup, tapped until a roll has been used. The cup read for its rolls left is the one first tapped. */
+private fun MacrobenchmarkScope.roll() {
+    val cup = await(CUP, "the dice cup")
+    tapChangingCup("the dice cup", cup.contentDescription, cup) { await(CUP, "the dice cup") }
+}
 
 /** Starts the game from the setup (or the tutorial from How to Play) with [label], tapped until the board is up. */
 private fun MacrobenchmarkScope.startGame(label: String = "Start Game") = tapTextUntil(label) { device.hasObject(CUP) }
@@ -234,7 +257,8 @@ internal fun MacrobenchmarkScope.back() {
 internal fun MacrobenchmarkScope.backToMenu() {
     repeat(CLOSE_ATTEMPTS) {
         back()
-        if (device.wait(Until.hasObject(MENU), TIMEOUT_MS)) return
+        // The menu's wordmark found is the menu there, so it's looked for without waiting for idle.
+        if (withShortIdleWait { device.wait(Until.hasObject(MENU), TIMEOUT_MS) }) return
     }
     error("Baseline Profile journey: back never returned to the menu (on screen: ${screenText()})")
 }
