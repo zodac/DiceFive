@@ -267,6 +267,8 @@ jobs:
       # 3 laps are enough for a profile (a rule is recorded once). 10 only when the journey or a
       # profile file changed since the previous release: the journey's timing races only showed up
       # from lap 4, so a changed journey is soaked once, before it goes on being run 3 laps at a time.
+      # A change only to comments or blank lines isn't one: a reworded KDoc cost a release a 10-lap soak. Each
+      # comment pattern is its own -I (joined into one with `|`, git's -I ignored every line).
       - name: Pick the number of laps
         id: laps
         run: |
@@ -278,7 +280,9 @@ jobs:
             [ -n "$previous_tag" ] && break
           done
           laps=3
-          if [ -z "$previous_tag" ] || ! git diff --quiet "$previous_tag" HEAD -- \
+          if [ -z "$previous_tag" ] || ! git diff --quiet --ignore-blank-lines \
+              -I '^[[:space:]]*//' -I '^[[:space:]]*/\*' -I '^[[:space:]]*\*' -I '^[[:space:]]*#' \
+              "$previous_tag" HEAD -- \
               app/baselineprofile app/android/src/main/baseline-prof.txt; then
             laps=10
           fi
