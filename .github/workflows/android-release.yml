@@ -301,7 +301,7 @@ jobs:
       - name: Read the emulator's Android version
         id: emulator
         run: |
-          echo "api=$(grep -oP '^ENV EMULATOR_API=\K[0-9.]+' sandbox/Dockerfile)" >> "$GITHUB_OUTPUT"
+          echo "api=$(grep -oP '^ARG EMULATOR_API=\K[0-9.]+' sandbox/Dockerfile)" >> "$GITHUB_OUTPUT"
           echo "sdk=$ANDROID_HOME" >> "$GITHUB_OUTPUT"
 
       # About 1.5 GB to download otherwise. Keyed on the Android version: the emulator and its image

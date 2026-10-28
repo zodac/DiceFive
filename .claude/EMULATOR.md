@@ -56,7 +56,7 @@ drawing DiceFive**.
 if the journey or a profile file changed beyond its comments and blank lines. The `apk` job builds with the profile it makes.
 
 **`.github/scripts/ci_emulator.sh` is `emulator.sh`'s twin.** It uses the same API (read from the Dockerfile's
-`ENV EMULATOR_API`), the same image, the same boot and the same renderer fix. The differences:
+`ARG EMULATOR_API`), the same image, the same boot and the same renderer fix. The differences:
 - `/dev/kvm` is opened with a udev rule;
 - packages install without `sudo`;
 - the emulator and image are cached per API level (saved even on failure);
@@ -88,7 +88,7 @@ and an empty `ANDROID_AVD_HOME` and `RUNNER_TEMP`.
 
 ## Versions: the emulator follows compileSdk
 
-- **`ENV EMULATOR_API=37.0` in `sandbox/Dockerfile` is the one place** the emulator's version is chosen.
+- **`ARG EMULATOR_API=37.0` in `sandbox/Dockerfile` is the one place** the emulator's version is chosen.
   - It's written as the package names it: from API 37 even base releases carry a minor; older ones are plain (`34`).
   - The image (`system-images;android-<API>;google_apis;x86_64`) and the AVD (`sandbox-api<API>`) derive from it.
   - `entrypoint.sh` forwards it (sudo strips the environment), and `emulator.sh` falls back to `${EMULATOR_API:-37.0}`.

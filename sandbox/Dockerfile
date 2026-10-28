@@ -5,11 +5,12 @@
 # The runtime is a plain Debian 13 (trixie) base. The JDK and Node toolchains
 # are pulled from their official images as multi-stage build stages and the
 # relevant directories copied straight in — so we track upstream image tags
-# instead of hand-rolling tarball / NodeSource downloads. On top we also add: a
-# NESTED Docker engine (so anything the project spins up runs inside this
-# throwaway container, never touching the host daemon), an Android SDK (this is
-# an Android app — see the "Android SDK" and emulator blocks below) and the system libraries
-# Playwright's Chromium needs (for an occasional headless-browser screenshot).
+# instead of hand-rolling tarball / NodeSource downloads. The Android SDK, NDK,
+# emulator and ImageMagick are downloaded in build stages of their own and copied
+# in the same way. On top we also add: a NESTED Docker engine (so anything the
+# project spins up runs inside this throwaway container, never touching the host
+# daemon) and the system libraries Playwright's Chromium needs (for an occasional
+# headless-browser screenshot).
 #
 # The JDK is an LTS release, and only moves to a newer major once this project is
 # proven to build on it: the update script builds and unit-tests the project on
@@ -28,7 +29,8 @@
 # on a schedule), so a build that fails on a version Debian has since dropped means
 # it is time for a run. That script relies on this file's shape: the `FROM … AS
 # jdk|node` stage names, the BEGIN/END DEBIAN PACKAGES markers, the
-# cmdline-tools URL + sha1 line, and the `ENV IMAGEMAGICK_VERSION`/`IMAGEMAGICK_SHA256` lines.
+# cmdline-tools URL + sha1 line, the `ARG EMULATOR_API` line and the
+# `ENV IMAGEMAGICK_VERSION`/`IMAGEMAGICK_SHA256` lines.
 #
 # The nested Docker engine is the one toolchain NOT copied from an image: the
 # binaries in the official `docker`/`docker:dind` images are musl-linked (Alpine),
@@ -37,36 +39,64 @@
 #
 # ── LAYER ORDER IS DELIBERATE: THIS FILE IS OPTIMISED FOR REBUILD TIME ────────
 # sandbox.sh rebuilds this image before EVERY launch, so a cache miss is not a
-# one-off cost — a contributor pays it on every single session until something
-# else invalidates the layer. The dominant source of churn (see `git log -p
-# -- sandbox/Dockerfile`) is version-pin bumps: the apt pins and the node tag move
-# on almost every bump, while the JDK tag and the user setup are near-static. The Claude Code pin moves most often of all - it tracks whatever
-# the registry published today.
+# one-off cost — it is paid on every session until something else invalidates the
+# layer. A changed layer rebuilds every layer below it in its stage, so a stage
+# orders its layers by how much they cost to rebuild, the heaviest first, and the
+# file's edits (pin bumps and hand edits alike) land in the cheap layers below them.
 #
-# Layers are therefore ordered STABLE -> VOLATILE, and each step sits as late as
-# its real dependencies allow:
+# About 10 GB of the image is downloaded content: the emulator and its system image
+# (~6 GB), the NDK (~2.3 GB), the rest of the Android SDK, the JDK and ImageMagick.
+# Each is fetched in a build stage of its own, cached on its own (a stage rebuilds
+# only when its own text or base changes), and COPY'd into the runtime stage FIRST,
+# straight after its FROM, so nothing else in this file can invalidate them: a
+# package pin, an ENV or the user setup only ever rebuilds the cheap layers below.
+# They used to sit below the apt blocks, and a one-line `tzdata` bump or an ENV
+# edit re-downloaded the lot.
 #
-#   1. apt cache config            static
-#   2. bootstrap apt (3 packages)  rarely bumped; only what the Docker repo needs
-#   3. Docker repo + engine        volatile pins, but `usermod -aG docker` needs it
-#   4. COPY jdk                    large but near-static tag
-#   5. COPY node                   large, volatile tag -> below the static COPYs
-#   6. user creation               UID/GID build args -> below every large COPY
-#   7. tooling apt (the big one)   volatile pins; nothing below depends on it
-#   8. Android SDK                 needs `unzip` from step 7; occasional pin bumps
-#      + emulator and its AVD      separate layers below it: the emulator image is ~5 GB unpacked, and
-#                                  re-downloading it must not ride on a platform-tools bump
-#   9. Claude Code install         MOST volatile (a release most days); needs only
-#                                  node + the dev user, so it sits below the apt block
-#  10. COPY scripts                most-edited files, but the cheapest layer
+# Plain COPY, not `COPY --link`: on the classic overlay2 image store (the default
+# on a Linux host's Docker Engine) a linked COPY is still re-copied once a layer
+# above it changes, so the order is what keeps them cached. Within the runtime
+# stage:
 #
-# The rule when adding a step: put it as far DOWN as its dependencies permit, and
-# never above a large COPY unless something below genuinely needs it. In
-# particular do NOT fold new packages into the bootstrap block just because it
-# comes first — that is the block whose invalidation is most expensive.
+#   1. COPY the downloaded toolchains  rarely change; ordered JDK -> emulator -> NDK -> SDK
+#                                      -> ImageMagick, by how often their pins move
+#   2. apt cache config                static
+#   3. Playwright's Chromium libs      ~70 packages; reruns only when the playwright-deps
+#                                      stage's package list changes
+#   4. ENV block                       edited by hand now and then
+#   5. bootstrap apt                   3+1 packages, rarely bumped
+#   6. user creation                   UID/GID build args
+#   7. Docker repo + engine            volatile pins
+#   8. tooling apt                     volatile pins
+#   9. COPY node                       bumped on most update runs
+#  10. ImageMagick link, AVD           tiny
+#  11. Claude Code install             MOST volatile (a release most days)
+#  12. COPY scripts                    most-edited files, but the cheapest layer
+#
+# The rule when adding a step: a download of any size goes in a stage of its own
+# and is COPY'd in at the top, and so does any slow work whose result can be
+# copied; anything else goes as far DOWN as its dependencies permit.
 #
 # BuildKit cache mounts back the apt and npm downloads, so even a genuine cache
-# miss re-installs from local disk instead of re-fetching over the network.
+# miss in the runtime stage re-installs from local disk instead of re-fetching over
+# the network.
+
+# ── The emulator's Android version ────────────────────────────────────────────
+# EMULATOR_API is the one place the emulator's Android version is chosen, and it FOLLOWS compileSdk: the
+# API level the app is compiled against (gradle/android-sdk.properties), so the emulator runs the newest
+# Android the project targets. It is written as the image package names it ("37.0": from API 37 even the
+# base release carries a minor; older ones are plain, "34"), and it is the newest stable Google APIs image
+# of compileSdk's API level - Google publishes no image for minor releases such as 37.2, so the emulator
+# can match the level but not the minor. .github/scripts/update_dependency_versions.sh moves it whenever
+# compileSdk moves, fails the run if the two drift apart or sandbox/emulator.sh's fallback disagrees with
+# this value, and fails it if the image is gone from Google's manifest. Google APIs, not Google Play: only
+# the former allows `adb root`, which the Baseline Profile run and the renderer workaround need (see
+# .claude/EMULATOR.md).
+#
+# A global ARG, because two stages need it: the emulator stage installs its image, and the runtime stage
+# makes the virtual device and exports it as ENV (entrypoint.sh forwards it to `dev`, since sudo strips the
+# environment). CI's emulator reads this line too (ci_emulator.sh).
+ARG EMULATOR_API=37.0
 
 # ── Toolchain source stages (their payload is copied into the Debian base) ────
 # Each of these is only mined for its self-contained toolchain directory; none of
@@ -78,46 +108,189 @@
 FROM eclipse-temurin:25.0.4.1_1-jdk AS jdk
 FROM node:26.12.1-trixie AS node
 
+# ── Download stage: curl + unzip for the Android and ImageMagick stages ───────
+# Unpinned on purpose, unlike every other package in this file: nothing installed
+# here reaches the runtime image, only what the stages below download with it. An
+# unchanged instruction is a cache hit, so this layer is rebuilt only when its own
+# text or the Debian base changes, and pinning it would only add bumps that
+# re-download everything built on it. No BEGIN/END markers, so the update script
+# leaves it alone.
+#
+# Its apt cache mounts have ids of their own, so its unpinned state never mixes
+# with the runtime stage's. docker-clean is removed for the same reason as in the
+# runtime stage below: it would empty them.
+FROM debian:13.7 AS fetch
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# hadolint ignore=DL3008,DL3009
+RUN --mount=type=cache,id=fetch-apt-cache,target=/var/cache/apt,sharing=locked --mount=type=cache,id=fetch-apt-lib,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yqq --no-install-recommends \
+        ca-certificates curl unzip
+
+# ── Android cmdline-tools (the installer the Android stages below share) ──────
+# There is no official upstream Docker image that is just "the Android SDK" the way
+# eclipse-temurin/node are for their toolchains, so — unlike those two — this
+# is a direct download + checksum + unzip rather than a COPY --from stage.
+#
+# Extracted with `unzip`, which keeps the archive's Unix permission bits — `jar xf`
+# silently drops the executable bit on every tool under cmdline-tools/*/bin, which
+# then fails with "Permission denied" the first time one of them runs.
+#
+# cmdline-tools is pinned to the build Google's own repository manifest
+# (https://dl.google.com/android/repository/repository2-3.xml) currently serves as
+# `cmdline-tools;latest` (tool revision 23.0), sha1-verified against that same
+# manifest. Its installer, `android`, is a native binary that needs no JDK. A bump
+# here rebuilds the three stages below, which are built on it.
+FROM fetch AS android-cli
+# pipefail is set: the stage inherits fetch's SHELL, which hadolint does not follow.
+# hadolint ignore=DL4006
+RUN set -eux; \
+    curl -fsSL -o /tmp/cmdline-tools.zip \
+        "https://dl.google.com/android/repository/commandlinetools-linux-16111833_latest.zip"; \
+    echo "e025545c62a8e64c7559119566a569fb1dec5f60  /tmp/cmdline-tools.zip" | sha1sum -c -; \
+    mkdir -p /opt/android-sdk/cmdline-tools; \
+    unzip -q /tmp/cmdline-tools.zip -d /opt/android-sdk/cmdline-tools; \
+    mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest; \
+    rm -f /tmp/cmdline-tools.zip
+
+# The three Android stages below share this installer step's shape:
+#
+# `android sdk install` replaces the deprecated sdkmanager and asks nothing, so no `yes |`.
+#
+# `|| true` on that command, not a bare `set -eux` check: the `test` lines right after are what
+# actually verify success (and, unlike trusting the installer's exit code, they check the one thing
+# that matters: did the packages land on disk); a genuine install failure leaves one of them false
+# and `set -e` stops the build there.
+#
+# The installer, run as root, unpacks some packages (the emulator among them) without the other-user
+# execute bit, so the `chmod -R a+rX` at the end is what lets `dev` run them (X grants execute only
+# where someone already had it). COPY keeps the modes.
+
+# ── Android emulator + its system image (~6 GB: so `sandbox/emulator.sh start` boots at once) ─────────
+# The emulator and the system image are named by package only - the installer has no way to pin a
+# revision, the same as `platform-tools` below - so what is baked is whatever Google serves on the day
+# this stage is built; it is rebuilt only when its text changes, which is how `EMULATOR_API` moves it.
+# The virtual device is made in the runtime stage, as the user that boots it.
+FROM android-cli AS android-emulator
+ARG EMULATOR_API
+RUN set -eux; \
+    /opt/android-sdk/cmdline-tools/latest/bin/android sdk install --sdk=/opt/android-sdk \
+        "emulator" "system-images;android-${EMULATOR_API};google_apis;x86_64" </dev/null >/dev/null || true; \
+    test -x /opt/android-sdk/emulator/emulator; \
+    test -d "/opt/android-sdk/system-images/android-${EMULATOR_API}/google_apis/x86_64"; \
+    chmod -R a+rX /opt/android-sdk
+
+# ── Android NDK (the release build extracts native symbol tables with it) ────────────────────────────
+# About 2.3 GB. `ndk;30.0.16248370` matches `ndkVersion` in gradle/android-sdk.properties; without it a
+# release build cannot extract the symbols (`debugSymbolLevel`) and no build can strip native libraries.
+# .github/scripts/update_dependency_versions.sh moves both together and its consistency check fails the
+# run if they drift.
+FROM android-cli AS android-ndk
+RUN set -eux; \
+    /opt/android-sdk/cmdline-tools/latest/bin/android sdk install --sdk=/opt/android-sdk \
+        "ndk;30.0.16248370" </dev/null >/dev/null || true; \
+    test -d /opt/android-sdk/ndk/30.0.16248370; \
+    chmod -R a+rX /opt/android-sdk
+
+# ── Android SDK (this project is an Android app) ──────────────────────────────
+# `platform-tools`, `platforms;android-37.2` and `build-tools;36.0.0` are pinned to
+# match this project's compileSdk + compileSdkMinor (37.2 - a minor SDK release is
+# its own platform package, and from API 37 even the base release is named with a
+# minor, android-37.0) and its `buildToolsVersion` (gradle/android-sdk.properties) —
+# keep those three in step if either changes, or a build will reach out to the
+# network for whatever AGP defaults to instead of what is baked in here (the update
+# script's consistency check fails the run if they drift). build-tools is 36.0.0
+# because AGP 9.4.1 enforces build-tools >= 36.0.0 regardless of compileSdk and
+# overrides (with a network fetch) anything pinned lower.
+#
+# The runtime stage copies this stage's whole SDK directory (cmdline-tools, the
+# installer's own state in .sdk/ and licenses/ included) but only the package
+# directories of the two stages above.
+FROM android-cli AS android-sdk
+RUN set -eux; \
+    /opt/android-sdk/cmdline-tools/latest/bin/android sdk install --sdk=/opt/android-sdk \
+        "platform-tools" "platforms;android-37.2" "build-tools;36.0.0" </dev/null >/dev/null || true; \
+    test -x /opt/android-sdk/platform-tools/adb; \
+    test -d /opt/android-sdk/platforms/android-37.2; \
+    test -d /opt/android-sdk/build-tools/36.0.0; \
+    chmod -R a+rX /opt/android-sdk
+
+# ── ImageMagick 7 (scripts/generate-store-assets.sh's `magick`) ──────────────
+# ImageMagick's own AppImage, not Debian's package, so the sandbox renders store assets with exactly the
+# build CI's README-assets workflow uses (.github/scripts/install_imagemagick.sh): the same release, checked
+# against the same SHA-256. .github/scripts/update_dependency_versions.sh moves the pins in both files
+# together, and its consistency check fails the run if they drift. Extracted rather than mounted (no FUSE
+# in a container); its AppRun runs the tool named by the link it was called through, so the runtime
+# stage's `magick` link is `magick`.
+FROM fetch AS imagemagick
+ENV IMAGEMAGICK_VERSION=7.1.2-34
+ENV IMAGEMAGICK_SHA256=6e9edfd35d5f30b57c27533afe003d6085faaf8607b207426f398d11751acf93
+# --appimage-extract unpacks into the working directory.
+WORKDIR /opt
+# pipefail is set: the stage inherits fetch's SHELL, which hadolint does not follow.
+# hadolint ignore=DL4006
+RUN set -eux; \
+    curl -fsSL -o /tmp/magick.AppImage \
+        "https://github.com/ImageMagick/ImageMagick/releases/download/${IMAGEMAGICK_VERSION}/ImageMagick-${IMAGEMAGICK_VERSION}-gcc-x86_64.AppImage"; \
+    echo "${IMAGEMAGICK_SHA256}  /tmp/magick.AppImage" | sha256sum -c -; \
+    chmod +x /tmp/magick.AppImage; \
+    /tmp/magick.AppImage --appimage-extract > /dev/null; \
+    mv /opt/squashfs-root /opt/imagemagick; \
+    rm -f /tmp/magick.AppImage; \
+    chmod -R a+rX /opt/imagemagick
+
+# ── Playwright Chromium's OS shared libs: the package LIST (libnspr4, libnss3, …) ─
+# The libraries themselves are apt packages, so they have to be installed in the
+# runtime stage itself; what this stage works out is WHICH packages. We do NOT
+# enumerate the apt package names by hand (they drift across Debian releases);
+# Playwright's own `install-deps` resolves the correct set for this base - pinned to
+# an explicit version so the build stays reproducible (the repo is mounted at
+# runtime, not present at build time, so npx fetches the CLI here). It runs on a bare
+# copy of the runtime base, and the packages it marks as manually installed are its
+# list; the runtime stage installs exactly those near its top. A node or Playwright
+# bump reruns this stage, but the runtime layer only reruns when the list it writes
+# changes.
+#
+# /var/lib/apt is NOT a cache mount here: it holds apt's manual/auto marks, which
+# must start from the base's own for the list to be right.
+#
+# The project declares no Playwright; a session that wants a headless browser (e.g.
+# to screenshot an HTML preview) runs `npx playwright@<this version> install
+# chromium` itself. The browser BINARY stays out of the image (it lands in the
+# persisted ms-playwright volume) to avoid baking ~150MB of Chromium into every layer.
+FROM debian:13.7 AS playwright-deps
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+COPY --from=node /usr/local /usr/local
+# hadolint ignore=DL3008,DL3009
+RUN --mount=type=cache,id=playwright-apt-cache,target=/var/cache/apt,sharing=locked --mount=type=cache,id=playwright-npm,target=/root/.npm,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -yqq --no-install-recommends ca-certificates libatomic1 \
+    && apt-mark showmanual | sort > /tmp/before \
+    && DEBIAN_FRONTEND=noninteractive npx --yes playwright@1.64.1 install-deps chromium \
+    && apt-mark showmanual | sort | comm -13 /tmp/before - > /playwright-packages.txt \
+    && test -s /playwright-packages.txt
+
 # ── Runtime base ─────────────────────────────────────────────────────────────
 FROM debian:13.7
-
-ARG UID=1000
-ARG GID=1000
-
-# Every ENV in one static block at the top. These are free layers that never
-# change, so grouping them here keeps them from sitting between (and needlessly
-# invalidating) the expensive steps below.
-#
-# PLAYWRIGHT_BROWSERS_PATH — let Playwright manage its own Chromium, cached under
-#   $HOME and persisted via a volume rather than baked into the image.
-# CLAUDE_CONFIG_DIR — keep ALL of Claude Code's config in the persisted ~/.claude
-#   volume. By default Claude splits its state: the ~/.claude/ directory (history,
-#   OAuth credentials) AND a separate ~/.claude.json file in the home root
-#   (onboarding/terminal-setup state + login). Only the directory is volume-mounted,
-#   so without this the .claude.json file is recreated empty on every run — forcing
-#   terminal reconfiguration + re-login each time. This redirects .claude.json (and
-#   credentials) INTO the mounted dir, so it all persists. (entrypoint.sh already
-#   forwards this var to the `dev` user via --preserve-env.)
-# DISABLE_AUTOUPDATER — Claude Code is pinned per build (see the install block near
-#   the bottom); a runtime self-update would only land in the container's writable
-#   layer, which `--rm` deletes, so every launch re-downloaded the same update.
-# PATH — the dev-owned npm prefix goes FIRST so the image's `claude` wins over any
-#   other copy on the path.
-# ANDROID_HOME / ANDROID_SDK_ROOT — both set to the same path: AGP and most current
-#   tooling read ANDROID_HOME, but ANDROID_SDK_ROOT is still checked by some older
-#   Gradle/CI tooling, so set both rather than assume which one a given plugin reads.
-ENV DEBIAN_FRONTEND=noninteractive \
-    JAVA_HOME=/opt/java/openjdk \
-    ANDROID_HOME=/opt/android-sdk \
-    ANDROID_SDK_ROOT=/opt/android-sdk \
-    PLAYWRIGHT_BROWSERS_PATH=/home/dev/.cache/ms-playwright \
-    CLAUDE_CONFIG_DIR=/home/dev/.claude \
-    DISABLE_AUTOUPDATER=1 \
-    PATH=/home/dev/.npm-global/bin:/opt/java/openjdk/bin:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:$PATH
 
 # pipefail for every RUN in this stage so a failure in the middle of a `getent … | cut` pipe (or any
 # other) aborts the layer instead of being masked by the pipe's last command (debian base has bash).
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# ── The downloaded toolchains (first, so nothing below can invalidate them) ───
+# Ordered by how often their source moves, the most stable first: a change to one
+# re-copies it and the ones below it (a local copy, not a download - their stages
+# stay cached), never the ones above. The JDK moves quarterly; the emulator only
+# with EMULATOR_API; the NDK a few times a year; the SDK with compileSdk,
+# build-tools or cmdline-tools; ImageMagick on most update runs. All of them sit at
+# the paths JAVA_HOME / ANDROID_HOME / PATH already point at.
+COPY --from=jdk              /opt/java/openjdk               /opt/java/openjdk
+COPY --from=android-emulator /opt/android-sdk/emulator       /opt/android-sdk/emulator
+COPY --from=android-emulator /opt/android-sdk/system-images  /opt/android-sdk/system-images
+COPY --from=android-ndk      /opt/android-sdk/ndk            /opt/android-sdk/ndk
+COPY --from=android-sdk      /opt/android-sdk                /opt/android-sdk
+COPY --from=imagemagick      /opt/imagemagick                /opt/imagemagick
 
 # ── apt cache configuration (static) ─────────────────────────────────────────
 # Debian base images ship /etc/apt/apt.conf.d/docker-clean, which deletes every
@@ -140,21 +313,69 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN rm -f /etc/apt/apt.conf.d/docker-clean \
     && echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 
+# ── Playwright Chromium OS shared libs (the playwright-deps stage's list) ──────
+# Baked rather than re-installed on every sandbox open: as an IMAGE layer these libs
+# survive container recreation (the runtime writable layer does not), so setup.sh
+# does not have to re-assert them each open.
+#
+# Above the ENV block and every pinned package, so only a change to the list itself
+# (or to the layers above) reinstalls them. The list is bind-mounted, and a read-only
+# mount is cached by its content: a rebuilt playwright-deps stage that produces the
+# same list is a cache hit here. Unpinned, the same as `install-deps` itself installs
+# them; DEBIAN_FRONTEND is inline because the ENV block comes after.
+# hadolint ignore=DL3008,DL3009
+RUN --mount=type=bind,from=playwright-deps,source=/playwright-packages.txt,target=/tmp/playwright-packages.txt --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
+    && xargs -a /tmp/playwright-packages.txt env DEBIAN_FRONTEND=noninteractive apt-get install -yqq --no-install-recommends
+
+ARG EMULATOR_API
+
+# Every ENV in one block, BELOW the copies above: an edit here rebuilds only the
+# cheap layers that follow.
+#
+# PLAYWRIGHT_BROWSERS_PATH — let Playwright manage its own Chromium, cached under
+#   $HOME and persisted via a volume rather than baked into the image.
+# CLAUDE_CONFIG_DIR — keep ALL of Claude Code's config in the persisted ~/.claude
+#   volume. By default Claude splits its state: the ~/.claude/ directory (history,
+#   OAuth credentials) AND a separate ~/.claude.json file in the home root
+#   (onboarding/terminal-setup state + login). Only the directory is volume-mounted,
+#   so without this the .claude.json file is recreated empty on every run — forcing
+#   terminal reconfiguration + re-login each time. This redirects .claude.json (and
+#   credentials) INTO the mounted dir, so it all persists. (entrypoint.sh already
+#   forwards this var to the `dev` user via --preserve-env.)
+# DISABLE_AUTOUPDATER — Claude Code is pinned per build (see the install block near
+#   the bottom); a runtime self-update would only land in the container's writable
+#   layer, which `--rm` deletes, so every launch re-downloaded the same update.
+# PATH — the dev-owned npm prefix goes FIRST so the image's `claude` wins over any
+#   other copy on the path.
+# ANDROID_HOME / ANDROID_SDK_ROOT — both set to the same path: AGP and most current
+#   tooling read ANDROID_HOME, but ANDROID_SDK_ROOT is still checked by some older
+#   Gradle/CI tooling, so set both rather than assume which one a given plugin reads.
+# EMULATOR_API — the global ARG at the top, for sandbox/emulator.sh.
+ENV DEBIAN_FRONTEND=noninteractive \
+    JAVA_HOME=/opt/java/openjdk \
+    ANDROID_HOME=/opt/android-sdk \
+    ANDROID_SDK_ROOT=/opt/android-sdk \
+    EMULATOR_API=${EMULATOR_API} \
+    PLAYWRIGHT_BROWSERS_PATH=/home/dev/.cache/ms-playwright \
+    CLAUDE_CONFIG_DIR=/home/dev/.claude \
+    DISABLE_AUTOUPDATER=1 \
+    PATH=/home/dev/.npm-global/bin:/opt/java/openjdk/bin:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:$PATH
+
 # ── Bootstrap packages (kept deliberately minimal) ───────────────────────────
 # ONLY what later BUILD steps need — everything required merely at runtime lives in
-# the tooling block at the BOTTOM of this file. This block is the most expensive one
-# to invalidate (every layer below rebuilds), so it stays as small as possible: do
-# not add a package here unless a RUN below genuinely cannot proceed without it.
+# the tooling block below. Every layer below this one rebuilds when it changes, so
+# it stays as small as possible: do not add a package here unless a RUN below
+# genuinely cannot proceed without it.
 #
 #   curl + gnupg + ca-certificates → fetch and trust the Docker APT repo signing key
-#     in the next step; ca-certificates also provides the TLS chain for the npm
-#     install further down.
+#     in the Docker repo step; ca-certificates also provides the TLS chain for the npm
+#     installs further down.
 #   libatomic1 → the Node binary copied from the node stage is dynamically linked
 #     against libatomic.so.1, which the bare Debian base does NOT ship. Without it
 #     `node` exits 127 ("error while loading shared libraries") and the Claude Code
-#     install fails. This used to be satisfied by accident — it arrives as a
-#     transitive dependency of the tooling block, which previously ran first — so it
-#     is now pinned explicitly rather than relying on install order.
+#     install fails. It also arrives as a transitive dependency of the tooling
+#     block, but is pinned explicitly rather than relying on that.
 # hadolint ignore=DL3009
 # BEGIN DEBIAN PACKAGES
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -164,6 +385,47 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
         gnupg="2.4.7-21+deb13u1" \
         libatomic1="14.2.0-19"
 # END DEBIAN PACKAGES
+
+# ── Non-root user `dev` matching the host UID/GID, with passwordless sudo ────
+# The Debian base ships no user at ${UID}/${GID}, so this normally just creates
+# `dev`. The getent guards keep it robust if a base ever does pre-populate the
+# UID/GID: rename whatever owns them to `dev` and point its home at /home/dev.
+#
+# UID/GID are declared HERE, not at the top of the stage: every RUN after an ARG's
+# declaration gets it as an environment variable, so a value that differs from the
+# last build (a macOS host is typically 501) misses the cache from the first RUN
+# after the ARG, not from the first one that uses it.
+#
+# The `docker` group is created here rather than by the docker-ce package below (whose
+# install reuses an existing group), so this block does not have to wait for it.
+#
+# /etc/sudoers.d is created explicitly rather than relying on the `sudo` package —
+# sudo installs in the tooling block BELOW this one, so the directory would not
+# otherwise exist yet.
+#
+# ~/.m2 and ~/.gradle are pre-created dev-owned because sandbox.sh mounts named volumes
+# there (so the caches survive the container's --rm — for Gradle that means the downloaded
+# distribution itself plus every AGP/Kotlin/AndroidX/Compose dependency, the slow part of a
+# first build; ~/.m2 is where Robolectric keeps the android-all jars it downloads, ~600MB). Docker seeds a volume from the image path it covers and
+# inherits that path's ownership; if the directory did not exist, the volume would be
+# created root-owned and every `gradle`/`mvn` run would fail to write its local cache.
+ARG UID=1000
+ARG GID=1000
+RUN set -eux; \
+    if ! getent group "${GID}" >/dev/null; then groupadd -g "${GID}" dev; \
+    else groupmod -n dev "$(getent group ${GID} | cut -d: -f1)" || true; fi; \
+    if getent passwd "${UID}" >/dev/null; then \
+      usermod -l dev -d /home/dev -m -s /bin/bash "$(getent passwd ${UID} | cut -d: -f1)"; \
+    else \
+      useradd -l -m -u "${UID}" -g "${GID}" -s /bin/bash dev; \
+    fi; \
+    getent group docker >/dev/null || groupadd -r docker; \
+    usermod -aG docker dev; \
+    install -d -o dev -g dev /home/dev/.m2; \
+    install -d -o dev -g dev /home/dev/.gradle; \
+    install -d -m 0755 /etc/sudoers.d; \
+    echo 'dev ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/dev; \
+    chmod 0440 /etc/sudoers.d/dev
 
 # ── Nested daemon config: keep the build cache from growing without limit ────
 # The `-docker` volume (/var/lib/docker) is by far the largest of the four named volumes - every
@@ -186,8 +448,6 @@ RUN install -m 0755 -d /etc/apt/keyrings \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(sed -n 's/^VERSION_CODENAME=//p' /etc/os-release) stable" \
          > /etc/apt/sources.list.d/docker.list
 
-# Sits this high only because the `docker` group it creates is required by the
-# `usermod -aG docker dev` below; nothing else above depends on it.
 # hadolint ignore=DL3009
 # BEGIN DEBIAN PACKAGES
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -199,64 +459,15 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
         docker-compose-plugin="5.6.1-1~debian.13~trixie"
 # END DEBIAN PACKAGES
 
-# ── JDK 25 / Node (copied from the toolchain stages above) ───────────────────
-# Both toolchains are self-contained directory trees; drop them into the glibc
-# base at the paths JAVA_HOME / PATH already point at.
-#
-# Two separate COPY layers, ordered by how often their source tag moves: the JDK
-# tag is near-static, whereas node is bumped on most update runs — so a node bump
-# re-copies only node, leaving the (larger) JDK layer cached. Keep node LAST, and
-# keep both ABOVE the user setup so a contributor whose host UID/GID differs from
-# the 1000/1000 default does not re-copy ~500MB.
-COPY --from=jdk  /opt/java/openjdk /opt/java/openjdk
-COPY --from=node /usr/local        /usr/local
-
-# ── Non-root user `dev` matching the host UID/GID, with passwordless sudo ────
-# The Debian base ships no user at ${UID}/${GID}, so this normally just creates
-# `dev`. The getent guards keep it robust if a base ever does pre-populate the
-# UID/GID: rename whatever owns them to `dev` and point its home at /home/dev.
-#
-# This is the first layer to consume the UID/GID build args, so it is also the
-# cache-invalidation boundary for a contributor on a non-1000 UID (macOS hosts are
-# typically 501). Everything expensive and UID-independent is deliberately above it.
-#
-# /etc/sudoers.d is created explicitly rather than relying on the `sudo` package —
-# sudo now installs in the tooling block BELOW this one, so the directory would not
-# otherwise exist yet.
-#
-# ~/.m2 and ~/.gradle are pre-created dev-owned because sandbox.sh mounts named volumes
-# there (so the caches survive the container's --rm — for Gradle that means the downloaded
-# distribution itself plus every AGP/Kotlin/AndroidX/Compose dependency, the slow part of a
-# first build; ~/.m2 is where Robolectric keeps the android-all jars it downloads, ~600MB). Docker seeds a volume from the image path it covers and
-# inherits that path's ownership; if the directory did not exist, the volume would be
-# created root-owned and every `gradle`/`mvn` run would fail to write its local cache.
-RUN set -eux; \
-    if ! getent group "${GID}" >/dev/null; then groupadd -g "${GID}" dev; \
-    else groupmod -n dev "$(getent group ${GID} | cut -d: -f1)" || true; fi; \
-    if getent passwd "${UID}" >/dev/null; then \
-      usermod -l dev -d /home/dev -m -s /bin/bash "$(getent passwd ${UID} | cut -d: -f1)"; \
-    else \
-      useradd -l -m -u "${UID}" -g "${GID}" -s /bin/bash dev; \
-    fi; \
-    usermod -aG docker dev; \
-    install -d -o dev -g dev /home/dev/.m2; \
-    install -d -o dev -g dev /home/dev/.gradle; \
-    install -d -m 0755 /etc/sudoers.d; \
-    echo 'dev ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/dev; \
-    chmod 0440 /etc/sudoers.d/dev
-
-# ── Runtime tooling (the most churn-prone block: kept last) ──────────────────
+# ── Runtime tooling ───────────────────────────────────────────────────────────
 # Everything the sandbox needs at RUNTIME but nothing above needs at BUILD time.
-# These pins move more often than anything else in this file, so the block sits at
-# the bottom where its invalidation costs only itself and the two cheap layers
-# below — NOT the ~550MB of toolchain COPYs or the Docker engine install.
 #
 # python3 (+pip/venv) with python3-fonttools: `app/shared/src/commonMain/composeResources/font/sora.ttf`
 # is a static weight-700 instance produced with `python3 -m fontTools.varLib.instancer`, subset to
 # printable ASCII with `python3 -m fontTools.subset` (see AppLogo.kt's SoraFontFamily doc) - a one-off,
 # not a build-time step, so regenerating it later still needs this package. scripts/subset-maths-fonts.sh
 # (the Maths dice's cut-down DiceFive Maths fonts) needs it too. Image rasterising is ImageMagick, its own
-# layer below (the same build CI uses). fonttools is the distro `python3-fonttools` package, NOT pip: the
+# stage above (the same build CI uses). fonttools is the distro `python3-fonttools` package, NOT pip: the
 # base image's Python is PEP-668 "externally managed", so `pip install fonttools` is refused.
 #
 # ffmpeg joins that same asset toolchain for audio: this project ships .ogg sound effects
@@ -282,6 +493,9 @@ RUN set -eux; \
 # with the container. Deliberate - see the README's Notes before adding a token passthrough or a volume
 # for ~/.config/gh, because that is a policy decision that has already been taken the other way.
 #
+# unzip: .github/scripts/update_dependency_versions.sh reads AAR metadata with it. The Android
+# stages above bring their own.
+#
 # Chromium's own shared-library deps are NOT listed here (the package names drift
 # across Debian releases); they are installed just below via the version-proof
 # `playwright install-deps chromium`, which resolves the correct set itself.
@@ -306,147 +520,27 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
         unzip="6.0-29+deb13u1"
 # END DEBIAN PACKAGES
 
-# ── Android SDK (this project is an Android app) ──────────────────────────────
-# Sits here, not up with the JDK/Node toolchain COPYs above, because it needs
-# `unzip` (just installed above) to extract the cmdline-tools archive with its Unix
-# permission bits intact — `jar xf` (the JDK's own zip extractor, which would let this
-# live in the JDK-adjacent stable region) silently drops the executable bit on every
-# tool under cmdline-tools/*/bin, which then fails with "Permission denied" the first
-# time sdkmanager (or any cmdline-tools script) shells out to one of them. Confirmed by hand before pinning below.
-#
-# There is no official upstream Docker image that is just "the Android SDK" the way
-# eclipse-temurin/node are for their toolchains, so — unlike those two — this
-# is a direct download + checksum + unzip rather than a COPY --from stage.
-#
-# cmdline-tools is pinned to the build Google's own repository manifest
-# (https://dl.google.com/android/repository/repository2-3.xml) currently serves as
-# `cmdline-tools;latest` (tool revision 23.0), sha1-verified against that same
-# manifest. `platform-tools`, `platforms;android-37.2` and `build-tools;36.0.0` are
-# pinned to match this project's compileSdk + compileSdkMinor (37.2 - a minor SDK
-# release is its own platform package, and from API 37 even the base release is
-# named with a minor, android-37.0) and its `buildToolsVersion`
-# (gradle/android-sdk.properties) — keep
-# those three in step if either changes, or a build will reach out to the network for
-# whatever AGP defaults to instead of what is baked in here (the update script's
-# consistency check fails the run if they drift). build-tools is 36.0.0 because AGP
-# 9.4.1 enforces build-tools >= 36.0.0 regardless of compileSdk and overrides (with a
-# network fetch) anything pinned lower.
-#
-# `android sdk install` replaces the deprecated sdkmanager and asks nothing, so no `yes |`;
-# `--sdk` is required because $ANDROID_HOME does not exist as a real directory yet at
-# the point it runs.
-#
-# `|| true` on that command, not a bare `set -eux` check: the three `test` lines right
-# after are what actually verify success (and, unlike trusting the installer's exit
-# code, they check the one thing that matters: did the packages land on disk); a genuine
-# install failure leaves one of them false and `set -e` stops the build there. The
-# final chmod is defensive: a no-op after unzip (permissions are already correct),
-# it just guards against a future change back to a non-permission-preserving
-# extractor going unnoticed.
-RUN set -eux; \
-    curl -fsSL -o /tmp/cmdline-tools.zip \
-        "https://dl.google.com/android/repository/commandlinetools-linux-16111833_latest.zip"; \
-    echo "e025545c62a8e64c7559119566a569fb1dec5f60  /tmp/cmdline-tools.zip" | sha1sum -c -; \
-    mkdir -p /opt/android-sdk/cmdline-tools; \
-    unzip -q /tmp/cmdline-tools.zip -d /opt/android-sdk/cmdline-tools; \
-    mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest; \
-    rm -f /tmp/cmdline-tools.zip; \
-    /opt/android-sdk/cmdline-tools/latest/bin/android sdk install --sdk=/opt/android-sdk \
-        "platform-tools" "platforms;android-37.2" "build-tools;36.0.0" </dev/null >/dev/null || true; \
-    test -x /opt/android-sdk/platform-tools/adb; \
-    test -d /opt/android-sdk/platforms/android-37.2; \
-    test -d /opt/android-sdk/build-tools/36.0.0; \
-    chmod -R a+rX /opt/android-sdk
+# ── Node (copied from the node stage above) ───────────────────────────────────
+# Down here rather than with the other toolchains at the top: its tag moves on most
+# update runs, and it is small enough (~230MB) to re-copy cheaply. Nothing above
+# needs it; the Claude Code install below does.
+COPY --from=node /usr/local /usr/local
 
-# ── Android NDK (the release build extracts native symbol tables with it) ────────────────────────────
-# Its own layer, for the same reason as the emulator's below: the NDK is about 1 GB, so a bump to the SDK
-# pins above never re-downloads it, and a bump to it re-downloads nothing else. `ndk;30.0.16248370`
-# matches `ndkVersion` in gradle/android-sdk.properties; without it a release build cannot extract the
-# symbols (`debugSymbolLevel`) and no build can strip native libraries. .github/scripts/update_dependency_versions.sh
-# moves both together and its consistency check fails the run if they drift. The `test` line is what
-# verifies the install, not the exit code.
-RUN set -eux; \
-    /opt/android-sdk/cmdline-tools/latest/bin/android sdk install --sdk=/opt/android-sdk \
-        "ndk;30.0.16248370" </dev/null >/dev/null || true; \
-    test -d /opt/android-sdk/ndk/30.0.16248370; \
-    chmod -R a+rX /opt/android-sdk
-
-# ── Android emulator + one virtual device (so `sandbox/emulator.sh start` boots at once) ───────────────
-# Its own layers, below the SDK and NDK blocks, so a bump to the pins above never re-downloads the ~1.5 GB
-# image and a change here never re-downloads the SDK. The emulator and the system image are named by
-# package only - the installer has no way to pin a revision, the same as `platform-tools` above - so what
-# is baked is whatever Google serves on the day this layer is built; it is rebuilt only when this text
-# changes, which is how `EMULATOR_API` below moves it.
+# ── ImageMagick's `magick`, and the emulator's virtual device ─────────────────
+# `magick -version` runs here, after the tooling block, so the check sees the
+# runtime image's libraries.
 #
-# EMULATOR_API is the one place the emulator's Android version is chosen, and it FOLLOWS compileSdk: the
-# API level the app is compiled against (gradle/android-sdk.properties), so the emulator runs the newest
-# Android the project targets. It is written as the image package names it ("37.0": from API 37 even the
-# base release carries a minor; older ones are plain, "34"), and it is the newest stable Google APIs image
-# of compileSdk's API level - Google publishes no image for minor releases such as 37.2, so the emulator
-# can match the level but not the minor. .github/scripts/update_dependency_versions.sh moves it whenever
-# compileSdk moves, fails the run if the two drift apart or sandbox/emulator.sh's fallback disagrees with
-# this value, and fails it if the image is gone from Google's manifest. Google APIs, not Google Play: only
-# the former allows `adb root`, which the Baseline Profile run and the renderer workaround need (see
-# .claude/EMULATOR.md). entrypoint.sh forwards this variable to `dev` (sudo strips the environment).
-#
-# The SDK was installed root-owned, and the installer, run as root, unpacks the emulator without the other-user execute
-# bit, so the `chmod -R a+rX` at the end is what lets `dev` run it (X grants execute only where someone
-# already had it). The virtual device is made as `dev` - the user that boots it - under dev's own
-# ~/.android/avd, which no volume mounts over. This layer uses `android sdk install`, since sdkmanager
-# is deprecated in favour of it; the SDK block above uses it too. The `test` lines are what
-# verify the install, not the exit code.
-ENV EMULATOR_API=37.0
-RUN set -eux; \
-    /opt/android-sdk/cmdline-tools/latest/bin/android sdk install --sdk=/opt/android-sdk \
-        "emulator" "system-images;android-${EMULATOR_API};google_apis;x86_64" </dev/null >/dev/null || true; \
-    test -x /opt/android-sdk/emulator/emulator; \
-    test -d "/opt/android-sdk/system-images/android-${EMULATOR_API}/google_apis/x86_64"; \
-    chmod -R a+rX /opt/android-sdk
-# Single quotes on purpose: the inner bash expands EMULATOR_API from the ENV above.
+# The virtual device is made as `dev` - the user that boots it - under dev's own
+# ~/.android/avd, which no volume mounts over (so `sandbox/emulator.sh start` boots
+# at once). Single quotes on purpose: the inner bash expands EMULATOR_API from the
+# ENV block.
 # hadolint ignore=SC2016
-RUN runuser -u dev -- env HOME=/home/dev bash -c \
+RUN ln -s /opt/imagemagick/AppRun /usr/local/bin/magick \
+    && magick -version \
+    && runuser -u dev -- env HOME=/home/dev bash -c \
     'echo no | /opt/android-sdk/cmdline-tools/latest/bin/avdmanager create avd \
         -n "sandbox-api${EMULATOR_API}" -k "system-images;android-${EMULATOR_API};google_apis;x86_64" -d pixel_6' \
     && test -d "/home/dev/.android/avd/sandbox-api${EMULATOR_API}.avd"
-
-# ── Playwright Chromium OS shared libs (libnspr4, libnss3, …) ────────────────
-# Baked here rather than re-installed on every sandbox open: as an IMAGE layer
-# these libs survive container recreation (the runtime writable layer does not),
-# so setup.sh no longer has to re-assert them each open. We do NOT enumerate the
-# apt package names in the DEBIAN PACKAGES block above (they drift across Debian
-# releases); instead Playwright's own `install-deps` resolves the correct set for
-# this base image - version-proof AND cached. Pinned to an explicit version so the
-# build stays reproducible (the repo is mounted at runtime, not present at build
-# time, so npx fetches the CLI here). The project declares no Playwright; a session
-# that wants a headless browser (e.g. to screenshot an HTML preview) runs
-# `npx playwright@<this version> install chromium` itself. Runs as root (build
-# default). The browser BINARY stays out of the image (it lands in the persisted
-# ms-playwright volume) to avoid baking ~150MB of Chromium into every layer.
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    npx --yes playwright@1.64.1 install-deps chromium
-
-# ── ImageMagick 7 (scripts/generate-store-assets.sh's `magick`) ──────────────
-# ImageMagick's own AppImage, not Debian's package, so the sandbox renders store assets with exactly the
-# build CI's README-assets workflow uses (.github/scripts/install_imagemagick.sh): the same release, checked
-# against the same SHA-256. .github/scripts/update_dependency_versions.sh moves the pins in both files
-# together, and its consistency check fails the run if they drift. Extracted rather than mounted (no FUSE
-# in a container); its AppRun runs the tool named by the link it was called through, so the `magick` link
-# is `magick`. Its own layer near the end, so a bump never re-downloads the Android layers above.
-ENV IMAGEMAGICK_VERSION=7.1.2-34
-ENV IMAGEMAGICK_SHA256=6e9edfd35d5f30b57c27533afe003d6085faaf8607b207426f398d11751acf93
-# --appimage-extract unpacks into the working directory (WORKDIR /work below resets it).
-WORKDIR /opt
-RUN set -eux; \
-    curl -fsSL -o /tmp/magick.AppImage \
-        "https://github.com/ImageMagick/ImageMagick/releases/download/${IMAGEMAGICK_VERSION}/ImageMagick-${IMAGEMAGICK_VERSION}-gcc-x86_64.AppImage"; \
-    echo "${IMAGEMAGICK_SHA256}  /tmp/magick.AppImage" | sha256sum -c -; \
-    chmod +x /tmp/magick.AppImage; \
-    /tmp/magick.AppImage --appimage-extract > /dev/null; \
-    mv /opt/squashfs-root /opt/imagemagick; \
-    rm -f /tmp/magick.AppImage; \
-    chmod -R a+rX /opt/imagemagick; \
-    ln -s /opt/imagemagick/AppRun /usr/local/bin/magick; \
-    magick -version
 
 # ── Claude Code CLI into a dev-owned npm prefix ──────────────────────────────
 # Installing `-g` into npm's default /usr prefix makes the package and the
@@ -470,8 +564,8 @@ RUN set -eux; \
 # it is therefore the ONLY thing that rebuilds this layer.
 #
 # `latest` is the default only so a direct `docker build` still works; sandbox.sh
-# always passes an explicit version (and falls back to leaving the arg unset, i.e.
-# keeping the cached install, when it cannot reach the registry).
+# always passes an explicit version. When it cannot reach the registry it passes the
+# version on the existing image's label (below), so the layer stays a cache hit.
 #
 # The npm cache is a BuildKit cache mount owned by the dev UID, so re-running this
 # after an unrelated invalidation resolves from disk rather than the registry.
@@ -480,6 +574,8 @@ RUN --mount=type=cache,target=/home/dev/.npm,uid=${UID},gid=${GID},sharing=locke
     install -d -o dev -g dev /home/dev/.npm-global \
     && runuser -u dev -- npm config set prefix /home/dev/.npm-global \
     && runuser -u dev -- npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
+# Read back by sandbox.sh's offline fallback.
+LABEL net.zodac.sandbox.claude-code-version="${CLAUDE_CODE_VERSION}"
 
 # ── Entrypoint + helper scripts (most-edited files, cheapest layer) ──────────
 # Last on purpose: these three are edited far more often than any pin, and landing

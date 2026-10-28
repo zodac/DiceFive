@@ -44,6 +44,21 @@ from the project root unless noted.
 
 A launch rebuilds first, so this is rarely needed on its own.
 
+**A rebuild should rarely download anything big.** About 10 GB of the image is downloads: the
+emulator and its system image, the NDK, the rest of the Android SDK, the JDK and ImageMagick. Each is
+fetched in a build stage of its own and copied in at the very top of the runtime stage, so a package
+pin bump, an `ENV` edit or a Claude Code release rebuilds only the cheap layers below them. Only a
+change to one of those stages (its pin, the Debian base, or the Android cmdline-tools they share)
+downloads again. The Dockerfile's header gives the full order and the rule for adding a step.
+
+The host's own Docker keeps every rebuild's layers in its build cache, and at 10 GB an image that grows
+quickly: one host with no limit set reached 772 GB. Cap it in the host's `/etc/docker/daemon.json`, the
+same way `sandbox/daemon.json` caps the nested daemon's (then restart Docker):
+
+```json
+"builder": { "gc": { "enabled": true, "policy": [ { "maxUsedSpace": "100GB" } ] } }
+```
+
 > **Claude Code is pinned at build time, to whatever the npm registry says is latest.** It has to be,
 > because the sandbox container is `--rm`: Claude's runtime self-update writes into the *container's*
 > writable layer, which teardown deletes. Left to itself the sandbox therefore came back on the image's
@@ -53,8 +68,9 @@ A launch rebuilds first, so this is rarely needed on its own.
 > version it resolved months ago. So `sandbox.sh build` reads the current version from the registry and
 > passes it as the `CLAUDE_CODE_VERSION` build arg: the layer rebuilds when, and only when, a new
 > release exists, and it sits at the *bottom* of the Dockerfile so that rebuild costs nothing else.
-> With no network (or no `curl`) the arg is omitted, the cached install is kept and the build still
-> works — it just does not move forward. The runtime self-update is switched off
+> With no network (or no `curl`) it passes the version the existing image records in its
+> `net.zodac.sandbox.claude-code-version` label instead, so the cached install is kept and the build
+> still works — it just does not move forward. The runtime self-update is switched off
 > (`DISABLE_AUTOUPDATER=1` in the image), since it could only ever re-download into a layer `--rm` deletes.
 
 ## Use

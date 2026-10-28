@@ -21,7 +21,7 @@
 #                             that major has reached LTS
 #                 - sandbox/Dockerfile's Debian runtime base (FROM debian:X.Y, within the current major)
 #                 - sandbox/Dockerfile's Debian packages (# BEGIN/END DEBIAN PACKAGES blocks)
-#                 - the sandbox emulator's Android API (`ENV EMULATOR_API` in sandbox/Dockerfile and the
+#                 - the sandbox emulator's Android API (`ARG EMULATOR_API` in sandbox/Dockerfile and the
 #                   fallback in sandbox/emulator.sh), which follows compileSdk: the newest stable Google
 #                   APIs system image of the same API level (Google publishes none for minor releases
 #                   like 37.2, so it matches the level, e.g. 37.0)
@@ -908,8 +908,8 @@ update_node() {
 #
 # Stays within the current major rather than ever jumping to the next Debian release on its own -
 # a major bump changes the codename (trixie -> forky), which the node stage's -trixie tag and the
-# Docker APT repo both follow, and is exactly the kind of thing the file's own "LAYER ORDER" comment
-# says should be reviewed, not silently carried by an update run.
+# Docker APT repo both follow, and is exactly the kind of change that should be reviewed, not
+# silently carried by an update run.
 
 update_sandbox_base() {
     echo
@@ -1569,7 +1569,9 @@ update_version_catalog() {
 #     need the Docker APT repo configured), falls back to building a temporary context image from all
 #     Dockerfile content up to that section, using the Dockerfile's own directory as the build
 #     context (the file COPYs daemon.json before that point). Version pins in earlier <LABEL>
-#     PACKAGES blocks are stripped so they install cleanly in the context image.
+#     PACKAGES blocks are stripped so they install cleanly in the context image, and the section's own
+#     stage drops its `COPY --from=` lines, so the stages they copy from (the ~10 GB of Android
+#     downloads) are not built.
 #   - Updates each package's pinned version in-place via sed
 # Best-effort per section.
 
@@ -1662,15 +1664,24 @@ update_apt_packages() {
         # Extracts all Dockerfile content up to (not including) this section's BEGIN
         # marker and builds a temporary image. Version pins in earlier <label> PACKAGES
         # blocks are stripped (gsub) so they install as latest-available rather than
-        # requiring exact versions that may no longer be in the apt cache.
+        # requiring exact versions that may no longer be in the apt cache. COPY --from
+        # lines in this section's own stage are dropped: an apt query needs none of the
+        # copied toolchains. Earlier stages keep theirs, since a stage this one still
+        # uses (a bind mount) may need them.
         local temp_image=""
         if [[ -n "${first_missing}" ]]; then
 
-            local tmpdir
+            local tmpdir stage_from
             tmpdir=$(mktemp -d)
             temp_image="dep-update-ctx-$$-${section}"
 
-            awk -v start="${start_marker}" -v end="${end_marker}" -v n="${section}" '
+            # Line number of this section's stage's FROM
+            stage_from=$(awk -v start="${start_marker}" -v n="${section}" '
+                /^FROM / { from = NR }
+                $0 ~ start { count++; if (count == n) { print from; exit } }
+            ' "${dockerfile}")
+
+            awk -v start="${start_marker}" -v end="${end_marker}" -v n="${section}" -v stage_from="${stage_from}" '
                 BEGIN { count = 0; in_prev_block = 0 }
                 $0 ~ start {
                     count++
@@ -1682,6 +1693,7 @@ update_apt_packages() {
                     gsub(/="[^"]*"/, "")        # strip version pins → install unpinned
                     print; next
                 }
+                NR > stage_from && /^COPY --from=/ { next }    # no toolchains for an apt query
                 { print }
             ' "${dockerfile}" > "${tmpdir}/Dockerfile"
 
@@ -1978,7 +1990,7 @@ update_claude_models() {
 #   - JDK major: the Gradle toolchain and the sandbox's jdk stage
 #   - Android platform: compileSdk + compileSdkMinor (gradle/android-sdk.properties), and `platforms;android-…` in sandbox/Dockerfile,
 #     compared as API.MINOR (android-36 = 36.0), so a minor-release mismatch is caught
-#   - Emulator API: `ENV EMULATOR_API` in sandbox/Dockerfile and the fallback in sandbox/emulator.sh, and
+#   - Emulator API: `ARG EMULATOR_API` in sandbox/Dockerfile and the fallback in sandbox/emulator.sh, and
 #     its API level against compileSdk's (the emulator follows it - see sync_emulator_api)
 #   - Build-tools: buildToolsVersion (gradle/android-sdk.properties), and `build-tools;X` / `build-tools/X` in sandbox/Dockerfile
 #     (AGP enforces a minimum build-tools and silently fetches it over the network when the installed
@@ -2072,8 +2084,8 @@ verify_version_sync() {
 
     # ── Emulator API (sandbox/Dockerfile's choice, and the fallback in sandbox/emulator.sh) ──
     entries=()
-    v=$(grep -oP '^ENV EMULATOR_API=\K[0-9.]+' "${SANDBOX_DOCKERFILE}" | head -1 || true)
-    entries+=("${v} (${SANDBOX_DOCKERFILE} ENV EMULATOR_API)")
+    v=$(grep -oP '^ARG EMULATOR_API=\K[0-9.]+' "${SANDBOX_DOCKERFILE}" | head -1 || true)
+    entries+=("${v} (${SANDBOX_DOCKERFILE} ARG EMULATOR_API)")
     v=$(grep -oP 'EMULATOR_API:-\K[0-9.]+' "${SANDBOX_EMULATOR_SCRIPT}" | head -1 || true)
     entries+=("${v} (${SANDBOX_EMULATOR_SCRIPT} fallback)")
     check_group "Emulator API" "${entries[@]}"
@@ -2134,7 +2146,7 @@ stable_emulator_image_apis() {
 
 check_emulator_image() {
     local api apis compile_major
-    api=$(grep -oP '^ENV EMULATOR_API=\K[0-9.]+' "${SANDBOX_DOCKERFILE}" | head -1 || true)
+    api=$(grep -oP '^ARG EMULATOR_API=\K[0-9.]+' "${SANDBOX_DOCKERFILE}" | head -1 || true)
     [[ -n "${api}" ]] || { warn "No EMULATOR_API in ${SANDBOX_DOCKERFILE}, skipping the emulator image check"; return 0; }
     apis=$(stable_emulator_image_apis) || { warn "Could not fetch Google's system image manifest, skipping the emulator image check"; return 0; }
 
@@ -2176,7 +2188,7 @@ sync_emulator_api() {
 
     local compile_major current target
     compile_major=$(read_compile_sdk)
-    current=$(grep -oP '^ENV EMULATOR_API=\K[0-9.]+' "${SANDBOX_DOCKERFILE}" | head -1 || true)
+    current=$(grep -oP '^ARG EMULATOR_API=\K[0-9.]+' "${SANDBOX_DOCKERFILE}" | head -1 || true)
     if [[ -z "${compile_major}" || -z "${current}" ]]; then
         warn "Could not read compileSdk or EMULATOR_API, skipping"
         return 0
@@ -2195,7 +2207,7 @@ sync_emulator_api() {
         fi
     fi
 
-    sed -i -E "s|^(ENV EMULATOR_API=)[0-9.]+|\\1${target}|" "${SANDBOX_DOCKERFILE}"
+    sed -i -E "s|^(ARG EMULATOR_API=)[0-9.]+|\\1${target}|" "${SANDBOX_DOCKERFILE}"
     sed -i -E "s|(EMULATOR_API:-)[0-9.]+|\\1${target}|" "${SANDBOX_EMULATOR_SCRIPT}"
     record_update "Sandbox emulator: android-${current} → android-${target} (follows compileSdk ${compile_major})"
     changed "Sandbox emulator ${current} → ${target}"

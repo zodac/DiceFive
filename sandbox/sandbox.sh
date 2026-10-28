@@ -98,12 +98,14 @@ fi
 #
 # Reports the version in CLAUDE_VERSION, left EMPTY when the registry cannot be reached or curl is
 # absent (a global rather than an exit status, for the same reason REMOVED_EXISTING below is one: a
-# function called as an `if` condition runs with `set -e` disabled). The caller then omits the build
-# arg entirely, so the Dockerfile default applies, the layer stays cached and an offline build still
-# works. Parsed with grep rather than jq because this half runs on the HOST, where jq is not a given
-# (Git Bash on Windows especially) - the /latest document opens with `{"name":...,"version":"x.y.z"`,
-# so the first match is the one wanted.
+# function called as an `if` condition runs with `set -e` disabled). The caller then passes the
+# version the existing image was built with (its CLAUDE_VERSION_LABEL), so the layer stays cached and
+# an offline build still works; omitting the arg instead would change it to the Dockerfile's `latest`,
+# a cache miss whose install needs the registry. Parsed with grep rather than jq because this half
+# runs on the HOST, where jq is not a given (Git Bash on Windows especially) - the /latest document
+# opens with `{"name":...,"version":"x.y.z"`, so the first match is the one wanted.
 CLAUDE_PACKAGE_URL='https://registry.npmjs.org/@anthropic-ai/claude-code/latest'
+CLAUDE_VERSION_LABEL='net.zodac.sandbox.claude-code-version'
 CLAUDE_VERSION=""
 resolve_claude_version() {
   local document
@@ -121,13 +123,19 @@ build() {
   uid="$(id -u)"
   gid="$(id -g)"
 
-  local claude_arg=()
+  local claude_arg=() baked
   resolve_claude_version
   if [[ -n "${CLAUDE_VERSION}" ]]; then
     echo "[sandbox] baking Claude Code ${CLAUDE_VERSION} into the image" >&2
     claude_arg=(--build-arg CLAUDE_CODE_VERSION="${CLAUDE_VERSION}")
   else
-    echo "[sandbox] WARN: could not reach the npm registry - keeping the cached Claude Code install" >&2
+    baked="$(docker image inspect -f "{{ index .Config.Labels \"${CLAUDE_VERSION_LABEL}\" }}" "${IMAGE}" 2>/dev/null || true)"
+    if [[ -n "${baked}" && "${baked}" != "<no value>" ]]; then
+      echo "[sandbox] WARN: could not reach the npm registry - keeping the image's Claude Code ${baked}" >&2
+      claude_arg=(--build-arg CLAUDE_CODE_VERSION="${baked}")
+    else
+      echo "[sandbox] WARN: could not reach the npm registry, and the image records no Claude Code version" >&2
+    fi
   fi
 
   docker build -t "${IMAGE}" \
