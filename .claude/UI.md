@@ -358,7 +358,7 @@ Examples:
 (~490ms) are timed to the `CUP_SHAKE_MILLIS` window, and for a TalkBack user they *are* the roll.
 - `cupShakeMillis` (`ui/game/CupShake.kt`) keeps the full window whenever sound or vibration is on. With both off it
   shrinks to 100ms (not 0, so `isRolling` is seen changing).
-- **Never shorten the window without re-checking the clips and `SHAKE_HAPTIC_MILLIS`.**
+- **Never shorten the window without re-checking the clips and `HapticEffect.SHAKE_BUZZ.millis`.**
 - The CPU's following pauses (`ROLL_GAP_MS`, `AI_STEP_DELAY_MS`, `AI_REACTION_DELAY_MS`) never change. Only its
   animation waits go: `GamePacing.diceTossMillis`, `RELEASE_GAP_MS`, and the one-die-at-a-time hold steps (`AI_HOLD_STEP_MS`,
   `AI_RELEASE_TO_HOLD_GAP_MS`; holds then land together via `changeHolds`).

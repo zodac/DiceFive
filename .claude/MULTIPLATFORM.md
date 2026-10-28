@@ -162,5 +162,3 @@ app/
   to, or it calls itself (hence `TextViewLicenceDocument`).
 - **The multiplatform test API is experimental.** `app/shared/build.gradle.kts` opts every test source set into
   `ExperimentalTestApi` once, rather than each test.
-- **Room's KSP warning about `List<Boolean?>`** on `outcomesForPlayer` is harmless. `NULL` maps to `null` (a solo game),
-  which the streak logic relies on.

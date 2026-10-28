@@ -123,7 +123,7 @@ given it, so the menu logo, the game table, the Styles screen and the Fresh Coat
 - `announce(update)` (`app/AchievementEvents.kt`) takes `ownsAllStyles` and emits **no** `StylesUnlocked` events
   when it's true: neither the per-achievement reward banner nor the count banner. Unlock and progress banners are
   unchanged. Signed in to Play Games, Play's pop-up still replaces the unlock banner, so an owner sees only Play's.
-- `AchievementAnnouncementsTest`-style tests: owned emits only unlock and progress events, in order.
+- `StylesUnlockedBannerTest`: owned emits only unlock and progress events, in order.
 - **The style star** (`StyleRewardStar` on unlock banners and Achievements rows, and the rows' "Show which style this
   unlocks" action) is unchanged for owners.
 - Lock tooltips and the progress dialog on the Styles screen disappear naturally (nothing is locked).

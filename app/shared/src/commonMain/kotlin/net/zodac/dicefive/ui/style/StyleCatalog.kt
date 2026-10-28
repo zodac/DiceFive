@@ -65,9 +65,6 @@ data class StyleFamily<T : TableArt>(val group: StyleGroup, val colours: List<St
     val unlock: StyleUnlock get() = group.unlock
 
     fun colourOf(id: String): StyleColour<T>? = colours.firstOrNull { it.style.id == id }
-
-    /** The [colours] to offer: all but any secret one not yet earned. */
-    fun availableColours(access: StyleAccess): List<StyleColour<T>> = colours.filter { it.isAvailable(access) }
 }
 
 /**
@@ -97,9 +94,6 @@ open class StyleCatalog<T : TableArt>(val registry: StyleRegistry, art: List<Lis
     val default: T = all.first()
 
     fun byId(id: String): T = all.firstOrNull { it.id == id } ?: default
-
-    /** The family [id] belongs to - or the default's, for an id nothing recognises, as [byId] does. */
-    fun familyOf(id: String): StyleFamily<T> = families.first { it.colourOf(byId(id).id) != null }
 
     /** What to actually draw for the saved pick [id]: its art, or the [default]'s while it's locked - see [StyleRegistry.unlockedId]. */
     fun unlockedById(id: String, access: StyleAccess): T = byId(registry.unlockedId(id, access))

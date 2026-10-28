@@ -18,7 +18,7 @@ data class AchievementsState(
      * How many achievements have been earned - the number a style's achievement-count lock is measured against.
      */
     val countedUnlocks: Int
-        get() = unlockedAt.keys.count { it.countsTowardStyleLocks }
+        get() = unlockedAt.size
 
     fun counter(counter: AchievementCounter): Int = counters[counter] ?: 0
 
@@ -26,8 +26,3 @@ data class AchievementsState(
     fun progress(achievement: Achievement): Int =
         achievement.counter?.let { it.progressOf(counter(it)).coerceAtMost(achievement.target) } ?: 0
 }
-
-/** Whether earning this achievement counts towards [AchievementsState.countedUnlocks]. */
-val Achievement.countsTowardStyleLocks: Boolean
-    @Suppress("UnusedReceiverParameter")
-    get() = true

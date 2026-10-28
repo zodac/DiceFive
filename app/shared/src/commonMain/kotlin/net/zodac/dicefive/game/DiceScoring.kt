@@ -12,13 +12,6 @@ import net.zodac.dicefive.model.ScoreRule
  */
 object DiceScoring {
 
-    /**
-     * What a filled FIVE_OF_A_KIND box is worth. Also how "this player rolled one" is recognised after
-     * the fact, since a scorecard only stores the value - see [ScoreCalculator]'s joker rule and
-     * [AchievementEngine].
-     */
-    val FIVE_OF_A_KIND_SCORE: Int = requireNotNull(ScoreCategory.FIVE_OF_A_KIND.fixedScore)
-
     /** Every run of 4 and of 5 consecutive faces, by length - built once rather than on every straight check. */
     private val STRAIGHT_WINDOWS: Map<Int, List<List<Int>>> = listOf(4, 5).associateWith { (1..6).toList().windowed(it) }
 

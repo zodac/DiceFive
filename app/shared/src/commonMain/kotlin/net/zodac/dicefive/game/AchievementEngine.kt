@@ -1,7 +1,6 @@
 package net.zodac.dicefive.game
 
 import net.zodac.dicefive.data.achievements.AchievementsState
-import net.zodac.dicefive.data.achievements.countsTowardStyleLocks
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.model.AchievementCounter
@@ -134,7 +133,7 @@ data class AchievementUpdate(
     val isEmpty: Boolean get() = newlyUnlocked.isEmpty() && counters.isEmpty() && progressed.isEmpty()
 
     /** [AchievementsState.countedUnlocks] once this update is recorded. */
-    val countedUnlocksAfter: Int get() = countedUnlocksBefore + newlyUnlocked.count { it.countsTowardStyleLocks }
+    val countedUnlocksAfter: Int get() = countedUnlocksBefore + newlyUnlocked.size
 
     fun unlockedAt(): Map<Achievement, Long> = newlyUnlocked.associateWith { unlockedAtMillis }
 }

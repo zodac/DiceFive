@@ -9,7 +9,7 @@ Read `.claude/BENCHMARKS.md` first: it holds the patterns to keep and today's co
 throwaway Robolectric tests in `app/android/src/test/kotlin/net/zodac/dicefive/`. They are never committed, because
 they take minutes and prove nothing on their own. Run with
 `./gradlew :app:android:testPlayDebugUnitTest --tests '*SomethingScratch*' --rerun` and `println` to the JUnit XML's
-`system-out` (`app/android/build/test-results/testDebugUnitTest/TEST-*.xml`).
+`system-out` (`app/android/build/test-results/testPlayDebugUnitTest/TEST-*.xml`).
 
 ## The frame loop
 

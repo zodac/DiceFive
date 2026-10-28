@@ -104,9 +104,6 @@ internal class DiceSpace(val faces: List<Die>, val diceCount: Int, val maxHeld: 
     /** Which hand [dice] are - each die by its face (number and colour), held or not. */
     fun handOf(dice: List<Die>): Int = handIndexByKey.getValue(keyOf(countsOf(dice)))
 
-    /** How many of [hand]'s dice show each of [faces]. */
-    fun faceCounts(hand: Int): ByteArray = handFaceCounts[hand]
-
     /** How many dice of each of [faces] the held set [keep] holds. */
     fun keepFaceCounts(keep: Int): ByteArray = keepFaceCounts[keep]
 

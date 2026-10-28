@@ -13,7 +13,6 @@ import net.zodac.dicefive.app.StylesEarnedBy
 import net.zodac.dicefive.app.UnlockedStyle
 import net.zodac.dicefive.app.announce
 import net.zodac.dicefive.data.achievements.AchievementsState
-import net.zodac.dicefive.data.achievements.countsTowardStyleLocks
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.style.StyleReward
 import net.zodac.dicefive.game.style.StyleUnlock
@@ -37,7 +36,7 @@ import net.zodac.dicefive.ui.style.StyleCatalogs
 @OptIn(ExperimentalCoroutinesApi::class)
 class StylesUnlockedBannerTest {
 
-    private val countedAchievements = Achievement.entries.filter { it.countsTowardStyleLocks }
+    private val countedAchievements = Achievement.entries
 
     /** Every count-locked style, with the count that unlocks it. */
     private val countLocks: List<Pair<Int, StyleReward>> = StyleCatalogs.flatMap { catalog ->
