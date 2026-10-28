@@ -9,9 +9,12 @@ import androidx.datastore.preferences.core.preferencesOf
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import okio.IOException
 
@@ -38,6 +41,50 @@ class ResilientDataStoreTest {
         val store = ResilientDataStore(FailingDataStore(preferencesOf(key to 1), readable = false))
         assertEquals(emptyPreferences(), store.data.first())
         store.edit { it[key] = 2 }
+    }
+
+    /** A file that can't be read the first [failures] times it's asked for, and then reads as [stored]. Counts its [reads]. */
+    private class FlakyDataStore(private val stored: Preferences, private var failures: Int) : DataStore<Preferences> {
+        var reads = 0
+
+        override val data: Flow<Preferences> = flow {
+            reads++
+            if (failures-- > 0) throw IOException("I/O error") else emit(stored)
+        }
+
+        override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences = transform(stored)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class) // testScheduler.currentTime
+    @Test
+    fun `a read that fails is tried again after 1s, 3s and 5s - the collector sees empty preferences, then the file`() = runTest {
+        val file = FlakyDataStore(preferencesOf(key to 1), failures = 3)
+        val store = ResilientDataStore(file)
+        assertEquals(listOf(emptyPreferences(), preferencesOf(key to 1)), store.data.take(2).toList())
+        assertEquals(4, file.reads)
+        assertEquals(9_000L, testScheduler.currentTime)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class) // testScheduler.currentTime
+    @Test
+    fun `a read that still fails after three retries is tried no more - the collector is left with empty preferences`() = runTest {
+        val file = FlakyDataStore(preferencesOf(key to 1), failures = 10)
+        val store = ResilientDataStore(file)
+        assertEquals(listOf(emptyPreferences()), store.data.toList())
+        assertEquals(4, file.reads)
+        assertEquals(9_000L, testScheduler.currentTime)
+    }
+
+    @Test
+    fun `a failure reading that isn't the file's is still thrown`() = runTest {
+        val store = ResilientDataStore(
+            object : DataStore<Preferences> {
+                override val data: Flow<Preferences> = flow { error("a bug") }
+
+                override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences = error("unused")
+            },
+        )
+        assertFailsWith<IllegalStateException> { store.data.first() }
     }
 
     @Test

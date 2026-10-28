@@ -16,6 +16,12 @@ class NoBackgroundTimersTest {
 
     private val sharedSource = File("src/commonMain")
 
+    /**
+     * The plain delays allowed, as `file: line`. ResilientDataStore's retries of a failed file read: three at most
+     * (1s, 3s, 5s, the maintainer's choice), and nothing a player sees - so still nothing timed in the background.
+     */
+    private val allowed = setOf("PreferencesDataStores.kt: delay(wait)")
+
     @Test
     fun `no shared code waits with a plain delay`() {
         assertTrue(sharedSource.isDirectory, "Run from app/shared: ${sharedSource.absolutePath}")
@@ -26,7 +32,8 @@ class NoBackgroundTimersTest {
             .flatMap { file ->
                 file.readLines().mapIndexedNotNull { index, line ->
                     val code = line.substringBefore("//")
-                    if (plainDelay.containsMatchIn(code)) "${file.name}:${index + 1}: ${line.trim()}" else null
+                    val allowedHere = "${file.name}: ${line.trim()}" in allowed
+                    if (plainDelay.containsMatchIn(code) && !allowedHere) "${file.name}:${index + 1}: ${line.trim()}" else null
                 }
             }
             .toList()

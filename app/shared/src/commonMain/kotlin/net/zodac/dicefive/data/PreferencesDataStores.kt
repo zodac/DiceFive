@@ -5,9 +5,11 @@ import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.retryWhen
 import okio.IOException
 import okio.Path.Companion.toPath
 
@@ -42,10 +44,21 @@ fun createPreferencesDataStore(path: String): DataStore<Preferences> =
  * [store], with its I/O failures kept from whoever asked: a write that can't be made (a full disk) is skipped, leaving
  * the file as it was, and a read that can't be made is empty preferences. Every write is made from a coroutine with
  * nothing to catch it, where a throw would take the app down.
+ *
+ * A read that fails is tried again [RETRY_DELAYS_MILLIS].size times, after each of those waits in turn (1s, 3s, 5s), and
+ * then no more: a collector kept for the process sees the file if it can be read within those, rather than empty
+ * preferences for good. Empty preferences are given at the first failure, so nothing waits on the retries; a retry that
+ * reads the file gives what it read.
  */
 internal class ResilientDataStore(private val store: DataStore<Preferences>) : DataStore<Preferences> {
 
-    override val data: Flow<Preferences> = store.data.catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+    override val data: Flow<Preferences> = store.data.retryWhen { cause, attempt ->
+        if (cause !is IOException) return@retryWhen false
+        if (attempt == 0L) emit(emptyPreferences())
+        val wait = RETRY_DELAYS_MILLIS.getOrNull(attempt.toInt()) ?: return@retryWhen false
+        delay(wait)
+        true
+    }.catch { if (it !is IOException) throw it }
 
     override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
         try {
@@ -53,4 +66,8 @@ internal class ResilientDataStore(private val store: DataStore<Preferences>) : D
         } catch (_: IOException) {
             data.first()
         }
+
+    private companion object {
+        val RETRY_DELAYS_MILLIS = listOf(1_000L, 3_000L, 5_000L)
+    }
 }

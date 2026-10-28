@@ -273,7 +273,8 @@ are the patterns). Real TalkBack speech can't be checked here; the maintainer kn
 ## Nothing runs in the background
 
 The process and its coroutines stay alive when the app is in the background. **No shared code uses a plain `delay`**
-(`NoBackgroundTimersTest` enforces this).
+(`NoBackgroundTimersTest` enforces this). The one exception, listed in that test: `ResilientDataStore` retries a failed
+file read three times (after 1s, 3s and 5s) and then stops, which nothing a player sees waits on.
 
 - **Turn timer and CPU loop**: `GameViewModel`'s `pausableDelay`, driven by `setForeground`. `GameScreen` calls it from
   lifecycle callbacks, not from composition (a backgrounded app draws nothing), and also when another screen opens
