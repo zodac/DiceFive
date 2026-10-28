@@ -8,10 +8,14 @@ mechanics are in `GAME_MODES.md`.
 Many achievements assume three rolls, holding between rolls, no timer, or the Standard card. For each achievement a new
 mode changes, decide:
 
-- **Can't be earned in this mode.** Leave it: no code. It's still earnable in other modes.
+- **Can't be earned in this mode.** Add the mode to its `Achievement.impossibleIn`. That alone gives no tip on the
+  Achievements screen: an impossibility explains itself. The engine keeps it out of those modes too.
 - **Earned for free in this mode.** **Add a guard** and a test for it: a row in `AchievementEngineTest`'s guarded
-  table (each mode and modifier's cards, and the feats each must not earn). **Prove the test** by removing that one
-  guard and watching it fail. Strip guards one at a time; stripping them all at once proves nothing about each.
+  table (each mode and modifier's cards, and the feats each must not earn), and the mode in its `notEarnableIn` (or
+  `mode`, for one kept to a single mode). A mode's row (its name first) fails without that. A deliberate limit gets
+  the Achievements screen's tip, naming the modes left after both these and `impossibleIn`. **Prove the test** by removing that one guard and watching it fail.
+  Strip guards one at a time; stripping them all at once proves nothing about each. A guard against a modifier stays
+  only in code, since the tip names modes alone.
 - **Easier but not free.** Don't guard it. **Report the "easier" list to the user** rather than deciding alone.
 - **Count the thing, not its proxy.** Bonus chips equal "2nd/3rd 5x" only while the 5x box has one slot;
   `fiveOfAKindCount` counts the 5x themselves.
@@ -36,7 +40,7 @@ they reach 0 or below, so read each comparison against them.
 - `countsOnLeaderboard`;
 - `GameMode.hasHitList`;
 - `hasStandardCard` (ONES on the card);
-- `hasStandardTotals`;
+- `hasComparableTotals` (every box on the card, and boxes, not targets);
 - `rollsModified`;
 - `GameState.unluckyDice`.
 
@@ -73,6 +77,8 @@ Scores).
 
 ## Modifier achievements
 
+- **Everything Everywhere All At Once** needs every modifier the mode offers: D20 and Hit List have no Extended
+  Scores, so the rest are all of them there.
 - **Rainy Day Fund** (a turn started with 100+ rolls under Stored Rolls) needs about 8+ rolls a turn in a 13-turn
   mode (9 a turn with one roll used each turn reaches 105 on the last turn). Third Wind's 39 turns make it easier;
   Quickfire's six turns make it impossible.
@@ -99,9 +105,6 @@ in a Lifetime is guarded in `GameViewModel`):
 | Achievement                                                | Why                                                                            |
 |------------------------------------------------------------|--------------------------------------------------------------------------------|
 | House Call, Straight Away                                  | Seven dice hold these far more often, and nothing is held yet                  |
-| Natural 5x                                                 | Same, on a reroll                                                              |
-| The Dice Hate Me                                           | Judged on the roll, which isn't what scores                                    |
-| Almost Famous                                              | A 5x among seven never shows as one, so it was always true                     |
 | First 5x, Encore, Hat Trick, Twice in a Lifetime, Total 5x | The best five of seven makes 5x easy; Stud's 5x don't count toward `SCORED_5X` |
 | Both Straights, Chance 30, Six Appeal                      | Routine with the best five of seven                                            |
 | Bonus Round, Upper/Lower Class, Solid Round ... Dice Deity | Totals run well above Standard's                                               |
@@ -111,6 +114,11 @@ in a Lifetime is guarded in `GameViewModel`):
 **Can't be earned**:
 - I Can Count! and Product Placement (seven dice never equal a five-dice sequence);
 - What Was The Point Of That? (two dice always roll).
+
+**Judged on any five of the seven** (the maintainer's call, 2026-10-28):
+- Natural 5x: five of the seven matching on a reroll with none held (about 16 times likelier than five dice);
+- The Dice Hate Me: a scoring option means some five of the seven score in an open box;
+- Almost Famous: a first-roll 4x held to the last roll, with no five of the seven ever matching.
 
 **Still earnable**:
 - A Cunning Strategy and Commitment Issues count "all five" as the hold slots;
@@ -141,13 +149,13 @@ The mode's own: Lucky Seven (all seven showing one number).
 | Upper Class, Lower Class   | Pass as a matter of course over 18/21 slots |
 | New Personal Best          | Read off the Leaderboard                    |
 | Zero To Hero               | Three zeros in 39 turns is normal           |
-| Spotless                   | Replaced by Third Time's The Charm          |
 | Encore, Hat Trick          | Three times the turns make them routine     |
 
 **Can't be earned**: Rock Bottom (the minimum is 15), and the score bands.
 
 **Still earnable**:
 - Bonus Round (105, as hard as Standard's 35);
+- Spotless (all 39 slots without a zero and the 105 bonus, so Third Time's The Charm comes with it);
 - Landslide (easier);
 - Dice Whisperer (three times the turns);
 - Cold Dice, Low Rolls, Ton! and Nice (harder);
@@ -161,7 +169,7 @@ The mode's own: Gone With The Wind (a multiplayer win) and Third Time's The Char
 There are no upper or lower boxes and no 5x. The ceiling is 785, and an average game is ~200. All points are multiples
 of 5.
 
-**Guarded** (`hasHitList` / `hasStandardTotals`):
+**Guarded** (`hasHitList` / `hasComparableTotals`):
 
 | Achievement                | Why                                    |
 |----------------------------|----------------------------------------|
@@ -203,8 +211,8 @@ player's pick if it's one (white or blue, faces in `D20_VIEWS`), else white (`D2
 **The style unlock.** Nat 20 opens white and black (white numerals); Critical Success opens blue (`AnyAchievement` plus
 each colour's `secretAchievement`). The mode always has white.
 
-**Guarded** (`!hasStandardCard`): Cold Dice, Low Rolls, Zero To Hero, Spotless. Solid Round ... Dice Deity are
-Standard and Tricolour only.
+**Guarded** (`!hasStandardCard`): Zero To Hero, Spotless. Solid Round ... Dice Deity are Standard and Tricolour only.
+Cold Dice and Low Rolls count: under 100 needs a disastrous game, as on Standard's card.
 
 **Can't be earned**:
 - the 5x ones, Upper/Lower Class, Bonus Round, Exact Change, Six Appeal, Taking A Chance and Both Straights;
@@ -215,7 +223,10 @@ Standard and Tricolour only.
 
 **Still earnable**:
 - Impatient and Naturally Gifted;
-- the roll-pattern feats (House Call, Straight Away, I Can Count!, The Dice Hate Me), far rarer on 20 faces;
+- Probability? Never Heard of Her, on a half's bonus: the last box one of a half's numbers that one die would have
+  taken to its threshold (never a wildcard);
+- the roll-pattern feats I Can Count! and The Dice Hate Me, far rarer on 20 faces (House Call and Straight Away can't
+  be earned: the card has no full house or straights);
 - Landslide and the wins.
 
 The mode's own: Nat 20 (a multiplayer win) and Critical Success (both half bonuses, judged mid-game, not with roll

@@ -23,6 +23,28 @@ class PlayerStateTest {
         assertEquals(0, player(fiveOfAKindBox = 0).fiveOfAKindCount)
     }
 
+    // ---- One die short of a bonus ------------------------------------------------------------------
+
+    @Test
+    fun `one die short of a bonus - the upper bonus in its own boxes - and in D20 a half's bonus in its numbered boxes, never a wildcard`() {
+        // 60 in the upper section, Threes open: one 3 makes the 63.
+        val upper = PlayerState(
+            name = "P",
+            type = PlayerType.HUMAN,
+            scorecard = oneScoreEach(mapOf(ScoreCategory.ONES to 3, ScoreCategory.TWOS to 6, ScoreCategory.FOURS to 16, ScoreCategory.FIVES to 15, ScoreCategory.SIXES to 20)),
+        )
+        assertTrue(upper.needsOneDieForBonus(ScoreCategory.THREES))
+        assertFalse(upper.needsOneDieForBonus(ScoreCategory.CHANCE))
+        // D20's first half on 145 of its 150: one 5, 6 or more in an open box of its numbers makes it, one 4 doesn't.
+        val d20 = PlayerState(name = "P", type = PlayerType.HUMAN, gameMode = GameMode.D20, scorecard = oneScoreEach(mapOf(ScoreCategory.D20_10 to 145)))
+        assertTrue(d20.needsOneDieForBonus(ScoreCategory.D20_5))
+        assertTrue(d20.needsOneDieForBonus(ScoreCategory.D20_9))
+        assertFalse(d20.needsOneDieForBonus(ScoreCategory.D20_4))
+        assertFalse(d20.needsOneDieForBonus(ScoreCategory.D20_WILD_LOW))
+        // The second half is short by far more than one die.
+        assertFalse(d20.needsOneDieForBonus(ScoreCategory.D20_20))
+    }
+
     // ---- Third Wind: every box scored three times ---------------------------------------------
 
     private fun thirdWind(vararg boxes: Pair<ScoreCategory, List<Int>>) =

@@ -151,9 +151,22 @@ available. `StyleRegistryTest` keeps the counts within what can be earned.
     game and drawn as `GoldenEggDiceStyle`.
   - Only player 1 earns it, and only once the dice have landed.
 - **On the Achievements screen**, a row follows the same rule as Styles: a tap shows a short tooltip, a long press
-  opens a dialog. The tooltip holds the style reward line ("You've unlocked the 'Multicolour' dice style!") and, for a
-  collection row, how many are missing ("Modes with no game finished yet: 4 left"). The dialog is the missing list,
-  or for a reward-only row the same reward line. A row with neither has no gesture.
+  opens a dialog. The tooltip **stays until the row is tapped again**, like the game screen's totals tip. It holds,
+  in this order, which modes can earn it, for an achievement deliberately kept out of some mode
+  (`Achievement.limitedModes`, from `mode` and `notEarnableIn`), the style reward line and, for a collection row, how
+  many are missing ("Modes with no game finished yet: 4 left"). The dialog says the same, with a collection row's list
+  under it. A row with none of them has no gesture.
+  - The mode line always names the modes that can earn it, never those that can't: "Can only be earned in the
+    'Standard' and 'Tricolour' modes", however long the list. It leaves out the modes it's kept out of and the ones
+    whose rules rule it out (`impossibleIn`). Each mode's name stays on one line.
+  - **No mode line** for an impossibility alone (Scratched can't be earned without a 5x box, but nothing keeps it out
+    of a mode that has one), once it's earned, ever for a hidden row, or in the Game Modes category, whose
+    descriptions name their mode.
+  - **Rewards.** One sentence on the tooltip ("Earn this to unlock 'Starry' dice, mat, and background": one style's
+    items named once, as the unlock banner does). For several, the dialog puts "Earn this to unlock:" over a
+    `BulletedList` (`ui/common`): one style a line, after a drawn round bullet, capitalised and without "the"
+    ("'Starry' dice style"). The bullet and its gap are in sp, so they grow with the font, and a wrapped line hangs
+    clear of the bullets.
   - Rows and banners carry `StyleRewardStar`, **a badge over the icon's corner, never in the text row** (which would
     wrap titles).
   - The star is decorative to TalkBack: the row's action says "Show which style this unlocks", and the banner says

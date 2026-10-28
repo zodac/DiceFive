@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -125,17 +126,18 @@ class AchievementsTextTest : UiTest() {
         val row = compose.onNode(SemanticsMatcher("clicks to show the missing numbers") { it.config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label == "Show the missing numbers" })
         row.performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Numbers with no 5x scored yet: 4 left").assertExists()
-        compose.onNodeWithText("Numbers with no 5x scored yet (4 left):").assertDoesNotExist()
+        // Only some modes score a 5x, so the tip and the dialog both say which, first.
+        compose.onNodeWithText("Can only be earned in the 'Standard', 'Tricolour', and 'Third\u00A0Wind' modes\nNumbers with no 5x scored yet: 4 left").assertExists()
+        compose.onNodeWithText("Numbers with no 5x scored yet (4 left):", substring = true).assertDoesNotExist()
         row.performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
-        compose.onNodeWithText("Numbers with no 5x scored yet (4 left):").assertExists()
+        compose.onNodeWithText("Can only be earned in the 'Standard', 'Tricolour', and 'Third\u00A0Wind' modes\nNumbers with no 5x scored yet (4 left):").assertExists()
         compose.onNodeWithText("Done").performClick()
         compose.waitForIdle()
         row.performTouchInput { longClick() }
         compose.waitForIdle()
 
-        compose.onNodeWithText("Numbers with no 5x scored yet (4 left):").assertExists()
+        compose.onNodeWithText("Can only be earned in the 'Standard', 'Tricolour', and 'Third\u00A0Wind' modes\nNumbers with no 5x scored yet (4 left):").assertExists()
         // Each number is shown as "1s" to "6s"; the scored ones are read as scored.
         for (number in listOf(1, 3)) compose.onNodeWithContentDescription("${number}s, scored").assertExists()
         for (number in listOf(2, 4, 5, 6)) compose.onNodeWithContentDescription("${number}s").assertExists()
@@ -184,6 +186,81 @@ class AchievementsTextTest : UiTest() {
         row.performTouchInput { longClick() }
         compose.waitForIdle()
         compose.onNodeWithText("OK").performClick()
+    }
+
+    @Test
+    fun `a row deliberately kept out of some modes names the rest in a tooltip that stays until tapped again - and in a dialog on a long press`() = uiTest {
+        showAchievements(achievementsViewModel())
+        fun clickLabelled(label: String) = SemanticsMatcher("clicks to $label") { it.config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label == label }
+        val solidRound = hasText("Solid Round") and clickLabelled("Show which modes can earn this")
+        compose.onNode(hasScrollAction()).performScrollToNode(solidRound)
+        val row = compose.onNode(solidRound)
+        row.performClick()
+        compose.waitForIdle()
+        val modes = "Can only be earned in the 'Standard' and 'Tricolour' modes"
+        compose.onNodeWithText(modes).assertExists()
+        // Still there long after, until the row is tapped again.
+        compose.mainClock.advanceTimeBy(10_000)
+        compose.onNodeWithText(modes).assertExists()
+        row.performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(modes).assertDoesNotExist()
+        compose.onNodeWithText("OK").assertDoesNotExist()
+        row.performTouchInput { longClick() }
+        compose.waitForIdle()
+        compose.onNodeWithText(modes).assertExists()
+        compose.onNodeWithText("OK").performClick()
+        compose.waitForIdle()
+
+        // One kept out of most modes names the few left: Encore is guarded in Third Wind and Stud, and D20, Hit List and
+        // Quickfire have no 5x box.
+        val encore = hasText("Encore") and clickLabelled("Show which modes can earn this")
+        compose.onNode(hasScrollAction()).performScrollToNode(encore)
+        compose.onNode(encore).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(modes).assertExists()
+        compose.onNode(encore).performClick()
+        compose.waitForIdle()
+
+        // The Game Modes category names its modes in its descriptions: Nat 20's tip is only the style it unlocks.
+        val nat20 = hasText("Nat 20") and clickLabelled("Show which style this unlocks")
+        compose.onNode(hasScrollAction()).performScrollToNode(nat20)
+        compose.onNode(nat20).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Earn this to unlock the hidden 'D20' dice colours").assertExists()
+        compose.onNode(nat20).performClick()
+        compose.waitForIdle()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Where We're Going, We Don't Need Rules"))
+        assertEquals(false, SemanticsActions.OnClick in compose.onNode(hasText("Where We're Going, We Don't Need Rules")).fetchSemanticsNode().config)
+
+        // One only some modes' rules rule out (Scratched needs a 5x box) isn't limited: nothing to tap.
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Scratched"))
+        assertEquals(false, SemanticsActions.OnClick in compose.onNode(hasText("Scratched")).fetchSemanticsNode().config)
+
+        // A hidden one never names its modes: Hands Off has nothing else to show, so no action at all.
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Hands Off!"))
+        assertEquals(false, SemanticsActions.OnClick in compose.onNode(hasText("Hands Off!")).fetchSemanticsNode().config)
+    }
+
+    @Test
+    fun `an earned row names no modes - and one unlocking several styles names them in one sentence, then one to a bulleted line in its dialog`() = uiTest {
+        val store = InMemoryAchievementStore(AchievementsState(unlockedAt = mapOf(Achievement.SOLID_ROUND to 0L)))
+        showAchievements(achievementsViewModel(store = store))
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Solid Round"))
+        assertEquals(false, SemanticsActions.OnClick in compose.onNode(hasText("Solid Round")).fetchSemanticsNode().config)
+
+        val midnight = hasText("Rolling The Midnight Dice") and SemanticsMatcher("clickable") { SemanticsActions.OnClick in it.config }
+        compose.onNode(hasScrollAction()).performScrollToNode(midnight)
+        compose.onNode(midnight).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Earn this to unlock 'Starry' dice, mat, and background").assertExists()
+        compose.onNode(midnight).performClick()
+        compose.waitForIdle()
+        compose.onNode(midnight).performTouchInput { longClick() }
+        compose.waitForIdle()
+        // A heading, then each style on a bulleted line of its own, capitalised, with no "the".
+        compose.onNodeWithText("Earn this to unlock:").assertExists()
+        for (line in listOf("'Starry' dice style", "'Starry' mat style", "'Starry' background style")) compose.onNodeWithText(line).assertExists()
     }
 
     @Test

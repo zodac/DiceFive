@@ -413,6 +413,18 @@ enum class Achievement(
     val mode: GameMode? = null,
     /** The modes besides [mode] this achievement can also be earned in ([isEarnableIn]). Empty when [mode] is null. */
     val alsoEarnableIn: Set<GameMode> = emptySet(),
+    /**
+     * The modes this achievement is deliberately kept out of, though it could happen there: the engine guards it, as a
+     * mode makes it too easy or measures something else. The engine keeps it out of these ([isEarnableIn]), and the
+     * Achievements screen names the modes left ([limitedModes]).
+     */
+    val notEarnableIn: Set<GameMode> = emptySet(),
+    /**
+     * The modes whose rules, or the achievement's own words, rule it out with no guard needed: no 5x box, say, or
+     * "a non-Standard game". Kept out of these too, but not a limit worth explaining on its own: [limitedModes] is
+     * empty for one with only these.
+     */
+    val impossibleIn: Set<GameMode> = emptySet(),
     /** Whether this is [mode]'s own win: earned by winning a game of it against at least one other player. */
     val isModeWin: Boolean = false,
 ) : StoredId {
@@ -504,57 +516,57 @@ enum class Achievement(
         "bonus_round",
         Res.string.achievement_bonus_round_title,
         Res.string.achievement_bonus_round_description,
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, notEarnableIn = setOf(GameMode.STUD, GameMode.QUICKFIRE), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
     FIVE_X(
         "five_x",
         Res.string.achievement_five_x_title,
         Res.string.achievement_five_x_description,
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     SPOTLESS(
         "spotless",
         Res.string.achievement_spotless_title,
         Res.string.achievement_spotless_description,
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, notEarnableIn = setOf(GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     STRAIGHT_TALKER(
         "straight_talker",
         Res.string.achievement_straight_talker_title,
         Res.string.achievement_straight_talker_description,
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
     UPPER_CLASS(
         "upper_class",
         Res.string.achievement_upper_class_title,
         Res.string.achievement_upper_class_description,
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.QUICKFIRE), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
 
     LOWER_CLASS(
         "lower_class",
         Res.string.achievement_lower_class_title,
         Res.string.achievement_lower_class_description,
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.QUICKFIRE), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
 
     ENCORE(
         "encore",
         Res.string.achievement_encore_title,
         Res.string.achievement_encore_description,
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     DICE_WHISPERER(
         "dice_whisperer",
         Res.string.achievement_dice_whisperer_title,
         Res.string.achievement_dice_whisperer_description,
-        AchievementCategory.DICE, AchievementCounter.SCORED_5X, target = 10,
+        AchievementCategory.DICE, AchievementCounter.SCORED_5X, target = 10, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     HAT_TRICK(
         "hat_trick",
         Res.string.achievement_hat_trick_title,
         Res.string.achievement_hat_trick_description,
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     // A 5x as the SCORED_5X counter counts one - in the box or as a bonus chip, never Stud's - of each number 1-6, over
     // any number of games. A banner for every new number.
@@ -562,7 +574,7 @@ enum class Achievement(
         "full_set",
         Res.string.achievement_full_set_title,
         Res.string.achievement_full_set_description,
-        AchievementCategory.DICE, AchievementCounter.FIVE_X_NUMBERS, target = 6, progressStepSize = 1,
+        AchievementCategory.DICE, AchievementCounter.FIVE_X_NUMBERS, target = 6, progressStepSize = 1, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
 
     // ---- Dice feats continued: interaction quirks, not just what the dice show ----------------
@@ -570,19 +582,19 @@ enum class Achievement(
         "twice_in_a_lifetime",
         Res.string.achievement_twice_in_a_lifetime_title,
         Res.string.achievement_twice_in_a_lifetime_description,
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     NATURAL_5X(
         "natural_5x",
         Res.string.achievement_natural_5x_title,
         Res.string.achievement_natural_5x_description,
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     I_CAN_COUNT(
         "i_can_count",
         Res.string.achievement_i_can_count_title,
         Res.string.achievement_i_can_count_description,
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, impossibleIn = setOf(GameMode.STUD),
     ),
     A_CUNNING_STRATEGY(
         "a_cunning_strategy",
@@ -594,7 +606,7 @@ enum class Achievement(
         "exact_change",
         Res.string.achievement_exact_change_title,
         Res.string.achievement_exact_change_description,
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
 
     // ---- Scoring: one ladder, so the rungs must stay adjacent and in order --------------------
@@ -602,7 +614,7 @@ enum class Achievement(
         "new_personal_best",
         Res.string.achievement_new_personal_best_title,
         Res.string.achievement_new_personal_best_description,
-        AchievementCategory.SCORING,
+        AchievementCategory.SCORING, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     TON(
         "ton",
@@ -692,7 +704,7 @@ enum class Achievement(
         "everything_everywhere_all_at_once",
         Res.string.achievement_everything_everywhere_all_at_once_title,
         Res.string.achievement_everything_everywhere_all_at_once_description,
-        AchievementCategory.WINNING,
+        AchievementCategory.WINNING, impossibleIn = setOf(GameMode.STANDARD),
     ),
 
     // ---- Game modes: playing beyond the Standard rules ------------------------------------------
@@ -700,7 +712,7 @@ enum class Achievement(
         "where_were_going_we_dont_need_rules",
         Res.string.achievement_where_were_going_we_dont_need_rules_title,
         Res.string.achievement_where_were_going_we_dont_need_rules_description,
-        AchievementCategory.GAME_MODES,
+        AchievementCategory.GAME_MODES, impossibleIn = setOf(GameMode.STANDARD),
     ),
     TRICOLOURFUL(
         "tricolourful",
@@ -714,7 +726,7 @@ enum class Achievement(
         "tricolour_me_impressed",
         Res.string.achievement_tricolour_me_impressed_title,
         Res.string.achievement_tricolour_me_impressed_description,
-        AchievementCategory.GAME_MODES,
+        AchievementCategory.GAME_MODES, impossibleIn = setOf(GameMode.STANDARD, GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     GONE_WITH_THE_WIND(
         "gone_with_the_wind",
@@ -754,7 +766,7 @@ enum class Achievement(
         "critical_success",
         Res.string.achievement_critical_success_title,
         Res.string.achievement_critical_success_description,
-        AchievementCategory.GAME_MODES,
+        AchievementCategory.GAME_MODES, impossibleIn = setOf(GameMode.STANDARD, GameMode.TRICOLOUR, GameMode.THIRD_WIND, GameMode.STUD, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     CONTRACT_FULFILLED(
         "contract_fulfilled",
@@ -767,7 +779,7 @@ enum class Achievement(
         "right_on_target",
         Res.string.achievement_right_on_target_title,
         Res.string.achievement_right_on_target_description,
-        AchievementCategory.GAME_MODES,
+        AchievementCategory.GAME_MODES, impossibleIn = setOf(GameMode.STANDARD, GameMode.TRICOLOUR, GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.QUICKFIRE),
     ),
     QUICK_ON_THE_DRAW(
         "quick_on_the_draw",
@@ -788,7 +800,7 @@ enum class Achievement(
         "rainy_day_fund",
         Res.string.achievement_rainy_day_fund_title,
         Res.string.achievement_rainy_day_fund_description,
-        AchievementCategory.GAME_MODES,
+        AchievementCategory.GAME_MODES, impossibleIn = setOf(GameMode.QUICKFIRE),
     ),
     // Judged as player 1's dice land: every die on the table in Unlucky Dice's chains at once - so up to five a roll,
     // and nothing held. Never in Stud, whose seven dice can't all be chained.
@@ -796,7 +808,7 @@ enum class Achievement(
         "bad_omen",
         Res.string.achievement_bad_omen_title,
         Res.string.achievement_bad_omen_description,
-        AchievementCategory.GAME_MODES,
+        AchievementCategory.GAME_MODES, impossibleIn = setOf(GameMode.STUD),
     ),
     // Measured against the scores table, like career points, so it's retroactive: a game player 1 finished in each mode,
     // solo or not, modifiers or not. A banner for every new mode.
@@ -812,7 +824,7 @@ enum class Achievement(
         "scratched",
         Res.string.achievement_scratched_title,
         Res.string.achievement_scratched_description,
-        AchievementCategory.MISFORTUNE,
+        AchievementCategory.MISFORTUNE, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     THE_DICE_HATE_ME(
         "the_dice_hate_me",
@@ -848,13 +860,13 @@ enum class Achievement(
         "cold_dice",
         Res.string.achievement_cold_dice_title,
         Res.string.achievement_cold_dice_description,
-        AchievementCategory.MISFORTUNE,
+        AchievementCategory.MISFORTUNE, notEarnableIn = setOf(GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     LOW_ROLLS(
         "low_rolls",
         Res.string.achievement_low_rolls_title,
         Res.string.achievement_low_rolls_description,
-        AchievementCategory.MISFORTUNE,
+        AchievementCategory.MISFORTUNE, notEarnableIn = setOf(GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     // Judged at the commit: the last box on the card is an upper one, a single die in it would have earned the bonus, and all
     // the rolls went on a zero. Not with Unlucky Dice, which rigs the dice against you.
@@ -862,7 +874,7 @@ enum class Achievement(
         "probability_never_heard_of_her",
         Res.string.achievement_probability_never_heard_of_her_title,
         Res.string.achievement_probability_never_heard_of_her_description,
-        AchievementCategory.MISFORTUNE,
+        AchievementCategory.MISFORTUNE, impossibleIn = setOf(GameMode.HIT_LIST),
     ),
 
     // ---- Miscellaneous: every hidden achievement, whatever it's about --------------------------
@@ -872,7 +884,7 @@ enum class Achievement(
         "commitment_issues",
         Res.string.achievement_commitment_issues_title,
         Res.string.achievement_commitment_issues_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
     DECISIONS_DECISIONS(
         "decisions_decisions",
@@ -884,7 +896,7 @@ enum class Achievement(
         "time_to_let_it_go",
         Res.string.achievement_time_to_let_it_go_title,
         Res.string.achievement_time_to_let_it_go_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
     TIME_WASTING(
         "time_wasting",
@@ -932,7 +944,7 @@ enum class Achievement(
         "empty_house",
         Res.string.achievement_empty_house_title,
         Res.string.achievement_empty_house_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
     // The best full house there is - three 6s and two 5s specifically, never the joker rule's
     // five-of-a-kind bent into the box instead. Sits right above House Call, the more general
@@ -941,7 +953,7 @@ enum class Achievement(
         "fuller_house",
         Res.string.achievement_fuller_house_title,
         Res.string.achievement_fuller_house_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
     // The three "straight out of the cup" feats, in ascending order of how unlikely they are on a
     // single throw of five dice: a full house is 300 of the 7776 outcomes, a large straight 240,
@@ -950,25 +962,25 @@ enum class Achievement(
         "house_call",
         Res.string.achievement_house_call_title,
         Res.string.achievement_house_call_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
     STRAIGHT_AWAY(
         "straight_away",
         Res.string.achievement_straight_away_title,
         Res.string.achievement_straight_away_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
     SIX_APPEAL(
         "six_appeal",
         Res.string.achievement_six_appeal_title,
         Res.string.achievement_six_appeal_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
     TAKING_A_CHANCE(
         "taking_a_chance",
         Res.string.achievement_taking_a_chance_title,
         Res.string.achievement_taking_a_chance_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
     // The dice not held keep landing on the same faces.
     DEJA_VU(
@@ -981,27 +993,27 @@ enum class Achievement(
         "product_placement",
         Res.string.achievement_product_placement_title,
         Res.string.achievement_product_placement_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.STUD),
     ),
     WHAT_WAS_THE_POINT_OF_THAT(
         "what_was_the_point_of_that",
         Res.string.achievement_what_was_the_point_of_that_title,
         Res.string.achievement_what_was_the_point_of_that_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.STUD),
     ),
 
     NICE(
         "nice",
         Res.string.achievement_nice_title,
         Res.string.achievement_nice_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
 
     ZERO_TO_HERO(
         "zero_to_hero",
         Res.string.achievement_zero_to_hero_title,
         Res.string.achievement_zero_to_hero_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST),
     ),
 
     // Harder and more specific than Scratched: that one just needs a zero sitting in the 5x box
@@ -1017,19 +1029,19 @@ enum class Achievement(
         "size_isnt_everything",
         Res.string.achievement_size_isnt_everything_title,
         Res.string.achievement_size_isnt_everything_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
     HOW_DO_YOU_PLAY_THIS_GAME(
         "how_do_you_play_this_game",
         Res.string.achievement_how_do_you_play_this_game_title,
         Res.string.achievement_how_do_you_play_this_game_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.QUICKFIRE),
     ),
     ROCK_BOTTOM(
         "rock_bottom",
         Res.string.achievement_rock_bottom_title,
         Res.string.achievement_rock_bottom_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.QUICKFIRE), impossibleIn = setOf(GameMode.THIRD_WIND, GameMode.D20, GameMode.HIT_LIST),
     ),
     WHO_MADE_THIS(
         "who_made_this",
@@ -1050,37 +1062,37 @@ enum class Achievement(
         "tally",
         Res.string.achievement_tally_title,
         Res.string.achievement_tally_description,
-        AchievementCategory.COLLECTION, target = 46, scoreBand = 5..50,
+        AchievementCategory.COLLECTION, target = 46, scoreBand = 5..50, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     BOOKKEEPER(
         "bookkeeper",
         Res.string.achievement_bookkeeper_title,
         Res.string.achievement_bookkeeper_description,
-        AchievementCategory.COLLECTION, target = 50, scoreBand = 51..100,
+        AchievementCategory.COLLECTION, target = 50, scoreBand = 51..100, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     REGISTRAR(
         "registrar",
         Res.string.achievement_registrar_title,
         Res.string.achievement_registrar_description,
-        AchievementCategory.COLLECTION, target = 50, scoreBand = 101..150,
+        AchievementCategory.COLLECTION, target = 50, scoreBand = 101..150, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     AUDITOR(
         "auditor",
         Res.string.achievement_auditor_title,
         Res.string.achievement_auditor_description,
-        AchievementCategory.COLLECTION, target = 50, scoreBand = 151..200,
+        AchievementCategory.COLLECTION, target = 50, scoreBand = 151..200, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     ARCHIVIST(
         "archivist",
         Res.string.achievement_archivist_title,
         Res.string.achievement_archivist_description,
-        AchievementCategory.COLLECTION, target = 50, scoreBand = 201..250,
+        AchievementCategory.COLLECTION, target = 50, scoreBand = 201..250, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     HISTORIAN(
         "historian",
         Res.string.achievement_historian_title,
         Res.string.achievement_historian_description,
-        AchievementCategory.COLLECTION, target = 50, scoreBand = 251..300,
+        AchievementCategory.COLLECTION, target = 50, scoreBand = 251..300, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     COMPLETIONIST(
         "completionist",
@@ -1119,7 +1131,7 @@ enum class Achievement(
         "eggcellent_discovery",
         Res.string.achievement_eggcellent_discovery_title,
         Res.string.achievement_eggcellent_discovery_description,
-        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.D20),
     ),
     // Excluded from COMPLETIONIST like the rest of this category - nothing hints that the
     // Flowerpot grows a plant, let alone that using every roll of every turn brings it into bloom.
@@ -1128,7 +1140,7 @@ enum class Achievement(
         "greenfingers",
         Res.string.achievement_greenfingers_title,
         Res.string.achievement_greenfingers_description,
-        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.D20),
     ),
     // Excluded from COMPLETIONIST the same way Big Fan is - naming yourself after a country to
     // re-skin a game mode's dice isn't something every player could reasonably be expected to
@@ -1137,7 +1149,7 @@ enum class Achievement(
         "luck_of_the_irish",
         Res.string.achievement_luck_of_the_irish_title,
         Res.string.achievement_luck_of_the_irish_description,
-        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN, mode = GameMode.TRICOLOUR,
     ),
     // Excluded from COMPLETIONIST like the rest of this category - nothing hints that the menu's logo
     // dice can be tapped, let alone that they roll.
@@ -1212,8 +1224,19 @@ enum class Achievement(
             else -> null
         }
 
-    /** Whether this can be earned in a game of [gameMode]: any, unless it belongs to [mode] (and [alsoEarnableIn]). */
-    fun isEarnableIn(gameMode: GameMode): Boolean = mode == null || mode == gameMode || gameMode in alsoEarnableIn
+    /**
+     * Whether this can be earned in a game of [gameMode]: any, unless it belongs to [mode] (and [alsoEarnableIn]), or
+     * [gameMode] is one of [notEarnableIn] or [impossibleIn].
+     */
+    fun isEarnableIn(gameMode: GameMode): Boolean =
+        (mode == null || mode == gameMode || gameMode in alsoEarnableIn) && gameMode !in notEarnableIn && gameMode !in impossibleIn
+
+    /**
+     * The modes this can be earned in, in [GameMode] order, for one deliberately limited to some ([mode] or
+     * [notEarnableIn]); empty for one that isn't, even if some modes' rules rule it out ([impossibleIn]).
+     */
+    val limitedModes: List<GameMode>
+        get() = if (mode == null && notEarnableIn.isEmpty()) emptyList() else GameMode.entries.filter { isEarnableIn(it) }
 
     companion object {
 

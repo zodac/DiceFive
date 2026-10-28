@@ -223,9 +223,10 @@ class AchievementTracker {
         val values = dice.map { it.value }
         // Number and colour together: in a mode with coloured dice, "the same result" means both.
         val faces = dice.faces()
-        // Where only held dice score, a roll isn't a hand: the feats judged on one as it lands (Natural 5x, The Dice
-        // Hate Me, Almost Famous) aren't earned there. A roll with a die locked by Unlucky Dice isn't a whole hand either.
-        val rollIsHand = !state.gameMode.scoresHeldDiceOnly && dice.none { it.isUnlucky }
+        // A roll with a die locked by Unlucky Dice isn't a whole hand: the feats judged on one as it lands (Natural 5x,
+        // The Dice Hate Me, Almost Famous) aren't earned from it. Where more dice roll than score (Stud), any five of them
+        // can make the hand.
+        val rollIsWhole = dice.none { it.isUnlucky }
 
         // Lucky Seven: every one of Stud's seven dice showing the same number - an achievement for that one mode.
         if (values.toSet().size == 1) add(Achievement.LUCKY_SEVEN)
@@ -235,12 +236,14 @@ class AchievementTracker {
         // Product Placement: the menu logo's own dice, in its own order - any roll of any turn.
         if (values == LOGO_DICE_VALUES) add(Achievement.PRODUCT_PLACEMENT)
 
-        // Natural 5x: landed without holding anything for this roll, not on the first one, and scorable as a 5x.
-        if (rollIsHand &&
+        // Natural 5x: landed without holding anything for this roll, not on the first one, and scorable as a 5x - in
+        // Stud, any five of the seven matching.
+        val fiveMatching = fiveMatchingDice(dice, state.gameMode.scoringDiceCount)
+        if (rollIsWhole &&
             rollsRemainingBeforeRoll < state.fullRolls &&
             diceBeforeRoll.none { it.isHeld } &&
-            DiceScoring.isFiveOfAKind(dice) &&
-            fiveOfAKindScorable(player, dice, ScoreCalculator.availableCategories(player, dice))
+            fiveMatching != null &&
+            fiveOfAKindScorable(player, fiveMatching, ScoreCalculator.availableCategories(player, fiveMatching))
         ) {
             add(Achievement.NATURAL_5X)
         }
@@ -249,7 +252,7 @@ class AchievementTracker {
         // into every roll since, and whether a real 5x ever turns up anyway.
         if (rollsRemainingBeforeRoll == state.fullRolls) {
             val fourOfAKindValue = values.groupingBy { it }.eachCount().entries.firstOrNull { it.value == FOUR_OF_A_KIND_COUNT }?.key
-            fourOfAKindIndicesFromFirstRoll = fourOfAKindValue?.takeIf { rollIsHand }?.let { value ->
+            fourOfAKindIndicesFromFirstRoll = fourOfAKindValue?.takeIf { rollIsWhole }?.let { value ->
                 values.withIndex().filter { it.value == value }.map { it.index }.toSet()
             }
             heldFourOfAKindThroughTurn = fourOfAKindIndicesFromFirstRoll != null
@@ -259,15 +262,15 @@ class AchievementTracker {
                 if (diceBeforeRoll.heldIndices() != required) heldFourOfAKindThroughTurn = false
             }
         }
-        if (DiceScoring.isFiveOfAKind(dice)) fiveOfAKindSeenThisTurn = true
+        if (fiveMatching != null) fiveOfAKindSeenThisTurn = true
 
         // The Dice Hate Me: a real (non-zero) scoring option existed after roll 2, but none at all after roll 3.
-        if (!rollIsHand) {
+        if (!rollIsWhole) {
             hadScoringOptionAfterSecondRoll = false
         } else if (rollsRemainingBeforeRoll == state.rollsRemainingAfterFirst) {
-            hadScoringOptionAfterSecondRoll = hasScoringOption(player, dice)
+            hadScoringOptionAfterSecondRoll = hasScoringOption(player, dice, state.gameMode.scoringDiceCount)
         } else if (rollsRemainingBeforeRoll == state.rollsRemainingAfterSecond) {
-            if (hadScoringOptionAfterSecondRoll && !hasScoringOption(player, dice)) add(Achievement.THE_DICE_HATE_ME)
+            if (hadScoringOptionAfterSecondRoll && !hasScoringOption(player, dice, state.gameMode.scoringDiceCount)) add(Achievement.THE_DICE_HATE_ME)
         }
 
         // Are These Loaded Dice?: the dice not held since roll 1 keep landing on exactly the same faces, roll after roll.
@@ -283,8 +286,21 @@ class AchievementTracker {
         }
     }
 
-    private fun hasScoringOption(player: PlayerState, dice: List<Die>): Boolean =
-        ScoreCalculator.availableCategories(player, dice).any { ScoreCalculator.scoreFor(player, it, dice) > 0 }
+    /** Whether any hand of [handSize] of [dice] scores in a box still open - every die, unless more roll than score (Stud). */
+    private fun hasScoringOption(player: PlayerState, dice: List<Die>, handSize: Int): Boolean =
+        handsOf(dice, handSize).any { hand -> ScoreCalculator.availableCategories(player, hand).any { ScoreCalculator.scoreFor(player, it, hand) > 0 } }
+
+    /** Five of [dice] showing one number, or null: all of them, unless more roll than score (Stud), where any five will do. */
+    private fun fiveMatchingDice(dice: List<Die>, handSize: Int): List<Die>? =
+        dice.groupBy { it.value }.values.firstOrNull { it.size >= handSize }?.take(handSize)
+
+    /** Every way to take [handSize] of [dice]: just [dice], when that's all of them. */
+    private fun handsOf(dice: List<Die>, handSize: Int): List<List<Die>> {
+        if (dice.size <= handSize) return listOf(dice)
+        fun from(start: Int, picked: List<Die>): List<List<Die>> =
+            if (picked.size == handSize) listOf(picked) else (start until dice.size).flatMap { from(it + 1, picked + dice[it]) }
+        return from(0, emptyList())
+    }
 
     /**
      * Player 1 held or released [dieIndex] - [wasHeld] is its state just before - leaving [state].

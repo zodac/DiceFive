@@ -117,13 +117,13 @@
     <string name="achievement_ton_title">¡Cien!</string>
     <string name="achievement_ton_description">Termina una partida con exactamente 100</string>
     <string name="achievement_solid_round_title">Ronda sólida</string>
-    <string name="achievement_solid_round_description">Suma 200 o más en una partida estándar</string>
+    <string name="achievement_solid_round_description">Suma 200 o más en una partida</string>
     <string name="achievement_sharpshooter_title">Tirador de élite</string>
-    <string name="achievement_sharpshooter_description">Suma 300 o más en una partida estándar</string>
+    <string name="achievement_sharpshooter_description">Suma 300 o más en una partida</string>
     <string name="achievement_high_roller_title">Gran apostador</string>
-    <string name="achievement_high_roller_description">Suma 400 o más en una partida estándar</string>
+    <string name="achievement_high_roller_description">Suma 400 o más en una partida</string>
     <string name="achievement_dice_deity_title">Deidad de los dados</string>
-    <string name="achievement_dice_deity_description">Suma 500 o más en una partida estándar</string>
+    <string name="achievement_dice_deity_description">Suma 500 o más en una partida</string>
     <string name="achievement_first_victory_title">Primera victoria</string>
     <string name="achievement_first_victory_description">Gana una partida contra al menos un rival</string>
     <string name="achievement_landslide_title">Victoria aplastante</string>
@@ -918,7 +918,20 @@
     </plurals>
     <string name="achievements_reward_unlocked">¡Has desbloqueado %1$s!</string>
     <string name="achievements_reward_locked">Consigue esto para desbloquear %1$s</string>
+    <string name="achievements_reward_unlocked_list">Has desbloqueado:</string>
+    <string name="achievements_reward_locked_list">Consigue esto para desbloquear:</string>
+    <string name="achievements_reward_item">Estilo de %2$s '%1$s'</string>
+    <plurals name="achievements_reward_item_hidden_colours">
+        <item quantity="one">Color oculto de %2$s '%1$s'</item>
+        <item quantity="other">Colores ocultos de %2$s '%1$s'</item>
+    </plurals>
     <string name="achievements_reward_show_action">Mostrar qué estilo desbloquea</string>
+    <plurals name="achievements_mode_tooltip_only">
+        <item quantity="one">Solo se puede conseguir en el modo %1$s</item>
+        <item quantity="other">Solo se puede conseguir en los modos %1$s</item>
+    </plurals>
+    <string name="achievements_mode_quoted">'%1$s'</string>
+    <string name="achievements_mode_show_action">Mostrar en qué modos se consigue</string>
     <string name="achievements_missing_message">Puntuaciones que aún no están en la clasificación (faltan %1$s):</string>
     <string name="achievements_missing_action">Mostrar las puntuaciones que faltan</string>
     <string name="achievements_missing_tooltip">Puntuaciones que aún no están en la clasificación: faltan %1$s</string>

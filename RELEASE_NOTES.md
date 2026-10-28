@@ -1,0 +1,3 @@
+- Tuned some achievements to be a bit harder (Spotless, Critical Success, Strailer Talker, Exact Change)
+- Limited 200/300/400/500pt achievements to only Standard and Tricolour modes
+- Added a tooltip to clarify achievements which are limited to specific modes

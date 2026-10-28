@@ -191,13 +191,13 @@
     <string name="achievement_ton_title">Ton!</string>
     <string name="achievement_ton_description">Finish a game on exactly 100</string>
     <string name="achievement_solid_round_title">Solid Round</string>
-    <string name="achievement_solid_round_description">Score 200 or more in a Standard game</string>
+    <string name="achievement_solid_round_description">Score 200 or more in a game</string>
     <string name="achievement_sharpshooter_title">Sharpshooter</string>
-    <string name="achievement_sharpshooter_description">Score 300 or more in a Standard game</string>
+    <string name="achievement_sharpshooter_description">Score 300 or more in a game</string>
     <string name="achievement_high_roller_title">High Roller</string>
-    <string name="achievement_high_roller_description">Score 400 or more in a Standard game</string>
+    <string name="achievement_high_roller_description">Score 400 or more in a game</string>
     <string name="achievement_dice_deity_title">Dice Deity</string>
-    <string name="achievement_dice_deity_description">Score 500 or more in a Standard game</string>
+    <string name="achievement_dice_deity_description">Score 500 or more in a game</string>
     <string name="achievement_first_victory_title">First Victory</string>
     <string name="achievement_first_victory_description">Win a game against at least one opponent</string>
     <string name="achievement_landslide_title">Landslide</string>
@@ -1160,8 +1160,28 @@
     <!-- The tooltip on an unlocked achievement's star. %1$s is what it unlocked, from styles_reward_*. -->
     <string name="achievements_reward_unlocked">You've unlocked %1$s!</string>
     <string name="achievements_reward_locked">Earn this to unlock %1$s</string>
+    <!-- The heading over the list of styles an achievement unlocks, one to a line, in its pop-up when it unlocks several. -->
+    <string name="achievements_reward_unlocked_list">You've unlocked:</string>
+    <string name="achievements_reward_locked_list">Earn this to unlock:</string>
+    <!-- One line of that list, after its bullet: %1$s is the style's name, %2$s its category's noun (style_noun_*). -->
+    <string name="achievements_reward_item">'%1$s' %2$s style</string>
+    <!-- The same, for a style's hidden colours (chosen by how many, which isn't shown). -->
+    <plurals name="achievements_reward_item_hidden_colours">
+        <item quantity="one">Hidden '%1$s' %2$s colour</item>
+        <item quantity="other">Hidden '%1$s' %2$s colours</item>
+    </plurals>
     <!-- TalkBack's name for tapping the star on an achievement. -->
     <string name="achievements_reward_show_action">Show which style this unlocks</string>
+    <!-- The tip on tapping an achievement that only some game modes can earn, naming those modes. %1$s is the list of
+         them, each from achievements_mode_quoted; the count of modes chooses the form. -->
+    <plurals name="achievements_mode_tooltip_only">
+        <item quantity="one">Can only be earned in %1$s mode</item>
+        <item quantity="other">Can only be earned in the %1$s modes</item>
+    </plurals>
+    <!-- One game mode's name (mode_*) in achievements_mode_tooltip_only's list. -->
+    <string name="achievements_mode_quoted">'%1$s'</string>
+    <!-- TalkBack's name for tapping an achievement only some game modes can earn. -->
+    <string name="achievements_mode_show_action">Show which modes can earn this</string>
     <string name="achievements_missing_message">Scores not yet on the leaderboard (%1$s left):</string>
     <!-- TalkBack's name for tapping a score-collection achievement. -->
     <string name="achievements_missing_action">Show the missing scores</string>

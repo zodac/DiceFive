@@ -672,7 +672,7 @@ class GameAchievementsWiringTest {
         }
         assertFalse(Achievement.ALMOST_FAMOUS in leaked, "ALMOST_FAMOUS should not leak a stale four-of-a-kind flag into the next turn, got $leaked")
 
-        // Four 6s and three others in Stud: the 6s held, the other three rerolled twice and never a 6.
+        // Four 6s and three others in Stud: the 6s held, the other three rerolled twice and never a 6 - Almost Famous too.
         val stud = unlockedAfter(ScriptedDice(listOf(6, 6, 6, 6, 1, 2, 3, 2, 3, 4, 3, 4, 5)), setUp = { setupForm.setGameMode(GameMode.STUD) }) {
             rollDice()
             for (index in 0 until 4) toggleHold(index)
@@ -681,19 +681,39 @@ class GameAchievementsWiringTest {
             toggleHold(6)
             commitScore(ScoreCategory.SIXES)
         }
-        assertFalse(Achievement.ALMOST_FAMOUS in stud, "ALMOST_FAMOUS should not pop in Stud, got $stud")
+        assertTrue(Achievement.ALMOST_FAMOUS in stud, "ALMOST_FAMOUS should pop in Stud, got $stud")
+
+        // The same, but a fifth 6 among the seven on the second roll: five of the seven matching is a 5x in Stud.
+        val studFifth = unlockedAfter(ScriptedDice(listOf(6, 6, 6, 6, 1, 2, 3, 6, 3, 4, 3, 4, 5)), setUp = { setupForm.setGameMode(GameMode.STUD) }) {
+            rollDice()
+            for (index in 0 until 4) toggleHold(index)
+            rollDice()
+            rollDice()
+            toggleHold(6)
+            commitScore(ScoreCategory.SIXES)
+        }
+        assertFalse(Achievement.ALMOST_FAMOUS in studFifth, "ALMOST_FAMOUS should not pop once a fifth 6 lands in Stud, got $studFifth")
     }
 
     @Test
-    fun `Stud - seven matching dice are Lucky Seven but no 5x feat and a timed-out turn completes and scores only the held hand`() = runTest {
+    fun `Stud - seven matching dice are Lucky Seven - five of them on a reroll with none held a Natural 5x - and a timed-out turn scores only the held hand`() = runTest {
         val stud: GameViewModel.() -> Unit = { setupForm.setGameMode(GameMode.STUD) }
         val firstRoll = unlockedAfter(LoadedDice(6), setUp = stud) { rollDice() }
         assertTrue(Achievement.LUCKY_SEVEN in firstRoll, "LUCKY_SEVEN should pop, got $firstRoll")
-        val rerolled = unlockedAfter(LoadedDice(6), setUp = stud) {
+        assertFalse(Achievement.NATURAL_5X in firstRoll, "NATURAL_5X should not pop on a first roll, got $firstRoll")
+        // Any five of the seven matching, rolled with none held.
+        val rerolled = unlockedAfter(ScriptedDice(listOf(1, 2, 3, 4, 5, 6, 1) + listOf(4, 4, 2, 4, 4, 6, 4)), setUp = stud) {
             rollDice()
             rollDice()
         }
-        assertFalse(Achievement.NATURAL_5X in rerolled, "NATURAL_5X should not pop in Stud, got $rerolled")
+        assertTrue(Achievement.NATURAL_5X in rerolled, "NATURAL_5X should pop in Stud with five of seven matching, got $rerolled")
+        // Not with a die held for the roll.
+        val held = unlockedAfter(ScriptedDice(listOf(4, 2, 3, 1, 5, 6, 1) + listOf(4, 2, 4, 4, 6, 4)), setUp = stud) {
+            rollDice()
+            toggleHold(0)
+            rollDice()
+        }
+        assertFalse(Achievement.NATURAL_5X in held, "NATURAL_5X should not pop with a die held, got $held")
 
         // 6, 1, 6, 2, 6, 3, 1: the player holds the first 1 (die 2), then lets the timer run out. The turn goes in Ones, the
         // hand completed with the last 1 and then the leftmost dice (the first, third and fourth) - so the third 6 and the
@@ -900,6 +920,16 @@ class GameAchievementsWiringTest {
             repeat(3) { rollDice() }
         }
         assertTrue(Achievement.THE_DICE_HATE_ME in hate, "THE_DICE_HATE_ME should pop, got $hate")
+
+        // The same in Stud, judged on any five of the seven: roll 2's 1 is an option for Ones, roll 3 has none.
+        val studHate = unlockedAfter(ScriptedDice(List(84) { 2 } + List(7) { 2 } + listOf(1) + List(6) { 2 } + List(7) { 2 }), setUp = { setupForm.setGameMode(GameMode.STUD) }) {
+            for (category in GameMode.STUD.categories.filter { it != ScoreCategory.ONES }) {
+                rollDice()
+                commitScore(category)
+            }
+            repeat(3) { rollDice() }
+        }
+        assertTrue(Achievement.THE_DICE_HATE_ME in studHate, "THE_DICE_HATE_ME should pop in Stud, got $studHate")
 
         // A zero in the last box with one die short of the upper bonus after every roll - which needs every roll spent and
         // the last box scoring nothing.

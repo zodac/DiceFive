@@ -127,13 +127,18 @@ data class PlayerState(
         get() = ScoreCategory.UPPER.any { it in categories && it !in disabledCategories }
 
     /**
-     * Whether the upper bonus is still unearned, but a single die showing [category]'s number in [category] would earn it:
-     * the section is short of [upperBonusThreshold] by no more than that number. False for anything but an upper box.
+     * Whether a bonus is still unearned, but a single die showing [category]'s number in [category] would earn it: the
+     * upper bonus, short of [upperBonusThreshold] by no more than that number, or [category]'s half bonus in D20
+     * ([GameMode.sectionBonuses]). False for any other box, a wildcard among them.
      */
     fun needsOneDieForBonus(category: ScoreCategory): Boolean {
-        if (!hasUpperBonus || category.section != ScoreSection.UPPER) return false
-        val total = upperSectionTotal
-        return total < upperBonusThreshold && total + faceOf(category) >= upperBonusThreshold
+        val number = category.number ?: return false
+        val threshold = when {
+            category.section == ScoreSection.UPPER && hasUpperBonus -> upperBonusThreshold
+            else -> gameMode.sectionBonuses.firstOrNull { it.section == category.section }?.threshold ?: return false
+        }
+        val total = sectionTotal(category.section)
+        return total < threshold && total + number >= threshold
     }
 
     val upperSectionBonus: Int

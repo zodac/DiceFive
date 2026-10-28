@@ -134,13 +134,13 @@
     <string name="achievement_ton_title">المئة!</string>
     <string name="achievement_ton_description">أنهِ لعبة بمجموع ١٠٠ بالضبط</string>
     <string name="achievement_solid_round_title">جولة متينة</string>
-    <string name="achievement_solid_round_description">سجّل ٢٠٠ نقطة أو أكثر في لعبة قياسية</string>
+    <string name="achievement_solid_round_description">سجّل ٢٠٠ نقطة أو أكثر في لعبة</string>
     <string name="achievement_sharpshooter_title">القنّاص</string>
-    <string name="achievement_sharpshooter_description">سجّل ٣٠٠ نقطة أو أكثر في لعبة قياسية</string>
+    <string name="achievement_sharpshooter_description">سجّل ٣٠٠ نقطة أو أكثر في لعبة</string>
     <string name="achievement_high_roller_title">المقامر الكبير</string>
-    <string name="achievement_high_roller_description">سجّل ٤٠٠ نقطة أو أكثر في لعبة قياسية</string>
+    <string name="achievement_high_roller_description">سجّل ٤٠٠ نقطة أو أكثر في لعبة</string>
     <string name="achievement_dice_deity_title">إله النرد</string>
-    <string name="achievement_dice_deity_description">سجّل ٥٠٠ نقطة أو أكثر في لعبة قياسية</string>
+    <string name="achievement_dice_deity_description">سجّل ٥٠٠ نقطة أو أكثر في لعبة</string>
     <string name="achievement_first_victory_title">أول انتصار</string>
     <string name="achievement_first_victory_description">افز في لعبة ضد خصم واحد على الأقل</string>
     <string name="achievement_landslide_title">فوز ساحق</string>
@@ -1011,7 +1011,28 @@
     </plurals>
     <string name="achievements_reward_unlocked">لقد فتحت %1$s!</string>
     <string name="achievements_reward_locked">احصل على هذا لتفتح %1$s</string>
+    <string name="achievements_reward_unlocked_list">لقد فتحت:</string>
+    <string name="achievements_reward_locked_list">احصل على هذا لتفتح:</string>
+    <string name="achievements_reward_item">نمط %2$s «%1$s»</string>
+    <plurals name="achievements_reward_item_hidden_colours">
+        <item quantity="zero">لون %2$s المخفي «%1$s»</item>
+        <item quantity="one">لون %2$s المخفي «%1$s»</item>
+        <item quantity="two">لونا %2$s المخفيان «%1$s»</item>
+        <item quantity="few">ألوان %2$s المخفية «%1$s»</item>
+        <item quantity="many">ألوان %2$s المخفية «%1$s»</item>
+        <item quantity="other">ألوان %2$s المخفية «%1$s»</item>
+    </plurals>
     <string name="achievements_reward_show_action">عرض النمط الذي يفتحه هذا</string>
+    <plurals name="achievements_mode_tooltip_only">
+        <item quantity="zero">لا يُنال إلا في أنماط %1$s</item>
+        <item quantity="one">لا يُنال إلا في نمط %1$s</item>
+        <item quantity="two">لا يُنال إلا في نمطَي %1$s</item>
+        <item quantity="few">لا يُنال إلا في أنماط %1$s</item>
+        <item quantity="many">لا يُنال إلا في أنماط %1$s</item>
+        <item quantity="other">لا يُنال إلا في أنماط %1$s</item>
+    </plurals>
+    <string name="achievements_mode_quoted">«%1$s»</string>
+    <string name="achievements_mode_show_action">عرض الأنماط التي يُنال فيها هذا</string>
     <string name="achievements_missing_message">النتائج غير الموجودة بعد في لوحة المتصدرين (متبقٍ %1$s):</string>
     <string name="achievements_missing_action">عرض النتائج الناقصة</string>
     <string name="achievements_missing_tooltip">النتائج غير الموجودة بعد في لوحة المتصدرين: متبقٍ %1$s</string>

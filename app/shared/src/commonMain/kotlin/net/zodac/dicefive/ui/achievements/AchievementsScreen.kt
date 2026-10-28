@@ -104,14 +104,22 @@ import net.zodac.dicefive.resources.achievements_missing_numbers_message
 import net.zodac.dicefive.resources.achievements_missing_numbers_tooltip
 import net.zodac.dicefive.resources.achievements_missing_tooltip
 import net.zodac.dicefive.resources.achievements_mode_finished
+import net.zodac.dicefive.resources.achievements_mode_show_action
+import net.zodac.dicefive.resources.achievements_mode_quoted
+import net.zodac.dicefive.resources.achievements_mode_tooltip_only
 import net.zodac.dicefive.resources.achievements_next_category_cd
 import net.zodac.dicefive.resources.achievements_number_label
 import net.zodac.dicefive.resources.achievements_number_scored
 import net.zodac.dicefive.resources.achievements_previous_category_cd
 import net.zodac.dicefive.resources.achievements_progress
+import net.zodac.dicefive.resources.achievements_reward_item
+import net.zodac.dicefive.resources.achievements_reward_item_hidden_colours
 import net.zodac.dicefive.resources.achievements_reward_locked
+import net.zodac.dicefive.resources.achievements_reward_locked_list
 import net.zodac.dicefive.resources.achievements_reward_show_action
 import net.zodac.dicefive.resources.achievements_reward_unlocked
+import net.zodac.dicefive.resources.achievements_reward_unlocked_list
+import net.zodac.dicefive.resources.achievements_styles_unlocked_named
 import net.zodac.dicefive.resources.achievements_score_recorded
 import net.zodac.dicefive.resources.achievements_title
 import net.zodac.dicefive.resources.achievements_unearned_only
@@ -122,6 +130,7 @@ import net.zodac.dicefive.resources.filter_all
 import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.AppTooltipState
 import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
+import net.zodac.dicefive.ui.common.BulletedList
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.FilterSwitchLabel
 import net.zodac.dicefive.ui.common.FittedCountText
@@ -136,8 +145,10 @@ import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.percentOf
+import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
 import net.zodac.dicefive.ui.common.rememberFilterSwitchState
+import net.zodac.dicefive.ui.common.spokenList
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.timestamp
 import net.zodac.dicefive.ui.icons.Symbols
@@ -661,9 +672,11 @@ private fun AchievementRow(
         },
     )
     val listsMissing = !unlocked && !superuserModeActive && item.missing.isNotEmpty()
-    // A tap shows the short tip - the style(s) it unlocks, and how many are still missing - and a long press opens the
-    // full dialog, as on the Styles screen. A row with neither has no gesture at all.
+    // A tap shows the short tip - the modes that can earn it, the style(s) it unlocks, and how many are still missing -
+    // and a long press opens the full dialog, as on the Styles screen. A row with none of them has no gesture at all.
+    val modeMessage = modeTooltipMessage(item.achievement, unlocked)
     val rewardMessage = rewardTooltipMessage(item.achievement, unlocked)
+    val detailsMessage = listOfNotNull(modeMessage, rewardDialogMessage(item.achievement, unlocked)).joinToString("\n")
     val missingMessage = if (listsMissing) {
         stringResource(
             when {
@@ -676,22 +689,29 @@ private fun AchievementRow(
     } else {
         null
     }
-    val tipMessage = listOfNotNull(rewardMessage, missingMessage).joinToString("\n").ifEmpty { null }.takeIf { !superuserModeActive }
-    val detailsLabel = if (listsMissing) missingLabel else stringResource(Res.string.achievements_reward_show_action)
-    val tooltipState = rememberAppTooltipState()
+    val tipMessage = listOfNotNull(modeMessage, rewardMessage, missingMessage).joinToString("\n").ifEmpty { null }
+        .takeIf { !superuserModeActive }
+    val detailsLabel = when {
+        listsMissing -> missingLabel
+        rewardMessage != null -> stringResource(Res.string.achievements_reward_show_action)
+        else -> stringResource(Res.string.achievements_mode_show_action)
+    }
+    // Stays up until the row is tapped again, like the game screen's totals tip.
+    val tooltipState = rememberAppTooltipState(persistent = true)
     val scope = rememberCoroutineScope()
     if (showDetails && tipMessage != null) {
         if (listsMissing) {
-            MissingDialog(item, onDismiss = { showDetails = false })
+            MissingDialog(item, modeMessage, onDismiss = { showDetails = false })
         } else {
             DiceFiveDialog(
                 icon = item.achievement.icon,
                 iconTint = item.achievement.iconTintOrUnspecified(MaterialTheme.colorScheme.primary),
                 title = stringResource(item.achievement.title),
-                message = rewardMessage.orEmpty(),
+                message = detailsMessage,
                 confirmLabel = stringResource(Res.string.common_ok),
                 onConfirm = { showDetails = false },
                 onDismissRequest = { showDetails = false },
+                extraContent = rewardList(item.achievement),
             )
         }
     }
@@ -714,7 +734,7 @@ private fun AchievementRow(
                     if (tipMessage != null) {
                         // A tooltip isn't announced, so a screen reader's one action is the dialog, which says the same and more.
                         Modifier.accessibleCombinedClickable(
-                            onClick = { scope.launch { tooltipState.show() } },
+                            onClick = { scope.launch { tooltipState.toggle() } },
                             onClickLabel = detailsLabel,
                             onLongClick = { showDetails = true },
                             onLongClickLabel = detailsLabel,
@@ -832,26 +852,29 @@ private fun AchievementRow(
 
 /**
  * Everything a collection achievement needs - a score band's scores, Full Set's numbers ("1s" to "6s"), or Grand Tour's
- * game modes - the ones already collected struck through and faded, in a scrollable pop-up. Modes go one to a line, as
- * a name of several words run together with the next would be hard to tell apart.
+ * game modes - the ones already collected struck through and faded, in a scrollable pop-up, under [modeMessage] if it
+ * has one. Modes go one to a line, as a name of several words run together with the next would be hard to tell apart.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun MissingDialog(item: AchievementItem, onDismiss: () -> Unit) {
+private fun MissingDialog(item: AchievementItem, modeMessage: String?, onDismiss: () -> Unit) {
     val achievement = item.achievement
     val isScores = achievement.scoreBand != null
     DiceFiveDialog(
         icon = achievement.icon,
         iconTint = achievement.iconTintOrUnspecified(MaterialTheme.colorScheme.primary),
         title = stringResource(achievement.title),
-        message = stringResource(
-            when {
-                isScores -> Res.string.achievements_missing_message
-                achievement.isEveryMode -> Res.string.achievements_missing_modes_message
-                else -> Res.string.achievements_missing_numbers_message
-            },
-            item.missing.size.grouped(),
-        ),
+        message = listOfNotNull(
+            modeMessage,
+            stringResource(
+                when {
+                    isScores -> Res.string.achievements_missing_message
+                    achievement.isEveryMode -> Res.string.achievements_missing_modes_message
+                    else -> Res.string.achievements_missing_numbers_message
+                },
+                item.missing.size.grouped(),
+            ),
+        ).joinToString("\n"),
         confirmLabel = stringResource(Res.string.common_done),
         onConfirm = onDismiss,
         onDismissRequest = onDismiss,
@@ -897,15 +920,66 @@ private fun MissingDialog(item: AchievementItem, onDismiss: () -> Unit) {
 }
 
 /**
- * The line(s) naming the style(s) an achievement unlocks, or null for one that unlocks none. Not marked on the
+ * The sentence naming the style(s) an achievement unlocks, or null for one that unlocks none: several in one list, one
+ * style's items named once ("'Starry' dice, mat, and background"), as the unlock banner names them. Not marked on the
  * row (there's no icon for it): a tooltip rather than only a dialog because it's a passing "what's this?".
  */
 @Composable
 private fun rewardTooltipMessage(achievement: Achievement, unlocked: Boolean): String? {
-    if (!achievement.unlocksStyle) return null
-    return achievement.styleRewards.map { reward ->
-        stringResource(if (unlocked) Res.string.achievements_reward_unlocked else Res.string.achievements_reward_locked, reward.description())
-    }.joinToString("\n")
+    val rewards = achievement.styleRewards
+    if (rewards.isEmpty()) return null
+    val names = if (rewards.size > 1 && rewards.all { it.styleName == rewards[0].styleName && it.hiddenColours == 0 }) {
+        stringResource(Res.string.achievements_styles_unlocked_named, stringResource(rewards[0].styleName), spokenList(rewards.map { stringResource(it.categoryNoun) }))
+    } else {
+        spokenList(rewards.map { it.description() })
+    }
+    return stringResource(if (unlocked) Res.string.achievements_reward_unlocked else Res.string.achievements_reward_locked, names)
+}
+
+/**
+ * The style(s) an achievement unlocks, for its dialog: [rewardTooltipMessage]'s sentence for one, or for several the
+ * heading over [rewardList]. Null for one that unlocks none.
+ */
+@Composable
+private fun rewardDialogMessage(achievement: Achievement, unlocked: Boolean): String? =
+    if (achievement.styleRewards.size <= 1) {
+        rewardTooltipMessage(achievement, unlocked)
+    } else {
+        stringResource(if (unlocked) Res.string.achievements_reward_unlocked_list else Res.string.achievements_reward_locked_list)
+    }
+
+/** The styles an achievement unlocks, one to a bulleted line under [rewardDialogMessage]'s heading - or null for fewer than two. */
+private fun rewardList(achievement: Achievement): (@Composable () -> Unit)? {
+    val rewards = achievement.styleRewards
+    if (rewards.size < 2) return null
+    return {
+        val lines = rewards.map { reward ->
+            val name = stringResource(reward.styleName)
+            val noun = stringResource(reward.categoryNoun)
+            if (reward.hiddenColours == 0) {
+                stringResource(Res.string.achievements_reward_item, name, noun)
+            } else {
+                pluralStringResource(Res.plurals.achievements_reward_item_hidden_colours, reward.hiddenColours, name, noun)
+            }
+        }
+        BulletedList(lines, modifier = Modifier.padding(top = 12.dp))
+    }
+}
+
+/**
+ * The line naming the modes an achievement can be earned in, or null for one not deliberately limited to some (even if
+ * some modes' rules rule it out). Null too once it's earned, for a hidden one (its modes would give it away), and in
+ * the Game Modes category, whose descriptions name their mode.
+ */
+@Composable
+private fun modeTooltipMessage(achievement: Achievement, unlocked: Boolean): String? {
+    val modes = achievement.limitedModes
+    if (modes.isEmpty() || unlocked || achievement.visibility == AchievementVisibility.HIDDEN || achievement.category == AchievementCategory.GAME_MODES) {
+        return null
+    }
+    // Each name kept on one line: "'7" at one line's end and "Dice Stud'" at the next's start reads as two things.
+    val names = spokenList(modes.map { stringResource(Res.string.achievements_mode_quoted, stringResource(it.displayName).replace(' ', '\u00A0')) })
+    return pluralStringResource(Res.plurals.achievements_mode_tooltip_only, modes.size, names)
 }
 
 /**

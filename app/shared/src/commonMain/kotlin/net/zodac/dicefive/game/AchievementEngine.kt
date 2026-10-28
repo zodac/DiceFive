@@ -470,17 +470,17 @@ object AchievementEngine {
 
         earned += earnedByProgress(counters, leaderboard)
 
-        // A card scored three times over (Third Wind) has its own version of Spotless instead. Nor does one with
-        // boxes switched off (Quickfire) - six turns without a zero is nothing like thirteen.
+        // Not on a card with boxes switched off (Quickfire) - six turns without a zero is nothing like thirteen.
         // Nor where the best five of more dice score (Stud), whose cards are fuller than Standard's.
-        val singleScoreCard = state.gameMode.scoresPerCategory == 1 && !state.rollModifiers.isActive && state.disabledCategories.isEmpty() &&
-            !state.gameMode.scoresHeldDiceOnly
+        val fullStandardRules = !state.rollModifiers.isActive && state.disabledCategories.isEmpty() && !state.gameMode.scoresHeldDiceOnly
+        val singleScoreCard = state.gameMode.scoresPerCategory == 1 && fullStandardRules
         val noZeroes = anyHuman { player -> player.allScores.none { it == 0 } }
-        // Nor on a card of targets (Hit List), where a partial hit leaves a zero only now and then.
+        // Nor on a card of targets (Hit List), where a partial hit leaves a zero only now and then. A card scored three
+        // times over (Third Wind) counts: every one of its 39 slots, and its tripled bonus.
         // The upper section bonus must be reached too, on the same card as the clean sheet.
         award(
             Achievement.SPOTLESS,
-            singleScoreCard && state.gameMode.hasStandardCard &&
+            fullStandardRules && state.gameMode.hasStandardCard &&
                 anyHuman { player -> player.allScores.none { it == 0 } && player.upperSectionBonus > 0 },
         )
         award(Achievement.THIRD_TIMES_THE_CHARM, noZeroes)
@@ -540,10 +540,10 @@ object AchievementEngine {
 
         // Misfortune that only a finished score can settle.
         // Not on a card with boxes switched off (Quickfire), where a total is low by construction, nor on a card of
-        // targets (Hit List), where a total under 100 comes of an ordinary run of misses.
+        // targets (Hit List), where a total under 100 comes of an ordinary run of misses. D20's numbers count.
         // Nor with the turn timer having zeroed any of it.
-        award(Achievement.COLD_DICE, noTimeouts && anyHuman { it.hasStandardTotals && it.totalScore < COLD_DICE_SCORE })
-        award(Achievement.LOW_ROLLS, noTimeouts && anyHuman { it.hasStandardTotals && it.totalScore < LOW_ROLLS_SCORE })
+        award(Achievement.COLD_DICE, noTimeouts && anyHuman { it.hasComparableTotals && it.totalScore < COLD_DICE_SCORE })
+        award(Achievement.LOW_ROLLS, noTimeouts && anyHuman { it.hasComparableTotals && it.totalScore < LOW_ROLLS_SCORE })
         // Chance is excluded because it cannot be zeroed - five dice always sum to at least 5.
         award(
             Achievement.HOW_DO_YOU_PLAY_THIS_GAME,
@@ -574,11 +574,13 @@ object AchievementEngine {
         val playerOneNeverRolledTwice = !context.playerOneTookExtraRoll && state.rollsPerTurn > 1 && noTimeouts
         award(Achievement.IMPATIENT, playerOneNeverRolledTwice)
         award(Achievement.NATURALLY_GIFTED, multiplayer && playerOneNeverRolledTwice && humanWon)
-        // Every modifier at once, in a mode of its own: the timer, both roll modifiers, Extended Scores and Unlucky Dice.
+        // Every modifier at once, in a mode of its own: the timer, both roll modifiers, Extended Scores and Unlucky Dice -
+        // Extended Scores only where the mode offers it (not D20 or Hit List).
         award(
             Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE,
             multiplayer && humanWon && !state.gameMode.isOfficialRules && state.turnTimer != TurnTimer.NONE &&
-                state.rollModifiers.rollsPerTurn != null && state.rollModifiers.storedRolls && state.extendedScores && state.unluckyDice != null,
+                state.rollModifiers.rollsPerTurn != null && state.rollModifiers.storedRolls &&
+                (state.extendedScores || !state.gameMode.allowsExtendedScores) && state.unluckyDice != null,
         )
 
         // Hands Off!: 200 or more without a die held all game - on Standard's own card and rules, nothing to make it easier.
@@ -750,9 +752,9 @@ object AchievementEngine {
     private val PlayerState.hasFullCard: Boolean
         get() = disabledCategories.isEmpty()
 
-    /** Whether this card's total means what Standard's does: every box on it ([hasFullCard]), and boxes, not targets. */
-    private val PlayerState.hasStandardTotals: Boolean
-        get() = hasFullCard && gameMode.hasStandardCard
+    /** Whether a low total on this card means a poor game: every box on it ([hasFullCard]), and boxes, not targets. */
+    private val PlayerState.hasComparableTotals: Boolean
+        get() = hasFullCard && !gameMode.hasHitList
 
     /** ONES holds exactly 1, TWOS exactly 2, ... SIXES exactly 6 (in every one of its slots). */
     private fun PlayerState.matchesExactUpperLadder(): Boolean =

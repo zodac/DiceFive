@@ -872,6 +872,11 @@ class AchievementEngineTest {
         assertFalse(earned(table(rolls = RollModifiers(storedRolls = true))), "no Number of Rolls")
         assertFalse(earned(table(rolls = RollModifiers(rollsPerTurn = 2))), "no Stored Rolls")
         assertFalse(earned(table(extended = false)), "no Extended Scores")
+        // Where the mode has no Extended Scores to turn on, the rest are every modifier.
+        fun everyOtherModifier(vararg players: PlayerState) =
+            finishedGame(*players).copy(turnTimer = TurnTimer.SECONDS_30, rollModifiers = RollModifiers(rollsPerTurn = 2, storedRolls = true), unluckyDice = UnluckyDice())
+        assertTrue(earned(everyOtherModifier(d20Player(), d20Player(name = "Bot", type = PlayerType.AI, firstHalf = 50, secondHalf = 100))), "D20")
+        assertTrue(earned(everyOtherModifier(hitListPlayer(total = 300), hitListPlayer(name = "Bot", type = PlayerType.AI, total = 150))), "Hit List")
         assertFalse(earned(table(unlucky = null)), "no Unlucky Dice")
     }
 
@@ -1062,10 +1067,15 @@ class AchievementEngineTest {
         thirdWindPlayer(name = name, type = type) { _, _ -> 10 }
 
     @Test
-    fun `Third Time's The Charm is Third Wind's Spotless - no zero in all 39 slots - and each card earns only its own`() {
+    fun `Third Time's The Charm is no zero in all 39 slots of Third Wind - and Spotless there needs its tripled bonus too`() {
+        // 10 in every slot: no zero, but 180 in the upper section, short of its 189.
         val thirdWind = unlocked(finishedGame(thirdWindNoZeroes()))
         assertTrue(Achievement.THIRD_TIMES_THE_CHARM in thirdWind)
         assertFalse(Achievement.SPOTLESS in thirdWind)
+        // 15 in every upper slot: 270, and the bonus.
+        val withBonus = unlocked(finishedGame(thirdWindPlayer { category, _ -> if (category.section == ScoreSection.UPPER) 15 else 10 }))
+        assertTrue(Achievement.SPOTLESS in withBonus)
+        assertTrue(Achievement.THIRD_TIMES_THE_CHARM in withBonus)
 
         val oneZero = thirdWindPlayer { category, slot -> if (category == ScoreCategory.LARGE_STRAIGHT && slot == 2) 0 else 10 }
         assertFalse(Achievement.THIRD_TIMES_THE_CHARM in unlocked(finishedGame(oneZero)))
@@ -1176,6 +1186,17 @@ class AchievementEngineTest {
     }
 
     @Test
+    fun `a low D20 total is Cold Dice - under 20 Low Rolls too - as on the Standard card`() {
+        val cold = unlocked(finishedGame(d20Player(firstHalf = 30, secondHalf = 60)))
+        assertTrue(Achievement.COLD_DICE in cold)
+        assertFalse(Achievement.LOW_ROLLS in cold)
+        val low = unlocked(finishedGame(d20Player(firstHalf = 5, secondHalf = 10)))
+        assertTrue(Achievement.COLD_DICE in low)
+        assertTrue(Achievement.LOW_ROLLS in low)
+        assertFalse(Achievement.COLD_DICE in unlocked(finishedGame(d20Player(firstHalf = 40, secondHalf = 60))), "100 isn't under 100")
+    }
+
+    @Test
     fun `Critical Success unlocks mid-game once both D20 halves have earned their bonus - not one half - not with extra rolls - not on another card`() {
         fun earned(player: PlayerState) = Achievement.CRITICAL_SUCCESS in unlockedMidGame(player)
         val bothScored = mapOf(ScoreCategory.D20_1 to 150, ScoreCategory.D20_11 to 400)
@@ -1280,7 +1301,7 @@ class AchievementEngineTest {
             ),
             // Third Wind: every box three times.
             Guarded("Third Wind - 30 in every slot", unlocked(finishedGame(thirdWindPlayer { _, _ -> 30 })), ladder + sections),
-            Guarded("Third Wind - no zero", unlocked(finishedGame(thirdWindNoZeroes()), previousBest), listOf(Achievement.SPOTLESS, Achievement.NEW_PERSONAL_BEST)),
+            Guarded("Third Wind - no zero", unlocked(finishedGame(thirdWindNoZeroes()), previousBest), listOf(Achievement.NEW_PERSONAL_BEST)),
             Guarded(
                 "Third Wind - three zeroes in a win",
                 unlocked(finishedGame(thirdWindPlayer { category, _ -> if (category == ScoreCategory.LARGE_STRAIGHT) 0 else 10 }, thirdWindBot)),
@@ -1319,16 +1340,22 @@ class AchievementEngineTest {
             Guarded("Hit List - no zero", unlocked(finishedGame(hitListPlayer(scores = GameMode.HIT_LIST.categories.associateWith { 5 }))), listOf(Achievement.SPOTLESS)),
             // D20: its totals are a different measure. Both halves in: 150 + 400 + 150 = 700.
             Guarded("D20 on 700", unlocked(finishedGame(d20Player(firstHalf = 150, secondHalf = 400))), listOf(Achievement.SOLID_ROUND, Achievement.DICE_DEITY)),
-            Guarded("D20 on 30", unlocked(finishedGame(d20Player(firstHalf = 10, secondHalf = 20))), listOf(Achievement.COLD_DICE, Achievement.LOW_ROLLS)),
             Guarded("D20 - a win with zeroes", unlocked(finishedGame(d20Player(firstHalf = 100, secondHalf = 300), d20Bot)), listOf(Achievement.ZERO_TO_HERO)),
             Guarded("D20 - no zero", unlocked(finishedGame(d20Player(scores = GameMode.D20.categories.associateWith { 5 }))), listOf(Achievement.SPOTLESS)),
         )
 
+        // A row of a mode's card, by the name it starts with: what that mode guards is a deliberate limit, so it's in
+        // notEarnableIn (or kept to its own mode), which the Achievements page explains.
+        val rowModes = mapOf(
+            "Quickfire" to GameMode.QUICKFIRE, "Third Wind" to GameMode.THIRD_WIND, "Stud" to GameMode.STUD, "Hit List" to GameMode.HIT_LIST, "D20" to GameMode.D20,
+        )
         val failures = guarded.flatMap { row ->
+            val mode = rowModes.entries.firstOrNull { row.card.startsWith(it.key) }?.value
             row.mustNotEarn.mapNotNull { achievement ->
                 when {
                     achievement !in earnedInStandard -> "$achievement: no Standard card here earns it"
                     achievement in row.unlocked -> "$achievement: earned by ${row.card}"
+                    mode != null && achievement.mode == null && mode !in achievement.notEarnableIn -> "$achievement: guarded in $mode, but not in its notEarnableIn"
                     else -> null
                 }
             }
