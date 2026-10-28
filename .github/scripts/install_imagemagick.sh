@@ -24,7 +24,7 @@ set -euo pipefail
 IMAGEMAGICK_VERSION="7.1.2-34"
 IMAGEMAGICK_SHA256="6e9edfd35d5f30b57c27533afe003d6085faaf8607b207426f398d11751acf93"
 
-dir="${RUNNER_TEMP}/imagemagick"
+dir="${RUNNER_TEMP:?set by GitHub Actions}/imagemagick"
 mkdir -p "${dir}/bin"
 cd "${dir}"
 curl -fsSL --retry 3 -o magick.AppImage \
@@ -33,5 +33,5 @@ echo "${IMAGEMAGICK_SHA256}  magick.AppImage" | sha256sum -c -
 chmod +x magick.AppImage
 ./magick.AppImage --appimage-extract > /dev/null
 ln -sf "${dir}/squashfs-root/AppRun" bin/magick
-echo "${dir}/bin" >> "${GITHUB_PATH}"
+echo "${dir}/bin" >> "${GITHUB_PATH:?set by GitHub Actions}"
 bin/magick -version | head -n 1

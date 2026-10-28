@@ -12,15 +12,15 @@
 
 set -euo pipefail
 
-if [ $# -ne 0 ]; then
+if [[ $# -ne 0 ]]; then
   echo "Usage: $0" >&2
   exit 1
 fi
 
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-current="$(tr -d '[:space:]' < "$root_dir/VERSION")"
+current="$(tr -d '[:space:]' < "${root_dir}/VERSION")"
 
-IFS='.' read -r major minor patch <<< "$current"
-next="$major.$minor.$((patch + 1))"
+IFS='.' read -r major minor patch <<< "${current}"
+next="${major}.${minor}.$((patch + 1))"
 
-"$root_dir/scripts/set-version.sh" "$next"
+"${root_dir}/scripts/set-version.sh" "${next}"

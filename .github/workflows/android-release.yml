@@ -130,6 +130,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          submodules: true # code-quality-config: lint's rules, which release builds read too (lintVital)
           ref: ${{ needs.version.outputs.sha }}
 
       - name: Set up the build
@@ -194,6 +195,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          submodules: true # code-quality-config: lint's rules, which release builds read too (lintVital)
           ref: ${{ needs.version.outputs.sha }}
 
       - name: Set up the build
@@ -215,6 +217,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          submodules: true # code-quality-config: lint's rules, which release builds read too (lintVital)
           ref: ${{ needs.version.outputs.sha }}
 
       - name: Set up the build
@@ -257,6 +260,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          submodules: true # code-quality-config: lint's rules, which release builds read too (lintVital)
           ref: ${{ needs.version.outputs.sha }}
           fetch-depth: 0 # the lap count below diffs against the previous release's tag
 
@@ -442,6 +446,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          submodules: true # code-quality-config: lint's rules, which release builds read too (lintVital)
           ref: ${{ needs.version.outputs.sha }}
 
       - name: Set up the build

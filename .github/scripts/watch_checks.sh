@@ -25,7 +25,7 @@ interval="${WATCH_INTERVAL_SECONDS:-30}"
 (( $# > 0 )) || { echo "usage: $0 <marker file> <job name>..." >&2; exit 2; }
 
 while true; do
-    if jobs=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs" \
+    if jobs=$(gh api --paginate "repos/${GITHUB_REPOSITORY:?set by GitHub Actions}/actions/runs/${GITHUB_RUN_ID:?set by GitHub Actions}/jobs" \
             --jq '.jobs[] | "\(.name)\t\(.status)\t\(.conclusion)"' 2>/dev/null); then
         succeeded=0
         for name in "$@"; do

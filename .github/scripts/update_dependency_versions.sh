@@ -33,7 +33,9 @@
 #                 - GitHub Actions `uses:` references, in the workflows and .github/actions (always pinned to a
 #                   commit, `@<sha> # v1.2.3`: a floating `@v4` is converted, a commit pin moves to the new release's commit) -
 #                   or, with --no-workflow-edits, only reported
-#                 - The actionlint image pinned in .github/scripts/lint_workflows.sh
+#                 - The linter images pinned in .github/scripts/lint_*.sh (actionlint, ShellCheck, hadolint, and
+#                   markdownlint-cli2)
+#                 - The code-quality-config submodule (the linters' shared rules): to its highest X.Y.Z tag
 #                 - ImageMagick's AppImage (version + sha256), pinned in .github/scripts/install_imagemagick.sh
 #                   (CI) and sandbox/Dockerfile (the sandbox), always moved together
 #                 - Claude model IDs keying .claude/settings.json's `modelSettings`: each moves to the newest
@@ -117,7 +119,9 @@
 # (only a missing required file does). That intentional pattern - invoking functions in a
 # condition while `set -e` is active - is exactly what SC2310 flags, so disable it file-wide here.
 # `set -e` is kept on purpose: it still aborts on unexpected failures inside the apply sections.
-# shellcheck disable=SC2310
+# For the same reason a lookup read through a command substitution may fail: its empty output means "nothing
+# found", which is what SC2312 (the masked return value) flags.
+# shellcheck disable=SC2310,SC2312
 set -euo pipefail
 
 SANDBOX_DOCKERFILE="./sandbox/Dockerfile"
@@ -1841,45 +1845,116 @@ update_github_actions() {
     done
 }
 
-# ── 10b. actionlint image (.github/scripts/lint_workflows.sh) ─────────────────
-# The workflow linter's Docker image, pinned in the lint script rather than a workflow (so a
-# GITHUB_TOKEN push can bump it). Moved to actionlint's latest stable GitHub release whose Docker Hub
-# tag is confirmed - the release is tagged vX.Y.Z, the image X.Y.Z.
+# ── 10b. Linter images (.github/scripts/lint_*.sh) ────────────────────────────
+# Each linter's Docker image, pinned in its lint script rather than a workflow (so a GITHUB_TOKEN push can bump it).
+# Moved to the linter's latest stable GitHub release (markdownlint-cli2 publishes none: its highest stable tag) whose
+# Docker Hub tag is confirmed. actionlint's release vX.Y.Z is the image X.Y.Z; the others' images keep the v.
 
-LINT_WORKFLOWS_SCRIPT=".github/scripts/lint_workflows.sh"
-
-update_actionlint() {
+# update_lint_image <name> <lint script> <pin variable> <image> <GitHub repo> <image tag keeps the v: true|false>
+#                   [<versions from: releases|tags>]
+update_lint_image() {
+    local name="${1}" script="${2}" variable="${3}" image="${4}" repo="${5}" keep_v="${6}" source="${7:-releases}"
     echo
-    section "🔍 Fetching latest actionlint version..."
+    section "🔍 Fetching latest ${name} version..."
 
     local current
-    current=$(grep -oP '^ACTIONLINT_IMAGE="rhysd/actionlint:\K[^"]+' "${LINT_WORKFLOWS_SCRIPT}" 2>/dev/null || true)
+    current=$(grep -oP "^${variable}=\"${image}:\\K[^\"]+" "${script}" 2>/dev/null || true)
     if [[ -z "${current}" ]]; then
-        warn "No ACTIONLINT_IMAGE pin in ${LINT_WORKFLOWS_SCRIPT}, skipping"
+        warn "No ${variable} pin in ${script}, skipping"
         return 0
     fi
 
     local tag latest
-    tag=$(latest_stable_github_release "rhysd/actionlint" || true)
-    latest="${tag#v}"
+    if [[ "${source}" == "tags" ]]; then
+        tag=$(github_curl "https://api.github.com/repos/${repo}/tags?per_page=100" | jq -r '.[].name' \
+            | filter_stable_versions | sort -V | tail -1 || true)
+    else
+        tag=$(latest_stable_github_release "${repo}" || true)
+    fi
+    latest="${tag}"
+    [[ "${keep_v}" == "true" ]] || latest="${tag#v}"
     if [[ -z "${latest}" ]]; then
-        warn "Could not fetch a stable actionlint version, skipping"
+        warn "Could not fetch a stable ${name} version, skipping"
         return 0
     fi
     if ! version_gt "${latest}" "${current}"; then
         return 0
     fi
-    if ! hub_tag_exists "rhysd/actionlint" "${latest}"; then
-        warn "rhysd/actionlint:${latest} not on Docker Hub, skipping"
+    if ! hub_tag_exists "${image}" "${latest}"; then
+        warn "${image}:${latest} not on Docker Hub, skipping"
         return 0
     fi
 
-    changed "actionlint: ${current} → ${latest}"
-    sed -i "s|^ACTIONLINT_IMAGE=\"rhysd/actionlint:[^\"]*\"|ACTIONLINT_IMAGE=\"rhysd/actionlint:${latest}\"|" "${LINT_WORKFLOWS_SCRIPT}"
-    record_update "actionlint: ${current} → ${latest}"
+    changed "${name}: ${current} → ${latest}"
+    sed -i "s|^${variable}=\"${image}:[^\"]*\"|${variable}=\"${image}:${latest}\"|" "${script}"
+    record_update "${name}: ${current} → ${latest}"
 }
 
-# ── 10c. ImageMagick (.github/scripts/install_imagemagick.sh + sandbox/Dockerfile) ──
+update_lint_images() {
+    update_lint_image actionlint .github/scripts/lint_workflows.sh ACTIONLINT_IMAGE rhysd/actionlint rhysd/actionlint false
+    update_lint_image ShellCheck .github/scripts/lint_shell_scripts.sh SHELLCHECK_IMAGE koalaman/shellcheck koalaman/shellcheck true
+    update_lint_image hadolint .github/scripts/lint_dockerfiles.sh HADOLINT_IMAGE hadolint/hadolint hadolint/hadolint true
+    update_lint_image markdownlint-cli2 .github/scripts/lint_markdown.sh MARKDOWNLINT_IMAGE davidanson/markdownlint-cli2 \
+        DavidAnson/markdownlint-cli2 true tags
+}
+
+# ── 10c. code-quality-config submodule ────────────────────────────────────────
+# The linters' shared rules (Android lint, actionlint, ShellCheck, hadolint, and markdownlint): a git submodule pinned to a release tag of
+# its repository. Moved to the highest X.Y.Z tag - always a tag, never a branch's newest commit. The tags are read with
+# `git ls-remote`, and only the new tag is fetched; the update workflow's `git add -A` then stages the moved submodule,
+# and its lint gates prove the tree passes the new rules before anything is committed.
+
+CODE_QUALITY_CONFIG_DIR="code-quality-config"
+
+update_code_quality_config() {
+    echo
+    section "🔍 Fetching latest code-quality-config tag..."
+
+    if [[ ! -e "${CODE_QUALITY_CONFIG_DIR}/.git" ]]; then
+        warn "${CODE_QUALITY_CONFIG_DIR} is not checked out (git submodule update --init), skipping"
+        return 0
+    fi
+    local url current_commit
+    url=$(git config -f .gitmodules --get "submodule.${CODE_QUALITY_CONFIG_DIR}.url" || true)
+    current_commit=$(git -C "${CODE_QUALITY_CONFIG_DIR}" rev-parse HEAD)
+
+    # Each tag's commit: an annotated tag's own line is followed by its `^{}` line, the commit it points at.
+    local remote_tags sha ref name
+    local -A tag_commit=()
+    if ! remote_tags=$(git ls-remote --tags "${url}" 2>/dev/null) || [[ -z "${remote_tags}" ]]; then
+        warn "Could not list ${url}'s tags, skipping"
+        return 0
+    fi
+    while read -r sha ref; do
+        name="${ref#refs/tags/}"
+        tag_commit["${name%^\{\}}"]="${sha}"
+    done <<< "${remote_tags}"
+
+    local releases latest current="" candidate
+    releases=$(printf '%s\n' "${!tag_commit[@]}" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V || true)
+    latest=$(tail -n 1 <<< "${releases}")
+    if [[ -z "${latest}" ]]; then
+        warn "No X.Y.Z tag in ${url}, skipping"
+        return 0
+    fi
+    while read -r candidate; do
+        if [[ "${tag_commit[${candidate}]}" == "${current_commit}" ]]; then current="${candidate}"; fi
+    done <<< "${releases}"
+    if [[ -n "${current}" ]] && ! version_gt "${latest}" "${current}"; then
+        return 0
+    fi
+
+    if ! git -C "${CODE_QUALITY_CONFIG_DIR}" fetch --quiet --depth 1 origin "refs/tags/${latest}:refs/tags/${latest}" \
+        || ! git -C "${CODE_QUALITY_CONFIG_DIR}" checkout --quiet "${latest}"; then
+        warn "Could not check out ${CODE_QUALITY_CONFIG_DIR} at ${latest}, skipping"
+        return 0
+    fi
+    current="${current:-${current_commit:0:7}}"
+    changed "code-quality-config: ${current} → ${latest}"
+    record_update "code-quality-config: ${current} → ${latest}"
+}
+
+# ── 10d. ImageMagick (.github/scripts/install_imagemagick.sh + sandbox/Dockerfile) ──
 # ImageMagick's own x86_64 AppImage, which renders the store assets in CI (the README-assets workflow) and in the
 # sandbox. Both files pin the same release and its SHA-256 (the sandbox image's build context can't reach the CI
 # script), so they are moved together or not at all, and the consistency guard checks they agree. Moved to
@@ -1926,7 +2001,7 @@ update_imagemagick() {
     record_update "ImageMagick: ${current} → ${latest}"
 }
 
-# ── 10d. Claude model IDs (.claude/settings.json modelSettings) ───────────────
+# ── 10e. Claude model IDs (.claude/settings.json modelSettings) ───────────────
 # `modelSettings` (the per-model effort level) is keyed by a model's full ID, so a new release of a
 # family would leave the entry on the old model and the setting would silently stop applying. Each key
 # moves to the newest ID of its family on Anthropic's models overview, which lists the current models
@@ -2427,7 +2502,8 @@ run_section "sandbox Debian base update failed, continuing..." update_sandbox_ba
 run_section "Debian packages update failed for ${SANDBOX_DOCKERFILE}, continuing..." update_apt_packages "${SANDBOX_DOCKERFILE}" "DEBIAN"
 
 run_section "GitHub Actions update failed, continuing..." update_github_actions
-run_section "actionlint update failed, continuing..." update_actionlint
+run_section "Linter image update failed, continuing..." update_lint_images
+run_section "code-quality-config update failed, continuing..." update_code_quality_config
 run_section "ImageMagick update failed, continuing..." update_imagemagick
 run_section "Claude model ID update failed, continuing..." update_claude_models
 

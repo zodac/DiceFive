@@ -1,19 +1,16 @@
 package net.zodac.dicefive.buildlogic
 
 import com.android.build.api.dsl.Lint
+import org.gradle.api.Project
 import org.jetbrains.kotlin.gradle.dsl.KotlinCommonCompilerOptions
 
 /**
- * Lint's rules for every module. Deprecated and obsolete usages fail lint - and so CI, which runs it - rather than
- * piling up as warnings, as does any other warning: fix it, or suppress it where it occurs with a comment saying why.
- * The exceptions: "a newer version of a library exists" (GradleDependency, and NewerVersionAvailable, which the JVM
- * target's lint runs) and "of Gradle or AGP" (AndroidGradlePluginVersion) go off the day a release is published, failing
- * CI with no change on our side; update-dependencies.yml is what tracks new versions.
+ * Lint's rules for every module: code-quality-config/android/lint.xml, where each is explained. Any warning fails lint -
+ * and so CI, which runs it - and deprecated and obsolete usages are errors outright. A module's own lint.xml (per-path
+ * exceptions) applies before it.
  */
-internal fun Lint.strict() {
-    error += setOf("Deprecated", "ObsoleteSdkInt")
-    warningsAsErrors = true
-    disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion")
+internal fun Lint.strict(project: Project) {
+    lintConfig = project.rootProject.file("code-quality-config/android/lint.xml")
 }
 
 /**

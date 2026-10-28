@@ -5,5 +5,5 @@
 set -euo pipefail
 
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-git -C "$root_dir" config core.hooksPath .githooks
+git -C "${root_dir}" config core.hooksPath .githooks
 echo "Git hooks enabled: core.hooksPath -> .githooks"

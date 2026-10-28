@@ -11,6 +11,9 @@
 #               .github/scripts/update_dependency_versions.sh keeps ACTIONLINT_IMAGE at the latest
 #               actionlint release.
 #
+#               Its config is code-quality-config/github-actions/actionlint.yaml, passed explicitly:
+#               actionlint only discovers one at .github/actionlint.yaml.
+#
 # Usage:        .github/scripts/lint_workflows.sh      (from the repository root)
 #
 # Requirements: docker
@@ -19,4 +22,5 @@ set -euo pipefail
 
 ACTIONLINT_IMAGE="rhysd/actionlint:1.7.12"
 
-docker run --rm -v "${PWD}:/repo" -w /repo "${ACTIONLINT_IMAGE}" -no-color
+docker run --rm -v "${PWD}:/repo" -w /repo "${ACTIONLINT_IMAGE}" -no-color \
+    -config-file code-quality-config/github-actions/actionlint.yaml

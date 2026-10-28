@@ -35,7 +35,9 @@ case "$1" in
         ;;
     clear)
         [[ $# -eq 2 ]] || usage
-        if [[ "$(notes "${notes_file}")" == "$(notes "$2")" ]]; then
+        current="$(notes "${notes_file}")"
+        released="$(notes "$2")"
+        if [[ "${current}" == "${released}" ]]; then
             : > "${notes_file}"
         else
             echo "RELEASE_NOTES.md changed during this release - leaving it for the next one" >&2

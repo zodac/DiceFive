@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Tests for scripts/release-notes.sh. Run from anywhere: scripts/tests/release-notes-test.sh
+# Each command substitution is a check's subject: a command that fails gives the wrong output, which fails the check.
+# shellcheck disable=SC2312
 set -euo pipefail
 
 script="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/release-notes.sh"

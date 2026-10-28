@@ -11,10 +11,10 @@
 set -euo pipefail
 
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-source_font="$root_dir/app/licensing/sources/Andika-Bold.ttf"
-output="$root_dir/app/shared/src/commonMain/composeResources/font/dicefive_d20.ttf"
+source_font="${root_dir}/app/licensing/sources/Andika-Bold.ttf"
+output="${root_dir}/app/shared/src/commonMain/composeResources/font/dicefive_d20.ttf"
 
-python3 -I - "$source_font" "$output" <<'PYTHON'
+python3 -I - "${source_font}" "${output}" <<'PYTHON'
 import sys
 from fontTools import subset
 from fontTools.ttLib import TTFont
@@ -48,4 +48,4 @@ for name_id, value in ((1, family), (2, style), (3, full), (4, full), (6, postsc
 font.save(output)
 PYTHON
 
-ls -l "$output"
+ls -l "${output}"

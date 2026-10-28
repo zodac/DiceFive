@@ -59,7 +59,7 @@ chown dev:dev /home/dev/.claude /home/dev/.cache /home/dev/.cache/ms-playwright 
 sdk_dir="$(sed -n 's/^sdk\.dir=//p' /work/local.properties 2>/dev/null | tail -n 1)"
 if [[ -n "${sdk_dir}" && "${sdk_dir}" == /* && ! -e "${sdk_dir}" ]]; then
   mkdir -p "$(dirname "${sdk_dir}")"
-  ln -s "${ANDROID_HOME}" "${sdk_dir}"
+  ln -s "${ANDROID_HOME:?set by the sandbox image}" "${sdk_dir}"
   echo "[sandbox] linked local.properties' sdk.dir (${sdk_dir}) to ${ANDROID_HOME}."
 fi
 

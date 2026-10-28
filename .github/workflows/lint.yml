@@ -1,0 +1,47 @@
+name: Lint
+
+# Lints the workflows (actionlint), the shell scripts (ShellCheck), the Dockerfiles (hadolint), and the Markdown
+# (markdownlint), each from its pinned Docker image and with its rules from the code-quality-config submodule - on a
+# push to main that changes one of them, a lint script, or the submodule (new rules). Android's own lint runs in the
+# Gradle jobs of android-release.yml and update-dependencies.yml, which also runs these four after a monthly update.
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/**"
+      - ".github/actions/**"
+      - "**.sh"
+      - ".githooks/**"
+      - "**Dockerfile"
+      - "**.md"
+      - ".gitmodules"
+      - "code-quality-config"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
+          persist-credentials: false
+
+      - name: Lint workflows
+        run: .github/scripts/lint_workflows.sh
+
+      - name: Lint shell scripts
+        if: ${{ !cancelled() }}
+        run: .github/scripts/lint_shell_scripts.sh
+
+      - name: Lint Dockerfiles
+        if: ${{ !cancelled() }}
+        run: .github/scripts/lint_dockerfiles.sh
+
+      - name: Lint Markdown
+        if: ${{ !cancelled() }}
+        run: .github/scripts/lint_markdown.sh

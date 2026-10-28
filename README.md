@@ -1,7 +1,10 @@
 <!-- The images are refreshed after every release by .github/workflows/readme-assets.yml. -->
+<!-- Centred images need HTML on GitHub, and an image tag with its URL and alt text cannot be wrapped. -->
+<!-- markdownlint-disable MD013 MD033 -->
 <h1 align="center">
   <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/feature-graphic.gif" alt="DiceFive" width="640">
 </h1>
+<!-- markdownlint-enable MD013 MD033 -->
 
 **Roll five dice, fill your scorecard, and outscore friends or AI. Fully offline, unless you sign in to Google Play Games.**
 
@@ -15,6 +18,8 @@ computer opponents on Easy, Medium, or Hard.
 New to the rules? A guided tutorial walks you through a game of Standard, step by step. The other modes and the house
 rules open up once you've finished your first game.
 
+<!-- Centred images need HTML on GitHub, and an image tag with its URL and alt text cannot be wrapped. -->
+<!-- markdownlint-disable MD013 MD033 -->
 <p align="center">
   <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/phone-1-game.png" alt="Roll, hold, and score: a three-player game, with the scorecard above the dice tray" width="160">
   <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/phone-2-modes.png" alt="Twists on the classic rules: a Tricolour game at a wooden table, with red, yellow, and blue dice" width="160">
@@ -34,20 +39,21 @@ rules open up once you've finished your first game.
   <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/tablet-10-5-achievements.png" alt="Earn achievements as you play on a tablet: the Achievements list in two columns" width="400">
 </p>
 </details>
+<!-- markdownlint-enable MD013 MD033 -->
 
 ## Seven ways to play
 
 - **Standard** - the classic rules: 13 boxes, three rolls a turn, a 35-point upper bonus, and 100-point bonuses for
-  every extra 5x.
+    every extra 5x.
 - **Tricolour** - every die also lands red, yellow, or blue, and four colour boxes join the card. Five of one colour,
-  or a coloured full house, opens up new ways to score.
+    or a coloured full house, opens up new ways to score.
 - **Quickfire** - a six-turn game: the 5x box and six random boxes are switched off, and the upper bonus shrinks to
-  match.
+    match.
 - **7 Dice Stud** - roll seven dice, but only the five you hold can score.
 - **Third Wind** - every box is scored three times, with a bigger upper bonus to match.
 - **D20** - twenty-sided dice and five rolls a turn, with a card of the numbers 1 to 20 and a bonus for each half.
 - **Hit List** - a fresh list of dice targets every game. Roll a target's numbers to hit it, or land them in order
-  for double.
+    for double.
 
 ## House rules
 
@@ -74,7 +80,7 @@ Unlock over 90 styles as you earn achievements, most in several colours:
 
 - **Leaderboard** of your highest scores, with the date and number of 5x in each game
 - **Statistics** for each player, including games played, win rate, best and average scores, and current and best
-  win streaks, overall and for each game mode
+    win streaks, overall and for each game mode
 
 ## Get it
 
@@ -86,7 +92,7 @@ Google Play Games Services, so all activity is stored locally on your device onl
 move it to another device, use **Export progress** and **Import progress** in Settings: an import adds the file's
 achievements and scores to the ones already there.
 
----
+----
 
 ## Licence
 

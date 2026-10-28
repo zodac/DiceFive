@@ -29,6 +29,9 @@
 #
 # Requirements: ANDROID_HOME (the runner's pre-installed SDK), passwordless sudo, bash, grep
 # ------------------------------------------------------------------------------
+# The waits are built on predicates (is_up, ready, framework_up), only ever conditions; and adb's answers are read
+# through command substitutions whose failure is an empty answer - "not up yet", or a blank in a progress line.
+# shellcheck disable=SC2310,SC2312
 set -euo pipefail
 
 api=$(grep -oP '^ARG EMULATOR_API=\K[0-9.]+' sandbox/Dockerfile | head -1 || true)

@@ -32,7 +32,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                 targetCompatibility = JavaVersion.toVersion(java)
             }
             lint {
-                strict()
+                strict(target)
             }
         }
         configureAndroidKotlin(java)

@@ -29,23 +29,24 @@ Then Read the PNG to look at it, and send it to the user (SendUserFile) when it'
 ## Variants
 
 - **Sizes and fonts.** Use qualifiers such as `w360dp-h800dp-xxhdpi`, `w891dp-h411dp`, `w600dp-h960dp` and
-  `w800dp-h1280dp-xhdpi`. For a large font, wrap the content in
-  `CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale = 1.3f))`. The usual
-  checks are 100%, 130% and 200%.
+    `w800dp-h1280dp-xhdpi`. For a large font, wrap the content in
+    `CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale = 1.3f))`. The usual
+    checks are 100%, 130% and 200%.
 - **Whole game screen.** Wrap `GameScreen(viewModel)` in `LocalPlatformServices provides SilentPlatformServices`. Roll
-  with a scripted `Random`, hold, then step both clocks (`compose.mainClock` and `ShadowLooper.idleMainLooper`) before
-  you capture.
+    with a scripted `Random`, hold, then step both clocks (`compose.mainClock` and `ShadowLooper.idleMainLooper`) before
+    you capture.
 - **Animations.** Set `compose.mainClock.autoAdvance = false`, then change state with
-  `compose.runOnIdle { x = y; Snapshot.sendApplyNotifications() }`. Step with `mainClock.advanceTimeBy(ms)` and
-  capture each step. Stitch the captures into **one labelled sheet** with `android.graphics.Canvas`, using `drawText`
-  for the labels.
+    `compose.runOnIdle { x = y; Snapshot.sendApplyNotifications() }`. Step with `mainClock.advanceTimeBy(ms)` and
+    capture each step. Stitch the captures into **one labelled sheet** with `android.graphics.Canvas`, using `drawText`
+    for the labels.
 - **Close-ups.** Draw the art several times its size in a clipped box and shift it:
-  `Box(Modifier.size(300.dp).clipToBounds()) { Box(Modifier.wrapContentSize(unbounded = true, align = Alignment.TopStart).offset(x, y)) { art(Modifier.requiredSize(big)) } }`.
-  The maintainer reviews close-ups, so check every fix at the zoom they flagged.
+    `Box(Modifier.size(300.dp).clipToBounds()) { Box(Modifier.wrapContentSize(unbounded = true, align =
+    Alignment.TopStart).offset(x, y)) { art(Modifier.requiredSize(big)) } }`. The maintainer reviews close-ups, so check
+    every fix at the zoom they flagged.
 - **Background-thread art** (`rememberHoardArt`) isn't waited for by `waitForIdle`. Sleep the test thread, then
-  advance the clock, before capturing.
+    advance the clock, before capturing.
 - **Overlay windows** (banners, dialogs) aren't in a root `captureToImage`. Use the store tests' `captureScreen()`
-  (`app/android/src/test/.../store/`).
+    (`app/android/src/test/.../store/`).
 
 ## Finding gaps: paint the background a debug colour
 

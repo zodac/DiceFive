@@ -31,7 +31,7 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
         // com.android.lint's own settings, which its lint of the JVM target (lintJvm) reads; the Android target's lint
         // reads the android block's below. The same rules for both.
         extensions.configure<Lint> {
-            strict()
+            strict(target)
         }
         extensions.configure<KotlinMultiplatformExtension> {
             jvmToolchain(java)
@@ -58,7 +58,7 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
                     isIncludeAndroidResources = true
                 }
                 lint {
-                    strict()
+                    strict(target)
                 }
             }
 

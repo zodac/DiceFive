@@ -25,29 +25,29 @@
 # Usage: scripts/release-changelog.sh [<version>]   (defaults to VERSION)
 set -euo pipefail
 
-if [ $# -gt 1 ]; then
+if [[ $# -gt 1 ]]; then
   echo "Usage: $0 [<version>]" >&2
   exit 1
 fi
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-version="${1:-$(tr -d '[:space:]' < "$root_dir/VERSION")}"
+version="${1:-$(tr -d '[:space:]' < "${root_dir}/VERSION")}"
 
 tag_prefix="android-v"
-this_tag="$tag_prefix$version"
+this_tag="${tag_prefix}${version}"
 
-previous_tag="$(git -C "$root_dir" tag --merged HEAD --list "$tag_prefix*" --sort=-version:refname \
-  | grep -vxF "$this_tag" | head -n 1 || true)"
-if [ -n "$previous_tag" ]; then
-  range="$previous_tag..HEAD"
+previous_tag="$(git -C "${root_dir}" tag --merged HEAD --list "${tag_prefix}*" --sort=-version:refname \
+  | grep -vxF "${this_tag}" | head -n 1 || true)"
+if [[ -n "${previous_tag}" ]]; then
+  range="${previous_tag}..HEAD"
 else
   range="HEAD"
 fi
 
-repo_url="$(git -C "$root_dir" remote get-url origin \
+repo_url="$(git -C "${root_dir}" remote get-url origin \
   | sed -E 's#^git@([^:]+):#https://\1/#; s#\.git$##')"
 
-if [ -n "$previous_tag" ]; then
-  echo "## Changes since ${previous_tag#"$tag_prefix"}"
+if [[ -n "${previous_tag}" ]]; then
+  echo "## Changes since ${previous_tag#"${tag_prefix}"}"
 else
   echo "## Changes"
 fi
@@ -55,8 +55,8 @@ echo
 
 # Unit separator between fields: it can't appear in a subject line, unlike a tab or a pipe.
 sep=$'\x1f'
-git -C "$root_dir" log --no-merges --reverse --abbrev=8 --format="%h${sep}%an${sep}%s" "$range" \
-  | awk -F "$sep" -v repo_url="$repo_url" '
+git -C "${root_dir}" log --no-merges --reverse --abbrev=8 --format="%h${sep}%an${sep}%s" "${range}" \
+  | awk -F "${sep}" -v repo_url="${repo_url}" '
       $2 == "github-actions[bot]" { next }
       {
         hash = $1; subject = $3

@@ -7,24 +7,24 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 
 - **Players.** 1-4 per game: solo, pass-and-play, or CPU opponents (Easy/Medium/Hard).
 - **Content.** Seven game modes, optional house-rule modifiers, a Leaderboard, per-player Statistics, 100+
-  achievements (some hidden, some Easter eggs) and 90+ unlockable table styles.
+    achievements (some hidden, some Easter eggs) and 90+ unlockable table styles.
 - **Aims.**
-  - A polished, offline-first game for the Play Store: no account, no network, data stays on the device.
-  - Accessible: TalkBack and large fonts are first-class.
-  - Smooth: 60fps minimum unless the player picks a lower Animations level.
-  - Small APK.
-  - Kotlin/Compose Multiplatform for segregation: shared code in `app/shared` (Android and JVM targets), Android's
-    platform code apart from it (`MULTIPLATFORM.md`).
+    - A polished, offline-first game for the Play Store: no account, no network, data stays on the device.
+    - Accessible: TalkBack and large fonts are first-class.
+    - Smooth: 60fps minimum unless the player picks a lower Animations level.
+    - Small APK.
+    - Kotlin/Compose Multiplatform for segregation: shared code in `app/shared` (Android and JVM targets), Android's
+        platform code apart from it (`MULTIPLATFORM.md`).
 - **Google Play Games Services** (`PLAY_GAMES.md`) is built on Android: sign-in, achievements, leaderboards, cloud save
-  and Sidekick. Its Play Console release remains.
+    and Sidekick. Its Play Console release remains.
 - **In progress.** An "Unlock all styles" purchase on Android, the app's only purchase (`PURCHASES.md`): built, being
-  tested. **Never ads** (decided 2026-10-23).
+    tested. **Never ads** (decided 2026-10-23).
 - **Audience.** `README.md` is the public, player-facing description; keep it true to the app.
 
 ## Repo metadata
 
 | | |
-|---|---|
+| --- | --- |
 | Repo | `github.com/zodac/DiceFive`, default branch `main`. Every push to `main` that changes what an app ships cuts a GitHub release for that app (`android-v*`; `DESIGN.md`, "Release pipeline") |
 | Package | `net.zodac.dicefive` (Kotlin root package; the play app's `applicationId`; the github APK is `net.zodac.dicefive.github`) |
 | Version | `VERSION` at the repo root (released from 1.0.0). Never hand-edit for a debug install |
@@ -38,83 +38,88 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 ## Code standards
 
 - **Layout.**
-  - `app/shared` holds the game, UI and persistence. `commonMain` stays platform-neutral: no Android or JVM APIs,
-    resources through `Res.*`, devices through `platform/PlatformServices`. The JVM target's compile catches an
-    Android API there; `CommonCodeIsPlatformNeutralTest` catches a JDK one.
-  - `app/android` is the APK shell and Android's platform code (`device/`). Two flavours (`DESIGN.md`,
-    "Distribution"): `play` (Google Play, Play Games in `src/play`) and `github` (the GitHub APK, progress files in
-    `src/github`).
-  - `app/baselineprofile` is the profile journey; `app/licensing` holds the licence records.
-  - `build-logic/` holds the convention plugins (SDK levels, Java version, the strict rules) and the custom tasks.
-  - The package map is in `MULTIPLATFORM.md`, "Layout".
+    - `app/shared` holds the game, UI and persistence. `commonMain` stays platform-neutral: no Android or JVM APIs,
+        resources through `Res.*`, devices through `platform/PlatformServices`. The JVM target's compile catches an
+        Android API there; `CommonCodeIsPlatformNeutralTest` catches a JDK one.
+    - `app/android` is the APK shell and Android's platform code (`device/`). Two flavours (`DESIGN.md`,
+        "Distribution"): `play` (Google Play, Play Games in `src/play`) and `github` (the GitHub APK, progress files in
+        `src/github`).
+    - `app/baselineprofile` is the profile journey; `app/licensing` holds the licence records.
+    - `build-logic/` holds the convention plugins (SDK levels, Java version, the strict rules) and the custom tasks.
+    - The package map is in `MULTIPLATFORM.md`, "Layout".
 - **Warnings are errors** throughout: Kotlin `allWarningsAsErrors`, lint `warningsAsErrors`, deprecations included.
+- **Linter rules** (Android lint, actionlint, ShellCheck, hadolint, and markdownlint) come from the
+    `code-quality-config` submodule (`github.com/zodac/code-quality-config`, pinned to a release tag; the monthly update
+    moves it to the newest). Never edit them here: a rule change goes to that repo. Workflows, shell scripts,
+    Dockerfiles, and Markdown (all but `RELEASE_NOTES.md`) have their own linters (`.github/scripts/lint_*.sh`, CI's
+    `lint.yml`).
 - **Pure core.** The game logic (`model/`, `game/`) is pure and unit-tested. Every per-mode rule is a `GameMode`
-  field, never `if (mode == X)`.
+    field, never `if (mode == X)`.
 - **Behaviour comes with tests.** A change comes with tests of its behaviour, and spoken text is asserted word for
-  word.
+    word.
 - **Dependencies.** Keep them lean (APK size matters; `kotlinx.serialization` and `kotlinx-datetime` were dropped for
-  it). Any new library the APK ships must pass the build's licence guard; one that isn't in the APK (test, build-only)
-  isn't checked.
+    it). Any new library the APK ships must pass the build's licence guard; one that isn't in the APK (test, build-only)
+    isn't checked.
 - **Style.**
-  - Match the surrounding code's comment density and idiom.
-  - Doc comments state rules, not guessed rationale.
-  - British spelling in player text.
-  - **Oxford comma** in every English list of three or more: player text, the store listing, `README.md`, docs,
-    comments, and reports ("scores, styles, and settings"). Lists the app joins go through `spokenList`, whose
-    `common_list_locale` is en-US for it.
+    - Match the surrounding code's comment density and idiom.
+    - Doc comments state rules, not guessed rationale.
+    - British spelling in player text.
+    - **Oxford comma** in every English list of three or more: player text, the store listing, `README.md`, docs,
+        comments, and reports ("scores, styles, and settings"). Lists the app joins go through `spokenList`, whose
+        `common_list_locale` is en-US for it.
 
 ## Rules that always apply
 
 - **Banned words.** The trademark in `StringChecks.TRADEMARK` (the original five-dice game's name) never appears
-  anywhere: source, comments, identifiers, filenames, resources, docs (this file included), anything a player sees.
-  - Five matching dice are **"5x"** to players and `FIVE_OF_A_KIND`/`fiveOfAKind` in code. Say "the rules" or "a
-    five-dice scorecard game" generically.
-  - Players (the app and the store listing) also never see "three/four/five of a kind", spaced or hyphenated. Use
-    **3x/4x/5x**.
-  - Only exception: the one guard pattern in `StringChecks`
-    (`app/shared/src/androidHostTest/…/i18n/`).
+    anywhere: source, comments, identifiers, filenames, resources, docs (this file included), anything a player sees.
+    - Five matching dice are **"5x"** to players and `FIVE_OF_A_KIND`/`fiveOfAKind` in code. Say "the rules" or "a
+        five-dice scorecard game" generically.
+    - Players (the app and the store listing) also never see "three/four/five of a kind", spaced or hyphenated. Use
+        **3x/4x/5x**.
+    - Only exception: the one guard pattern in `StringChecks`
+        (`app/shared/src/androidHostTest/…/i18n/`).
 - **Fix every build warning and error**: compiler, lint, tests, Gradle. That includes ones that were there before you
-  started.
-  - If one truly shouldn't be fixed (a deliberate choice, a false positive), suppress it at the narrowest scope with a
-    comment saying why, and say so in the report.
-  - If the fix is large or changes behaviour beyond the task, ask rather than skip.
+    started.
+    - If one truly shouldn't be fixed (a deliberate choice, a false positive), suppress it at the narrowest scope with a
+        comment saying why, and say so in the report.
+    - If the fix is large or changes behaviour beyond the task, ask rather than skip.
 - **Accessibility is part of done.** Every new or changed UI element goes through the checklist in `.claude/UI.md`.
-  The report says what TalkBack does with it. Don't add that it wasn't heard on a device: the maintainer knows
-  speech is never heard here.
+    The report says what TalkBack does with it. Don't add that it wasn't heard on a device: the maintainer knows
+    speech is never heard here.
 - **Achievement titles fit ONE line of the unlock banner at 11sp or larger.**
-  - English titles are at most `MAX_ACHIEVEMENT_TITLE_LENGTH` (38) characters (`AchievementTextTest`). A translation
-    may set its own `achievement_title_max_length`.
-  - Shorten a title that doesn't fit; never wrap or shrink it. A description gets exactly two lines.
+    - English titles are at most `MAX_ACHIEVEMENT_TITLE_LENGTH` (38) characters (`AchievementTextTest`). A translation
+        may set its own `achievement_title_max_length`.
+    - Shorten a title that doesn't fit; never wrap or shrink it. A description gets exactly two lines.
 - **Stored ids are permanent once released**: achievement, style, game mode and preference key ids, and
-  `onlineLeaderboardKey`. Rename what players see, never the id.
+    `onlineLeaderboardKey`. Rename what players see, never the id.
 - **`RELEASE_NOTES.md` belongs to the maintainer.** Never create, edit, empty or tidy it without their explicit
-  agreement in this conversation. Once they agree, use Edit/Write, not the shell.
-  - `.claude/hooks/guard-release-notes.sh` backs this up: an edit waits for a permission prompt, and a shell change is
-    undone. The prompt is a backstop, not permission.
-  - The hook can't tell who changed the file during a shell command, so the maintainer's own edit made meanwhile is
-    undone too. It keeps an approved Edit/Write from any session, and saves whatever it replaces in
-    `.git/release-notes-guard/`. When it says it put the file back, tell the maintainer where the replaced version is.
-  - Only the release workflow empties it. Hook tests: `.claude/hooks/tests/run-hook-tests.sh`.
-  - It's blank between releases; all of it becomes the Android release's notes (`DESIGN.md`, "Release pipeline").
+    agreement in this conversation. Once they agree, use Edit/Write, not the shell.
+    - `.claude/hooks/guard-release-notes.sh` backs this up: an edit waits for a permission prompt, and a shell change is
+        undone. The prompt is a backstop, not permission.
+    - The hook can't tell who changed the file during a shell command, so the maintainer's own edit made meanwhile is
+        undone too. It keeps an approved Edit/Write from any session, and saves whatever it replaces in
+        `.git/release-notes-guard/`. When it says it put the file back, tell the maintainer where the replaced version is.
+    - Only the release workflow empties it. Hook tests: `.claude/hooks/tests/run-hook-tests.sh`.
+    - It's blank between releases; all of it becomes the Android release's notes (`DESIGN.md`, "Release pipeline").
 - **Edit files with the Edit/Write tools first.** Use a shell or Python script only for a change across many files or
-  a bulk pattern-based edit, and make the script fail when a pattern doesn't match rather than write the file
-  unchanged.
+    a bulk pattern-based edit, and make the script fail when a pattern doesn't match rather than write the file
+    unchanged.
 - **Ask the user questions with the AskUserQuestion tool**, never as a question at the end of a message. That includes
-  offers ("Do you want me to...?") and choices between options.
+    offers ("Do you want me to...?") and choices between options.
 - **Notify the maintainer when a prompt is finished.** They drive sessions from their phone over Remote Control, so
-  end every prompt with the PushNotification tool: one line under 200 characters, leading with the outcome or what
-  needs their action ("Sandbox cleanup done, lint clean, not committed"). Skip it when the prompt ends in
-  AskUserQuestion, which already notifies.
+    end every prompt with the PushNotification tool: one line under 200 characters, leading with the outcome or what
+    needs their action ("Sandbox cleanup done, lint clean, not committed"). Skip it when the prompt ends in
+    AskUserQuestion, which already notifies.
 - **Commits**: the subject is `[Category] Short description` (`.githooks/commit-msg`). Use the `commit` skill; the
-  category list lives there.
+    category list lives there.
 - **After a requested code change is verified** (it compiles and the relevant tests pass), build and send the debug
-  APK with the `debug-apk` skill.
-  - Visual work goes through the `render` skill first. The APK follows once the look is agreed.
+    APK with the `debug-apk` skill.
+    - Visual work goes through the `render` skill first. The APK follows once the look is agreed.
 
 ## Skills (procedures, loaded when invoked)
 
 | Skill | For |
-|---|---|
+| --- | --- |
 | `test` | Running tests, lint and the full gate; one class; reading failures; test traps |
 | `debug-apk` | Building and sending the debug APK |
 | `commit` | Commit format, category list, what never to commit |
@@ -129,7 +134,7 @@ Most are long. List a doc's headings first (`grep -n '^#' <doc>`), then read the
 and limit; read a whole doc only when the change spans it.
 
 | Doc | Read when |
-|---|---|
+| --- | --- |
 | `.claude/DESIGN.md` | Rules of play, modes and modifiers in brief, the CPU, persistence, errors and the crash page, Leaderboard/Statistics, achievements, table art, sound, settings, the play and github apps (progress files), release pipeline |
 | `.claude/UI.md` | Any visual change: colour, the brand font, shared chrome, insets, component rules, **the accessibility checklist**, motion and reduced motion, scrollbars, player colours, gotchas |
 | `.claude/UI_BOARD.md` | The game screen: scorecard grid per mode, tiles, tray, cup, totals and undo, tablets and landscape, name caps |

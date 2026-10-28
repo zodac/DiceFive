@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Tests for scripts/normalize-audio.sh: the app's copy of every clip in app/audio/ exists, keeps its source's
 # length (the shake window is timed to the clips), and peaks near the target level. Needs ffmpeg and python3. Run from anywhere: scripts/tests/normalize-audio-test.sh
+# Each command substitution is a check's subject: a command that fails gives the wrong output, which fails the check.
+# shellcheck disable=SC2312
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-script="$root/scripts/normalize-audio.sh"
+script="${root}/scripts/normalize-audio.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "${work}"' EXIT
 failures=0
@@ -31,19 +33,19 @@ check() {
     fi
 }
 
-sources=("$root"/app/audio/*.ogg)
-"$script" "$work/out" "${sources[@]}"
+sources=("${root}"/app/audio/*.ogg)
+"${script}" "${work}/out" "${sources[@]}"
 for source in "${sources[@]}"; do
-    name="$(basename "$source" .ogg)"
-    out="$work/out/$name.ogg"
-    check "$name exists" test -s "$out"
-    [ -s "$out" ] || continue
-    check "$name keeps its length ($(duration "$source")s)" \
-        within "$(duration "$out")" "$(duration "$source")" "$MAX_LENGTH_DIFF_SECONDS"
-    check "$name peaks near ${TARGET_PEAK_DB} dB" within "$(peak "$out")" "$TARGET_PEAK_DB" "$MAX_PEAK_DIFF_DB"
+    name="$(basename "${source}" .ogg)"
+    out="${work}/out/${name}.ogg"
+    check "${name} exists" test -s "${out}"
+    [[ -s "${out}" ]] || continue
+    check "${name} keeps its length ($(duration "${source}")s)" \
+        within "$(duration "${out}")" "$(duration "${source}")" "${MAX_LENGTH_DIFF_SECONDS}"
+    check "${name} peaks near ${TARGET_PEAK_DB} dB" within "$(peak "${out}")" "${TARGET_PEAK_DB}" "${MAX_PEAK_DIFF_DB}"
 done
 
-check "no sources is refused" bash -c "! '$script' '$work/none' 2> /dev/null"
+check "no sources is refused" bash -c "! '${script}' '${work}/none' 2> /dev/null"
 
 if [[ "${failures}" -gt 0 ]]; then
     echo "${failures} failed"

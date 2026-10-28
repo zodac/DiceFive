@@ -6,9 +6,10 @@ phases. Resume at the phase marked **Next**.
 Commits go under `[Purchases]`.
 
 What the player gets:
+
 - An **Unlock all** button in the Styles screen's top bar, showing Play's localised price.
 - Once bought, every style and colour is usable, Easter eggs included. Achievement banners still pop; **styles
-  banners stop** (there is nothing left to unlock).
+    banners stop** (there is nothing left to unlock).
 - A reinstall or a new phone gets it back automatically (no Restore button on Android).
 
 Researched October 2026 (Play Billing Library 9.1.0). Re-check the console paths when starting: Google renamed "in-app
@@ -17,38 +18,38 @@ products" to "one-time products" in 2025 and moves menus often.
 ## What Google provides
 
 - **Library**: `com.android.billingclient:billing-ktx` (9.1.0, June 2026). It merges the
-  `com.android.vending.BILLING` permission and talks to the Play Store app over IPC.
-  - Every version from 8.0 also pulls in Google's telemetry (`com.google.android.datatransport`), which asks for
-    `INTERNET` and `ACCESS_NETWORK_STATE`. The play manifest removes both (decided 2026-10-22), so the app still has no
-    network permission and only that telemetry goes unsent (`PlayBillingStoreTest`). Phase 6 confirms purchases work so.
-  - It also pulls in `play-services-location` and `play-services-places-placereport`, which add no permission.
+    `com.android.vending.BILLING` permission and talks to the Play Store app over IPC.
+    - Every version from 8.0 also pulls in Google's telemetry (`com.google.android.datatransport`), which asks for
+        `INTERNET` and `ACCESS_NETWORK_STATE`. The play manifest removes both (decided 2026-10-22), so the app still has no
+        network permission and only that telemetry goes unsent (`PlayBillingStoreTest`). Phase 6 confirms purchases work so.
+    - It also pulls in `play-services-location` and `play-services-places-placereport`, which add no permission.
 - **Cost.** The play release APK grew 6.28 MB to 6.53 MB (+243 KB, unsigned, R8). The github APK has none of it.
 - **Minimum version**: Play rejects updates using Billing Library below 8 since 31 August 2026. The monthly CI bump
-  keeps it current; 9.0 needs AndroidX core 1.9+ (already met).
+    keeps it current; 9.0 needs AndroidX core 1.9+ (already met).
 - **Product**: a **one-time product** with one purchase option ("Buy"). "Non-consumable" isn't a console setting: a
-  product is consumable only if the app calls `consumePurchase()`. This app never consumes it.
+    product is consumable only if the app calls `consumePurchase()`. This app never consumes it.
 - **Client essentials** (9.x):
-  - `BillingClient.newBuilder(context).setListener(...)`
-    `.enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())`
-    `.enableAutoServiceReconnection()`: then never call `startConnection()` again from `onBillingServiceDisconnected`.
-  - `queryProductDetails` (suspend) for the price string; an unfetched product comes back with its own status code.
-  - `launchBillingFlow(activity, ...)`: needs an `Activity`, as `PlayGamesServices` does.
-  - `queryPurchasesAsync(QueryPurchasesParams(INAPP))`: what the player owns on this Play account. Call it on
-    connection and on every `ON_RESUME` (a pending purchase can complete while the app is closed). This **is** restore:
-    there is no separate restore API.
-  - **Grant only on `PURCHASED`**, never `PENDING` (cash and slow payment methods).
-  - **Acknowledge** every `PURCHASED` purchase with `acknowledgePurchase` once granted. Unacknowledged after **3 days**
-    (3 **minutes** for a license tester) Play refunds it and revokes it.
-  - A refunded or revoked purchase simply stops appearing in `queryPurchasesAsync`.
+    - `BillingClient.newBuilder(context).setListener(...)`
+        `.enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())`
+        `.enableAutoServiceReconnection()`: then never call `startConnection()` again from `onBillingServiceDisconnected`.
+    - `queryProductDetails` (suspend) for the price string; an unfetched product comes back with its own status code.
+    - `launchBillingFlow(activity, ...)`: needs an `Activity`, as `PlayGamesServices` does.
+    - `queryPurchasesAsync(QueryPurchasesParams(INAPP))`: what the player owns on this Play account. Call it on
+        connection and on every `ON_RESUME` (a pending purchase can complete while the app is closed). This **is** restore:
+        there is no separate restore API.
+    - **Grant only on `PURCHASED`**, never `PENDING` (cash and slow payment methods).
+    - **Acknowledge** every `PURCHASED` purchase with `acknowledgePurchase` once granted. Unacknowledged after **3 days**
+        (3 **minutes** for a license tester) Play refunds it and revokes it.
+    - A refunded or revoked purchase simply stops appearing in `queryPurchasesAsync`.
 - **Who can buy**: only an install whose signature matches Play's (a Play-track install), or any build with the right
-  package name on a **license tester's** account. A GitHub-release APK fails for everyone else.
+    package name on a **license tester's** account. A GitHub-release APK fails for everyone else.
 - **Fees**: 15% of the first $1M a year once enrolled in the 15% tier (otherwise 30%).
 
 ## Design
 
 ### Architecture (to build)
 
-```
+```text
 app/shared/.../purchases/            Store (interface, StoreState, ProductKey, LocalStore), NoStore,
                                      PurchasesRepository (the cached entitlement) - nothing here names Google
 app/android/src/play/.../purchases/  PlayBillingStore - the only com.android.billingclient imports, in the play
@@ -56,49 +57,49 @@ app/android/src/play/.../purchases/  PlayBillingStore - the only com.android.bil
 ```
 
 - **Mirrors the Play Games seam** (`PLAY_GAMES.md`, "Architecture"): an interface in shared, a no-op default
-  (`NoStore`), the Play implementation made once per process by `Distribution.store` in `MainActivity` and
-  re-attached across configuration changes, handed to `DiceFiveApp` and provided through `LocalStore`.
+    (`NoStore`), the Play implementation made once per process by `Distribution.store` in `MainActivity` and
+    re-attached across configuration changes, handed to `DiceFiveApp` and provided through `LocalStore`.
 - **The play app only.** The library is `playImplementation`; the github flavour's `Distribution.store` is `NoStore`,
-  and `GithubFlavourTest` pins that neither the library nor the `BILLING` permission is in that app.
+    and `GithubFlavourTest` pins that neither the library nor the `BILLING` permission is in that app.
 - **Calls.** One connection (`enableAutoServiceReconnection`). Play's purchase updates and the "what's owned" asks go
-  through one queue, in order, so an ask already under way never overwrites a newer purchase. Every call has a
-  15-second timeout but the purchase sheet; failures are logged as `adb logcat -s DiceFivePurchases`, with Play's
-  response code, and a product Play didn't send logs its `UnfetchedProduct` status (not yet active, say).
+    through one queue, in order, so an ask already under way never overwrites a newer purchase. Every call has a
+    15-second timeout but the purchase sheet; failures are logged as `adb logcat -s DiceFivePurchases`, with Play's
+    response code, and a product Play didn't send logs its `UnfetchedProduct` status (not yet active, say).
 - **Play-only, same gate as Play Games**: a release build uses Play Billing only when installed by Play
-  (`com.android.vending`), a debug build always, neither without the Play Store. Otherwise `NoStore`: no button.
-  GitHub APKs therefore never show the purchase.
+    (`com.android.vending`), a debug build always, neither without the Play Store. Otherwise `NoStore`: no button.
+    GitHub APKs therefore never show the purchase.
 - **`StoreState`**: `Unavailable`, `Loading`, `ForSale(price: String?)`, `Pending`, `Owned`. The price is null while
-  Play hasn't sent it: the account is known not to own the product even then, which the entitlement needs.
-  `BILLING_UNAVAILABLE` at connection (an old Play Store, a country without Play billing) is `Unavailable`.
+    Play hasn't sent it: the account is known not to own the product even then, which the entitlement needs.
+    `BILLING_UNAVAILABLE` at connection (an old Play Store, a country without Play billing) is `Unavailable`.
 - **Product id is permanent once created**: `unlock_all_styles` (`ProductKey.UNLOCK_ALL_STYLES`). It is the app's
-  only purchase.
+    only purchase.
 
 ### Entitlement
 
 - **Local cache is the source of truth while playing**, as everywhere else: a new DataStore file `purchases`
-  (`PreferencesFile.PURCHASES`), key `owns_all_styles` (permanent). No reset clears it; it is **not** in the cloud
-  save (the Play Store account owns the purchase, and may differ from the Play Games account).
+    (`PreferencesFile.PURCHASES`), key `owns_all_styles` (permanent). No reset clears it; it is **not** in the cloud
+    save (the Play Store account owns the purchase, and may differ from the Play Games account).
 - Read at launch into `AppContainer`, so the Styles screen, the menu logo and the game draw unlocked styles with no
-  network and no wait.
+    network and no wait.
 - **Updated from Play** (`PurchasesRepository.follow`, collected by `DiceFiveApp`): on connection, `ON_RESUME` and a
-  purchase update. `Owned` sets it; `ForSale` or `Pending` (a successful query without a paid purchase: a refund)
-  clears it. `Loading` and `Unavailable` (no answer, or a failed one) change nothing (`StoreState.ownsAllStyles`).
+    purchase update. `Owned` sets it; `ForSale` or `Pending` (a successful query without a paid purchase: a refund)
+    clears it. `Loading` and `Unavailable` (no answer, or a failed one) change nothing (`StoreState.ownsAllStyles`).
 - **Revoking keeps picks.** Existing rule: a locked saved pick draws the default but stays saved, so a refund just
-  re-locks, and earning the style later brings the pick back.
+    re-locks, and earning the style later brings the pick back.
 - **No server verification.** There's no backend, the source is public, and it's cosmetic. A patched APK can unlock
-  styles anyway; that's accepted.
+    styles anyway; that's accepted.
 - **Signatures are checked on the device.** A purchase counts only if `Purchase.signature` is the app's licence key's
-  SHA1withRSA signature of `Purchase.originalJson` (`PurchaseSignature`, in `PlayBillingStore.unlockAllStyles`), so a
-  fake billing service's purchase is treated as none: not owned, not acknowledged. The key is Play Console's Base64
-  licence key (Monetise with Play > Monetisation setup > Licensing), from the `PLAY_LICENCE_KEY` repository
-  variable (a public key, so not a secret; set 2026-10-28) as `BuildConfig.PLAY_LICENCE_KEY` (play flavour only). A
-  local or debug build has no key and counts every purchase Play reports. The release workflow's apk job fails without
-  a one-line Base64 key, so a release never ships unchecked. Tests: `PlayBillingStoreTest`.
+    SHA1withRSA signature of `Purchase.originalJson` (`PurchaseSignature`, in `PlayBillingStore.unlockAllStyles`), so a
+    fake billing service's purchase is treated as none: not owned, not acknowledged. The key is Play Console's Base64
+    licence key (Monetise with Play > Monetisation setup > Licensing), from the `PLAY_LICENCE_KEY` repository
+    variable (a public key, so not a secret; set 2026-10-28) as `BuildConfig.PLAY_LICENCE_KEY` (play flavour only). A
+    local or debug build has no key and counts every purchase Play reports. The release workflow's apk job fails without
+    a one-line Base64 key, so a release never ships unchecked. Tests: `PlayBillingStoreTest`.
 - **Debug builds**: "pretend all styles are owned" (decided 2026-10-23): tap the Styles page's unlocked count
-  `PRETEND_TAP_TARGET` (5) times, as the Achievements page's superuser mode is entered; a toast says on or off. It's
-  `AppContainer.pretendOwnsAllStyles`, ORed into `ownsAllStyles` only in a debug build, for the process and never
-  written, rather than a fake `Store`: a fake one's `Owned` would have been written to the real cache. Renders pass a
-  `Store` or the flag directly. `PretendOwnsAllStylesTest` pins release builds out.
+    `PRETEND_TAP_TARGET` (5) times, as the Achievements page's superuser mode is entered; a toast says on or off. It's
+    `AppContainer.pretendOwnsAllStyles`, ORed into `ownsAllStyles` only in a debug build, for the process and never
+    written, rather than a fake `Store`: a fake one's `Owned` would have been written to the real cache. Renders pass a
+    `Store` or the flag directly. `PretendOwnsAllStylesTest` pins release builds out.
 
 ### Styles rule change
 
@@ -106,26 +107,27 @@ Built (Phase 4). Every lock takes a `StyleAccess(achievements, ownsAllStyles)` (
 the `AchievementsState` it took. `SavedStyles` carries the flag (`SavedStyles.access`), and `savedStylesFlow` must be
 given it, so the menu logo, the game table, the Styles screen and the Fresh Coat check all read
 `AppContainer.ownsAllStyles` (the cached purchase, or a debug build's pretence).
+
 - With `ownsAllStyles`, every `AchievementCount`, `SpecificAchievement` and `AnyAchievement` lock is met.
 - **Secret colours** (`StyleVariant.secretAchievement`, the Easter eggs) are included: `isAvailable` is met with the
-  flag too, so they appear on the Styles screen for owners. Their achievements still unlock as normal.
+    flag too, so they appear on the Styles screen for owners. Their achievements still unlock as normal.
 - **Reset achievements** (`ProgressResets.resetAchievements`, `app/`) re-locks picks against empty achievements; it
-  must use the current `ownsAllStyles`, so an owner's picks survive a reset.
+    must use the current `ownsAllStyles`, so an owner's picks survive a reset.
 - **Fresh Coat Of Paint** reads `SavedStyles.hasNonDefaultStyle` (`unlockedId`), so an owner can earn it on a bought style. Fine: Classic colours make
-  it easy already.
+    it easy already.
 - **Eggcellent Discovery**: buying gives Egg dice and the Chicken cup early, so the golden egg's 1-in-500 roll comes
-  sooner; the gold Egg colour itself is bought outright. The achievement still needs the roll. Record this in
-  `GAME_MODES_AUDIT.md`'s style notes.
+    sooner; the gold Egg colour itself is bought outright. The achievement still needs the roll. Record this in
+    `GAME_MODES_AUDIT.md`'s style notes.
 - Unit tests: `StyleRegistryTest` (every lock met with the flag, secrets not), the reset path, `SavedStyles`.
 
 ### Banners and achievement rows
 
 - `announce(update)` (`app/AchievementEvents.kt`) takes `ownsAllStyles` and emits **no** `StylesUnlocked` events
-  when it's true: neither the per-achievement reward banner nor the count banner. Unlock and progress banners are
-  unchanged.
+    when it's true: neither the per-achievement reward banner nor the count banner. Unlock and progress banners are
+    unchanged.
 - `StylesUnlockedBannerTest`: owned emits only unlock and progress events, in order.
 - **The style star** (`StyleRewardStar` on unlock banners and Achievements rows, and the rows' "Show which style this
-  unlocks" action) is unchanged for owners.
+    unlocks" action) is unchanged for owners.
 - Lock tooltips and the progress dialog on the Styles screen disappear naturally (nothing is locked).
 
 ### The Styles screen button
@@ -135,21 +137,22 @@ Built (Phase 5): as `UI_SCREENS.md`, "The Styles screen", describes. Decided wit
 would move the title. A tap opens a dialog before Play's sheet (decided 2026-10-23), in the maintainer's words: what
 the purchase unlocks, and that every style can be earned for free, so "this app will never lock anything behind a
 purchase" and paying is "an optional shortcut and a way to support DiceFive". Cancel / Continue. The plan as it was:
+
 - Label "Unlock all" plus Play's price (`ProductDetails...formattedPrice`, already localised by Play; never format it
-  ourselves). States:
-  - `ForSale`: enabled button. Tap launches Play's sheet.
-  - `Loading` or the price not fetched: disabled, no price.
-  - `Pending`: disabled, "Payment pending".
-  - `Owned`: the button is removed.
-  - `Unavailable`: not shown.
+    ourselves). States:
+    - `ForSale`: enabled button. Tap launches Play's sheet.
+    - `Loading` or the price not fetched: disabled, no price.
+    - `Pending`: disabled, "Payment pending".
+    - `Owned`: the button is removed.
+    - `Unavailable`: not shown.
 - **In the top bar**, beside the title, so no card moves and `StylesWarmUp`'s `PageFit` is unaffected. A row above
-  the cards was rejected: it would move every card and change the measured page height. Render it (the `render`
-  skill) at 320dp, 2x font and in Arabic before building: the title and a priced button must share the bar.
+    the cards was rejected: it would move every card and change the measured page height. Render it (the `render`
+    skill) at 320dp, 2x font and in Arabic before building: the title and a priced button must share the bar.
 - A successful purchase: a short confirmation ("All styles unlocked"), padlocks fade off. Spoken through a
-  `liveRegion` or announcement, asserted word for word.
+    `liveRegion` or announcement, asserted word for word.
 - **Accessibility** (`.claude/UI.md` checklist): a real `Button` with the price in its label ("Unlock all styles,
-  £2.99"), `stateDescription` "Payment pending" when pending, 48dp target, readable at 2x font, RTL in Arabic.
-  TalkBack must reach it before the first card. Play's purchase sheet is Play's own UI.
+    £2.99"), `stateDescription` "Payment pending" when pending, 48dp target, readable at 2x font, RTL in Arabic.
+    TalkBack must reach it before the first card. Play's purchase sheet is Play's own UI.
 
 ### Restoring: no button on Android
 
@@ -168,6 +171,7 @@ not "IAP". Every spoken line asserted word for word.
 ### Phase 0: decisions (done)
 
 Decided (2026-10-21):
+
 - **Price**: later, in Play Console at Phase 3 (the code doesn't depend on it). A launch offer is optional then.
 - **Secret colours are included**: the purchase unlocks every style and colour, Easter eggs too.
 - **The style star stays as it is** for owners.
@@ -188,7 +192,7 @@ Payments verification can take days, so start early. In order:
      **once and can never be changed** (changing it means a new developer account and moving the app), so check the
      legal name and address it shows before submitting.
    - It asks for business details: the name buyers see on receipts (the legal name), a physical address (no PO
-     box), a business website, the product category, a customer support email (zodacapps@gmail.com) and the name
+     box), a business website, the product category, a customer support email (<zodacapps@gmail.com>) and the name
      on card statements (e.g. "DiceFive").
    - The business country **can't be changed** later.
    - Afterwards it's managed at **pay.google.com** (Google payments centre) and Play Console > **Settings >
@@ -196,7 +200,7 @@ Payments verification can take days, so start early. In order:
 2. **What players see.** For a personal developer account, Play shows only the developer email by default; some
    regions require the phone number or full address too (Play Console Help, "developer account information"). Check
    what the console says it will show before submitting. The legal name appears on receipts, which also settles the
-   pseudonymous copyright question (`PUBLISHING.md`: "Copyright <legal name> (zodac.net)").
+   pseudonymous copyright question (`PUBLISHING.md`: "Copyright `<legal name>` (zodac.net)").
 3. **Bank account** (connected 2026-10-22). Payments profile > "How you get paid" > **Add payment method**, in the same
    country as the profile. It **must be verified**, by a small test deposit whose amount you enter: Google removes
    developers with unverified bank accounts.
@@ -216,16 +220,16 @@ Built as below, with the network permissions removed (see "What Google provides"
 closed testing on 2026-10-23 (any track will do; internal testing is the quickest).
 
 - Add `billing-ktx` to `libs.versions.toml` and the Android module only. It must pass the licence guard
-  (`allowedLicenses`; the library is under the Android SDK licence terms, so check how the guard classifies it, as
-  for `play-services-games-v2`). Record the APK size change, as `PLAY_GAMES.md` does.
+    (`allowedLicenses`; the library is under the Android SDK licence terms, so check how the guard classifies it, as
+    for `play-services-games-v2`). Record the APK size change, as `PLAY_GAMES.md` does.
 - Shared: `Store`, `StoreState`, `NoStore`, `ProductKey`, `PurchasesRepository` (+ `PreferencesFile.PURCHASES`).
-  Pure tests against a fake `Store`: owned, refund clears, failed query keeps, pending never grants.
+    Pure tests against a fake `Store`: owned, refund clears, failed query keeps, pending never grants.
 - Android: `PlayBillingStore` (connect, product details, purchase flow, acknowledge, query on resume), the Play-only
-  gate, Robolectric tests of the gate and the mapping from `Purchase` to `StoreState` (the
-  `PlayGamesServicesTest` pattern). No UI yet.
+    gate, Robolectric tests of the gate and the mapping from `Purchase` to `StoreState` (the
+    `PlayGamesServicesTest` pattern). No UI yet.
 - Confirm the merged manifest: `BILLING` added, no `INTERNET`.
 - Ship it to the **internal testing** track (by hand, as today). Play wants a bundle containing the BILLING permission
-  uploaded to a track before it lets you create products.
+    uploaded to a track before it lets you create products.
 
 ### Phase 3: the Google account side, part 2 (maintainer; done 2026-10-23)
 
@@ -239,10 +243,11 @@ page opened on 2026-10-23, a day after it was published there.
      applies). The style words are the app's own (`styles_category_*`):
 
      | | Name | Description |
-     |---|---|---|
+     | --- | --- | --- |
      | en-GB | Unlock all styles | Every dice, dice cup, mat, background and frame style, in every colour, secret ones included. Every style can still be earned free by playing. |
      | es | Desbloquear todos los estilos | Todos los estilos de dados, cubiletes, tapetes, fondos y marcos, en todos sus colores, incluidos los secretos. Todos se pueden seguir ganando gratis jugando. |
      | ar | فتح كل الأنماط | كل أنماط النرد وكأس النرد والحصيرة والخلفية والإطار، بكل ألوانها، بما فيها الألوان السرية. ويمكنك دائمًا كسب كل الأنماط مجانًا باللعب. |
+
    - **Icon**: `assets/play-console/product-icons/unlock_all_styles.png`, from `scripts/export-play-console.sh`
      (`PlayConsoleProductExportTest`): `UnlockAllStylesIcon` (a palette with an open padlock at its lower left) on the
      achievements' gold tile, 512px. **Tags**: none; they're the app's own labels for telling offers apart, and it
@@ -262,23 +267,24 @@ debug fake store. Unit tests. Nothing visible yet but the superuser switch.
 ### Phase 5: the UI (code; done 2026-10-23)
 
 - Render the top-bar button (`render` skill: phone sizes, 2x font, Arabic, each `StoreState`). Agree the look, then
-  build.
+    build.
 - Banners: `announce` gated; the star unchanged.
 - Strings in three languages; spoken text asserted word for word; the accessibility checklist; then the debug APK.
 
 ### Phase 6: test on a phone (maintainer, with Claude's checklist; Next)
 
 On a real phone signed in to Play as a license tester (the emulator has no Play Store):
+
 - Price shows; purchase with the "always approves" test card; padlocks go; no styles banners on the next unlock.
 - **Acknowledgement**: wait 5 minutes; the purchase must still be there (an unacknowledged test purchase refunds at 3
-  minutes, which would show the bug).
+    minutes, which would show the bug).
 - "Slow test card, approves" and "declines": `Pending` shows, then owned or back to for sale, including with the app
-  closed meanwhile.
+    closed meanwhile.
 - "Always declines": nothing granted, a clear message.
 - **Refund**: Play Console > Order management > the test order > Refund (tick revoke). Next resume: styles re-lock,
-  picks return when re-earned.
+    picks return when re-earned.
 - **Restoring**: uninstall and reinstall; styles unlock by themselves at launch. Then a second phone on the same
-  Google account.
+    Google account.
 - **Offline**: aeroplane mode after buying; styles stay unlocked.
 - Reset achievements as an owner: picks kept.
 - TalkBack through the button and its pending state.
@@ -286,18 +292,18 @@ On a real phone signed in to Play as a license tester (the emulator has no Play 
 ### Phase 7: declarations and docs (maintainer + code)
 
 - **Privacy policy** (`docs/privacy-policy.md`): done 2026-10-23. Section 6 describes the purchase (Google Play takes
-  the payment; the app learns only whether the account owns it and stores one flag on the device, outside the cloud
-  save; refunds re-lock, reinstalls restore), section 5 says there are no ads, and section 8 notes Play's parental
-  purchase controls.
+    the payment; the app learns only whether the account owns it and stores one flag on the device, outside the cloud
+    save; refunds re-lock, reinstalls restore), section 5 says there are no ads, and section 8 notes Play's parental
+    purchase controls.
 - **Data safety**: review; Google processes the payment. Purchase history is the likely question: the app reads the
-  player's purchase of this one product from Play to unlock styles. Answer per Google's current guidance.
+    player's purchase of this one product from Play to unlock styles. Answer per Google's current guidance.
 - **Content rating questionnaire**: re-answer ("digital purchases": yes). The listing then shows "In-app purchases".
 - **Target audience**: if it includes children, the Families policy rules for purchases apply; check before
-  submitting.
+    submitting.
 - **Store listing and `README.md`**: mention that every style can be earned for free or unlocked with a one-time
-  purchase. Keep the "Fully offline" tagline true (buying needs Play; playing never does).
+    purchase. Keep the "Fully offline" tagline true (buying needs Play; playing never does).
 - Update `DESIGN.md` (Table art, locks), `UI_SCREENS.md` (banners, Styles screen), `PUBLISHING.md` (checklist "Later"
-  item, data safety), `CLAUDE.md` (move this from "Planned"). Release notes are the maintainer's.
+    item, data safety), `CLAUDE.md` (move this from "Planned"). Release notes are the maintainer's.
 
 ### Phase 8: release
 

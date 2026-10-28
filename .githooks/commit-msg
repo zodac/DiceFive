@@ -18,15 +18,16 @@ message_file="$1"
 
 # The subject is the first line that isn't blank or a git comment ("#" lines are stripped from the
 # final message, and any leading blank lines are dropped).
-subject="$(grep -v '^#' "$message_file" | grep -v '^[[:space:]]*$' | head -n 1 || true)"
+subject="$(grep -v '^#' "${message_file}" | grep -v '^[[:space:]]*$' | head -n 1 || true)"
 
-case "$subject" in
+case "${subject}" in
   "Merge "* | "Revert \""* | "fixup! "* | "squash! "* | "amend! "*) exit 0 ;;
+  *) ;; # Checked below.
 esac
 
 # A category of at least one character with no brackets and no space at either end, one space, then
 # a description that starts with something other than whitespace.
-if [[ "$subject" =~ ^\[[^][[:space:]]([^][]*[^][[:space:]])?\]\ [^[:space:]] ]]; then
+if [[ "${subject}" =~ ^\[[^][[:space:]]([^][]*[^][[:space:]])?\]\ [^[:space:]] ]]; then
   exit 0
 fi
 

@@ -169,7 +169,7 @@ android {
         unitTests.isIncludeAndroidResources = true
     }
 
-    // The strict rules are build-logic's (StrictChecks.kt).
+    // The strict rules are code-quality-config/android/lint.xml, applied by build-logic (StrictChecks.kt).
     lint {
         // Most of the app's code - the game, its UI, its storage - lives in :app:shared, which has no
         // lint run of its own for its main code. Checking dependencies makes this module's lintDebug

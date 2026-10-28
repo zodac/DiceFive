@@ -12,29 +12,29 @@ from the project root unless noted.
 ## Why this is safe
 
 - **Only the project directory is mounted** (the repo root → `/work`). No
-  `$HOME`, no SSH keys, no other projects are visible to Claude.
+    `$HOME`, no SSH keys, no other projects are visible to Claude.
 - **The host Docker socket is NOT mounted.** The sandbox runs its *own* nested
-  Docker daemon, so any container the project spins up lives and dies *inside*
-  the sandbox. Your host daemon — and everything already running on it — is never
-  touched. On this repo the nested daemon only runs actionlint
-  (`.github/scripts/lint_workflows.sh`).
+    Docker daemon, so any container the project spins up lives and dies *inside*
+    the sandbox. Your host daemon — and everything already running on it — is never
+    touched. On this repo the nested daemon only runs the linters: actionlint,
+    ShellCheck, hadolint, and markdownlint (`.github/scripts/lint_*.sh`).
 - **Runs as a non-root user** (`dev`, matching your host UID 1000) so files
-  written under `/work` stay owned by you. (Claude also refuses
-  `--dangerously-skip-permissions` as root — another reason for the non-root user.)
+    written under `/work` stay owned by you. (Claude also refuses
+    `--dangerously-skip-permissions` as root — another reason for the non-root user.)
 - **What `--privileged` actually costs — read this before trusting the list above.**
-  The nested daemon needs it, and it is not free: the container holds
-  `CAP_SYS_ADMIN`, `CAP_SYS_MODULE` and `CAP_MKNOD`, and the host's raw block
-  devices (`/dev/nvme0n1p*`) are visible inside it. Root in here can therefore
-  `mount` the host disk and read/write **the entire host filesystem** - `~/.ssh`
-  included - regardless of what is or is not bind-mounted; loading a kernel module
-  is a second path. The `dev` user has passwordless `sudo`, so the non-root user
-  above does not gate any of that.
-  **So: the mount list is a guard against ACCIDENTS - a careless `rm -rf`, a
-  runaway test, Claude with `--dangerously-skip-permissions` - and it is a good
-  one. It is NOT a security boundary against deliberately hostile code** (a
-  malicious dependency or build script inherits everything above). Closing that gap means dropping `--privileged`, which in turn means a
-  runtime built for it - [`sysbox-runc`](https://github.com/nestybox/sysbox) runs
-  Docker-in-Docker unprivileged.
+    The nested daemon needs it, and it is not free: the container holds
+    `CAP_SYS_ADMIN`, `CAP_SYS_MODULE` and `CAP_MKNOD`, and the host's raw block
+    devices (`/dev/nvme0n1p*`) are visible inside it. Root in here can therefore
+    `mount` the host disk and read/write **the entire host filesystem** - `~/.ssh`
+    included - regardless of what is or is not bind-mounted; loading a kernel module
+    is a second path. The `dev` user has passwordless `sudo`, so the non-root user
+    above does not gate any of that.
+    **So: the mount list is a guard against ACCIDENTS - a careless `rm -rf`, a
+    runaway test, Claude with `--dangerously-skip-permissions` - and it is a good
+    one. It is NOT a security boundary against deliberately hostile code** (a
+    malicious dependency or build script inherits everything above). Closing that gap means dropping `--privileged`, which in turn means a
+    runtime built for it - [`sysbox-runc`](https://github.com/nestybox/sysbox) runs
+    Docker-in-Docker unprivileged.
 
 ## Build
 
@@ -115,9 +115,10 @@ exposed.
 `sandbox/emulator.sh start|stop|status|screenshot <file.png>`, run **inside** the sandbox, boots a
 headless Android emulator, on the API level the app compiles against (about 20 seconds), so instrumented tests and the Baseline
 Profile journey can run without a phone. The emulator, a system image and a virtual device are baked
-into the image (`EMULATOR_API` in the Dockerfile picks the version and follows `compileSdk`; the dependency update script keeps them in step), so it boots straight away. It opens `/dev/kvm` to `dev` (the
-host's node is root:kvm and `dev` isn't in that group) and switches the app's UI renderer to Vulkan after
-every boot, because the emulator's software GLES path segfaults while drawing the app.
+into the image (`EMULATOR_API` in the Dockerfile picks the version and follows `compileSdk`; the dependency update
+script keeps them in step), so it boots straight away. It opens `/dev/kvm` to `dev` (the host's node is root:kvm and
+`dev` isn't in that group) and switches the app's UI renderer to Vulkan after every boot, because the emulator's
+software GLES path segfaults while drawing the app.
 
 How it works, how to use it for the profile journey, and what to do when it dies:
 [`.claude/EMULATOR.md`](../.claude/EMULATOR.md). It is for generating profiles and debugging, not for
@@ -165,12 +166,12 @@ from the project directory), which trips the running launcher's teardown
 `sandbox.sh` stops **and removes** the container whenever the launcher ends. Any of these triggers it:
 
 - **closing the terminal tab** (the ✕ on the tab) **or quitting IntelliJ** — sends SIGHUP/SIGTERM to the
-  launcher, firing its trap. *This is the everyday "stop" in terminal mode.*
+    launcher, firing its trap. *This is the everyday "stop" in terminal mode.*
 - running the **`Claude Sandbox (Stop)`** config (or `./sandbox/sandbox.sh stop` in any terminal) — the
-  `docker stop` makes the running `docker run --rm` client exit, firing the same teardown.
+    `docker stop` makes the running `docker run --rm` client exit, firing the same teardown.
 - typing `exit` / Ctrl-D in the Claude session.
 - **starting another sandbox** — the new launcher stops the old container once its own build is done
-  (see "Use" above).
+    (see "Use" above).
 
 It does this with a `trap` that runs `docker stop`, and by launching `docker run` as `… & wait` so the
 trap fires the instant the signal arrives (a foreground command would defer it until it returns — too
@@ -211,11 +212,11 @@ build context carries no assumption about the project.
 
 What the new project may want to set:
 
-| Variable           | Default         | When to change it                                                                                                |
-|--------------------|-----------------|------------------------------------------------------------------------------------------------------------------|
-| `SANDBOX_PORTS`    | *(empty)*       | space-separated `host:container` pairs; empty publishes nothing. Two sandboxes cannot both hold the same host port |
-| `SANDBOX_NAME`     | the project dir | two checkouts of the *same* repo that must not share caches                                                      |
-| `PROJECT_DIR`      | the parent dir  | the folder is not at `<project>/sandbox/`                                                                        |
+| Variable        | Default         | When to change it                                                                                                  |
+| --------------- | --------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `SANDBOX_PORTS` | *(empty)*       | space-separated `host:container` pairs; empty publishes nothing. Two sandboxes cannot both hold the same host port |
+| `SANDBOX_NAME`  | the project dir | two checkouts of the *same* repo that must not share caches                                                        |
+| `PROJECT_DIR`   | the parent dir  | the folder is not at `<project>/sandbox/`                                                                          |
 
 What is baked into the image: **JDK 25, an Android SDK (platform-tools, `platforms;android-37.2`,
 `build-tools;36.0.0`, matching this project's `compileSdk`/`buildToolsVersion`, plus the NDK and the emulator
@@ -234,13 +235,13 @@ history, each time):
 
 `<project>` below is the project directory's name, lower-cased.
 
-| Mount                      | Kind             | Holds                                                                      |
-|-----------------------------|------------------|-----------------------------------------------------------------------------|
-| `sandbox/.claude-history/`  | bind-mounted dir | Claude auth, session transcripts/memory **and** onboarding/terminal-setup state (`~/.claude`) |
-| `<project>-sandbox-docker`  | named volume     | nested Docker images/layers (`/var/lib/docker`)                            |
-| `<project>-sandbox-gradle`  | named volume     | the Gradle distribution + dependency cache (`~/.gradle`) — AGP/Kotlin/AndroidX/Compose land here on first build |
-| `<project>-sandbox-m2`      | named volume     | `~/.m2` — the android-all jars Robolectric downloads for the unit tests    |
-| `<project>-sandbox-pw`      | named volume     | Playwright browsers — empty until a session installs Chromium              |
+| Mount                      | Kind             | Holds                                                                                                           |
+| -------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------- |
+| `sandbox/.claude-history/` | bind-mounted dir | Claude auth, session transcripts/memory **and** onboarding/terminal-setup state (`~/.claude`)                   |
+| `<project>-sandbox-docker` | named volume     | nested Docker images/layers (`/var/lib/docker`)                                                                 |
+| `<project>-sandbox-gradle` | named volume     | the Gradle distribution + dependency cache (`~/.gradle`) — AGP/Kotlin/AndroidX/Compose land here on first build |
+| `<project>-sandbox-m2`     | named volume     | `~/.m2` — the android-all jars Robolectric downloads for the unit tests                                         |
+| `<project>-sandbox-pw`     | named volume     | Playwright browsers — empty until a session installs Chromium                                                   |
 
 `sandbox/.claude-history/` is a plain directory in this checkout (created on first launch,
 git-ignored), not an opaque Docker-managed volume. That means it's fully contained in the project —
@@ -255,13 +256,13 @@ so there's no benefit to making them inspectable the same way.
 Measured on a two-month-old sandbox of a build-heavy JVM project — an upper bound, and far more than
 this repo will produce:
 
-| Mount                        | Size      | Bounded?                                                            |
-|-------------------------------|-----------|---------------------------------------------------------------------|
-| `<project>-sandbox-docker`    | **77 GB** | **no** - 61 GB of it BuildKit cache, 21 GB images, from every build |
-| `<project>-sandbox-gradle`    | *(not yet measured on this repo)* | grows slowly with dependency churn                  |
-| `<project>-sandbox-m2`        | 623 MB    | this repo: Robolectric's android-all jars, one per SDK level tested |
-| `sandbox/.claude-history/`    | 1.2 GB    | yes - this repo at Claude's 30-day default; `launch.sh` now sets 14 days |
-| `<project>-sandbox-pw`        | small     | yes - one browser build                                             |
+| Mount                      | Size                              | Bounded?                                                                 |
+| -------------------------- | --------------------------------- | ------------------------------------------------------------------------ |
+| `<project>-sandbox-docker` | **77 GB**                         | **no** - 61 GB of it BuildKit cache, 21 GB images, from every build      |
+| `<project>-sandbox-gradle` | *(not yet measured on this repo)* | grows slowly with dependency churn                                       |
+| `<project>-sandbox-m2`     | 623 MB                            | this repo: Robolectric's android-all jars, one per SDK level tested      |
+| `sandbox/.claude-history/` | 1.2 GB                            | yes - this repo at Claude's 30-day default; `launch.sh` now sets 14 days |
+| `<project>-sandbox-pw`     | small                             | yes - one browser build                                                  |
 
 The image now ships `/etc/docker/daemon.json` with a BuildKit GC policy (`maxUsedSpace: 20GB`,
 `keepDuration: 168h`), so the build cache self-limits from here on — a copied sandbox inherits the
@@ -348,31 +349,31 @@ rm -rf sandbox/.claude-history
 ## Notes
 
 - **The sandbox runs in the host's timezone.** `sandbox.sh` passes it in as `TZ` (an IANA name such as
-  `Pacific/Auckland`) - from `SANDBOX_TZ` if set, else the host's `TZ`, else the OS setting (`timedatectl`,
-  `/etc/timezone` or the `/etc/localtime` link; on Windows, converted from the Windows zone name), else UTC.
-  `entrypoint.sh` checks it against the image's tzdata, points `/etc/localtime` at it and keeps it for `dev`,
-  so shells, Gradle and Robolectric tests, the store-asset screenshots and the emulator (`-timezone`) all
-  read the host's local time. An unknown name falls back to UTC with a warning. CI stays on UTC; the test
-  suites pass in both.
+    `Pacific/Auckland`) - from `SANDBOX_TZ` if set, else the host's `TZ`, else the OS setting (`timedatectl`,
+    `/etc/timezone` or the `/etc/localtime` link; on Windows, converted from the Windows zone name), else UTC.
+    `entrypoint.sh` checks it against the image's tzdata, points `/etc/localtime` at it and keeps it for `dev`,
+    so shells, Gradle and Robolectric tests, the store-asset screenshots and the emulator (`-timezone`) all
+    read the host's local time. An unknown name falls back to UTC with a warning. CI stays on UTC; the test
+    suites pass in both.
 
 - The repo's `.env` (and anything else sensitive in the tree, e.g. `storage/`) is
-  mounted at `/work`, so the sandbox *can* read it. Move such files out of the
-  tree and inject via `-e` if you want zero exposure.
+    mounted at `/work`, so the sandbox *can* read it. Move such files out of the
+    tree and inject via `-e` if you want zero exposure.
 - Permission prompts are off by default, scoped to this sandbox only — never on
-  your host. Two layers, because the flag alone does not cover every entry point:
-  the entrypoint starts its no-command `claude` with
-  `--dangerously-skip-permissions`, and `launch.sh` asserts
-  `permissions.defaultMode = "bypassPermissions"` in the settings.json on the
-  persisted config volume, so a `shell` session that runs claude by hand gets the
-  same default. Flip that key to `"default"` (or `"auto"`) if you ever want a
-  session to prompt.
+    your host. Two layers, because the flag alone does not cover every entry point:
+    the entrypoint starts its no-command `claude` with
+    `--dangerously-skip-permissions`, and `launch.sh` asserts
+    `permissions.defaultMode = "bypassPermissions"` in the settings.json on the
+    persisted config volume, so a `shell` session that runs claude by hand gets the
+    same default. Flip that key to `"default"` (or `"auto"`) if you ever want a
+    session to prompt.
 - `gh` (the GitHub CLI) is in the image, but **unauthenticated by design, and stays
-  that way**. Credentials are entered by hand in the session that needs them and are
-  never persisted: nothing mounts `~/.config/gh`, so a `gh auth login` lives on the
-  writable layer and dies with `--rm`, and no `GH_TOKEN` is forwarded into the
-  container. **That is the policy, not a gap** — a session running with
-  `--dangerously-skip-permissions` is not somewhere a GitHub credential should be
-  sitting when nobody is watching. Do not "fix" it with a named volume for
-  `~/.config/gh` or an `-e GH_TOKEN` passthrough in `sandbox.sh`. Re-authenticating
-  each session is the cost, and it is the intended one. Unauthenticated `gh` still
-  reads public repos.
+    that way**. Credentials are entered by hand in the session that needs them and are
+    never persisted: nothing mounts `~/.config/gh`, so a `gh auth login` lives on the
+    writable layer and dies with `--rm`, and no `GH_TOKEN` is forwarded into the
+    container. **That is the policy, not a gap** — a session running with
+    `--dangerously-skip-permissions` is not somewhere a GitHub credential should be
+    sitting when nobody is watching. Do not "fix" it with a named volume for
+    `~/.config/gh` or an `-e GH_TOKEN` passthrough in `sandbox.sh`. Re-authenticating
+    each session is the cost, and it is the intended one. Unauthenticated `gh` still
+    reads public repos.

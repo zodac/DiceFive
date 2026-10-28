@@ -17,29 +17,37 @@ failure stops what follows.
 ```
 
 - The root `testDebugUnitTest` runs both modules' test suites: `:app:shared`'s as Android runs them (`commonTest`
-  and `androidHostTest`; compiled for the JVM too), and `:app:android`'s. `:app:shared:jvmTest` runs `commonTest` on
-  the JVM: monthly in CI, and by hand after changing a `commonTest` UI test or the harness.
+    and `androidHostTest`; compiled for the JVM too), and `:app:android`'s. `:app:shared:jvmTest` runs `commonTest` on
+    the JVM: monthly in CI, and by hand after changing a `commonTest` UI test or the harness.
 - `app/android` has two flavours, `play` and `github` (`.claude/DESIGN.md`, "Distribution"). Its `testDebugUnitTest`
-  and `lintDebug` run both (`testPlayDebugUnitTest`, `testGithubDebugUnitTest`, ...), so `src/test` runs twice, once
-  in each app, with `src/testPlay` and `src/testGithub` once in their own.
+    and `lintDebug` run both (`testPlayDebugUnitTest`, `testGithubDebugUnitTest`, ...), so `src/test` runs twice, once
+    in each app, with `src/testPlay` and `src/testGithub` once in their own.
 - `:app:baselineprofile:compileNonMinifiedReleaseKotlin` compiles the Baseline Profile journey, the only on-device test
-  code (the app has no `src/androidTest`). Nothing else compiles it before CI's emulator job.
+    code (the app has no `src/androidTest`). Nothing else compiles it before CI's emulator job.
 - `lintRelease` is both release builds' full lint (`lintPlayRelease`, `lintGithubRelease`): the release-only source
-  sets and manifests, which `lintDebug` never sees.
+    sets and manifests, which `lintDebug` never sees.
 - `:app:android:assembleRelease` is the release job's build for both apps: R8, and the release lint
-  (`lintVitalPlayRelease`, `lintVitalGithubRelease`), which `lintDebug` doesn't run. Without the signing secrets it
-  builds unsigned, which is fine here.
+    (`lintVitalPlayRelease`, `lintVitalGithubRelease`), which `lintDebug` doesn't run. Without the signing secrets it
+    builds unsigned, which is fine here.
 - No `-q`, so Gradle's warnings show. Read what's left after the task lines. Known and left (third-party, already
-  on their newest versions): AGP's `Configuration.setVisible` deprecation, and the AboutLibraries plugin's
-  "resolved during configuration time" lines. Also left, by the maintainer's choice: the manifest merger's two "tagged
-  ... to remove other declarations but no other declaration present" warnings (INTERNET, ACCESS_NETWORK_STATE) from
-  `mergePlayDebugUnitTestManifest`. The unit-test merge has no Billing library manifest to remove them from; the app
-  builds are clean. Anything else is new: fix it.
+    on their newest versions): AGP's `Configuration.setVisible` deprecation, and the AboutLibraries plugin's
+    "resolved during configuration time" lines. Also left, by the maintainer's choice: the manifest merger's two "tagged
+    ... to remove other declarations but no other declaration present" warnings (INTERNET, ACCESS_NETWORK_STATE) from
+    `mergePlayDebugUnitTestManifest`. The unit-test merge has no Billing library manifest to remove them from; the app
+    builds are clean. Anything else is new: fix it.
+
+After changing a workflow, a shell script (`*.sh`, `.githooks/`), a Dockerfile, or a Markdown file (`RELEASE_NOTES.md`
+aside), also run its linter (CI's `lint.yml` runs all four). Each runs from a pinned Docker image, with its rules from
+the `code-quality-config` submodule:
+
+```sh
+.github/scripts/lint_workflows.sh && .github/scripts/lint_shell_scripts.sh && .github/scripts/lint_dockerfiles.sh && .github/scripts/lint_markdown.sh
+```
 
 ## While iterating
 
 | What | Command |
-|---|---|
+| --- | --- |
 | One shared test as Android runs it (`commonTest`, `androidHostTest`; Robolectric for the UI) | `./gradlew -q :app:shared:testAndroidHostTest --tests '*BoardSemanticsTest'` |
 | One shared test on the JVM target (`commonTest`; not in the gate) | `./gradlew -q :app:shared:jvmTest --tests '*GameEngineTest'` |
 | One app test (`app/android/src/test`, or `src/testPlay`) | `./gradlew -q :app:android:testPlayDebugUnitTest --tests '*MainActivitySmokeTest'` |
@@ -62,39 +70,39 @@ on the classes before it in the same JVM; nor can a shared one on what another c
 The tiers, and why a test isn't in the one above it, are in `.claude/MULTIPLATFORM.md`, "Tests". In short:
 
 - **`app/shared/src/commonTest`**, for both targets, is the default: logic, view models, and UI. A UI test extends
-  `UiTest`, runs each test in `uiTest { }` (`uiTest(TestScreen(360, 800))` for a screen size) and drives `compose` as
-  an Android test's rule. Robolectric draws it on Android (SDK 36, native graphics, `robolectric.properties`), Compose's
-  desktop runtime on the JVM. `Res` resolves in both.
+    `UiTest`, runs each test in `uiTest { }` (`uiTest(TestScreen(360, 800))` for a screen size) and drives `compose` as
+    an Android test's rule. Robolectric draws it on Android (SDK 36, native graphics, `robolectric.properties`), Compose's
+    desktop runtime on the JVM. `Res` resolves in both.
 - **`app/shared/src/androidHostTest`**: a shared test that holds only on Android - another language (`@Config`), an
-  Android API, or a desktop harness limit; it says which. And the checks that read the source tree from disk (the i18n
-  guards, the perfect-play table).
+    Android API, or a desktop harness limit; it says which. And the checks that read the source tree from disk (the i18n
+    guards, the perfect-play table).
 - **`app/android/src/test`**: the app itself - `MainActivity`, `device/`, the manifest, Room on Android's SQLite, the
-  store-asset generators. What only one app has goes in `src/testPlay` (Play Games, Sidekick, the Play Console sheets)
-  or `src/testGithub` (progress files on Android).
+    store-asset generators. What only one app has goes in `src/testPlay` (Play Games, Sidekick, the Play Console sheets)
+    or `src/testGithub` (progress files on Android).
 
 ## Traps
 
 - **A screen test** (`GameScreen`) needs `LocalPlatformServices provides SilentPlatformServices`. Under Robolectric,
-  step both `compose.mainClock` and the paused main looper (`ShadowLooper.idleMainLooper`), because the view model's
-  coroutines delay on the looper. `GameScreenCupGateTest.waitFor` is the pattern.
+    step both `compose.mainClock` and the paused main looper (`ShadowLooper.idleMainLooper`), because the view model's
+    coroutines delay on the looper. `GameScreenCupGateTest.waitFor` is the pattern.
 - **The desktop harness** (a `commonTest` UI test on the JVM) draws every frame in software, and a composition's own
-  coroutines (`delayWhileResumed` in an effect or a gesture) wait in real time there, not on the test clock. A test that
-  depends on either belongs in `androidHostTest`.
+    coroutines (`delayWhileResumed` in an effect or a gesture) wait in real time there, not on the test clock. A test that
+    depends on either belongs in `androidHostTest`.
 - **View-model tests** run on a `StandardTestDispatcher`, which must also be passed as `aiDispatcher` (`gameViewModel()`
-  requires it). Use `advanceTimeBy` + `runCurrent` for timers. In a timed game, `advanceUntilIdle` plays every turn out
-  through timeouts.
+    requires it). Use `advanceTimeBy` + `runCurrent` for timers. In a timed game, `advanceUntilIdle` plays every turn out
+    through timeouts.
 - **Nothing real by default.** The test `gameViewModel()`s deal seeded dice and read a 2pm clock (`TEST_LOCAL_HOUR` for a
-  screen test), so no result depends on when it runs - Rolling The Midnight Dice unlocks from midnight to 6am. Pass
-  `localHour` to test the time of day.
+    screen test), so no result depends on when it runs - Rolling The Midnight Dice unlocks from midnight to 6am. Pass
+    `localHour` to test the time of day.
 - **Only do what the UI allows.** The engine throws on impossible actions.
 - **Pick dice that tell the rules apart.** Use `LoadedDice` or `ScriptedDice` (`commonTest/.../TestDice.kt`), and work
-  out the expected values by hand before asserting. They fail a draw outside the range asked for, so script every draw
-  a roll makes - Unlucky Dice's odds and shuffle too (`AchievementTrackerTest`'s Bad Omen).
+    out the expected values by hand before asserting. They fail a draw outside the range asked for, so script every draw
+    a roll makes - Unlucky Dice's odds and shuffle too (`AchievementTrackerTest`'s Bad Omen).
 - **Process-wide memories.** A screen that remembers its place for the process (`AchievementsScrollMemory`,
-  `RulesPageMemory`, the Scores warm-up) has a reset; call it before opening that screen.
+    `RulesPageMemory`, the Scores warm-up) has a reset; call it before opening that screen.
 - **Fakes.** `InMemoryPreferences`, `InMemoryScoreDao` and `InMemoryAchievementStore` (commonTest) are the shared ones,
-  with `UiTestSupport.kt`'s view models and `inMemoryAppContainer()`; reuse them rather than writing another.
-  `:app:android` can't see them.
+    with `UiTestSupport.kt`'s view models and `inMemoryAppContainer()`; reuse them rather than writing another.
+    `:app:android` can't see them.
 - **Prove a guard can fail.** Remove the fix, watch the test fail, then put it back. Do this one guard at a time.
 - **Cached formatters leak between tests in one JVM.** Run a locale test on its own when checking that it can fail.
 - **Semantics-cleared text can't be found.** Use `useUnmergedTree = true`, or say in the report that it is untested.

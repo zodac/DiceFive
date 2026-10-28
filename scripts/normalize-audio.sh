@@ -23,7 +23,7 @@ set -euo pipefail
 # to this, never down, so nothing gets quieter than it shipped.
 TARGET_PEAK_DB=-0.8
 
-if [ $# -lt 2 ]; then
+if [[ $# -lt 2 ]]; then
   echo "Usage: $0 <output-dir> <source.ogg>..." >&2
   exit 1
 fi
@@ -35,20 +35,20 @@ if ! command -v ffmpeg > /dev/null; then
   exit 1
 fi
 
-mkdir -p "$out_dir"
+mkdir -p "${out_dir}"
 for source in "$@"; do
   # ffmpeg's own volumedetect filter rather than hand-rolled PCM analysis: it already decodes every format ffmpeg does.
-  peak_db="$(ffmpeg -hide_banner -i "$source" -af volumedetect -f null - 2>&1 \
+  peak_db="$(ffmpeg -hide_banner -i "${source}" -af volumedetect -f null - 2>&1 \
     | sed -n 's/.*max_volume: *\(-\{0,1\}[0-9.]*\) dB.*/\1/p' | head -n 1)"
-  if [ -z "$peak_db" ]; then
-    echo "Could not read max_volume for $source from ffmpeg" >&2
+  if [[ -z "${peak_db}" ]]; then
+    echo "Could not read max_volume for ${source} from ffmpeg" >&2
     exit 1
   fi
   # Python's float printing (the shortest exact form) matches what the Android build used to pass ffmpeg.
-  gain_db="$(python3 -c "print($TARGET_PEAK_DB - ($peak_db))")"
-  name="$(basename "$source" .ogg)"
-  ffmpeg -nostdin -loglevel error -y -i "$source" \
+  gain_db="$(python3 -c "print(${TARGET_PEAK_DB} - (${peak_db}))")"
+  name="$(basename "${source}" .ogg)"
+  ffmpeg -nostdin -loglevel error -y -i "${source}" \
     -af "volume=${gain_db}dB,alimiter=limit=0.99" \
     -c:a libvorbis -q:a 6 \
-    "$out_dir/$name.ogg"
+    "${out_dir}/${name}.ogg"
 done

@@ -15,8 +15,8 @@
 #
 # Only the project directory is mounted from the host. No $HOME, no SSH keys,
 # no other projects, and NOT the host Docker socket. The sandbox runs its own
-# nested Docker daemon, so any container a session spins up (here, actionlint)
-# lives and dies inside this disposable container.
+# nested Docker daemon, so any container a session spins up (here, the linters:
+# actionlint, ShellCheck, hadolint, and markdownlint) lives and dies inside this disposable container.
 set -euo pipefail
 
 # This script lives in <project>/sandbox/, so the project root is its parent dir.

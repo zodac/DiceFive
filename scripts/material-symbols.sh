@@ -11,9 +11,9 @@
 set -euo pipefail
 
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-output="$root_dir/app/shared/src/commonMain/kotlin/net/zodac/dicefive/ui/icons/Symbols.kt"
+output="${root_dir}/app/shared/src/commonMain/kotlin/net/zodac/dicefive/ui/icons/Symbols.kt"
 
-python3 -I - "$output" <<'PYTHON'
+python3 -I - "${output}" <<'PYTHON'
 import re
 import sys
 import urllib.request

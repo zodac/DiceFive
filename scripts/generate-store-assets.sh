@@ -11,6 +11,8 @@
 #                                    [--music-loudness -24]  # its level in LUFS - any track ends up as loud as any other
 #
 # Needs ImageMagick 7 (`magick`) and ffmpeg, both in the sandbox image.
+# `wants` is a predicate, only ever a condition.
+# shellcheck disable=SC2310
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -47,7 +49,7 @@ if ! git check-ignore -q assets/probe.png; then
 fi
 # The listing's hand-written full description is the one tracked file there.
 TRACKED_IN_ASSETS="assets/full-description.txt"
-if [[ -n "$(git ls-files assets | grep -vxF "${TRACKED_IN_ASSETS}")" ]]; then
+if git ls-files assets | grep -qvxF "${TRACKED_IN_ASSETS}"; then
     echo "Generated files under assets/ are tracked by git - remove them from the index (git rm --cached) first:" >&2
     git ls-files assets | grep -vxF "${TRACKED_IN_ASSETS}" >&2
     exit 1
@@ -62,7 +64,6 @@ CAPTIONS="${ROOT}/scripts/store-assets/captions.txt"
 
 # Brand colours - see UI.md's Colour section and the launcher icon.
 NAVY_TOP="#16305A"
-NAVY="#0B1E3A"
 NAVY_DEEP="#06122A"
 GOLD="#F2C46A"
 
@@ -84,7 +85,8 @@ elif [[ -z "${MUSIC}" ]] && [[ ",${PARTS}," == *",video,"* ]]; then
         curl -fsSL -o "${MUSIC}.part" "${DEFAULT_MUSIC_URL}"
         mv "${MUSIC}.part" "${MUSIC}"
     fi
-    if [[ "$(sha256sum "${MUSIC}" | cut -d' ' -f1)" != "${DEFAULT_MUSIC_SHA256}" ]]; then
+    music_sha256="$(sha256sum "${MUSIC}" | cut -d' ' -f1)"
+    if [[ "${music_sha256}" != "${DEFAULT_MUSIC_SHA256}" ]]; then
         echo "${MUSIC} isn't the expected track (checksum differs) - delete it to fetch it again, or pass --music." >&2
         exit 1
     fi
@@ -119,9 +121,10 @@ backdrop() {
 # A screen with rounded corners, a thin rim and a soft shadow, scaled to fit width x height.
 framed_screen() {
     local in="$1" width="$2" height="$3" out="$4"
-    local w h radius
+    local size w h radius
     magick "${in}" -filter Lanczos -resize "${width}x${height}" -alpha off "${WORK}/scaled.png"
-    read -r w h < <(magick identify -format '%w %h\n' "${WORK}/scaled.png")
+    size="$(magick identify -format '%w %h\n' "${WORK}/scaled.png")"
+    read -r w h <<< "${size}"
     radius=$(( w / 22 ))
     magick "${WORK}/scaled.png" \
         \( -size "${w}x${h}" xc:black -fill white -draw "roundrectangle 0,0 $((w - 1)),$((h - 1)) ${radius},${radius}" \) \
@@ -201,7 +204,8 @@ if wants video; then
 
     # The phone's screen on the right, the scene's headline on the left. Its size, from the first frame.
     first_frame="$(find "${RAW}/video" -mindepth 2 -name '00000.png' | sort | head -n 1)"
-    read -r src_w src_h < <(magick identify -format '%w %h\n' "${first_frame}")
+    first_frame_size="$(magick identify -format '%w %h\n' "${first_frame}")"
+    read -r src_w src_h <<< "${first_frame_size}"
     phone_h=$(( VIDEO_H * 88 / 100 ))
     phone_w=$(( src_w * phone_h / src_h / 2 * 2 ))
     phone_x=$(( VIDEO_W * 64 / 100 - phone_w / 2 ))
@@ -253,9 +257,9 @@ if wants video; then
     starts=()
     previous="[0:v]"
     for i in "${!segments[@]}"; do
-        inputs+=(-i "${segments[$i]}")
+        inputs+=(-i "${segments[${i}]}")
         starts+=("${offset}")
-        duration="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "${segments[$i]}")"
+        duration="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "${segments[${i}]}")"
         if [[ ${i} -gt 0 ]]; then
             filter+="${previous}[${i}:v]xfade=transition=fade:duration=${FADE}:offset=${offset}[x${i}];"
             previous="[x${i}]"
@@ -272,11 +276,11 @@ if wants video; then
     sounds=()
     used_clips=()
     for i in "${!scene_dirs[@]}"; do
-        log="${scene_dirs[$i]}/sounds.txt"
-        [[ -n "${scene_dirs[$i]}" && -s "${log}" ]] || continue
+        log="${scene_dirs[${i}]}/sounds.txt"
+        [[ -n "${scene_dirs[${i}]}" && -s "${log}" ]] || continue
         while read -r frame clip volume; do
             [[ -f "${clips}/${clip}.ogg" ]] || { echo "No ${clips}/${clip}.ogg - run without --no-render to build it" >&2; exit 1; }
-            delay="$(awk -v s="${starts[$i]}" -v f="${frame}" -v r="${FPS}" 'BEGIN { printf "%d", (s + f / r) * 1000 }')"
+            delay="$(awk -v s="${starts[${i}]}" -v f="${frame}" -v r="${FPS}" 'BEGIN { printf "%d", (s + f / r) * 1000 }')"
             inputs+=(-i "${clips}/${clip}.ogg")
             filter+="[${next_input}:a]aformat=sample_rates=48000:channel_layouts=stereo,volume=${volume},adelay=${delay}:all=1[s${#sounds[@]}];"
             sounds+=("[s${#sounds[@]}]")
@@ -359,8 +363,9 @@ problems=0
 problem() { echo "  PROBLEM: $*"; problems=$((problems + 1)); }
 check_image() {
     local file="$1" rule="$2"
-    local w h alpha bytes
-    read -r w h alpha < <(magick identify -format '%w %h %A\n' "${file}")
+    local info w h alpha bytes
+    info="$(magick identify -format '%w %h %A\n' "${file}")"
+    read -r w h alpha <<< "${info}"
     bytes="$(stat -c %s "${file}")"
     case "${rule}" in
         icon)
@@ -377,6 +382,7 @@ check_image() {
             (( short >= 1080 )) || echo "  note: ${file}: under 1080px, too small for Play's featuring"
             [[ "${alpha}" == "Undefined" || "${alpha}" == "False" ]] || problem "${file}: has an alpha channel"
             (( bytes <= 8 * 1024 * 1024 )) || problem "${file}: over 8MB" ;;
+        *) problem "${file}: no rule '${rule}' to check it against" ;;
     esac
 }
 [[ -f "${OUT}/icon-512.png" ]] && check_image "${OUT}/icon-512.png" icon

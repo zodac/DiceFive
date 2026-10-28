@@ -1,7 +1,8 @@
 name: Update dependencies
 
 # Once a month (and on demand), runs .github/scripts/update_dependency_versions.sh - every Gradle
-# dependency, the Android SDK platform, the NDK, the JDK, the sandbox image's pins and the actionlint image -
+# dependency, the Android SDK platform, the NDK, the JDK, the sandbox image's pins, the linter images, and the
+# code-quality-config submodule (to its newest tag) -
 # then re-runs the same gates the release workflow applies. Only if everything passes is the result
 # committed to main and a release started; a failure anywhere leaves main untouched (the run just
 # fails, with the reason in its log).
@@ -15,8 +16,8 @@ name: Update dependencies
 # both designed around here:
 #   - It may not change files under .github/workflows/. So no version the update moves lives in a
 #     workflow: the JDK comes from the Gradle toolchain file and the SDK packages from
-#     gradle/android-sdk.properties, both read at run time (.github/actions/build-setup), and the actionlint
-#     image is pinned in .github/scripts/lint_workflows.sh (the NDK, like the SDK packages, comes from
+#     gradle/android-sdk.properties, both read at run time (.github/actions/build-setup), and the linter
+#     images are pinned in .github/scripts/lint_*.sh (the NDK, like the SDK packages, comes from
 #     gradle/android-sdk.properties). The one thing left in workflow files is
 #     the actions' own versions (each a commit pin, `@<sha> # vX.Y.Z`): the script runs with --no-workflow-edits, so newer
 #     ones are only listed in the run summary, to apply by running the script locally.
@@ -51,6 +52,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          submodules: true # code-quality-config: lint's rules, which release builds read too (lintVital)
           ref: main
           persist-credentials: false
 
@@ -123,10 +125,15 @@ jobs:
           ./gradlew assembleDebug testDebugUnitTest :app:baselineprofile:compileNonMinifiedReleaseKotlin lintDebug lintRelease \
             :app:android:assembleGithubRelease :app:android:bundlePlayRelease --console=plain
 
-      # Also exercises a freshly bumped actionlint image before it is committed.
-      - name: Lint workflows
+      # The workflows, shell scripts, Dockerfiles, and Markdown, as lint.yml checks them: also exercises a freshly bumped linter
+      # image, or code-quality-config's rules at a new tag, before either is committed.
+      - name: Lint workflows, shell scripts, Dockerfiles, and Markdown
         if: steps.changes.outputs.changed == 'true'
-        run: .github/scripts/lint_workflows.sh
+        run: |
+          .github/scripts/lint_workflows.sh
+          .github/scripts/lint_shell_scripts.sh
+          .github/scripts/lint_dockerfiles.sh
+          .github/scripts/lint_markdown.sh
 
       # Everything the update changed, binary files (the wrapper jar) included, as one patch against the base commit.
       - name: Make the patch
@@ -211,6 +218,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          submodules: true # code-quality-config: lint's rules, which release builds read too (lintVital)
           ref: main
           persist-credentials: false
 

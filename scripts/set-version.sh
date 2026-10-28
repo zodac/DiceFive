@@ -8,17 +8,17 @@
 
 set -euo pipefail
 
-if [ $# -ne 1 ]; then
+if [[ $# -ne 1 ]]; then
   echo "Usage: $0 <major.minor.patch>" >&2
   exit 1
 fi
 
 version="$1"
-if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "Version must be major.minor.patch (e.g. 1.2.3), got: $version" >&2
+if ! [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Version must be major.minor.patch (e.g. 1.2.3), got: ${version}" >&2
   exit 1
 fi
 
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-echo "$version" > "$root_dir/VERSION"
-echo "Version set to $version"
+echo "${version}" > "${root_dir}/VERSION"
+echo "Version set to ${version}"

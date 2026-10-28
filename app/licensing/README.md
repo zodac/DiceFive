@@ -3,63 +3,63 @@
 Read by the AboutLibraries Gradle plugin (`aboutLibraries { collect { configPath } }` in
 `app/android/build.gradle.kts`, via `licensingDir`). It sits beside the code modules rather than in
 one, because it covers what both ship - `app/shared`'s font and icons as well as `app/android`'s
-sounds. The library list shown in Settings > Licences is generated from the real dependency graph on every build - nothing here lists dependencies. This folder only holds
-what the plugin can't discover for itself:
+sounds. The library list shown in Settings > Licences is generated from the real dependency graph on every build -
+nothing here lists dependencies. This folder only holds what the plugin can't discover for itself:
 
 - `licenses/<SPDX id>.json` - the full text of each allowed license, copied from
-  [SPDX](https://github.com/spdx/license-list-data/tree/main/json/details) (`licenseText`), with any
-  `Copyright (c) <year> <owner>` template line removed - the per-library copyright goes in the
-  library entry instead. The build runs offline, so without this file a license would ship as a name
-  with no text; `verifyLicenseReport<Variant>` fails the build if one is missing.
+    [SPDX](https://github.com/spdx/license-list-data/tree/main/json/details) (`licenseText`), with any
+    `Copyright (c) <year> <owner>` template line removed - the per-library copyright goes in the
+    library entry instead. The build runs offline, so without this file a license would ship as a name
+    with no text; `verifyLicenseReport<Variant>` fails the build if one is missing.
 - `libraries/<name>.json` - an entry for something that isn't a Gradle dependency (a bundled font,
-  sound or image - it gets a new `uniqueId`), or an override merged into a generated one (same
-  `uniqueId`). A library under a license that requires its copyright notice to be reproduced (BSD,
-  MIT, ISC, OFL) needs one of these whose `description` is exactly that notice, starting
-  `Copyright` - the build fails until it has one.
+    sound or image - it gets a new `uniqueId`), or an override merged into a generated one (same
+    `uniqueId`). A library under a license that requires its copyright notice to be reproduced (BSD,
+    MIT, ISC, OFL) needs one of these whose `description` is exactly that notice, starting
+    `Copyright` - the build fails until it has one.
 
 - `sora-OFL.txt` - the Sora font's own licence file, as distributed with it upstream: its copyright
-  line and the full SIL Open Font License. The OFL requires this to accompany the font wherever it's
-  redistributed - in this repository as well as in the app, where the Licences dialog shows the same
-  text (`licenses/OFL-1.1.json` plus `libraries/sora.json`'s copyright line). Kept here with the other
-  licence records rather than beside `sora.ttf`, so all of them are in one place.
+    line and the full SIL Open Font License. The OFL requires this to accompany the font wherever it's
+    redistributed - in this repository as well as in the app, where the Licences dialog shows the same
+    text (`licenses/OFL-1.1.json` plus `libraries/sora.json`'s copyright line). Kept here with the other
+    licence records rather than beside `sora.ttf`, so all of them are in one place.
 - `mathjax-fonts-OFL.txt` - the same for the MathJax TeX fonts (the Maths and Poker dice's faces): the
-  copyright and Reserved Font Name notice from the fonts' own name table, and the full OFL. Shown in
-  the dialog as `libraries/mathjax-fonts.json`.
+    copyright and Reserved Font Name notice from the fonts' own name table, and the full OFL. Shown in
+    the dialog as `libraries/mathjax-fonts.json`.
 - `andika-OFL.txt` - the same for the Andika font (the D20 dice's numbers): the copyright and Reserved Font
-  Name notice from the font's own name table, and the full OFL. Shown in the dialog as
-  `libraries/andika-font.json`.
+    Name notice from the font's own name table, and the full OFL. Shown in the dialog as
+    `libraries/andika-font.json`.
 - `sources/` - the untouched originals: MathJax's (`MathJax_Main-Regular.otf`, `MathJax_Math-Italic.otf`) and
-  Andika's (`Andika-Bold.ttf`).
-  They don't ship: `scripts/subset-maths-fonts.sh` cuts them down to the characters the dice draw and
-  renames them `dicefive_maths_regular.otf` and `dicefive_maths_italic.otf` ("DiceFive Maths"), as the
-  OFL requires of a modified font with a Reserved Font Name. `MathsFontCoverageTest` fails if a die
-  draws a character the cut-down fonts lack, or if they keep a MathJax name.
-  `scripts/subset-d20-font.sh` likewise cuts Andika down to the digits, with its crossed seven as the 7, and
-  renames it `dicefive_d20.ttf` ("DiceFive D20"); `D20FontCoverageTest` guards it.
+    Andika's (`Andika-Bold.ttf`).
+    They don't ship: `scripts/subset-maths-fonts.sh` cuts them down to the characters the dice draw and
+    renames them `dicefive_maths_regular.otf` and `dicefive_maths_italic.otf` ("DiceFive Maths"), as the
+    OFL requires of a modified font with a Reserved Font Name. `MathsFontCoverageTest` fails if a die
+    draws a character the cut-down fonts lack, or if they keep a MathJax name.
+    `scripts/subset-d20-font.sh` likewise cuts Andika down to the digits, with its crossed seven as the 7, and
+    renames it `dicefive_d20.ttf` ("DiceFive D20"); `D20FontCoverageTest` guards it.
 
 - `asset-sources.json` - where every bundled asset file came from: each file under any of
-  `app/android`'s source sets' `res/` (except `values*/`) and `assets/`, the sound effects in `app/audio/`, and under
-  any of `app/shared`'s `composeResources/` (the shared UI's font and icons - except `values*/`, its
-  strings), keyed by its path
-  relative to the repository root.
-  Every entry - the app's own artwork included - needs:
-  - `description` - what it is (and how it was modified, if it was);
-  - `source` - where it came from: a download URL, or for the app's own work the Claude Code
-    session and commit that created it;
-  - `license` - an SPDX id, or `LicenseRef-DiceFive-AllRightsReserved` for the app's own work
-    (see `LICENSE` at the repo root). For a third-party asset, the license of its source material.
+    `app/android`'s source sets' `res/` (except `values*/`) and `assets/`, the sound effects in `app/audio/`, and under
+    any of `app/shared`'s `composeResources/` (the shared UI's font and icons - except `values*/`, its
+    strings), keyed by its path
+    relative to the repository root.
+    Every entry - the app's own artwork included - needs:
+    - `description` - what it is (and how it was modified, if it was);
+    - `source` - where it came from: a download URL, or for the app's own work the Claude Code
+        session and commit that created it;
+    - `license` - an SPDX id, or `LicenseRef-DiceFive-AllRightsReserved` for the app's own work
+        (see `LICENSE` at the repo root). For a third-party asset, the license of its source material.
 
-  Then either:
-  - **the app's own work**: `copyright` - its notice, starting `Copyright`; or
-  - **third-party**: `libraries` - the `uniqueId` of the `libraries/` entry for *each* source it's
-    made from (a remix of two recordings lists both). Each entry must list the same license, have a
-    `website` (the source URL) and a `description` starting with its copyright/credit line
-    (`Copyright waived by <author> under CC0 1.0 ...` for CC0). Put any credit text the license asks
-    for - and, for CC-BY, a note of what was changed - in that description: it's what the
-    Licences dialog shows. Third-party copyright is never duplicated in the manifest.
+    Then either:
+    - **the app's own work**: `copyright` - its notice, starting `Copyright`; or
+    - **third-party**: `libraries` - the `uniqueId` of the `libraries/` entry for *each* source it's
+        made from (a remix of two recordings lists both). Each entry must list the same license, have a
+        `website` (the source URL) and a `description` starting with its copyright/credit line
+        (`Copyright waived by <author> under CC0 1.0 ...` for CC0). Put any credit text the license asks
+        for - and, for CC-BY, a note of what was changed - in that description: it's what the
+        Licences dialog shows. Third-party copyright is never duplicated in the manifest.
 
-  `verifyAssetSources` fails the build on an unlisted asset, an incomplete or inconsistent entry, or
-  an entry whose file is gone - so nothing can ship without a recorded source.
+    `verifyAssetSources` fails the build on an unlisted asset, an incomplete or inconsistent entry, or
+    an entry whose file is gone - so nothing can ship without a recorded source.
 
 **Adding an asset**: add its `asset-sources.json` entry. If it's third-party, also add a
 `libraries/` entry per source (license SPDX id, copyright/credit line as `description`, source URL as

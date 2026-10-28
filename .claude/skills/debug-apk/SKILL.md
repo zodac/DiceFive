@@ -16,10 +16,11 @@ description: Build the debug APK and send it to the user. Use once a requested c
    anything else not seen on a device; TalkBack speech never is, and needs no mention.
 
 Notes:
+
 - Visual work: get renders agreed first (`render` skill), then send the APK.
 - Don't touch `VERSION` to make an APK installable. `-PdevStamp` gives the build the minute it was made as its
-  `versionCode` (and `<version>-dev<minute>` as its name and file name), and it is signed with the repo's
-  `app/android/debug.keystore`, so every stamped APK installs over the last.
+    `versionCode` (and `<version>-dev<minute>` as its name and file name), and it is signed with the repo's
+    `app/android/debug.keystore`, so every stamped APK installs over the last.
 - Never send an APK built without `-PdevStamp`. It keeps `VERSION`'s `versionCode`, so it won't install over a
-  stamped one, and its name doesn't say which build it is. Plain builds stay unstamped so test and lint runs remain
-  up to date.
+    stamped one, and its name doesn't say which build it is. Plain builds stay unstamped so test and lint runs remain
+    up to date.

@@ -1,8 +1,8 @@
-[← Back to Documentation](./index.md)
-
 # Privacy Policy
 
-**Last updated: 23 October 2026**
+[← Back to Documentation](./index.md)
+
+**Last updated:** 23 October 2026
 
 This Privacy Policy explains how DiceFive ("the App") handles information when you use the App.
 
@@ -29,11 +29,11 @@ While you are signed in, the App uses Google Play Games Services for:
 
 - **Your Play Games account.** The App shows your Play Games gamer name and avatar in its Settings.
 - **Achievements.** Achievements you unlock in the App are also unlocked on your Play Games account, and those
-  already on your account are shown in the App.
+    already on your account are shown in the App.
 - **Leaderboards.** Your final score from each game you play as the first player, under a game mode's standard rules,
-  is sent to that mode's Google Play Games leaderboard. Leaderboards are public: other players can see your score
-  with your gamer name and avatar, as your Play Games profile settings allow. The player names you type into the App
-  are not sent to leaderboards.
+    is sent to that mode's Google Play Games leaderboard. Leaderboards are public: other players can see your score
+    with your gamer name and avatar, as your Play Games profile settings allow. The player names you type into the App
+    are not sent to leaderboards.
 - **Saved games.** Your game data is kept in your Google account's Play Games saved games (see section 3).
 
 Google may also collect information when you use Google Play Games Services, such as diagnostic and usage
@@ -94,20 +94,20 @@ Every style can still be earned for free by playing. The purchase is offered onl
 Google Play; copies downloaded from elsewhere offer no purchases.
 
 - **Payment.** The purchase is made through Google Play Billing, on Google Play's own purchase screen. Google Play
-  processes the payment. The App never receives or stores your payment card, other payment details, name, address or
-  email address, and none of it is sent to us.
+    processes the payment. The App never receives or stores your payment card, other payment details, name, address or
+    email address, and none of it is sent to us.
 - **What the App receives.** From the Google Play account signed in to the Play Store on your device, the App learns
-  only whether that account owns the purchase, and confirms the purchase back to Google Play so that it is completed.
-  It asks when it starts and when you return to it, so that a purchase you made on another device, or one that
-  finishes later (a pending payment), is recognised.
+    only whether that account owns the purchase, and confirms the purchase back to Google Play so that it is completed.
+    It asks when it starts and when you return to it, so that a purchase you made on another device, or one that
+    finishes later (a pending payment), is recognised.
 - **What the App stores.** One setting on your device recording that every style is unlocked (see section 4). It is
-  not part of your cloud-saved game data, and it is not sent to us.
+    not part of your cloud-saved game data, and it is not sent to us.
 - **Refunds and restoring.** If a purchase is refunded or cancelled, the App sees that the account no longer owns it,
-  and the styles you haven't earned lock again; the styles you picked are kept, ready for when you earn them. If you
-  reinstall the App, or use another device with the same Google Play account, the purchase is restored automatically.
+    and the styles you haven't earned lock again; the styles you picked are kept, ready for when you earn them. If you
+    reinstall the App, or use another device with the same Google Play account, the purchase is restored automatically.
 - **Google.** Google collects and processes information about purchases, such as your order history, under the Google
-  Play Terms of Service, the Google Payments Privacy Notice, and Google's Privacy Policy
-  (<https://policies.google.com/privacy>). You can see and manage your Google Play orders in your Google account.
+    Play Terms of Service, the Google Payments Privacy Notice, and Google's Privacy Policy
+    (<https://policies.google.com/privacy>). You can see and manage your Google Play orders in your Google account.
 
 ## 7. Third-Party Services
 

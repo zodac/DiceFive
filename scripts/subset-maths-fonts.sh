@@ -11,8 +11,8 @@
 set -euo pipefail
 
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-sources="$root_dir/app/licensing/sources"
-fonts="$root_dir/app/shared/src/commonMain/composeResources/font"
+sources="${root_dir}/app/licensing/sources"
+fonts="${root_dir}/app/shared/src/commonMain/composeResources/font"
 
 # The Maths dice's digits, operators, brackets and "ln", and the Poker dice's ranks.
 main_characters='023456!ln⌊⌋√A'
@@ -50,9 +50,9 @@ font.save(path)
 PYTHON
 }
 
-subset "$sources/MathJax_Main-Regular.otf" "$main_characters" "$fonts/dicefive_maths_regular.otf"
-rename "$fonts/dicefive_maths_regular.otf" "DiceFive Maths" "Regular"
-subset "$sources/MathJax_Math-Italic.otf" "$italic_characters" "$fonts/dicefive_maths_italic.otf"
-rename "$fonts/dicefive_maths_italic.otf" "DiceFive Maths Italic" "Italic"
+subset "${sources}/MathJax_Main-Regular.otf" "${main_characters}" "${fonts}/dicefive_maths_regular.otf"
+rename "${fonts}/dicefive_maths_regular.otf" "DiceFive Maths" "Regular"
+subset "${sources}/MathJax_Math-Italic.otf" "${italic_characters}" "${fonts}/dicefive_maths_italic.otf"
+rename "${fonts}/dicefive_maths_italic.otf" "DiceFive Maths Italic" "Italic"
 
-ls -l "$fonts"/dicefive_maths_*.otf
+ls -l "${fonts}"/dicefive_maths_*.otf

@@ -23,6 +23,9 @@
 #   after the app opens - it shows up as `adb: device offline`. Its Vulkan path doesn't, so the app's UI
 #   renderer is switched to Vulkan after boot (debug.hwui.renderer=skiavk, which resets on every boot, so
 #   this script sets it every time). The app draws correctly under it.
+# The waits are built on a predicate (is_up), only ever a condition; and adb's answers are read through command
+# substitutions whose failure is an empty answer - "not up yet", or a blank in a status line.
+# shellcheck disable=SC2310,SC2312
 set -euo pipefail
 
 # EMULATOR_API comes from the image (sandbox/Dockerfile ENV), where it is chosen - it follows compileSdk - and
