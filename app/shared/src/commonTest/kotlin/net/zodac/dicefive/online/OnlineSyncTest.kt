@@ -28,7 +28,6 @@ private class SyncServices(account: String?, var remote: Set<String>? = emptySet
     val unlocked = mutableListOf<String>()
     val progress = mutableMapOf<String, Int>()
     var asked = 0
-    override fun mirrors(achievementId: String) = true
     override suspend fun unlockedAchievementIds(): Set<String>? = remote.also { asked++ }
     override suspend fun unlock(achievementId: String) {
         unlocked += achievementId
@@ -126,34 +125,19 @@ class OnlineSyncTest {
         AchievementsState(unlocked.associateWith { 5L }, counters)
 
     @Test
-    fun `signed out - nothing is asked or sent - and the app keeps its own banners`() = runTest {
+    fun `signed out - nothing is asked or sent`() = runTest {
         val services = SyncServices(account = null)
         val sync = sync(services, InMemoryAchievementStore(state(Achievement.FIVE_X)), OnlineSettingsRepository(InMemoryPreferences()))
         assertEquals(0, sync.reconcile())
         assertEquals(0, services.asked)
         assertTrue(services.unlocked.isEmpty())
-        assertFalse(sync.announcesUnlock(Achievement.FIVE_X))
     }
 
     @Test
     fun `unlocks the service lacks are sent - and only those`() = runTest {
         val services = SyncServices("ann", remote = setOf(Achievement.FIVE_X.id))
-        val sync = sync(services, InMemoryAchievementStore(state(Achievement.FIVE_X, Achievement.BONUS_ROUND)), OnlineSettingsRepository(InMemoryPreferences()))
-        sync.reconcile()
+        sync(services, InMemoryAchievementStore(state(Achievement.FIVE_X, Achievement.BONUS_ROUND)), OnlineSettingsRepository(InMemoryPreferences())).reconcile()
         assertEquals(listOf(Achievement.BONUS_ROUND.id), services.unlocked)
-        // From now on the service shows its own pop-up for a first unlock there.
-        assertTrue(sync.announcesUnlock(Achievement.CENTURION))
-        assertFalse(sync.announcesUnlock(Achievement.BONUS_ROUND))
-    }
-
-    @Test
-    fun `once signed out - the app announces its own unlocks again - before any reconcile`() = runTest {
-        val services = SyncServices("ann")
-        val sync = sync(services, InMemoryAchievementStore(state()), OnlineSettingsRepository(InMemoryPreferences()))
-        sync.reconcile()
-        assertTrue(sync.announcesUnlock(Achievement.NAT_20))
-        services.mutableState.value = GameServicesState.SignedOut()
-        assertFalse(sync.announcesUnlock(Achievement.NAT_20))
     }
 
     @Test
@@ -221,24 +205,13 @@ class OnlineSyncTest {
     }
 
     @Test
-    fun `an unlock the service already has gets the app's own banner - the service shows none for it`() = runTest {
-        val services = SyncServices("ann", remote = setOf(Achievement.NAT_20.id))
-        val sync = sync(services, InMemoryAchievementStore(state()), OnlineSettingsRepository(InMemoryPreferences()))
-        sync.reconcile()
-        assertFalse(sync.announcesUnlock(Achievement.NAT_20))
-        assertTrue(sync.announcesUnlock(Achievement.CRITICAL_SUCCESS))
-    }
-
-    @Test
     fun `once superuser mode has been used here - nothing is ever mirrored`() = runTest {
         val settings = OnlineSettingsRepository(InMemoryPreferences())
         settings.blockMirroring()
         val services = SyncServices("ann", remote = setOf(Achievement.CENTURION.id))
-        val sync = sync(services, InMemoryAchievementStore(state(Achievement.FIVE_X)), settings)
-        assertEquals(0, sync.reconcile())
+        assertEquals(0, sync(services, InMemoryAchievementStore(state(Achievement.FIVE_X)), settings).reconcile())
         assertEquals(0, services.asked)
         assertTrue(services.unlocked.isEmpty() && services.progress.isEmpty())
-        assertFalse(sync.announcesUnlock(Achievement.FIVE_X))
     }
 
     @Test

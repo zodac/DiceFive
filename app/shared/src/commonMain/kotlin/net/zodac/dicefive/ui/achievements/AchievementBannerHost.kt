@@ -188,8 +188,6 @@ fun AchievementBannerHost(
     isOnGameScreen: () -> Boolean,
     onAchievementSelected: (Achievement) -> Unit,
     onStylesSelected: (List<UnlockedStyle>) -> Unit,
-    /** False for an unlock announced elsewhere (an online service's own pop-up): it gets no banner. */
-    showsUnlock: (Achievement) -> Boolean = { true },
     content: @Composable () -> Unit,
 ) {
     val banners = remember { mutableStateListOf<BannerItem>() }
@@ -204,11 +202,9 @@ fun AchievementBannerHost(
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     // Under reduced motion a burst isn't dealt out one at a time: every banner that fits is there at once.
     val reduceMotion by rememberUpdatedState(LocalReduceMotion.current)
-    val currentShowsUnlock by rememberUpdatedState(showsUnlock)
     LaunchedEffect(Unit) {
         var nextKey = 0L
         AchievementEvents.events.collect { event ->
-            if (event is AchievementEvent.Unlocked && !currentShowsUnlock(event.achievement)) return@collect
             // Wait for a free slot rather than evicting a banner that's still being read. The
             // event flow buffers the backlog, and suspending here applies the back-pressure.
             snapshotFlow { banners.size }.first { it < MAX_VISIBLE_BANNERS }

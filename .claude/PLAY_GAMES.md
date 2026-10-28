@@ -78,8 +78,9 @@ app/android/src/play/.../online/  PlayGamesServices, PlayGamesIds, PlayGamesAchi
 
 - **Local → Play** in every reconcile, including unlocks from before linking. Progress uses forward-only steps.
 - **Play → local** on sign-in: Play's unlocks unlock quietly here (with their styles), restoring a reinstall.
-- **Play's pop-up replaces our unlock banner** while signed in, for an achievement newly unlocked on Play. Progress
-  nudges and styles banners stay; achievements with styles behind them always get a styles banner.
+- **Our unlock banner shows alongside Play's pop-up** while signed in: Play's at the top, ours at the bottom, so they
+  don't overlap. TalkBack announces both. Ours can be held and long-pressed to open the achievement. Progress nudges
+  and styles banners are unchanged.
 - **Reset achievements** is hidden while signed in (Play would restore it); "View in Google Play Games" takes its row.
   A reset made signed out doesn't travel: the same account's next sync restores the unlocks and counters.
 - **Mapping**: `PlayGamesIds.kt`. `PlayGamesAchievements.kt` sets each one's Play type and visibility (`playType`,

@@ -113,18 +113,6 @@ class OnlineSync(
         if (showingProgress && number > 0) mutableProgress.value = SyncProgress(step, number, steps.size)
     }
 
-    /** What the service had unlocked, as of the last [reconcile], with what that sent it. */
-    private var remoteUnlocked: Set<String> = emptySet()
-
-    /**
-     * Whether the service announces [achievement]'s unlock, so the app shouldn't: only while still signed in (signing
-     * out runs no [reconcile] to clear [mirroring]), and only for its first unlock there - one it already has gets no
-     * pop-up from it.
-     */
-    fun announcesUnlock(achievement: Achievement): Boolean =
-        mirroring.value && services.state.value is GameServicesState.SignedIn && services.mirrors(achievement.id) &&
-            achievement.id !in remoteUnlocked
-
     /**
      * Compares this device's achievements with the service's and sends or records the difference, then sends the
      * leaderboards their new scores. Returns how many achievements were restored here. Its [progress] is shown only if
@@ -184,7 +172,6 @@ class OnlineSync(
 
         step(SyncStep.UPLOADING)
         val state = store.current()
-        remoteUnlocked = remote + state.unlockedAt.keys.map { it.id }
         mutableMirroring.value = true
         val totals = leaderboardTotals()
         for (achievement in Achievement.entries) {

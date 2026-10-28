@@ -199,8 +199,6 @@ class PlayGamesServices private constructor(private val application: Application
         if (signInFailure == null) signInFailure = message
     }
 
-    override fun mirrors(achievementId: String): Boolean = achievementId in playIdsById
-
     override suspend fun unlockedAchievementIds(): Set<String>? {
         val activity = signedInActivity() ?: return null
         val loaded = PlayGames.getAchievementsClient(activity).load(false).awaitOrNull("loadAchievements") ?: return null
@@ -376,7 +374,6 @@ class PlayGamesServices private constructor(private val application: Application
         const val LOG_TAG = "DiceFivePlayGames"
 
         private val achievementsById = Achievement.entries.associateBy { it.id }
-        private val playIdsById = playAchievementIds.mapKeys { it.key.id }
         private val idsByPlayId = playAchievementIds.entries.associate { (achievement, playId) -> playId to achievement.id }
 
         private val playLeaderboardIdsByKey = playLeaderboardIds.mapKeys { it.key.onlineLeaderboardKey }

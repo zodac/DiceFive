@@ -181,8 +181,6 @@ fun DiceFiveApp(
                     AchievementBannerHost(
                         modifier = Modifier.fillMaxSize(),
                         isOnGameScreen = { navController.currentDestination?.route == Screen.PLAY_GAME },
-                        // The service shows its own pop-up for an unlock it's sent, so ours would be a second one.
-                        showsUnlock = { !onlineSync.announcesUnlock(it) },
                         onAchievementSelected = { achievement ->
                             val alreadyOnAchievements = navController.currentDestination?.route == Screen.ACHIEVEMENTS
                             // The request has to be made before navigating, not after: if the
