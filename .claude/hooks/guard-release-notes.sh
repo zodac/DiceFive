@@ -10,6 +10,13 @@
 #   - PostToolUse / PostToolUseFailure on Bash: ...and compares afterwards. If the command changed
 #     it (edited, created or deleted), the recorded version is put back and Claude is told the
 #     change needs the user's confirmation first.
+#   - PostToolUse on a file tool aimed at RELEASE_NOTES.md: an edit the user approved. What it wrote
+#     is remembered (its checksum, in the checkout's .git), so a shell command still running in any
+#     session meanwhile doesn't take the file for one it changed, and put it back.
+#
+# Who changed the file can't be seen, only that it changed: an edit the user makes themselves while a
+# long command runs (a Gradle build) looks just like one the command made. So nothing put back is ever
+# lost: the version replaced is saved first (in .git/release-notes-guard/), and Claude is told where.
 #
 # Shell commands are judged by what they DID rather than what they SAY: an earlier version asked
 # whenever a command merely mentioned the file name, which prompted for a commit message, a doc
@@ -45,17 +52,31 @@ else
     ] | join("\u001f")' <<< "$payload") || true
 fi
 
+# Shared by every session on this checkout, and never committed: the approved edits, and the versions put back.
+git_dir="$(git -C "$project_dir" rev-parse --absolute-git-dir 2> /dev/null || true)"
+state_dir="${git_dir:-${TMPDIR:-/tmp}/claude-release-notes-guard-state}/release-notes-guard"
+approved="$state_dir/approved"
+
+# The notes' checksum, or "absent".
+checksum() { if [ -e "$notes" ]; then cksum < "$notes" | cut -d' ' -f1-2; else echo absent; fi; }
+
 ask() {
   jq -cn --arg reason "$1" \
     '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: $reason}}' 2> /dev/null \
     || printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"%s"}}\n' "$1"
 }
 
-# ---- File tools: ask before the edit ----------------------------------------------------------
+# ---- File tools: ask before the edit, remember it after ---------------------------------------
 if [ "$tool" != "Bash" ]; then
-  if [ "$event" = "PreToolUse" ] && [ "$(basename -- "${path:-.}")" = "$target" ]; then
-    ask "RELEASE_NOTES.md is only changed with the maintainer's explicit confirmation (see CLAUDE.md)."
-  fi
+  [ "$(basename -- "${path:-.}")" = "$target" ] || exit 0
+  case "$event" in
+    PreToolUse) ask "RELEASE_NOTES.md is only changed with the maintainer's explicit confirmation (see CLAUDE.md)." ;;
+    PostToolUse)
+      # The last 20 approved versions are plenty: a command only needs the ones written while it ran.
+      mkdir -p "$state_dir"
+      { checksum; tail -n 19 "$approved" 2> /dev/null || true; } > "$approved.new" && mv -f -- "$approved.new" "$approved"
+      ;;
+  esac
   exit 0
 fi
 
@@ -92,16 +113,27 @@ case "$event" in
       exit 0
     fi
 
+    # An edit the user approved, made while the command ran (in this session or another): theirs to keep.
+    if grep -qxF -- "$(checksum)" "$approved" 2> /dev/null; then
+      rm -f -- "$snapshot"
+      exit 0
+    fi
+
+    # Saved before it's put back, in case the change was the user's own: who made it can't be seen.
+    mkdir -p "$state_dir"
+    saved="$state_dir/replaced-$(date +%Y%m%d-%H%M%S)-$call.md"
+    if [ -e "$notes" ]; then cp -- "$notes" "$saved"; else saved="(none: the command deleted the file)"; fi
+
     if [ "$before_existed" = true ]; then
       cp -- "$snapshot" "$notes"
       rm -f -- "$snapshot"
     else
       rm -f -- "$notes"
     fi
-    jq -cn '{
+    jq -cn --arg saved "$saved" '{
       decision: "block",
-      reason: "That command changed RELEASE_NOTES.md, so the change was undone: the file is only changed with the maintainer'"'"'s explicit confirmation (see CLAUDE.md). Ask them first; once they agree, make the change with the Edit/Write tool.",
-      systemMessage: "A shell command changed RELEASE_NOTES.md without your confirmation - it has been put back as it was."
+      reason: ("RELEASE_NOTES.md changed while that command ran, so it was put back as it was before: the file is only changed with the maintainer'"'"'s explicit confirmation (see CLAUDE.md). If the command did not write it, the maintainer may have been editing it meanwhile: the version replaced is saved at " + $saved + " - tell them, and restore it only if they say so, with the Edit/Write tool. If the command did, ask them first; once they agree, make the change with the Edit/Write tool."),
+      systemMessage: ("RELEASE_NOTES.md changed during a shell command and has been put back as it was. If that was your own edit, it is saved at " + $saved + ".")
     }'
     ;;
 esac

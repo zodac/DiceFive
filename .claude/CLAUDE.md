@@ -91,6 +91,9 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
   agreement in this conversation. Once they agree, use Edit/Write, not the shell.
   - `.claude/hooks/guard-release-notes.sh` backs this up: an edit waits for a permission prompt, and a shell change is
     undone. The prompt is a backstop, not permission.
+  - The hook can't tell who changed the file during a shell command, so the maintainer's own edit made meanwhile is
+    undone too. It keeps an approved Edit/Write from any session, and saves whatever it replaces in
+    `.git/release-notes-guard/`. When it says it put the file back, tell the maintainer where the replaced version is.
   - Only the release workflow empties it. Hook tests: `.claude/hooks/tests/run-hook-tests.sh`.
   - It's blank between releases; all of it becomes the Android release's notes (`DESIGN.md`, "Release pipeline").
 - **Edit files with the Edit/Write tools first.** Use a shell or Python script only for a change across many files or
@@ -127,7 +130,7 @@ and limit; read a whole doc only when the change spans it.
 
 | Doc | Read when |
 |---|---|
-| `.claude/DESIGN.md` | Rules of play, modes and modifiers in brief, the CPU, persistence, Leaderboard/Statistics, achievements, table art, sound, settings, the play and github apps (progress files), release pipeline |
+| `.claude/DESIGN.md` | Rules of play, modes and modifiers in brief, the CPU, persistence, errors and the crash page, Leaderboard/Statistics, achievements, table art, sound, settings, the play and github apps (progress files), release pipeline |
 | `.claude/UI.md` | Any visual change: colour, the brand font, shared chrome, insets, component rules, **the accessibility checklist**, motion and reduced motion, scrollbars, player colours, gotchas |
 | `.claude/UI_BOARD.md` | The game screen: scorecard grid per mode, tiles, tray, cup, totals and undo, tablets and landscape, name caps |
 | `.claude/UI_SCREENS.md` | Achievements list and banners, Styles screen and locks, Leaderboard views, menu logo and backdrop |

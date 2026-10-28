@@ -85,6 +85,29 @@ printf 'hijacked\n' > "$notes"
 expect_block "parallel call whose command changed it" "$(payload PostToolUse p1 | "$guard")"
 expect_notes "...restored" "Draft"
 
+# ---- An edit made while a command runs ----
+edit_post() { jq -cn --arg path "$notes" '{hook_event_name: "PostToolUse", session_id: "other", tool_use_id: "e", tool_name: "Edit", tool_input: {file_path: $path}}' | "$guard"; }
+printf 'Draft\n' > "$notes"
+payload PreToolUse long1 | "$guard"
+printf 'Draft\nApproved line\n' > "$notes"
+expect_silent "an approved Edit's PostToolUse" "$(edit_post)"
+expect_silent "a command that ran over an approved Edit" "$(payload PostToolUse long1 | "$guard")"
+expect_notes "...the approved edit kept" "$(printf 'Draft\nApproved line')"
+
+payload PreToolUse long2 | "$guard"
+printf 'Draft\nApproved line\nThe maintainer typed this\n' > "$notes"
+output="$(payload PostToolUse long2 | "$guard")"
+expect_block "a change no approved edit made, during a command" "$output"
+expect_notes "...put back" "$(printf 'Draft\nApproved line')"
+saved="$(ls "$CLAUDE_PROJECT_DIR"/.git/release-notes-guard/replaced-*-long2.md 2> /dev/null | head -1)"
+if [ -n "$saved" ] && [ "$(cat "$saved")" = "$(printf 'Draft\nApproved line\nThe maintainer typed this')" ]; then pass; else fail "...the replaced version saved in .git/release-notes-guard/ (got '${saved}')"; fi
+if [ -n "$saved" ] && [[ "$(jq -r '.reason' <<< "$output")" == *"$saved"* ]]; then pass; else fail "...and Claude told where"; fi
+
+expect_block "a command's own change after an approved edit" "$(run_bash long3 'echo hijacked >> RELEASE_NOTES.md')"
+expect_notes "...put back" "$(printf 'Draft\nApproved line')"
+
+expect_silent "a file tool's PostToolUse on another file" "$(jq -cn '{hook_event_name: "PostToolUse", session_id: "s", tool_use_id: "e2", tool_name: "Write", tool_input: {file_path: "/elsewhere/NOTES.md"}}' | "$guard")"
+
 if [ "$failed" -gt 0 ]; then
   echo "$failed of $((passed + failed)) cases FAILED"
   exit 1
