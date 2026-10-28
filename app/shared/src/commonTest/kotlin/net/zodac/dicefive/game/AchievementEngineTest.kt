@@ -1084,6 +1084,34 @@ class AchievementEngineTest {
         assertFalse(Achievement.SIX_APPEAL in unlocked(finishedGame(thirdWindPlayer { category, slot -> if (category == ScoreCategory.SIXES) listOf(12, 12, 6)[slot] else 6 })))
     }
 
+    @Test
+    fun `Third Wind's Straight Talker and Exact Change need every slot`() {
+        val straights = setOf(ScoreCategory.SMALL_STRAIGHT, ScoreCategory.LARGE_STRAIGHT)
+
+        // Straight Talker: all three slots of both straights scored - one slot of each is not enough.
+        assertTrue(Achievement.STRAIGHT_TALKER in unlocked(finishedGame(thirdWindNoZeroes())))
+        assertFalse(Achievement.STRAIGHT_TALKER in unlocked(finishedGame(thirdWindPlayer { category, slot -> if (category in straights && slot > 0) 0 else 10 })))
+        assertFalse(Achievement.STRAIGHT_TALKER in unlocked(finishedGame(thirdWindPlayer { category, slot -> if (category == ScoreCategory.LARGE_STRAIGHT && slot == 2) 0 else 10 })))
+
+        // Mid-game, it lands with the sixth straight slot, not before.
+        fun midGame(largeStraights: List<Int>) = PlayerState(
+            name = "Player 1",
+            type = PlayerType.HUMAN,
+            gameMode = GameMode.THIRD_WIND,
+            scorecard = GameMode.THIRD_WIND.categories.associateWith { emptyList<Int>() } +
+                mapOf(ScoreCategory.SMALL_STRAIGHT to listOf(30, 30, 30), ScoreCategory.LARGE_STRAIGHT to largeStraights),
+        )
+        assertTrue(Achievement.STRAIGHT_TALKER in unlockedMidGame(midGame(listOf(40, 40, 40))))
+        assertFalse(Achievement.STRAIGHT_TALKER in unlockedMidGame(midGame(listOf(40, 40))))
+
+        // Exact Change: every Ones slot 1, every Twos slot 2, and so on - one slot of each is not enough.
+        val upper = ScoreCategory.UPPER
+        assertTrue(Achievement.EXACT_CHANGE in unlocked(finishedGame(thirdWindPlayer { category, _ -> if (category in upper) requireNotNull(category.number) else 10 })))
+        assertFalse(
+            Achievement.EXACT_CHANGE in unlocked(finishedGame(thirdWindPlayer { category, slot -> if (category in upper && slot == 0) requireNotNull(category.number) else 10 })),
+        )
+    }
+
     // ---- Stud: the best five of seven dice score ------------------------------------------------------
 
     @Test

@@ -392,6 +392,7 @@ object AchievementEngine {
         award(Achievement.FIVE_X, anyHuman { it.scoresRolledHand && it.fiveOfAKindCount > 0 })
         award(Achievement.ENCORE, anyHuman { it.scoresRolledHand && it.gameMode.scoresPerCategory == 1 && it.fiveOfAKindCount >= ENCORE_5X_COUNT })
         award(Achievement.HAT_TRICK, anyHuman { it.scoresRolledHand && it.gameMode.scoresPerCategory == 1 && it.fiveOfAKindCount >= HAT_TRICK_5X_COUNT })
+        // Both straights in every slot (Third Wind): with three tries at each, one slot apiece is no feat.
         award(
             Achievement.STRAIGHT_TALKER,
             anyHuman { it.scoresRolledHand && it.scored(ScoreCategory.SMALL_STRAIGHT) && it.scored(ScoreCategory.LARGE_STRAIGHT) },
@@ -595,6 +596,7 @@ object AchievementEngine {
 
         // The upper section filled with exactly the matching pip count in every box, in this one
         // game - can only be judged once every upper box is actually filled in.
+        // Every slot of each box (Third Wind), so the ladder costs the bonus as it does on one slot.
         award(Achievement.EXACT_CHANGE, anyHuman { it.matchesExactUpperLadder() })
 
         return earned.earnableIn(state.gameMode)
@@ -726,8 +728,12 @@ object AchievementEngine {
         return topHuman.totalScore - bestOther
     }
 
-    /** Whether any of [category]'s slots holds more than zero. */
-    private fun PlayerState.scored(category: ScoreCategory): Boolean = scoresIn(category).any { it > 0 }
+    /** Whether every one of [category]'s slots holds more than zero - all three on a card scored three times over (Third Wind). */
+    private fun PlayerState.scored(category: ScoreCategory): Boolean = everySlot(category) { it > 0 }
+
+    /** Whether every one of [category]'s slots is filled and meets [predicate]: one slot on most cards, three in Third Wind. */
+    private fun PlayerState.everySlot(category: ScoreCategory, predicate: (Int) -> Boolean): Boolean =
+        scoresIn(category).let { scores -> scores.size == gameMode.scoresPerCategory && scores.all(predicate) }
 
     /** Whether each box is scored only once, as in every mode but Third Wind, with the mode's own rolls -
      * the totals-based achievements assume both, since a card scored three times over or a turn with
@@ -749,7 +755,7 @@ object AchievementEngine {
     private val PlayerState.hasStandardTotals: Boolean
         get() = hasFullCard && gameMode.hasStandardCard
 
-    /** ONES holds exactly 1, TWOS exactly 2, ... SIXES exactly 6 (in any one of its slots). */
+    /** ONES holds exactly 1, TWOS exactly 2, ... SIXES exactly 6 (in every one of its slots). */
     private fun PlayerState.matchesExactUpperLadder(): Boolean =
-        ScoreCategory.UPPER.all { category -> hasScore(category, requireNotNull(category.number)) }
+        ScoreCategory.UPPER.all { category -> everySlot(category) { it == category.number } }
 }

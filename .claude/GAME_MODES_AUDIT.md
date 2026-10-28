@@ -122,11 +122,12 @@ The mode's own: Lucky Seven (all seven showing one number).
 
 ## Third Wind (every box three times)
 
-**Per-slot rules.** A box "holds" a score if any one of its slots does:
+**Per-slot rules.** A one-turn feat needs one slot; a feat across boxes needs every slot:
 - Six Appeal and Taking A Chance need a 30 in one slot;
-- Exact Change needs a 1 in one Ones slot;
 - Scratched needs a zero in one 5x slot;
-- Straight Talker needs a non-zero slot in each straight.
+- Exact Change needs every slot of each upper box to match (1 in all three Ones slots, and so on), which costs the
+  105 bonus as Standard's ladder costs its 35;
+- Straight Talker needs all three slots of both straights non-zero.
 
 **Zeros and 5x.**
 - Every zero slot counts as a zero (Zero To Hero, How Do You Play This Game?, the tie-break).
