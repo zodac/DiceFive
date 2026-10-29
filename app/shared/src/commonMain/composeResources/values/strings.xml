@@ -179,7 +179,7 @@
     <string name="achievement_twice_in_a_lifetime_title">Twice In A Lifetime</string>
     <string name="achievement_twice_in_a_lifetime_description">Score a 5x on two of your turns in a row</string>
     <string name="achievement_natural_5x_title">Natural 5x</string>
-    <string name="achievement_natural_5x_description">Roll a 5x on the 2nd or 3rd roll without holding any dice</string>
+    <string name="achievement_natural_5x_description">Roll a 5x without holding any dice</string>
     <string name="achievement_i_can_count_title">I Can Count!</string>
     <string name="achievement_i_can_count_description">Roll 1, 2, 3, 4, 5 in that order on the first roll of a turn</string>
     <string name="achievement_a_cunning_strategy_title">A Cunning Strategy</string>
@@ -264,7 +264,7 @@
     <string name="achievement_cold_dice_description">Finish a game with under 100 points</string>
     <string name="achievement_low_rolls_title">Low Rolls</string>
     <string name="achievement_low_rolls_description">Finish a game with under 20 points</string>
-    <string name="achievement_probability_never_heard_of_her_title">Probability? Never Heard of Her</string>
+    <string name="achievement_probability_never_heard_of_her_title">Probability? Never Heard Of Her</string>
     <string name="achievement_probability_never_heard_of_her_description">Enter your final turn needing a single die to score your bonus, but fail</string>
     <string name="achievement_commitment_issues_title">Commitment Issues</string>
     <string name="achievement_commitment_issues_description">Hold dice of one number, then change your mind and hold and score with another number</string>
@@ -275,7 +275,7 @@
     <string name="achievement_time_wasting_title">Time Wasting</string>
     <string name="achievement_time_wasting_description">Hold then unhold each die in sequence</string>
     <string name="achievement_hands_off_title">Hands Off!</string>
-    <string name="achievement_hands_off_description">Score 200 or more in a Standard game with no modifiers, without ever holding a die</string>
+    <string name="achievement_hands_off_description">Score 200 or more in a 'Standard' game with no modifiers, without ever holding a die</string>
     <string name="achievement_i_didnt_mean_that_title">I Didn't Mean That</string>
     <string name="achievement_i_didnt_mean_that_description">Undo a score and score a different category</string>
     <string name="achievement_no_more_rolls_title">No More Rolls</string>
@@ -299,7 +299,7 @@
     <string name="achievement_deja_vu_title">Déjà Vu</string>
     <string name="achievement_deja_vu_description">After holding some dice, have the rest come up exactly the same on both re-rolls</string>
     <string name="achievement_product_placement_title">Product Placement</string>
-    <string name="achievement_product_placement_description">Roll/hold 2, 4, 5, 3, 6 - the exact dice on the main menu, in that order</string>
+    <string name="achievement_product_placement_description">Have the dice show 2, 4, 5, 3, 6 in order, just like the main menu</string>
     <string name="achievement_what_was_the_point_of_that_title">What Was The Point Of That?</string>
     <string name="achievement_what_was_the_point_of_that_description">Hold all five dice, then roll anyway</string>
     <string name="achievement_nice_title">Nice</string>
@@ -335,9 +335,9 @@
     <string name="achievement_big_fan_title">Big Fan</string>
     <string name="achievement_big_fan_description">Play a 1v1 game against the creator</string>
     <string name="achievement_greenfingers_title">Greenfingers</string>
-    <string name="achievement_greenfingers_description">Grow a Sunflower</string>
-    <string name="achievement_luck_of_the_irish_title">Luck of the Irish</string>
-    <string name="achievement_luck_of_the_irish_description">Play a game of Tricolour as Ireland/Éire</string>
+    <string name="achievement_greenfingers_description">Grow a sunflower</string>
+    <string name="achievement_luck_of_the_irish_title">Luck Of The Irish</string>
+    <string name="achievement_luck_of_the_irish_description">Play a game of 'Tricolour' mode as Ireland/Éire</string>
     <string name="achievement_not_those_dice_title">Not Those Dice!</string>
     <string name="achievement_not_those_dice_description">Tap the dice on the main menu</string>
     <string name="achievement_rolling_the_midnight_dice_title">Rolling The Midnight Dice</string>
@@ -345,11 +345,11 @@
     <string name="achievement_shaken_not_tapped_title">Shaken, Not Tapped</string>
     <string name="achievement_shaken_not_tapped_description">Shake your phone to roll the dice</string>
     <string name="achievement_eggcellent_discovery_title">Eggcellent Discovery</string>
-    <string name="achievement_eggcellent_discovery_description">Found the golden egg!</string>
+    <string name="achievement_eggcellent_discovery_description">Find the golden egg</string>
     <string name="achievement_the_magicians_secret_title">The Magician's Secret</string>
     <string name="achievement_the_magicians_secret_description">Find where Luna is hiding</string>
     <string name="achievement_the_solution_title">The Solution</string>
-    <string name="achievement_the_solution_description">Play a solo standard game, no modifiers, as Phil Woodward and score exactly 255 points</string>
+    <string name="achievement_the_solution_description">Play a solo 'Standard' game, no modifiers, as Phil Woodward and score exactly 255 points</string>
 
     <!-- Game mode names and one-line descriptions, shown in the mode picker (model/GameMode.kt). -->
     <string name="mode_standard">Standard</string>
@@ -583,7 +583,7 @@
     <string name="score_two_pair">Two Pair</string>
     <string name="score_evens">Evens</string>
     <string name="score_odds">Odds</string>
-    <!-- Tricolour's boxes: every die of that colour counts. The Irish versions are used while the game is re-skinned for Luck of the Irish. -->
+    <!-- Tricolour's boxes: every die of that colour counts. The Irish versions are used while the game is re-skinned for Luck Of The Irish. -->
     <string name="score_reds">Reds</string>
     <string name="score_yellows">Yellows</string>
     <string name="score_blues">Blues</string>
@@ -792,7 +792,7 @@
     <string name="setup_difficulty_hard">Hard</string>
     <string name="setup_modifiers_description">Optional extra rules for any game mode</string>
     <!-- Replaces the description while a modifier is on. -->
-    <string name="setup_modifiers_active_note">Scores won't go on the Leaderboard</string>
+    <string name="setup_modifiers_active_note">Scores and most achievements won't count</string>
     <string name="setup_timer_title">Turn Timer</string>
     <string name="setup_timer_description">A time limit for each whole turn</string>
     <string name="setup_timer_none">No timer</string>
@@ -1502,7 +1502,7 @@
     <string name="rules_d20_8">A wildcard's points count towards its half, and so towards that half's bonus.</string>
     <string name="rules_d20_3">The numbers are split into two halves, `1` to `10` and `11` to `20`. Add up **150pts** in the *1st half* for a bonus of **75pts**, and **400pts** in the *2nd half* for another **75pts**. Both can be earned in the same game. Those are a little over two and a half dice of each number.</string>
     <string name="rules_d20_4">With no `5x` category there is no Joker rule and no bonus for a repeat 5x. The *Totals* button shows each half and the bonuses.</string>
-    <string name="rules_d20_5">The *Extended Scores* modifier can't be used in this mode. The *Number of Rolls* modifier changes the **5** rolls, and the achievement for earning both bonuses can't be earned with it.</string>
+    <string name="rules_d20_5">The *Extended Scores* modifier can't be used in this mode. The *Number of Rolls* modifier changes the **5** rolls.</string>
     <string name="rules_d20_6">Totals here don't compare with other modes, so the achievements for a high or low score, a scorecard with no zeroes, or for winning from behind after scoring three zeroes, can't be earned in it. Scores from this mode don't go on the *Leaderboard*, but they still count towards your *Statistics*.</string>
     <string name="rules_hit_list_title">Hit List</string>
     <!-- A tab: keep it short. -->
@@ -1527,23 +1527,24 @@
     <!-- A tab: keep it short. -->
     <string name="rules_modifiers_tab">Overview</string>
     <string name="rules_modifiers_1">*Modifiers* are optional extras you can add to any game mode. Choose them on the new game screen: each can be switched on or off, and some also have a value to set.</string>
-    <string name="rules_modifiers_2">*Modifiers* are just for fun. Scores from a game with any modifier switched on don't go on the *Leaderboard*, but they still count towards your *Statistics*.</string>
+    <string name="rules_modifiers_2">*Modifiers* are just for fun. A game with any modifier switched on doesn't go on the *Leaderboard* or count towards your *Statistics*, and earns no achievements but the modifiers' own: *Rainy Day Fund*, *Bad Omen*, and *Everything Everywhere All At Once*.</string>
     <string name="rules_turn_timer_title">Turn Timer</string>
     <!-- A tab: keep it short. -->
     <string name="rules_turn_timer_tab">Turn Timer</string>
     <string name="rules_turn_timer_1">*Turn Timer* sets a limit on how long each player has to finish their turn (not each roll). Choose **30**, **60**, or **120** seconds. Optionally, you may select your own value between **5**s and **999**s. The remaining time will begin to flash red when there are 5 seconds remaining.</string>
     <string name="rules_turn_timer_2">If a player's time runs out, their turn is scored for them in the first open category on the scorecard: with their dice as they lie, or as a zero if they hadn't rolled yet.</string>
+    <string name="rules_turn_timer_3">As with every modifier, no achievements can be earned with *Turn Timer* on, except the modifiers' own.</string>
     <string name="rules_number_of_rolls_title">Number of Rolls</string>
     <!-- A tab: keep it short. -->
     <string name="rules_number_of_rolls_tab">Number of Rolls</string>
     <string name="rules_number_of_rolls_1">*Number of Rolls* sets how many times a player may roll each turn, from **1** to **9**. This overrides the mode's usual number, which is **3** in most.</string>
-    <string name="rules_number_of_rolls_2">Changing the rolls changes how easy big scores are, so with *Number of Rolls* on, certain achievements (like for a high score, a section total, etc.) can't be earned.</string>
+    <string name="rules_number_of_rolls_2">As with every modifier, no achievements can be earned with *Number of Rolls* on, except the modifiers' own.</string>
     <string name="rules_stored_rolls_title">Stored Rolls</string>
     <!-- A tab: keep it short. -->
     <string name="rules_stored_rolls_tab">Stored Rolls</string>
     <string name="rules_stored_rolls_1">With *Stored Rolls*, any rolls a player doesn't use before scoring are kept for their next turn, on top of that turn's usual rolls, and so on. The dice cup shows the current total.</string>
     <string name="rules_stored_rolls_2">*Stored Rolls* can have a max configured. Leave it empty for no limit.</string>
-    <string name="rules_stored_rolls_3">Extra rolls make big scores much easier, so with *Stored Rolls* on, certain achievements (like for a high score, a section total, etc.) can't be earned.</string>
+    <string name="rules_stored_rolls_3">As with every modifier, no achievements can be earned with *Stored Rolls* on, except the modifiers' own, like *Rainy Day Fund*.</string>
     <string name="rules_extended_scores_title">Extended Scores</string>
     <!-- A tab: keep it short. -->
     <string name="rules_extended_scores_tab">Extended Scores</string>
@@ -1551,14 +1552,14 @@
     <string name="rules_extended_scores_2">Total of the four dice making two pairs of different numbers. A fifth die is never counted, even if it matches a pair</string>
     <string name="rules_extended_scores_3">Total of the dice showing 2, 4, or 6</string>
     <string name="rules_extended_scores_4">Total of the dice showing 1, 3, or 5</string>
-    <string name="rules_extended_scores_5">The extra categories have their own section, so they don't count towards the upper bonus or the lower section's total. With *Extended Scores* on, certain achievements (like for a high score, winning with multiple zero categories, etc.) can't be earned.</string>
+    <string name="rules_extended_scores_5">The extra categories have their own section, so they don't count towards the upper bonus or the lower section's total. As with every modifier, no achievements can be earned with *Extended Scores* on, except the modifiers' own.</string>
     <string name="rules_unlucky_dice_title">Unlucky Dice</string>
     <!-- A tab: keep it short. -->
     <string name="rules_unlucky_dice_tab">Unlucky Dice</string>
     <string name="rules_unlucky_dice_1">With *Unlucky Dice*, each time the dice are rolled, every die that was rolled has a chance of landing locked in a red cross of chains. A locked die can't be held and doesn't score, and a category that needs all five dice, like *5x* or the *Large Straight*, can't be scored. Dice you are holding are never locked, and a locked die can be rolled again.</string>
     <string name="rules_unlucky_dice_2">Here the last **5** is locked, so it can't be held or scored. Only the other three **5**s score in *Fives*; with the locked one it would have been **20pts**. The **2** doesn't count, as usual.</string>
     <string name="rules_unlucky_dice_3">You may configure the percentage chance each rolled die has of being locked, from **10%** to **50%**, and the maximum number of dice that can be locked on one roll, from **1** to **5**.</string>
-    <string name="rules_unlucky_dice_4">Locked dice make a bad turn easier, so with *Unlucky Dice* on, certain achievements (like for winning with multiple zero categories, etc.) can't be earned.</string>
+    <string name="rules_unlucky_dice_4">As with every modifier, no achievements can be earned with *Unlucky Dice* on, except the modifiers' own, like *Bad Omen*.</string>
 
     <!-- Rules screen: everything else (ui/rules/RulesScreen.kt) -->
     <string name="rules_title">Rules</string>

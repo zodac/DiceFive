@@ -74,7 +74,7 @@ class GameTextTest : UiTest() {
         showGrid(GameMode.QUICKFIRE, PlayerState(name = "Tester", type = PlayerType.HUMAN, gameMode = GameMode.QUICKFIRE, disabledCategories = setOf(ScoreCategory.FIVES)))
         compose.onNodeWithText("Off", useUnmergedTree = true).assertExists()
 
-        // Tricolour's colour boxes are named by their colour - and by Luck of the Irish in the flag's.
+        // Tricolour's colour boxes are named by their colour - and by Luck Of The Irish in the flag's.
         showTricolourBoard(irish = false)
         listOf("Reds", "Yellows", "Blues", "Coloured House").forEach { compose.onNodeWithContentDescription(it).assertExists() }
         showTricolourBoard(irish = true)

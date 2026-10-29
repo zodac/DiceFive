@@ -215,7 +215,7 @@ fun DiceTray(
         visualTheme.mat.DiceTrayDecoration(modifier = Modifier.matchParentSize())
 
         val irish = LocalIrishTricolour.current
-        // Built once for the game: none of the style, the mode's colours or Luck of the Irish
+        // Built once for the game: none of the style, the mode's colours or Luck Of The Irish
         // changes mid-game, so every roll reuses the same recoloured styles.
         val diceStyles = remember(visualTheme.diceStyle, gameMode.dieColours, irish, gameMode.dieValues) {
             TrayDiceStyles(visualTheme.diceStyle, gameMode.dieColours, irish, dieValues = gameMode.dieValues)

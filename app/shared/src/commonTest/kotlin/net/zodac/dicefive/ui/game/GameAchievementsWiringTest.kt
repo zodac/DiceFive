@@ -161,6 +161,36 @@ class GameAchievementsWiringTest {
     }
 
     @Test
+    fun `a game with any modifier on earns no achievement - not even The Journey Begins - moves no counter and adds nothing to Statistics`() = runTest {
+        val modifiers: List<Pair<String, GameViewModel.() -> Unit>> = listOf(
+            "turn timer" to { setupForm.setTurnTimer(TurnTimer.SECONDS_120) },
+            "rolls per turn" to { setupForm.setRollsPerTurn(2) },
+            "stored rolls" to { setupForm.setStoredRolls(true) },
+            "extended scores" to { setupForm.setExtendedScores(true) },
+            "unlucky dice" to { setupForm.setUnluckyDiceEnabled(true) },
+        )
+        for ((name, modifier) in modifiers) {
+            val dao = InMemoryScoreDao()
+            // All 6s: a Natural 5x on the first roll, then the 5x joker into every other box. Unlucky Dice draws its odds
+            // from the dice too, which loaded dice can't answer, so it plays seeded ones.
+            val dice = if (name == "unlucky dice") Random(1) else LoadedDice(6)
+            val table = started(dice = dice, scoreRepository = ScoreRepository(dao), setUp = modifier)
+            table.viewModel.playEveryBox()
+            advanceUntilIdle()
+            assertEquals(emptySet(), table.unlocked, name)
+            assertEquals(emptyMap(), table.store.state.first().counters.filterValues { it != 0 }, name)
+            assertEquals(emptyList(), ScoreRepository(dao).playerStatistics(), name)
+        }
+        // The same game with none earns them.
+        val unmodified = started(dice = LoadedDice(6))
+        unmodified.viewModel.playEveryBox()
+        advanceUntilIdle()
+        for (achievement in listOf(Achievement.THE_JOURNEY_BEGINS, Achievement.PRACTICE_MAKES_PERFECT, Achievement.NATURAL_5X, Achievement.FIVE_X)) {
+            assertTrue(achievement in unmodified.unlocked, "$achievement without a modifier, got ${unmodified.unlocked}")
+        }
+    }
+
+    @Test
     fun `finishing a game records its achievements and counters - solo - between two humans or against an AI`() = runTest {
         // With a real score repository in play, finishGame actually suspends on the leaderboard read before it ever
         // reaches the achievement evaluation - which a null repository never does.
@@ -395,12 +425,14 @@ class GameAchievementsWiringTest {
         }
         assertTrue(Achievement.TWICE_IN_A_LIFETIME in twice, "TWICE_IN_A_LIFETIME should pop, got $twice")
 
-        // A 5x on the 2nd roll without holding anything is Natural 5x.
+        // A 5x on the 2nd roll without holding anything is Natural 5x - and so is one straight out of the cup.
         val natural = unlockedAfter(LoadedDice(6)) {
             rollDice()
             rollDice()
         }
         assertTrue(Achievement.NATURAL_5X in natural, "NATURAL_5X should pop, got $natural")
+        val firstRoll = unlockedAfter(LoadedDice(6)) { rollDice() }
+        assertTrue(Achievement.NATURAL_5X in firstRoll, "NATURAL_5X should pop on a first roll, got $firstRoll")
     }
 
     // ---- Holds, rolls and commits watched as they happen ----------------------------------------
@@ -696,11 +728,11 @@ class GameAchievementsWiringTest {
     }
 
     @Test
-    fun `Stud - seven matching dice are Lucky Seven - five of them on a reroll with none held a Natural 5x - and a timed-out turn scores only the held hand`() = runTest {
+    fun `Stud - seven matching dice are Lucky Seven - five of them with none held a Natural 5x - and a timed-out turn scores only the held hand`() = runTest {
         val stud: GameViewModel.() -> Unit = { setupForm.setGameMode(GameMode.STUD) }
         val firstRoll = unlockedAfter(LoadedDice(6), setUp = stud) { rollDice() }
         assertTrue(Achievement.LUCKY_SEVEN in firstRoll, "LUCKY_SEVEN should pop, got $firstRoll")
-        assertFalse(Achievement.NATURAL_5X in firstRoll, "NATURAL_5X should not pop on a first roll, got $firstRoll")
+        assertTrue(Achievement.NATURAL_5X in firstRoll, "NATURAL_5X should pop on a first roll too, got $firstRoll")
         // Any five of the seven matching, rolled with none held.
         val rerolled = unlockedAfter(ScriptedDice(listOf(1, 2, 3, 4, 5, 6, 1) + listOf(4, 4, 2, 4, 4, 6, 4)), setUp = stud) {
             rollDice()
@@ -909,7 +941,7 @@ class GameAchievementsWiringTest {
     }
 
     @Test
-    fun `bad luck - The Dice Hate Me and Probability Never Heard of Her`() = runTest {
+    fun `bad luck - The Dice Hate Me and Probability Never Heard Of Her`() = runTest {
         // 12 filler turns (every category but Ones) rolling all-2s, then a final turn on Ones: roll 2 shows a 1 (a real
         // option), roll 3 doesn't (no option left at all).
         val hate = unlockedAfter(ScriptedDice(List(65) { 2 } + listOf(1, 2, 2, 2, 2) + List(5) { 2 })) {

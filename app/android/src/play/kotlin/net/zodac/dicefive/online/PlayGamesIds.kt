@@ -7,7 +7,7 @@ import net.zodac.dicefive.model.GameMode
  * Each achievement's id on Play Games, from Play Console's Achievements > Get resources (matched by English name),
  * saved as `assets/play-console/achievements/achievement-ids.xml`.
  * A new achievement is imported there first (`scripts/export-play-console.sh`), then its id is added here;
- * `PlayGamesIdsTest` fails until every achievement Play has ([onPlay]) is mapped.
+ * `PlayGamesIdsTest` fails until every achievement is mapped.
  */
 internal val playAchievementIds: Map<Achievement, String> = mapOf(
     Achievement.THE_JOURNEY_BEGINS to "CgkIjZfJ1v0IEAIQzAE",

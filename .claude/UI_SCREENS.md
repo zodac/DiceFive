@@ -49,7 +49,7 @@ Robolectric test shares one process, so a test that opens the screen calls it fi
 - An icon is not a field on `Achievement`, so the model stays free of Compose.
 - **Locked rows all show the same question mark**, so they never spoil the achievement.
 - **Fixed colours** via `iconTintOrUnspecified`, rather than the row's tint:
-    - every Easter Egg (Luck of the Irish shows its real flag fills with `Color.Unspecified`; Big Fan's heart is forced
+    - every Easter Egg (Luck Of The Irish shows its real flag fills with `Color.Unspecified`; Big Fan's heart is forced
         red). A new Easter Egg adds its case there;
     - and the few whose point is a colour: Tricolour's red/yellow/blue (Tricolourful's traffic light, Tricolour Me
         Impressed's dice, which are also Tricolour's Play leaderboard icon), Everything Everywhere's googly eye, and
@@ -148,7 +148,7 @@ available. `StyleRegistryTest` keeps the counts within what can be earned.
     - the Martini cup (Shaken, Not Tapped);
     - the D20 dice (Nat 20 or Critical Success, `AnyAchievement`).
 - **Secret colours** (`StyleVariant.secretAchievement`) are left out entirely until earned:
-    - the Irish Multicolour dice (Luck of the Irish);
+    - the Irish Multicolour dice (Luck Of The Irish);
     - the white and black D20 (Nat 20) and the blue D20 (Critical Success);
     - the Flowerpot's plant-stage pots (Greenfingers);
     - the Top Hat with its rabbit always out (The Magician's Secret);

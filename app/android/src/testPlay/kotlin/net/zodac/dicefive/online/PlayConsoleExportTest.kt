@@ -47,7 +47,7 @@ class PlayConsoleExportTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private val onPlay = Achievement.entries.filter { it.onPlay }
+    private val onPlay = Achievement.entries
 
     @Test
     fun `points - every achievement has some - Easter eggs the minimum - and all of Play's 2000 spent`() {

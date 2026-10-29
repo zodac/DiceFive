@@ -35,6 +35,17 @@ class AchievementModeTest {
     }
 
     @Test
+    fun `with a modifier on a game can earn only the modifiers' own achievements - in their modes`() {
+        val plain = GameState(gameMode = GameMode.TRICOLOUR)
+        val timed = plain.copy(turnTimer = TurnTimer.SECONDS_30)
+        assertTrue(Achievement.FIRST_VICTORY.isEarnableIn(plain))
+        assertFalse(Achievement.FIRST_VICTORY.isEarnableIn(timed))
+        assertTrue(Achievement.BAD_OMEN.isEarnableIn(timed))
+        assertFalse(Achievement.BAD_OMEN.isEarnableIn(timed.copy(gameMode = GameMode.STUD)), "impossible in Stud, modifier or not")
+        assertEquals(setOf(Achievement.RAINY_DAY_FUND), setOf(Achievement.RAINY_DAY_FUND, Achievement.HOLD_EM, Achievement.FIRST_VICTORY).earnableIn(timed))
+    }
+
+    @Test
     fun `an achievement's limited modes are its mode and the others it can also be earned in - in mode order - and none for any mode`() {
         assertEquals(listOf(GameMode.STUD), Achievement.HOLD_EM.limitedModes)
         assertEquals(listOf(GameMode.STANDARD, GameMode.TRICOLOUR), Achievement.SOLID_ROUND.limitedModes)

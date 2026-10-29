@@ -3,27 +3,17 @@ package net.zodac.dicefive.model
 /** The Flowerpot cup's plant fully grown: a sunflower in bloom - see [flowerpotGrowthStage]. */
 const val FLOWERPOT_FULL_BLOOM = 4
 
-/** The rolls per turn a mode must give for the Flowerpot's sunflower to bloom at all - see [growsSunflower]. */
-const val SUNFLOWER_ROLLS_PER_TURN = 3
-
-/**
- * Whether the Flowerpot's plant can bloom in this mode: only with [SUNFLOWER_ROLLS_PER_TURN] rolls
- * a turn (every mode today). A game with a roll modifier on never blooms - see [flowerpotStage].
- */
-val GameMode.growsSunflower: Boolean
-    get() = rollsPerTurn == SUNFLOWER_ROLLS_PER_TURN
-
 /**
  * How far the Flowerpot cup's plant has grown after [rolls] rolls in this mode: 0 is bare soil, then a
  * seedling, a stalk with a bud, the bud opening, and at [FLOWERPOT_FULL_BLOOM] a sunflower in bloom.
  * The stages are spread evenly over every roll of the game ([GameMode.maxRollsPerGame]): stage `k`
  * comes at `ceil(k * maxRollsPerGame / 4)` rolls - 10, 20, 30 in Standard's 39; 13, 26, 39 in
  * Tricolour's 51. The bloom is never on that schedule's rounding: it comes only once [rolls] reaches
- * [GameMode.maxRollsPerGame] - the game's last possible roll - and only if [growsSunflower]; short
+ * [GameMode.maxRollsPerGame] - the game's last possible roll - in every mode, whatever its rolls a turn; short
  * of it the plant stops at the bud opening. Purely cosmetic, except that player 1 bringing it into
  * bloom earns [Achievement.GREENFINGERS].
  */
-fun GameMode.flowerpotGrowthStage(rolls: Int): Int = flowerpotGrowthStage(rolls, maxRollsPerGame, growsSunflower)
+fun GameMode.flowerpotGrowthStage(rolls: Int): Int = flowerpotGrowthStage(rolls, maxRollsPerGame, canBloom = true)
 
 /** [GameMode.flowerpotGrowthStage]'s arithmetic, for a game of [maxRolls] rolls - split out so a test can try every length. */
 internal fun flowerpotGrowthStage(rolls: Int, maxRolls: Int, canBloom: Boolean): Int {
@@ -41,7 +31,7 @@ internal fun flowerpotGrowthStage(rolls: Int, maxRolls: Int, canBloom: Boolean):
  * Scores modifier's extra turns stretch that last roll out with them.
  */
 val PlayerState.flowerpotStage: Int
-    get() = flowerpotGrowthStage(rollCount, maxRollsPerGame, gameMode.growsSunflower && !rollsModified)
+    get() = flowerpotGrowthStage(rollCount, maxRollsPerGame, canBloom = !rollsModified)
 
 /** Whether this player's rolls have brought the Flowerpot's plant into bloom - see [flowerpotStage]. */
 val PlayerState.hasGrownSunflower: Boolean

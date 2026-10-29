@@ -12,7 +12,7 @@ class PlayGamesIdsTest {
 
     @Test
     fun `every achievement Play has is mapped once - to a Play id`() {
-        assertEquals(Achievement.entries.filter { it.onPlay }.toSet(), playAchievementIds.keys)
+        assertEquals(Achievement.entries.toSet(), playAchievementIds.keys)
         assertEquals(playAchievementIds.size, playAchievementIds.values.toSet().size)
         assertTrue(playAchievementIds.values.toString(), playAchievementIds.values.all { it.matches(playId) })
     }

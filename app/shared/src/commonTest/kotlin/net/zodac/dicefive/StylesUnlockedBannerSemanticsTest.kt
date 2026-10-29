@@ -68,8 +68,8 @@ class StylesUnlockedBannerSemanticsTest : UiTest() {
 
         showBannerHostAndEmit(Achievement.LUCK_OF_THE_IRISH.stylesUnlocked(), StylesEarnedBy.OneAchievement(Achievement.LUCK_OF_THE_IRISH))
         compose.onNodeWithText("Style Unlocked", useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("Earned 'Luck of the Irish': the hidden 'Multicolour' dice colour", useUnmergedTree = true).assertExists()
-        compose.onNode(hasContentDescription("Style unlocked: Multicolour dice. Earned Luck of the Irish")).assertExists()
+        compose.onNodeWithText("Earned 'Luck Of The Irish': the hidden 'Multicolour' dice colour", useUnmergedTree = true).assertExists()
+        compose.onNode(hasContentDescription("Style unlocked: Multicolour dice. Earned Luck Of The Irish")).assertExists()
     }
 
     private fun Achievement.stylesUnlocked(): List<UnlockedStyle> =

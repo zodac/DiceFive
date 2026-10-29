@@ -326,8 +326,8 @@ enum class ProgressStyle {
 }
 
 /**
- * How much of a locked achievement is shown before it's earned, and how (if at all) it maps onto
- * a Google Play Games achievement in future.
+ * How much of a locked achievement is shown before it's earned, and how it maps onto a Google Play
+ * Games achievement.
  */
 enum class AchievementVisibility {
     /** Title and description both visible from the start. Maps to a Play "revealed" achievement. */
@@ -338,18 +338,12 @@ enum class AchievementVisibility {
      * achievement, which Play itself blanks out the description of until revealed/unlocked.
      */
     HIDDEN,
-
-    /**
-     * Absent entirely - no entry, title, or description - until earned, and never counted
-     * towards the unlocked/total tallies, earned or not. Local only: never synced to Play Games.
-     * An easter egg, not a checklist item.
-     */
-    SECRET,
 }
 
 /**
- * Every achievement the app tracks. Achievements are **per device, not per player**: any human
- * player at this device contributes, and AI results never do (they only ever count as opponents).
+ * Every achievement the app tracks. Only player 1 - the human player at this device - earns them; every other seat,
+ * human or CPU, is only ever an opponent (see `AchievementEngine`). A game with a modifier on earns none but the
+ * modifiers' own ([earnableWithModifiers]).
  *
  * [id] is the stable external key - it is what's written to storage and what a Google Play Games
  * achievement will be mapped to later, so **never change one once released**. It is the enum
@@ -427,6 +421,11 @@ enum class Achievement(
     val impossibleIn: Set<GameMode> = emptySet(),
     /** Whether this is [mode]'s own win: earned by winning a game of it against at least one other player. */
     val isModeWin: Boolean = false,
+    /**
+     * Whether a game with a modifier on can earn this: true only for the modifiers' own achievements. No other achievement
+     * is earned, and no counter moves, in a game with any modifier ([GameState.hasModifiers]) - see [isEarnableIn].
+     */
+    val earnableWithModifiers: Boolean = false,
 ) : StoredId {
 
     // ---- Milestones: simply playing the game -------------------------------------------------
@@ -458,6 +457,12 @@ enum class Achievement(
         "one_more_time",
         Res.string.achievement_one_more_time_title,
         Res.string.achievement_one_more_time_description,
+        AchievementCategory.MILESTONES,
+    ),
+    FIRST_VICTORY(
+        "first_victory",
+        Res.string.achievement_first_victory_title,
+        Res.string.achievement_first_victory_description,
         AchievementCategory.MILESTONES,
     ),
     GETTING_COMFORTABLE(
@@ -510,8 +515,7 @@ enum class Achievement(
     ),
 
     // ---- Dice feats: what the dice themselves did --------------------------------------------
-    // Ordered by how hard each one is to actually pull off. The two 30s both need five 6s - one
-    // of them deliberately wasted on the wrong box - which is why they sit so late.
+    // Ordered by how hard each one is to actually pull off.
     BONUS_ROUND(
         "bonus_round",
         Res.string.achievement_bonus_round_title,
@@ -577,7 +581,7 @@ enum class Achievement(
         AchievementCategory.DICE, AchievementCounter.FIVE_X_NUMBERS, target = 6, progressStepSize = 1, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
 
-    // ---- Dice feats continued: interaction quirks, not just what the dice show ----------------
+    // ---- Dice feats continued: how the dice landed, not just what they show ------------------
     TWICE_IN_A_LIFETIME(
         "twice_in_a_lifetime",
         Res.string.achievement_twice_in_a_lifetime_title,
@@ -595,12 +599,6 @@ enum class Achievement(
         Res.string.achievement_i_can_count_title,
         Res.string.achievement_i_can_count_description,
         AchievementCategory.DICE, impossibleIn = setOf(GameMode.STUD),
-    ),
-    A_CUNNING_STRATEGY(
-        "a_cunning_strategy",
-        Res.string.achievement_a_cunning_strategy_title,
-        Res.string.achievement_a_cunning_strategy_description,
-        AchievementCategory.DICE,
     ),
     EXACT_CHANGE(
         "exact_change",
@@ -649,12 +647,6 @@ enum class Achievement(
     ),
 
     // ---- Winning: beating whoever else was at the table ---------------------------------------
-    FIRST_VICTORY(
-        "first_victory",
-        Res.string.achievement_first_victory_title,
-        Res.string.achievement_first_victory_description,
-        AchievementCategory.WINNING,
-    ),
     LANDSLIDE(
         "landslide",
         Res.string.achievement_landslide_title,
@@ -698,14 +690,6 @@ enum class Achievement(
         Res.string.achievement_naturally_gifted_description,
         AchievementCategory.WINNING,
     ),
-    // Judged on the finished game: every modifier on at once - the turn timer, Number of Rolls, Stored Rolls, Extended Scores and
-    // Unlucky Dice - in a mode other than Standard. Hit List has no Extended Scores, so it can't be earned there.
-    EVERYTHING_EVERYWHERE_ALL_AT_ONCE(
-        "everything_everywhere_all_at_once",
-        Res.string.achievement_everything_everywhere_all_at_once_title,
-        Res.string.achievement_everything_everywhere_all_at_once_description,
-        AchievementCategory.WINNING, impossibleIn = setOf(GameMode.STANDARD),
-    ),
 
     // ---- Game modes: playing beyond the Standard rules ------------------------------------------
     WHERE_WERE_GOING_WE_DONT_NEED_RULES(
@@ -734,7 +718,7 @@ enum class Achievement(
         Res.string.achievement_gone_with_the_wind_description,
         AchievementCategory.GAME_MODES, mode = GameMode.THIRD_WIND, isModeWin = true,
     ),
-    // Third Wind's own Spotless, which can't be earned there - every one of the 39 slots, no zeroes.
+    // Every one of Third Wind's 39 slots, no zeroes - Spotless there needs its tripled bonus as well.
     THIRD_TIMES_THE_CHARM(
         "third_times_the_charm",
         Res.string.achievement_third_times_the_charm_title,
@@ -800,7 +784,7 @@ enum class Achievement(
         "rainy_day_fund",
         Res.string.achievement_rainy_day_fund_title,
         Res.string.achievement_rainy_day_fund_description,
-        AchievementCategory.GAME_MODES, impossibleIn = setOf(GameMode.QUICKFIRE),
+        AchievementCategory.GAME_MODES, impossibleIn = setOf(GameMode.QUICKFIRE), earnableWithModifiers = true,
     ),
     // Judged as player 1's dice land: every die on the table in Unlucky Dice's chains at once - so up to five a roll,
     // and nothing held. Never in Stud, whose seven dice can't all be chained.
@@ -808,7 +792,16 @@ enum class Achievement(
         "bad_omen",
         Res.string.achievement_bad_omen_title,
         Res.string.achievement_bad_omen_description,
-        AchievementCategory.GAME_MODES, impossibleIn = setOf(GameMode.STUD),
+        AchievementCategory.GAME_MODES, impossibleIn = setOf(GameMode.STUD), earnableWithModifiers = true,
+    ),
+    // Judged on the finished game: every modifier the mode offers on at once - the turn timer, Number of Rolls, Stored Rolls,
+    // Extended Scores, and Unlucky Dice - in a mode other than Standard. D20 and Hit List have no Extended Scores, so the rest
+    // are every modifier there.
+    EVERYTHING_EVERYWHERE_ALL_AT_ONCE(
+        "everything_everywhere_all_at_once",
+        Res.string.achievement_everything_everywhere_all_at_once_title,
+        Res.string.achievement_everything_everywhere_all_at_once_description,
+        AchievementCategory.GAME_MODES, impossibleIn = setOf(GameMode.STANDARD), earnableWithModifiers = true,
     ),
     // Measured against the scores table, like career points, so it's retroactive: a game player 1 finished in each mode,
     // solo or not, modifiers or not. A banner for every new mode.
@@ -892,6 +885,12 @@ enum class Achievement(
         Res.string.achievement_decisions_decisions_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
+    A_CUNNING_STRATEGY(
+        "a_cunning_strategy",
+        Res.string.achievement_a_cunning_strategy_title,
+        Res.string.achievement_a_cunning_strategy_description,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
     TIME_TO_LET_IT_GO(
         "time_to_let_it_go",
         Res.string.achievement_time_to_let_it_go_title,
@@ -955,9 +954,8 @@ enum class Achievement(
         Res.string.achievement_fuller_house_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
-    // The three "straight out of the cup" feats, in ascending order of how unlikely they are on a
-    // single throw of five dice: a full house is 300 of the 7776 outcomes, a large straight 240,
-    // and five of a kind just 6.
+    // The two "straight out of the cup" feats, in ascending order of how unlikely they are on a
+    // single throw of five dice: a full house is 300 of the 7776 outcomes, a large straight 240.
     HOUSE_CALL(
         "house_call",
         Res.string.achievement_house_call_title,
@@ -1101,7 +1099,7 @@ enum class Achievement(
         AchievementCategory.COLLECTION, countsTowardCompletion = false,
     ),
 
-    // ---- Easter Eggs: not shown, let alone attempted, until already done ----------------------
+    // ---- Easter Eggs: described only once done ------------------------------------------------
     // See AchievementCategory.EASTER_EGGS's doc for why this category exists rather than filing
     // these under each one's subject-matter category.
     //
@@ -1116,9 +1114,8 @@ enum class Achievement(
         Res.string.achievement_are_you_a_developer_description,
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
     ),
-    // Excluded from COMPLETIONIST like the rest of this category - naming yourself after the creator, or a human P2/P3/P4 named exactly "zodac"
-    // (case-sensitive, never P1, who's always the human player at this device), isn't something
-    // every player could reasonably be expected to stumble into on the way to 100%.
+    // Excluded from COMPLETIONIST like the rest of this category - a two-player game whose P2 is a human named exactly
+    // "zodac" (case-sensitive) isn't something every player could reasonably be expected to stumble into on the way to 100%.
     BIG_FAN(
         "big_fan",
         Res.string.achievement_big_fan_title,
@@ -1126,7 +1123,7 @@ enum class Achievement(
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
     ),
     // Excluded from COMPLETIONIST like the rest of this category - it needs the Egg dice and the
-    // Chicken cup both picked, and then a one-in-a-thousand die.
+    // Chicken cup both picked, and then a one-in-500 die.
     EGGCELLENT_DISCOVERY(
         "eggcellent_discovery",
         Res.string.achievement_eggcellent_discovery_title,
@@ -1135,12 +1132,11 @@ enum class Achievement(
     ),
     // Excluded from COMPLETIONIST like the rest of this category - nothing hints that the
     // Flowerpot grows a plant, let alone that using every roll of every turn brings it into bloom.
-    // Never in a mode without 3 rolls a turn, where it can't bloom at all.
     GREENFINGERS(
         "greenfingers",
         Res.string.achievement_greenfingers_title,
         Res.string.achievement_greenfingers_description,
-        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.D20),
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
     ),
     // Excluded from COMPLETIONIST the same way Big Fan is - naming yourself after a country to
     // re-skin a game mode's dice isn't something every player could reasonably be expected to
@@ -1167,7 +1163,7 @@ enum class Achievement(
         Res.string.achievement_rolling_the_midnight_dice_description,
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
     ),
-    // Excluded from COMPLETIONIST the same way Big Fan/Luck of the Irish are - shaking the phone to
+    // Excluded from COMPLETIONIST the same way Big Fan/Luck Of The Irish are - shaking the phone to
     // roll isn't something every player could reasonably be expected to stumble into on the way to
     // 100%, since nothing in the UI hints it's possible.
     SHAKEN_NOT_TAPPED(
@@ -1231,6 +1227,9 @@ enum class Achievement(
     fun isEarnableIn(gameMode: GameMode): Boolean =
         (mode == null || mode == gameMode || gameMode in alsoEarnableIn) && gameMode !in notEarnableIn && gameMode !in impossibleIn
 
+    /** Whether this can be earned in [game]: its mode ([isEarnableIn]), and no modifier on unless [earnableWithModifiers]. */
+    fun isEarnableIn(game: GameState): Boolean = isEarnableIn(game.gameMode) && (earnableWithModifiers || !game.hasModifiers)
+
     /**
      * The modes this can be earned in, in [GameMode] order, for one deliberately limited to some ([mode] or
      * [notEarnableIn]); empty for one that isn't, even if some modes' rules rule it out ([impossibleIn]).
@@ -1249,3 +1248,6 @@ enum class Achievement(
 
 /** The ones of these a game of [mode] can earn - see [Achievement.mode]. */
 fun Set<Achievement>.earnableIn(mode: GameMode): Set<Achievement> = filterTo(mutableSetOf()) { it.isEarnableIn(mode) }
+
+/** The ones of these [game] can earn: its mode's, and with a modifier on only the modifiers' own - see [Achievement.earnableWithModifiers]. */
+fun Set<Achievement>.earnableIn(game: GameState): Set<Achievement> = filterTo(mutableSetOf()) { it.isEarnableIn(game) }

@@ -41,13 +41,14 @@ interface ScoreDao {
 
     /**
      * One finished game's rows, in a single transaction: all of them are recorded or none are. Each row's player is
-     * shown on the Statistics screen again if they were dismissed from it - see [clearDismissal].
+     * shown on the Statistics screen again if they were dismissed from it - see [clearDismissal] - unless the game had a
+     * modifier on, which Statistics doesn't count.
      */
     @Transaction
     suspend fun insertGame(entries: List<ScoreEntry>) {
         for (entry in entries) {
             insert(entry)
-            clearDismissal(entry.playerKey)
+            if (entry.playedUnmodified) clearDismissal(entry.playerKey)
         }
     }
 
@@ -107,13 +108,14 @@ interface ScoreDao {
         modesPlayed = primaryPlayerGameModeIds().mapNotNull(GameMode::fromId).toSet(),
     )
 
-    /** Every point the primary player alone has ever scored, added up - see
-     * [ScoreEntry.isPrimaryPlayer]. Null when nothing has been recorded yet - SUM over no rows. */
-    @Query("SELECT SUM(score) FROM scores WHERE isPrimaryPlayer = 1")
+    /** Every point the primary player alone has scored in games with no modifier on, added up - see
+     * [ScoreEntry.isPrimaryPlayer] and [ScoreEntry.playedUnmodified]. Null when there are none - SUM over no rows. */
+    @Query("SELECT SUM(score) FROM scores WHERE isPrimaryPlayer = 1 AND playedUnmodified = 1")
     suspend fun primaryPlayerTotalPoints(): Int?
 
-    /** The [ScoreEntry.gameModeId] of every mode the primary player has a recorded game in, on the Leaderboard or not. */
-    @Query("SELECT DISTINCT gameModeId FROM scores WHERE isPrimaryPlayer = 1")
+    /** The [ScoreEntry.gameModeId] of every mode the primary player has a recorded game in with no modifier on, on the
+     * Leaderboard or not. */
+    @Query("SELECT DISTINCT gameModeId FROM scores WHERE isPrimaryPlayer = 1 AND playedUnmodified = 1")
     suspend fun primaryPlayerGameModeIds(): List<String>
 
     /**
@@ -135,8 +137,8 @@ interface ScoreDao {
     /**
      * What the Statistics screen shows, read in one transaction: a [PlayerRecord] for each player by
      * [ScoreEntry.playerKey] ("bob" and "Bob" are one player, as the New Game screen compares them), in key order -
-     * excluding anyone dismissed from the Statistics screen (see [DismissedPlayerStats]). Every game counts, on the
-     * Leaderboard or not (see [ScoreEntry.onLeaderboard]). SQLite adds up each player's games per mode; only the
+     * excluding anyone dismissed from the Statistics screen (see [DismissedPlayerStats]). Every game with no modifier on
+     * counts ([ScoreEntry.playedUnmodified]), on the Leaderboard or not (see [ScoreEntry.onLeaderboard]). SQLite adds up each player's games per mode; only the
      * outcomes, which the win streaks need in order, come back a game at a time. Three reads, however many players.
      */
     @Transaction
@@ -155,7 +157,7 @@ interface ScoreDao {
             SUM(won IS NULL) AS soloGames, MAX(score) AS maxScore, SUM(score) AS totalScore,
             SUM(fiveOfAKindCount) AS fiveOfAKindCount, MIN(timestampEpochMillis) AS firstPlayedEpochMillis
         FROM scores
-        WHERE playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
+        WHERE playedUnmodified = 1 AND playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
         GROUP BY playerKey, gameModeId
         ORDER BY playerKey ASC, gameModeId ASC
         """,
@@ -170,12 +172,13 @@ interface ScoreDao {
         """
         SELECT latest.playerKey AS playerKey, (
             SELECT playerName FROM scores WHERE rowid = (
-                SELECT MAX(rowid) FROM scores WHERE playerKey = latest.playerKey AND timestampEpochMillis = latest.playedAt
+                SELECT MAX(rowid) FROM scores
+                WHERE playerKey = latest.playerKey AND timestampEpochMillis = latest.playedAt AND playedUnmodified = 1
             )
         ) AS playerName
         FROM (
             SELECT playerKey, MAX(timestampEpochMillis) AS playedAt FROM scores
-            WHERE playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
+            WHERE playedUnmodified = 1 AND playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
             GROUP BY playerKey
         ) AS latest
         """,
@@ -189,7 +192,7 @@ interface ScoreDao {
     @Query(
         """
         SELECT playerKey, won FROM scores
-        WHERE won IS NOT NULL AND playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
+        WHERE won IS NOT NULL AND playedUnmodified = 1 AND playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
         ORDER BY playerKey ASC, timestampEpochMillis DESC
         """,
     )
@@ -239,12 +242,12 @@ interface ScoreDao {
     @Query("DELETE FROM dismissed_player_stats WHERE dismissedAtEpochMillis <= :epochMillis")
     suspend fun deleteDismissalsThrough(epochMillis: Long)
 
-    /** Drops each dismissal that a later game under the same [ScoreEntry.playerKey] has undone, wherever it was played. */
+    /** Drops each dismissal that a later game with no modifier on, under the same [ScoreEntry.playerKey], has undone, wherever it was played. */
     @Query(
         """
         DELETE FROM dismissed_player_stats WHERE EXISTS (
             SELECT 1 FROM scores
-            WHERE scores.playerKey = dismissed_player_stats.playerKey
+            WHERE scores.playerKey = dismissed_player_stats.playerKey AND scores.playedUnmodified = 1
                 AND scores.timestampEpochMillis > dismissed_player_stats.dismissedAtEpochMillis
         )
         """,

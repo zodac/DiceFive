@@ -31,7 +31,7 @@ class ScoreCategoryNameTest {
     }
 
     @Test
-    fun `only the colour boxes have Luck of the Irish names`() {
+    fun `only the colour boxes have Luck Of The Irish names`() {
         assertEquals(
             ScoreCategory.entries.filter { it.rule is ScoreRule.ColourSet },
             ScoreCategory.entries.filter { it.irishName != null },

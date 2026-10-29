@@ -19,7 +19,7 @@ import net.zodac.dicefive.ui.common.stringResource
 // What a screen reader says for the board's drawn art - the dice, the score tiles - which has no
 // text of its own to read. Names match what the Rules pages call each category.
 
-/** A score category's name, as the Rules pages give it - [irish] for Luck of the Irish's colours. */
+/** A score category's name, as the Rules pages give it - [irish] for Luck Of The Irish's colours. */
 @Composable
 internal fun ScoreCategory.spokenName(irish: Boolean): String = when (val rule = rule) {
     is ScoreRule.Target -> stringResource(Res.string.score_target, rule.index)

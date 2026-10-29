@@ -47,10 +47,14 @@ import net.zodac.dicefive.model.playerNameKey
         // Statistics: each player's games added up per mode, read in group order from the index alone.
         Index(
             name = "index_scores_player_mode_totals",
-            value = ["playerKey", "gameModeId", "won", "score", "fiveOfAKindCount", "timestampEpochMillis"],
+            value = ["playerKey", "gameModeId", "won", "score", "fiveOfAKindCount", "timestampEpochMillis", "playedUnmodified"],
         ),
         // Statistics: a player's games newest first - their latest name, and the outcomes the win streaks walk.
-        Index(name = "index_scores_player_history", value = ["playerKey", "timestampEpochMillis", "won"], orders = [ASC, DESC, ASC]),
+        Index(
+            name = "index_scores_player_history",
+            value = ["playerKey", "timestampEpochMillis", "won", "playedUnmodified"],
+            orders = [ASC, DESC, ASC, ASC],
+        ),
     ],
 )
 data class ScoreEntry(
@@ -98,6 +102,8 @@ data class ScoreEntry(
      * [net.zodac.dicefive.model.GameState.hasModifiers] false. [onLeaderboard] can't say so for a mode that is always off the Combined
      * board (it's false whether or not a modifier was on), and an online leaderboard compares like with like, so
      * this is what decides whether the row may be submitted to one, and whether its mode's Leaderboard card lists it.
+     * Only these rows count anywhere a player sees: Statistics, career points and the modes played leave the rest out too,
+     * as a game with a modifier on counts for no achievement. The rest are kept, for the cloud save.
      */
     val playedUnmodified: Boolean = true,
 ) {
@@ -112,9 +118,9 @@ data class ScoreEntry(
 
     /**
      * Whether this row is on the Combined Leaderboard: its mode counts there ([GameMode.countsOnLeaderboard]) and it was
-     * [playedUnmodified], as [net.zodac.dicefive.model.GameState.countsOnLeaderboard] decides for a game. A row that
-     * isn't is still a game played - Statistics and career points count it - but the Leaderboard, a personal best and the
-     * score-collection achievements leave it out. Derived as [playerKey] is, so it can't disagree with the columns it
+     * [playedUnmodified], as [net.zodac.dicefive.model.GameState.countsOnLeaderboard] decides for a game. An unmodified row
+     * that isn't (a mode off the board) is still a game played - Statistics and career points count it - but the
+     * Leaderboard, a personal best and the score-collection achievements leave it out. Derived as [playerKey] is, so it can't disagree with the columns it
      * comes from; a mode this build doesn't know is off the board. Settable only for Room to read it back.
      */
     var onLeaderboard: Boolean = GameMode.fromId(gameModeId)?.countsOnLeaderboard == true && playedUnmodified

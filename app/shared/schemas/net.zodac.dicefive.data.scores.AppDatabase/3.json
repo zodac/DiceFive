@@ -1,0 +1,260 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 3,
+    "identityHash": "92672b6cc71ef79ec22cadd639a778f0",
+    "entities": [
+      {
+        "tableName": "scores",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uuid` BLOB NOT NULL, `playerName` TEXT NOT NULL, `score` INTEGER NOT NULL, `timestampEpochMillis` INTEGER NOT NULL, `won` INTEGER, `isPrimaryPlayer` INTEGER NOT NULL, `fiveOfAKindCount` INTEGER NOT NULL, `zeroedCategoryCount` INTEGER NOT NULL, `upperSectionTotal` INTEGER NOT NULL, `chanceScore` INTEGER NOT NULL, `threeOfAKindScore` INTEGER NOT NULL, `fourOfAKindScore` INTEGER NOT NULL, `gameModeId` TEXT NOT NULL, `playedUnmodified` INTEGER NOT NULL, `playerKey` TEXT NOT NULL, `onLeaderboard` INTEGER NOT NULL, PRIMARY KEY(`uuid`))",
+        "fields": [
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playerName",
+            "columnName": "playerName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "score",
+            "columnName": "score",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestampEpochMillis",
+            "columnName": "timestampEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "won",
+            "columnName": "won",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isPrimaryPlayer",
+            "columnName": "isPrimaryPlayer",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fiveOfAKindCount",
+            "columnName": "fiveOfAKindCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "zeroedCategoryCount",
+            "columnName": "zeroedCategoryCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "upperSectionTotal",
+            "columnName": "upperSectionTotal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chanceScore",
+            "columnName": "chanceScore",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "threeOfAKindScore",
+            "columnName": "threeOfAKindScore",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fourOfAKindScore",
+            "columnName": "fourOfAKindScore",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gameModeId",
+            "columnName": "gameModeId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playedUnmodified",
+            "columnName": "playedUnmodified",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playerKey",
+            "columnName": "playerKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "onLeaderboard",
+            "columnName": "onLeaderboard",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "uuid"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_scores_leaderboard_order",
+            "unique": false,
+            "columnNames": [
+              "onLeaderboard",
+              "score",
+              "fiveOfAKindCount",
+              "zeroedCategoryCount",
+              "upperSectionTotal",
+              "chanceScore",
+              "threeOfAKindScore",
+              "fourOfAKindScore"
+            ],
+            "orders": [
+              "ASC",
+              "DESC",
+              "ASC",
+              "DESC",
+              "ASC",
+              "ASC",
+              "ASC",
+              "ASC"
+            ],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scores_leaderboard_order` ON `${TABLE_NAME}` (`onLeaderboard` ASC, `score` DESC, `fiveOfAKindCount` ASC, `zeroedCategoryCount` DESC, `upperSectionTotal` ASC, `chanceScore` ASC, `threeOfAKindScore` ASC, `fourOfAKindScore` ASC)"
+          },
+          {
+            "name": "index_scores_mode_order",
+            "unique": false,
+            "columnNames": [
+              "gameModeId",
+              "playedUnmodified",
+              "score",
+              "fiveOfAKindCount",
+              "zeroedCategoryCount",
+              "upperSectionTotal",
+              "chanceScore",
+              "threeOfAKindScore",
+              "fourOfAKindScore"
+            ],
+            "orders": [
+              "ASC",
+              "ASC",
+              "DESC",
+              "ASC",
+              "DESC",
+              "ASC",
+              "ASC",
+              "ASC",
+              "ASC"
+            ],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scores_mode_order` ON `${TABLE_NAME}` (`gameModeId` ASC, `playedUnmodified` ASC, `score` DESC, `fiveOfAKindCount` ASC, `zeroedCategoryCount` DESC, `upperSectionTotal` ASC, `chanceScore` ASC, `threeOfAKindScore` ASC, `fourOfAKindScore` ASC)"
+          },
+          {
+            "name": "index_scores_playerKey_onLeaderboard_score",
+            "unique": false,
+            "columnNames": [
+              "playerKey",
+              "onLeaderboard",
+              "score"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scores_playerKey_onLeaderboard_score` ON `${TABLE_NAME}` (`playerKey`, `onLeaderboard`, `score`)"
+          },
+          {
+            "name": "index_scores_primary_player",
+            "unique": false,
+            "columnNames": [
+              "isPrimaryPlayer",
+              "gameModeId",
+              "playedUnmodified",
+              "timestampEpochMillis",
+              "score"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scores_primary_player` ON `${TABLE_NAME}` (`isPrimaryPlayer`, `gameModeId`, `playedUnmodified`, `timestampEpochMillis`, `score`)"
+          },
+          {
+            "name": "index_scores_player_mode_totals",
+            "unique": false,
+            "columnNames": [
+              "playerKey",
+              "gameModeId",
+              "won",
+              "score",
+              "fiveOfAKindCount",
+              "timestampEpochMillis",
+              "playedUnmodified"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scores_player_mode_totals` ON `${TABLE_NAME}` (`playerKey`, `gameModeId`, `won`, `score`, `fiveOfAKindCount`, `timestampEpochMillis`, `playedUnmodified`)"
+          },
+          {
+            "name": "index_scores_player_history",
+            "unique": false,
+            "columnNames": [
+              "playerKey",
+              "timestampEpochMillis",
+              "won",
+              "playedUnmodified"
+            ],
+            "orders": [
+              "ASC",
+              "DESC",
+              "ASC",
+              "ASC"
+            ],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scores_player_history` ON `${TABLE_NAME}` (`playerKey` ASC, `timestampEpochMillis` DESC, `won` ASC, `playedUnmodified` ASC)"
+          }
+        ]
+      },
+      {
+        "tableName": "dismissed_player_stats",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`playerName` TEXT NOT NULL, `dismissedAtEpochMillis` INTEGER NOT NULL, `playerKey` TEXT NOT NULL, PRIMARY KEY(`playerKey`))",
+        "fields": [
+          {
+            "fieldPath": "playerName",
+            "columnName": "playerName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dismissedAtEpochMillis",
+            "columnName": "dismissedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playerKey",
+            "columnName": "playerKey",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "playerKey"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '92672b6cc71ef79ec22cadd639a778f0')"
+    ]
+  }
+}

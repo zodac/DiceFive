@@ -527,7 +527,7 @@ class StripedDiceStyle(
 
 /**
  * The Irish flag as a die - green, white and orange in equal vertical thirds, green at the hoist -
- * in the same flag colours Tricolour switches to for Luck of the Irish, with dark pips that read on
+ * in the same flag colours Tricolour switches to for Luck Of The Irish, with dark pips that read on
  * all three. The first colour of Multicolour, the secret style that achievement unlocks.
  */
 val IrishFlagDiceStyle: StripedDiceStyle = StripedDiceStyle(

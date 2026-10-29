@@ -199,7 +199,7 @@ val TricolourRedStripe = Color(0xFF9E2A22)
 val TricolourYellowStripe = Color(0xFF8F7011)
 val TricolourBlueStripe = Color(0xFF1F4F9A)
 
-// Luck of the Irish: while active (see net.zodac.dicefive.model.isLuckOfTheIrish), Tricolour's
+// Luck Of The Irish: while active (see net.zodac.dicefive.model.isLuckOfTheIrish), Tricolour's
 // red/yellow/blue render in these instead - RED -> green, YELLOW -> white, BLUE -> orange, the
 // Irish flag's colours - via DieColour.palette(irish = true). Same fields, same meaning, as the
 // TricolourRed/Yellow/Blue block above; White's own top/bottom/pip follow Yellow's old "bright

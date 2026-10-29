@@ -236,7 +236,18 @@ class ScoreRepositoryTest {
     }
 
     @Test
-    fun `career points sum only the primary player's rows - off the Leaderboard too - and are zero with nothing recorded`() = runTest {
+    fun `a game with a modifier on brings no dismissed player back to Statistics - one without does`() = runTest {
+        val repository = ScoreRepository(InMemoryScoreDao())
+        repository.record("Alice", 150)
+        repository.dismissPlayerStatistics("Alice", atEpochMillis = 1L)
+        repository.record("Alice", 200, timestampEpochMillis = 2L, playedUnmodified = false)
+        assertEquals(emptyList(), repository.playerStatistics())
+        repository.record("Alice", 180, timestampEpochMillis = 3L)
+        assertEquals(listOf(330), repository.playerStatistics().map { it.totalScore })
+    }
+
+    @Test
+    fun `career points sum only the primary player's rows - off the Leaderboard too - never with a modifier - and are zero with nothing recorded`() = runTest {
         assertEquals(0, ScoreRepository(InMemoryScoreDao()).primaryPlayerTotalPoints())
 
         val repository = ScoreRepository(InMemoryScoreDao())
@@ -246,17 +257,27 @@ class ScoreRepositoryTest {
         repository.record("Alice", 250, isPrimaryPlayer = true)
         assertEquals(400, repository.primaryPlayerTotalPoints())
 
-        // A game off the Leaderboard still counts in Statistics and career points.
+        // A game in a mode off the Leaderboard still counts in Statistics and career points.
         val offBoard = ScoreRepository(InMemoryScoreDao())
         offBoard.record("Alice", 200, isPrimaryPlayer = true)
-        offBoard.record("Alice", 750, isPrimaryPlayer = true, playedUnmodified = false)
+        offBoard.record("Alice", 120, isPrimaryPlayer = true, gameMode = GameMode.QUICKFIRE)
         assertEquals(1, offBoard.totalCount())
         assertEquals(listOf(200), offBoard.page(0).map { it.score })
-        assertEquals(200, offBoard.bestScoreForPlayer("Alice"))
-        assertEquals(setOf(200), offBoard.distinctScores())
-        val alice = offBoard.playerStatistics().single()
-        assertEquals(2, alice.gamesPlayed)
-        assertEquals(750, alice.maxScore)
-        assertEquals(950, offBoard.primaryPlayerTotalPoints())
+        assertEquals(2, offBoard.playerStatistics().single().gamesPlayed)
+        assertEquals(320, offBoard.primaryPlayerTotalPoints())
+
+        // A game with a modifier on counts nowhere: not the Leaderboard, Statistics, career points or the modes played.
+        val modified = ScoreRepository(InMemoryScoreDao())
+        modified.record("Alice", 200, isPrimaryPlayer = true)
+        modified.record("Alice", 750, isPrimaryPlayer = true, gameMode = GameMode.STUD, playedUnmodified = false)
+        assertEquals(1, modified.totalCount())
+        assertEquals(listOf(200), modified.page(0).map { it.score })
+        assertEquals(200, modified.bestScoreForPlayer("Alice"))
+        assertEquals(setOf(200), modified.distinctScores())
+        val alice = modified.playerStatistics().single()
+        assertEquals(1, alice.gamesPlayed)
+        assertEquals(200, alice.maxScore)
+        assertEquals(200, modified.primaryPlayerTotalPoints())
+        assertEquals(setOf(GameMode.STANDARD), modified.leaderboardTotals().modesPlayed)
     }
 }

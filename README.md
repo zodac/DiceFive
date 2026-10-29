@@ -58,7 +58,8 @@ rules open up once you've finished your first game.
 ## House rules
 
 Mix in optional modifiers with any mode: a turn timer, more or fewer rolls a turn, unused rolls that carry over, extra
-boxes for Two Pair, Evens, and Odds, and unlucky dice that lock in place.
+boxes for Two Pair, Evens, and Odds, and unlucky dice that lock in place. Modifiers are just for fun: a game with any
+on stays off the Leaderboard and Statistics, and earns only the modifiers' own achievements.
 
 ## Achievements to chase
 

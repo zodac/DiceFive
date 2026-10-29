@@ -485,6 +485,7 @@ class AchievementEngineTest {
                 Achievement.SIX_OF_THE_BEST,
                 Achievement.RAINY_DAY_FUND,
                 Achievement.BAD_OMEN,
+                Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE,
                 Achievement.GRAND_TOUR,
             ),
             gameModes,
@@ -690,9 +691,9 @@ class AchievementEngineTest {
         // The board is read before this game's rows go in, so the engine adds this game's own mode itself.
         assertFalse(Achievement.GRAND_TOUR in unlocked(finishedGame(player()), context(allButHitList)))
         assertTrue(Achievement.GRAND_TOUR in unlocked(finishedGame(player(gameMode = GameMode.HIT_LIST)), context(allButHitList)))
-        // Solo or not, with modifiers or not: a finished game in the mode is all it takes.
-        val modified = finishedGame(player(gameMode = GameMode.HIT_LIST)).copy(turnTimer = TurnTimer.SECONDS_30, extendedScores = true)
-        assertTrue(Achievement.GRAND_TOUR in unlocked(modified, context(allButHitList)))
+        // Solo or not, a finished game in the mode is all it takes - but never one with a modifier on.
+        val modified = finishedGame(player(gameMode = GameMode.HIT_LIST)).copy(turnTimer = TurnTimer.SECONDS_30)
+        assertFalse(Achievement.GRAND_TOUR in unlocked(modified, context(allButHitList)))
 
         // A banner for every new mode, none for one already played.
         fun progressed(before: Set<GameMode>, mode: GameMode) =
@@ -756,7 +757,7 @@ class AchievementEngineTest {
         assertTrue(atStart(table("zodac" to PlayerType.HUMAN, "You" to PlayerType.HUMAN)).isEmpty, "P1")
         assertTrue(atStart(table("You" to PlayerType.HUMAN, "zodac" to PlayerType.HUMAN, "Third" to PlayerType.HUMAN)).isEmpty, "three at the table")
 
-        // Luck of the Irish: GameState.isLuckOfTheIrish (see IrishEasterEggTest). Its mode earns Rules too.
+        // Luck Of The Irish: GameState.isLuckOfTheIrish (see IrishEasterEggTest). Its mode earns Rules too.
         assertEquals(
             setOf(Achievement.LUCK_OF_THE_IRISH, Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES),
             atStart(table("Éire" to PlayerType.HUMAN, mode = GameMode.TRICOLOUR)).newlyUnlocked.toSet(),
@@ -826,6 +827,12 @@ class AchievementEngineTest {
         val me = midGamePlayer(emptyMap(), gameMode = mode).copy(rollCount = rolls)
         val players = arrayOf(if (mode == GameMode.QUICKFIRE) me.copy(disabledCategories = QUICKFIRE_OFF) else me, *others)
         return Achievement.GREENFINGERS in unlockedMidGame(*players, growingFlowerpotInPlay = growingFlowerpot)
+    }
+
+    @Test
+    fun `D20's five rolls a turn grow the sunflower too - every roll of its 22 turns`() {
+        assertTrue(greenfingersAfter(110, GameMode.D20))
+        assertFalse(greenfingersAfter(109, GameMode.D20))
     }
 
     @Test
@@ -1024,6 +1031,50 @@ class AchievementEngineTest {
             .copy(extendedScores = true)
 
     @Test
+    fun `a game with any modifier on earns only the modifiers' own achievements - moves no counter - and adds nothing to the board's measures`() {
+        val won = finishedGame(player(total = 300, overrides = spotlessCard), bot(total = 100))
+        val unmodified = evaluate(won)
+        assertTrue(Achievement.FIRST_VICTORY in unmodified.newlyUnlocked)
+        assertTrue(unmodified.counters.isNotEmpty())
+
+        val modifiers = listOf(
+            "turn timer" to won.copy(turnTimer = TurnTimer.SECONDS_30),
+            "Number of Rolls" to won.copy(rollModifiers = RollModifiers(rollsPerTurn = 3)),
+            "Stored Rolls" to won.copy(rollModifiers = RollModifiers(storedRolls = true)),
+            "Extended Scores" to won.copy(extendedScores = true),
+            "Unlucky Dice" to won.copy(unluckyDice = UnluckyDice()),
+        )
+        val before = LeaderboardTotals(totalPoints = 1_000, modesPlayed = setOf(GameMode.STANDARD))
+        for ((name, game) in modifiers) {
+            val update = evaluate(game, GameAchievementContext(previousLeaderboard = before))
+            assertEquals(emptyList(), update.newlyUnlocked, name)
+            assertEquals(emptyMap(), update.counters, name)
+            assertEquals(emptyList(), update.progressed, name)
+            assertEquals(emptyList(), AchievementEngine.evaluateInProgress(game.copy(isGameOver = false), AchievementsState(), NOW).newlyUnlocked, name)
+            val atStart = AchievementEngine.evaluateAtGameStart(GameStartContext(playedNonDefaultStyle = true, game = game, startedAtLocalHour = 1), AchievementsState(), NOW)
+            assertEquals(emptyList(), atStart.newlyUnlocked, name)
+        }
+        assertEquals(before, before.plusGame(listOf(300), 300, GameMode.D20, onLeaderboard = false, playedUnmodified = false))
+
+        // The modifiers' own still unlock, and only they: Everything Everywhere All At Once here.
+        val everything = finishedGame(player(total = 300, gameMode = GameMode.TRICOLOUR), bot(total = 100, gameMode = GameMode.TRICOLOUR)).copy(
+            turnTimer = TurnTimer.SECONDS_30, rollModifiers = RollModifiers(rollsPerTurn = 2, storedRolls = true), extendedScores = true, unluckyDice = UnluckyDice(),
+        )
+        assertEquals(listOf(Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE), unlocked(everything))
+        assertEquals(
+            listOf(Achievement.RAINY_DAY_FUND, Achievement.BAD_OMEN, Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE),
+            Achievement.entries.filter { it.earnableWithModifiers },
+        )
+
+        // Nor is a game lost with a modifier on One More Time, though the next is played without.
+        val lost = finishedGame(player(total = 100), bot(total = 300))
+        fun oneMoreTime(previous: GameState) = Achievement.ONE_MORE_TIME in
+            AchievementEngine.evaluateAtGameStart(GameStartContext(game = finishedGame(player()), previousGame = previous), AchievementsState(), NOW).newlyUnlocked
+        assertTrue(oneMoreTime(lost))
+        assertFalse(oneMoreTime(lost.copy(turnTimer = TurnTimer.SECONDS_30)))
+    }
+
+    @Test
     fun `a single roll chosen with Number of Rolls isn't Impatient - nor Naturally Gifted for a win - but Quickfire's three rolls still are`() {
         assertFalse(Achievement.IMPATIENT in unlocked(finishedGame(player()).copy(rollModifiers = RollModifiers(rollsPerTurn = 1))))
         assertTrue(Achievement.IMPATIENT in unlocked(finishedGame(player())))
@@ -1038,12 +1089,11 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `How Do You Play This Game needs Extended Scores' boxes zeroed too`() {
+    fun `How Do You Play This Game is never earned with Extended Scores - a modifier - even with its boxes zeroed too`() {
         val standardZeroes = player(total = 5)
         val allZeroes = standardZeroes.copy(extendedScores = true, scorecard = standardZeroes.scorecard + ScoreCategory.EXTENDED.associateWith { listOf(0) })
-        val withEvens = allZeroes.copy(scorecard = allZeroes.scorecard + (ScoreCategory.EVENS to listOf(12)))
-        assertFalse(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in unlocked(finishedGame(withEvens).copy(extendedScores = true)))
-        assertTrue(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in unlocked(finishedGame(allZeroes).copy(extendedScores = true)))
+        assertTrue(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in unlocked(finishedGame(standardZeroes)))
+        assertFalse(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in unlocked(finishedGame(allZeroes).copy(extendedScores = true)))
     }
 
     // ---- Third Wind: every box scored three times -----------------------------------------------

@@ -65,10 +65,10 @@ class PlayerStatisticsQueryTest {
         dao.dismissPlayer("Dismissed", at + 1)
     }
 
-    /** Statistics worked out by walking every game, most recent first, as they were before SQLite added them up. */
+    /** Statistics worked out by walking every game with no modifier on, most recent first, as they were before SQLite added them up. */
     private suspend fun walkedStatistics(): List<PlayerStatistics> {
         val dismissed = dao.allDismissals().map { it.playerKey }.toSet()
-        return dao.allScores().filter { it.playerKey !in dismissed }
+        return dao.allScores().filter { it.playedUnmodified && it.playerKey !in dismissed }
             .sortedWith(compareBy<ScoreEntry> { it.playerKey }.thenByDescending { it.timestampEpochMillis })
             .groupBy { it.playerKey }.values.map { games ->
                 var running = 0

@@ -116,4 +116,29 @@ class ScoreDatabaseMigrationTest {
             SQLiteDatabase.deleteDatabase(file)
         }
     }
+
+    @Test
+    fun `version 2 opens as version 3 - every score kept - and Statistics counts only the games with no modifier on`() = runTest {
+        createAt(2) {
+            for ((at, unmodified) in listOf(1_000L to true, 2_000L to false)) {
+                execSQL(
+                    "INSERT INTO scores (uuid, playerName, score, timestampEpochMillis, won, isPrimaryPlayer, fiveOfAKindCount, zeroedCategoryCount, " +
+                        "upperSectionTotal, chanceScore, threeOfAKindScore, fourOfAKindScore, gameModeId, playedUnmodified, playerKey, onLeaderboard) " +
+                        "VALUES (?, 'Ann', ?, ?, NULL, 1, 0, 0, 0, 0, 0, 0, ?, ?, 'ann', ?)",
+                    arrayOf<Any>(Uuid.random().toByteArray(), if (unmodified) 150 else 400, at, GameMode.STANDARD.id, if (unmodified) 1 else 0, if (unmodified) 1 else 0),
+                )
+            }
+        }
+        val database = Room.databaseBuilder<AppDatabase>(context, file.absolutePath).buildAppDatabase()
+        try {
+            val dao = database.scoreDao()
+            assertEquals(2, dao.allScores().size)
+            val ann = dao.playerRecords().single()
+            assertEquals(listOf(1), ann.modes.map { it.gamesPlayed })
+            assertEquals(150, dao.primaryPlayerTotalPoints())
+        } finally {
+            database.close()
+            SQLiteDatabase.deleteDatabase(file)
+        }
+    }
 }

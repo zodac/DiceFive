@@ -10,12 +10,14 @@ class FlowerpotGrowthTest {
     private fun GameMode.stages(): List<Int> = (0..maxRollsPerGame).map { flowerpotGrowthStage(it) }
 
     @Test
-    fun `the plant's stages spread evenly over each mode's rolls - never back - blooming only on the last - and only with 3 rolls a turn`() {
+    fun `the plant's stages spread evenly over each mode's rolls - never back - blooming only on the last - whatever the rolls a turn`() {
         // In Standard it grows every 10 rolls and blooms on the 39th - its last.
         assertEquals(List(10) { 0 } + List(10) { 1 } + List(10) { 2 } + List(9) { 3 } + listOf(FLOWERPOT_FULL_BLOOM), GameMode.STANDARD.stages())
         assertEquals(List(13) { 0 } + List(13) { 1 } + List(13) { 2 } + List(12) { 3 } + listOf(FLOWERPOT_FULL_BLOOM), GameMode.TRICOLOUR.stages())
         assertEquals(List(5) { 0 } + List(4) { 1 } + List(5) { 2 } + List(4) { 3 } + listOf(FLOWERPOT_FULL_BLOOM), GameMode.QUICKFIRE.stages())
-        for (mode in GameMode.entries) assertEquals(mode.rollsPerTurn == 3, mode.growsSunflower, mode.id)
+        // D20's five rolls a turn grow it as well: its 22 turns of five, 110 rolls.
+        assertEquals(List(28) { 0 } + List(27) { 1 } + List(28) { 2 } + List(27) { 3 } + listOf(FLOWERPOT_FULL_BLOOM), GameMode.D20.stages())
+        for (mode in GameMode.entries) assertEquals(FLOWERPOT_FULL_BLOOM, mode.stages().last(), mode.id)
 
         // For any game length the stages never go backwards and the bloom comes only on the last roll.
         for (canBloom in listOf(true, false)) {

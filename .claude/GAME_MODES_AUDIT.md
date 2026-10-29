@@ -1,7 +1,13 @@
 # Game modes: the achievement audit
 
-Which existing achievements each mode (or roll-changing modifier) blocks or guards, and how to audit a new one. Mode
-mechanics are in `GAME_MODES.md`.
+Which existing achievements each mode blocks or guards, and how to audit a new one. Mode mechanics are in
+`GAME_MODES.md`.
+
+**Modifiers block everything.** A game with any modifier on (the turn timer included) earns only the modifiers' own
+achievements (`Achievement.earnableWithModifiers`: Rainy Day Fund, Bad Omen, and Everything Everywhere All At Once),
+moves no counter, and adds nothing to Statistics, career points, or Grand Tour. The older per-modifier guards (roll
+modifiers, Extended Scores, Unlucky Dice, the timeout guards) are still in the engine and its tests, but no longer
+decide anything. A new modifier needs no audit of its own; a new modifier achievement sets `earnableWithModifiers`.
 
 ## How to audit
 
@@ -20,15 +26,15 @@ mode changes, decide:
 - **Count the thing, not its proxy.** Bonus chips equal "2nd/3rd 5x" only while the 5x box has one slot;
     `fiveOfAKindCount` counts the 5x themselves.
 
-| Family           | Achievements                                                                                                                                                        | Ask                                                                       |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Roll count       | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Time To Let It Go, Pointless Roll, Greenfingers, Probability? Never Heard of Her | Does "one roll used" or "every roll used" become automatic or impossible? |
-| First roll       | House Call, Straight Away, I Can Count!                                                                                                                             | Is every roll now a first roll, or none?                                  |
-| Holds            | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues, Hands Off! (Standard only)                                                                | Can dice still be held?                                                   |
-| Timer            | The timeout guards on low or zeroed cards (`GAME_MODES.md`)                                                                                                         | Always or never a timer?                                                  |
-| Card contents    | How Do You Play This Game?, Spotless, Bonus Round, Upper/Lower Class, Exact Change, the 5x ones                                                                     | Is each box still there, and do totals mean the same?                     |
-| Score thresholds | Solid Round ... Dice Deity (Standard and Tricolour only), Cold Dice, Low Rolls, Ton!, Nice, Rock Bottom, the score bands                                            | Trivial or impossible at this ceiling?                                    |
-| Dice look        | Fresh Coat Of Paint, Luck of the Irish                                                                                                                              | Does the mode draw the player's dice style?                               |
+| Family           | Achievements                                                                                                                                                                     | Ask                                                                       |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Roll count       | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Time To Let It Go, What Was The Point Of That?, Greenfingers, Probability? Never Heard Of Her | Does "one roll used" or "every roll used" become automatic or impossible? |
+| First roll       | House Call, Straight Away, I Can Count!                                                                                                                                          | Is every roll now a first roll, or none?                                  |
+| Holds            | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues, Hands Off! (Standard only)                                                                             | Can dice still be held?                                                   |
+| Timer            | The timeout guards on low or zeroed cards (`GAME_MODES.md`)                                                                                                                      | Always or never a timer?                                                  |
+| Card contents    | How Do You Play This Game?, Spotless, Bonus Round, Upper/Lower Class, Exact Change, the 5x ones                                                                                  | Is each box still there, and do totals mean the same?                     |
+| Score thresholds | Solid Round ... Dice Deity (Standard and Tricolour only), Cold Dice, Low Rolls, Ton!, Nice, Rock Bottom, the score bands                                                         | Trivial or impossible at this ceiling?                                    |
+| Dice look        | Fresh Coat Of Paint, Luck Of The Irish                                                                                                                                           | Does the mode draw the player's dice style?                               |
 
 The roll helpers `rollsRemainingAfterFirst`/`AfterSecond` are `rollsPerTurn - 1`/`- 2`. With fewer than three rolls
 they reach 0 or below, so read each comparison against them.
@@ -62,10 +68,10 @@ The draw is always three upper and three lower boxes. A short game with small to
 
 **Can't be earned**:
 
-- every 5x achievement that needs the box (First 5x, Encore, Hat Trick, Scratched, Twice in a Lifetime);
+- every 5x achievement that needs the box (5x!, Encore, Hat Trick, Scratched, Twice in a Lifetime);
 - Natural 5x (`fiveOfAKindScorable` is never true);
 - the score bands and New Personal Best (off the board);
-- Exact Change and Both Straights, unless the draw keeps those boxes.
+- Exact Change and Straight Talker, unless the draw keeps those boxes.
 
 **Still earnable** (report these):
 
@@ -88,32 +94,32 @@ Scores).
 - **Bad Omen** (a Game Modes achievement, unlocking the Devil dice: every die chained at once) needs Unlucky Dice's
     cap at 5 and nothing held. Impossible in Stud: seven
     dice, at most five chained.
-- **Grand Tour** counts a finished game in each mode, modifiers or not. A new mode raises its target
+- **Grand Tour** counts a finished game in each mode, with no modifier on. A new mode raises its target
     (`GameMode.entries.size`); anyone already holding it keeps it.
 
 ## One roll a turn (Number of Rolls at 1)
 
-Impatient, Naturally Gifted and Almost Famous are guarded.
+Impatient, Naturally Gifted and Almost Famous are guarded, though any modifier now blocks them anyway.
 
 ## Stud (seven rolled, five held)
 
 A roll isn't a hand, so:
 
-- achievements judged at scoring read `scoringDice`: Wasted 5x, Why Did You Do That?, Empty/Fuller House, Time To Let
+- achievements judged at scoring read `scoringDice`: Wasted Fortune, Size Isn't Everything, Empty/Fuller House, Time To Let
     It Go, Twice in a Lifetime;
 - achievements judged on the roll as it lands are guarded.
 
 **Guarded** (`!scoresHeldDiceOnly` / `scoresRolledHand`, plus `singleScoreCard` and Zero To Hero's own condition; Twice
-in a Lifetime is guarded in `GameViewModel`):
+in a Lifetime is guarded in `AchievementTracker.onCommit`):
 
-| Achievement                                                | Why                                                                            |
-|------------------------------------------------------------|--------------------------------------------------------------------------------|
-| House Call, Straight Away                                  | Seven dice hold these far more often, and nothing is held yet                  |
-| First 5x, Encore, Hat Trick, Twice in a Lifetime, Total 5x | The best five of seven makes 5x easy; Stud's 5x don't count toward `SCORED_5X` |
-| Both Straights, Chance 30, Six Appeal                      | Routine with the best five of seven                                            |
-| Bonus Round, Upper/Lower Class, Solid Round ... Dice Deity | Totals run well above Standard's                                               |
-| Spotless, Zero To Hero                                     | Zeros are rare                                                                 |
-| New Personal Best                                          | Off the Leaderboard                                                            |
+| Achievement                                                 | Why                                                                            |
+|-------------------------------------------------------------|--------------------------------------------------------------------------------|
+| House Call, Straight Away                                   | Seven dice hold these far more often, and nothing is held yet                  |
+| 5x!, Encore, Hat Trick, Twice in a Lifetime, Dice Whisperer | The best five of seven makes 5x easy; Stud's 5x don't count toward `SCORED_5X` |
+| Straight Talker, Taking A Chance, Six Appeal                | Routine with the best five of seven                                            |
+| Bonus Round, Upper/Lower Class, Solid Round ... Dice Deity  | Totals run well above Standard's                                               |
+| Spotless, Zero To Hero                                      | Zeros are rare                                                                 |
+| New Personal Best                                           | Off the Leaderboard                                                            |
 
 **Can't be earned**:
 
@@ -122,7 +128,7 @@ in a Lifetime is guarded in `GameViewModel`):
 
 **Judged on any five of the seven** (the maintainer's call, 2026-10-28):
 
-- Natural 5x: five of the seven matching on a reroll with none held (about 16 times likelier than five dice);
+- Natural 5x: five of the seven matching on any roll with none held (about 16 times likelier than five dice);
 - The Dice Hate Me: a scoring option means some five of the seven score in an open box;
 - Almost Famous: a first-roll 4x held to the last roll, with no five of the seven ever matching.
 
@@ -168,6 +174,8 @@ The mode's own: Lucky Seven (all seven showing one number).
 - Spotless (all 39 slots without a zero and the 105 bonus, so Third Time's The Charm comes with it);
 - Landslide (easier);
 - Dice Whisperer (three times the turns);
+- Twice in a Lifetime (three times the turns, and a 5x in the 2nd or 3rd slot needs no earlier 50; kept, the maintainer's
+    call, 2026-10-29);
 - Cold Dice, Low Rolls, Ton! and Nice (harder);
 - Professional Roller;
 - Greenfingers (117 rolls).
@@ -190,7 +198,7 @@ of 5.
 
 **Can't be earned**:
 
-- the 5x ones, Upper/Lower Class, Bonus Round, Exact Change, Six Appeal, Taking A Chance and Both Straights;
+- the 5x ones, Upper/Lower Class, Bonus Round, Exact Change, Six Appeal, Taking A Chance and Straight Talker;
 - the house and straight roll feats;
 - Nice (69 isn't a multiple of 5) and Rock Bottom;
 - New Personal Best and the bands.
@@ -199,7 +207,7 @@ of 5.
 
 - How Do You Play This Game?;
 - Ton!;
-- Wasted 5x (always a zero);
+- Wasted Fortune (always a zero);
 - The Dice Hate Me (likelier);
 - Greenfingers (39 rolls).
 
@@ -230,16 +238,16 @@ Cold Dice and Low Rolls count: under 100 needs a disastrous game, as on Standard
 
 **Can't be earned**:
 
-- the 5x ones, Upper/Lower Class, Bonus Round, Exact Change, Six Appeal, Taking A Chance and Both Straights;
+- the 5x ones, Upper/Lower Class, Bonus Round, Exact Change, Six Appeal, Taking A Chance and Straight Talker;
 - Time To Let It Go and Commitment Issues (they read the upper boxes only);
-- Greenfingers (5 rolls a turn);
 - New Personal Best and the bands;
 - Nice and Rock Bottom.
 
 **Still earnable**:
 
 - Impatient and Naturally Gifted;
-- Probability? Never Heard of Her, on a half's bonus: the last box one of a half's numbers that one die would have
+- Greenfingers (110 rolls: every roll of its 22 turns of five);
+- Probability? Never Heard Of Her, on a half's bonus: the last box one of a half's numbers that one die would have
     taken to its threshold (never a wildcard);
 - the roll-pattern feats I Can Count! and The Dice Hate Me, far rarer on 20 faces (House Call and Straight Away can't
     be earned: the card has no full house or straights);

@@ -33,7 +33,3 @@ internal val Achievement.playType: PlayAchievementType
 /** Whether Play starts this achievement hidden: details unseen until earned, as [AchievementVisibility.HIDDEN] is here. */
 internal val Achievement.playHidden: Boolean
     get() = visibility == AchievementVisibility.HIDDEN
-
-/** Whether this achievement goes to Play at all: [AchievementVisibility.SECRET] ones stay local. */
-internal val Achievement.onPlay: Boolean
-    get() = visibility != AchievementVisibility.SECRET

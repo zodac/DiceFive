@@ -145,6 +145,7 @@ import net.zodac.dicefive.resources.rules_tricolour_tab
 import net.zodac.dicefive.resources.rules_tricolour_title
 import net.zodac.dicefive.resources.rules_turn_timer_1
 import net.zodac.dicefive.resources.rules_turn_timer_2
+import net.zodac.dicefive.resources.rules_turn_timer_3
 import net.zodac.dicefive.resources.rules_turn_timer_tab
 import net.zodac.dicefive.resources.rules_turn_timer_title
 import net.zodac.dicefive.resources.rules_unlucky_dice_1
@@ -585,6 +586,7 @@ internal val RULES_GROUPS = listOf(
                     text(Res.string.rules_turn_timer_1),
                     RulesTurnTimer,
                     text(Res.string.rules_turn_timer_2),
+                    text(Res.string.rules_turn_timer_3),
                 ),
             ),
             RulesPage(

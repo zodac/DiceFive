@@ -166,7 +166,7 @@ class AchievementTracker {
         // Decisions, Decisions: all three hold/unhold cycles on a die have to land in the same gap between rolls.
         holdUnholdCyclesByDieIndex.clear()
 
-        // Loaded Dice: the held set right before the 2nd roll, and whether it's still the held set right before the 3rd -
+        // Déjà Vu: the held set right before the 2nd roll, and whether it's still the held set right before the 3rd -
         // a proper, non-empty, non-full subset only, both times.
         if (before.rollsRemaining == before.rollsRemainingAfterFirst) {
             val held = before.dice.heldIndices()
@@ -236,11 +236,10 @@ class AchievementTracker {
         // Product Placement: the menu logo's own dice, in its own order - any roll of any turn.
         if (values == LOGO_DICE_VALUES) add(Achievement.PRODUCT_PLACEMENT)
 
-        // Natural 5x: landed without holding anything for this roll, not on the first one, and scorable as a 5x - in
+        // Natural 5x: landed without holding anything for this roll, on any roll of the turn, and scorable as a 5x - in
         // Stud, any five of the seven matching.
         val fiveMatching = fiveMatchingDice(dice, state.gameMode.scoringDiceCount)
         if (rollIsWhole &&
-            rollsRemainingBeforeRoll < state.fullRolls &&
             diceBeforeRoll.none { it.isHeld } &&
             fiveMatching != null &&
             fiveOfAKindScorable(player, fiveMatching, ScoreCalculator.availableCategories(player, fiveMatching))
@@ -273,7 +272,7 @@ class AchievementTracker {
             if (hadScoringOptionAfterSecondRoll && !hasScoringOption(player, dice, state.gameMode.scoringDiceCount)) add(Achievement.THE_DICE_HATE_ME)
         }
 
-        // Are These Loaded Dice?: the dice not held since roll 1 keep landing on exactly the same faces, roll after roll.
+        // Déjà Vu: the dice not held since roll 1 keep landing on exactly the same faces, roll after roll.
         val firstRollFaces = facesAfterFirstRoll
         val heldIndices = loadedDiceHeldIndices
         if (firstRollFaces != null && heldIndices != null && rollsRemainingBeforeRoll < state.fullRolls) {
@@ -394,7 +393,7 @@ class AchievementTracker {
             add(Achievement.ALMOST_FAMOUS)
         }
 
-        // Probability? Never Heard of Her: the last box on the card is an upper one that one die would have turned into the
+        // Probability? Never Heard Of Her: the last box on the card is an upper one that one die would have turned into the
         // bonus, and every roll of the turn - there has to be more than one - still left it a zero.
         if (state.fullRolls > 1 &&
             state.rollsRemaining == 0 &&

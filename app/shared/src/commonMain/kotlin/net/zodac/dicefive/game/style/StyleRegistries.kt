@@ -326,7 +326,7 @@ object DiceStyleRegistry : StyleRegistry(
             listOf(
                 StyleVariant("multicolour_tricolour", Res.string.style_colour_tricolour),
                 StyleVariant("multicolour_rainbow", Res.string.style_colour_rainbow),
-                // Secret: only offered once Luck of the Irish is earned.
+                // Secret: only offered once Luck Of The Irish is earned.
                 StyleVariant("multicolour_irish", Res.string.style_colour_irish, Achievement.LUCK_OF_THE_IRISH),
             ),
             unlock = AchievementCount(40),

@@ -170,8 +170,10 @@ lists it on its own card.
 
 ## Modifiers
 
-Optional extras on top of any mode. **Any modifier takes a game off the Leaderboard** (`GameState.hasModifiers`;
-`ScoreEntry.playedUnmodified` records it).
+Optional extras on top of any mode. **Any modifier takes a game off the Leaderboard and out of Statistics**
+(`GameState.hasModifiers`; `ScoreEntry.playedUnmodified` records it), **and earns no achievement** but the modifiers'
+own: Rainy Day Fund, Bad Omen, and Everything Everywhere All At Once (`Achievement.earnableWithModifiers`). The row is
+still recorded, for the cloud save. The New Game screen's note and each modifier's Rules page say so.
 
 - **Turn Timer.** A whole-turn limit: 30, 60 or 120 seconds, or any typed length from 5 to 999.
 - **Number of Rolls.** 1-9 rolls a turn instead of the mode's (remembered while off).
@@ -387,8 +389,8 @@ can't is a page saying so, with the stack trace to report. The app never just cl
         games it's shown as "-" and not spoken.
     - TalkBack: the header is one stop (name, best score, its state and action). Overview is two stops, and each By mode
         row is one, in full sentences. The headings and bars are silent.
-    - Every recorded game counts. A solo game's outcome is null: it isn't a win or a loss, and it doesn't break a
-        streak.
+    - Every recorded game with no modifier on counts (`playedUnmodified`, in both Statistics indices). A solo game's
+        outcome is null: it isn't a win or a loss, and it doesn't break a streak.
     - Each card has a delete button (top end, open or closed) that dismisses it after a confirmation; the scores stay.
         Playing again under that name brings it back.
 - Settings' "Reset leaderboard" deletes every score, and with them the Statistics.
@@ -415,8 +417,11 @@ can't is a page saying so, with the stack trace to report. The app never just cl
     - Full Set's counter (`FIVE_X_NUMBERS`) is a set of flags, one bit per number; its progress is the bits set
         (`AchievementCounter.progressOf`).
     - The ledger, career points and Grand Tour (player 1's modes played) are derived from the scores table, so they
-      always agree with the Leaderboard and
-        re-earn after a reset.
+        always agree with the Leaderboard and re-earn after a reset. Career points and Grand Tour read only unmodified
+        rows.
+    - **No modifiers.** A game with any modifier on earns only `earnableWithModifiers` achievements, moves no counter, and
+        adds nothing to the scores-table measures. The engine filters its own results (`earnableIn(GameState)`), and
+        `GameViewModel.unlockAchievements` filters the tracker's.
 - **When they're judged.** The engine decides, never a call site.
     - `evaluateAtGameStart`: style and mode picks (Fresh Coat Of Paint).
     - `evaluateInProgress`, after each scored box: only what a later turn can't take away. Score thresholds wait for game

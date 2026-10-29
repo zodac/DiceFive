@@ -84,7 +84,7 @@ app/android/src/play/.../online/  PlayGamesServices, PlayGamesIds, PlayGamesAchi
 - **Reset achievements** is hidden while signed in (Play would restore it); "View in Google Play Games" takes its row.
     A reset made signed out doesn't travel: the same account's next sync restores the unlocks and counters.
 - **Mapping**: `PlayGamesIds.kt`. `PlayGamesAchievements.kt` sets each one's Play type and visibility (`playType`,
-    `playHidden`, `onPlay`). Every non-`SECRET` achievement is mapped, steps ≤10,000, Professional Roller scaled
+    `playHidden`). Every achievement is mapped, steps ≤10,000, Professional Roller scaled
     (`PlayGamesIdsTest`).
 - **Points** by tier (`PlayConsoleAchievements.kt`, test sources): trivial 5, easy 10, medium 15, hard 25, very hard
     45, extreme 70, Completionist 100, every Easter egg 5. That spends all 2,000 (`PlayConsoleExportTest`), so a new

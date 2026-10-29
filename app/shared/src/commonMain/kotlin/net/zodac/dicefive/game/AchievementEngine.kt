@@ -97,7 +97,7 @@ data class GameStartContext(
 data class LeaderboardTotals(
     val distinctScores: Set<Int> = emptySet(),
     val totalPoints: Int = 0,
-    /** Every [GameMode] player 1 has a recorded game in, on the Leaderboard or not - [Achievement.GRAND_TOUR]'s measure. */
+    /** Every [GameMode] player 1 has a recorded game in with no modifier on, on the Leaderboard or not - [Achievement.GRAND_TOUR]'s measure. */
     val modesPlayed: Set<GameMode> = emptySet(),
 ) {
     /**
@@ -107,13 +107,19 @@ data class LeaderboardTotals(
      * conflating them is exactly the bug this split guards against (see git history: career points
      * used to count every human at the table, not just the one whose achievement it is). [gameMode]
      * joins [modesPlayed], as player 1 is always recorded. The scores join [distinctScores] only [onLeaderboard] - a
-     * game in a mode off the board, or with a modifier, is recorded but never shown there.
+     * game in a mode off the board, or with a modifier, is recorded but never shown there. A game with a modifier on
+     * ([playedUnmodified] false) adds nothing at all: no achievement counts it.
      */
-    fun plusGame(allHumanScores: List<Int>, primaryPlayerScore: Int, gameMode: GameMode, onLeaderboard: Boolean) = LeaderboardTotals(
-        distinctScores = if (onLeaderboard) distinctScores + allHumanScores else distinctScores,
-        totalPoints = totalPoints + primaryPlayerScore,
-        modesPlayed = modesPlayed + gameMode,
-    )
+    fun plusGame(allHumanScores: List<Int>, primaryPlayerScore: Int, gameMode: GameMode, onLeaderboard: Boolean, playedUnmodified: Boolean) =
+        if (!playedUnmodified) {
+            this
+        } else {
+            LeaderboardTotals(
+                distinctScores = if (onLeaderboard) distinctScores + allHumanScores else distinctScores,
+                totalPoints = totalPoints + primaryPlayerScore,
+                modesPlayed = modesPlayed + gameMode,
+            )
+        }
 }
 
 /** One "getting closer" banner: [achievement] moved from [previous] to [current] out of its
@@ -143,7 +149,10 @@ data class AchievementUpdate(
  * clock of its own - `GameViewModel` reads the stored state, calls this, and writes the result
  * back, exactly as it does with [GameEngine] for the game itself.
  *
- * Two rules run through all of it:
+ * Three rules run through all of it:
+ *  - **No modifiers.** A game with any modifier on ([GameState.hasModifiers]) earns only the modifiers' own achievements
+ *    ([Achievement.earnableWithModifiers]), moves no counter, and adds nothing to what's measured against the scores
+ *    table ([LeaderboardTotals.plusGame]).
  *  - **Player 1 only, not any human.** `state.players[0]` - the human player at this device, always
  *    HUMAN - is the only seat whose turns and scorecard earn achievements; every other seat,
  *    human or AI, is only ever the opposition. The one exception is the score-collection ledger at
@@ -233,9 +242,12 @@ object AchievementEngine {
         val allHumans = state.players.filter { it.type == PlayerType.HUMAN }
 
         val leaderboardBefore = context.previousLeaderboard
-        val leaderboardAfter = leaderboardBefore.plusGame(allHumans.map { it.totalScore }, humans.first().totalScore, state.gameMode, state.countsOnLeaderboard)
+        val leaderboardAfter = leaderboardBefore.plusGame(
+            allHumans.map { it.totalScore }, humans.first().totalScore, state.gameMode, state.countsOnLeaderboard, playedUnmodified = !state.hasModifiers,
+        )
 
-        val counters = countersAfter(state, humans, context, before)
+        // A game with a modifier on moves no counter - see the class doc's first rule.
+        val counters = if (state.hasModifiers) emptyMap() else countersAfter(state, humans, context, before)
         val earned = earnedBy(state, humans, context, counters, leaderboardAfter)
         return update(earned, counters, before, now, leaderboardBefore, leaderboardAfter)
     }
@@ -260,7 +272,7 @@ object AchievementEngine {
         if (state.players.firstOrNull()?.type != PlayerType.HUMAN) return AchievementUpdate()
         val humans = listOf(state.players.first())
 
-        return update(earnedDuringPlay(state.players, humans, timedOutZeroes, growingFlowerpotInPlay), emptyMap(), before, now)
+        return update(earnedDuringPlay(state, humans, timedOutZeroes, growingFlowerpotInPlay), emptyMap(), before, now)
     }
 
     /**
@@ -289,10 +301,11 @@ object AchievementEngine {
             if (players.size == 2 && players[1].type == PlayerType.HUMAN && players[1].name == ZODAC_PLAYER_NAME) add(Achievement.BIG_FAN)
             if (context.game.isLuckOfTheIrish) add(Achievement.LUCK_OF_THE_IRISH)
             if (!context.game.gameMode.isOfficialRules) add(Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES)
-            if (context.previousGame?.let { it.isGameOver && it.wonBy(0) == false } == true) add(Achievement.ONE_MORE_TIME)
+            // The game lost has to have been one without modifiers too: a game with any earns nothing.
+            if (context.previousGame?.let { it.isGameOver && !it.hasModifiers && it.wonBy(0) == false } == true) add(Achievement.ONE_MORE_TIME)
             if (context.startedAtLocalHour in MIDNIGHT_DICE_HOURS) add(Achievement.ROLLING_THE_MIDNIGHT_DICE)
         }
-        return update(earned, before.counters, before, now)
+        return update(earned.earnableIn(context.game), before.counters, before, now)
     }
 
     /**
@@ -372,7 +385,7 @@ object AchievementEngine {
      * winning needs a result.
      */
     private fun earnedDuringPlay(
-        players: List<PlayerState>,
+        state: GameState,
         humans: List<PlayerState>,
         timedOutZeroes: List<ScoreCategory>,
         growingFlowerpotInPlay: Boolean,
@@ -435,13 +448,12 @@ object AchievementEngine {
         )
 
         // Known the moment the table is set.
-        award(Achievement.FULL_TABLE, players.size == FULL_TABLE_SIZE)
+        award(Achievement.FULL_TABLE, state.players.size == FULL_TABLE_SIZE)
 
-        // Easter eggs. A roll can't be undone, so a bloom is final. A mode without 3 rolls a turn
-        // can't earn it - see growsSunflower. Nor can a game on any cup but the Flowerpot that grows.
+        // Easter eggs. A roll can't be undone, so a bloom is final. Not on any cup but the Flowerpot that grows.
         award(Achievement.GREENFINGERS, growingFlowerpotInPlay && anyHuman { it.hasGrownSunflower })
 
-        return earned.earnableIn(players.first().gameMode)
+        return earned.earnableIn(state)
     }
 
     private fun earnedBy(
@@ -452,7 +464,7 @@ object AchievementEngine {
         leaderboard: LeaderboardTotals,
     ): Set<Achievement> {
         val players = state.players
-        val earned = earnedDuringPlay(players, humans, context.playerOneTimedOutZeroes, context.growingFlowerpotInPlay).toMutableSet()
+        val earned = earnedDuringPlay(state, humans, context.playerOneTimedOutZeroes, context.growingFlowerpotInPlay).toMutableSet()
         // A turn timed out before it was rolled is a zero for nothing (see GameAchievementContext.playerOneTimeouts).
         val noTimeouts = context.playerOneTimeouts == 0
         val multiplayer = players.size > 1
@@ -600,7 +612,7 @@ object AchievementEngine {
         // Every slot of each box (Third Wind), so the ladder costs the bonus as it does on one slot.
         award(Achievement.EXACT_CHANGE, anyHuman { it.matchesExactUpperLadder() })
 
-        return earned.earnableIn(state.gameMode)
+        return earned.earnableIn(state)
     }
 
     /**

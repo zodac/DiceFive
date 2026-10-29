@@ -62,10 +62,12 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
+import net.zodac.dicefive.model.earnableIn
 import net.zodac.dicefive.model.hasGrownSunflower
 import net.zodac.dicefive.model.maxPlayerNameLength
 import net.zodac.dicefive.model.resolvePlayerName
 import net.zodac.dicefive.model.takeNameWidth
+import net.zodac.dicefive.online.OnlineSyncRequests
 import net.zodac.dicefive.ui.style.PIP_FACES
 import net.zodac.dicefive.ui.style.visualTheme
 
@@ -817,9 +819,11 @@ class GameViewModel(
             val previousLeaderboard = orNullOnFailure { scoreRepository.leaderboardTotals() }
                 ?: LeaderboardTotals()
             orNullOnFailure { persistHumanScores(state) }
-            // Always records something (Games Played counts every game), so it also asks for the online sync that
-            // posts this game's score - after the rows above are written.
+            // Records something for every game without a modifier (Games Played counts each), so it also asks for the
+            // online sync that posts this game's score - after the rows above are written. A game with a modifier records
+            // nothing there, so its rows ask for the sync themselves.
             recordEndOfGameAchievements(state, previousBestScore, previousLeaderboard)
+            if (state.hasModifiers) OnlineSyncRequests.request()
         }
     }
 
@@ -879,11 +883,14 @@ class GameViewModel(
     private fun unlockAchievements(achievements: Set<Achievement>) {
         // Nothing in the tutorial earns an achievement: the dice are the script's.
         if (achievements.isEmpty() || tutorial != null) return
+        // Only what this game can earn: its mode's, and with a modifier on, only the modifiers' own.
+        val earnable = _game.value?.let { achievements.earnableIn(it) } ?: achievements
+        if (earnable.isEmpty()) return
         heldBackRollUnlocks?.let {
-            it += achievements
+            it += earnable
             return
         }
-        viewModelScope.launch { achievementUnlocker.unlock(achievements) }
+        viewModelScope.launch { achievementUnlocker.unlock(earnable) }
     }
 
     // Suspending rather than launching its own coroutine: finishGame sequences this against the

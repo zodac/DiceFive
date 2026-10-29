@@ -21,8 +21,12 @@ class InMemoryScoreDao(initial: List<ScoreEntry> = emptyList()) : ScoreDao {
     }
 
     // As the real queries do, only Leaderboard rows (ScoreEntry.onLeaderboard) are paged, counted,
-    // best or collected; career points and Statistics count every row.
+    // best or collected; career points and Statistics count every row with no modifier on.
     private val leaderboard get() = entries.filter { it.onLeaderboard }
+    private val unmodified get() = entries.filter { it.playedUnmodified }
+
+    /** What Statistics reads: every game with no modifier on, but a dismissed player's. */
+    private val statistics get() = unmodified.filter { it.playerKey !in dismissed }
 
     override suspend fun rawPagedScores(query: RoomRawQuery): List<ScoreEntry> = error("Only the real DAO runs the SQL")
 
@@ -45,13 +49,13 @@ class InMemoryScoreDao(initial: List<ScoreEntry> = emptyList()) : ScoreDao {
     override suspend fun distinctScores(): List<Int> = leaderboard.map { it.score }.distinct()
 
     override suspend fun primaryPlayerTotalPoints(): Int? =
-        entries.filter { it.isPrimaryPlayer }.takeIf { it.isNotEmpty() }?.sumOf { it.score }
+        unmodified.filter { it.isPrimaryPlayer }.takeIf { it.isNotEmpty() }?.sumOf { it.score }
 
-    override suspend fun primaryPlayerGameModeIds(): List<String> = entries.filter { it.isPrimaryPlayer }.map { it.gameModeId }.distinct()
+    override suspend fun primaryPlayerGameModeIds(): List<String> = unmodified.filter { it.isPrimaryPlayer }.map { it.gameModeId }.distinct()
     override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
 
     override suspend fun playerModeTotals(): List<PlayerModeTotals> =
-        entries.filter { it.playerKey !in dismissed }
+        statistics
             .groupBy { it.playerKey to it.gameModeId }
             .entries.sortedWith(compareBy({ it.key.first }, { it.key.second }))
             .map { (key, games) ->
@@ -70,12 +74,12 @@ class InMemoryScoreDao(initial: List<ScoreEntry> = emptyList()) : ScoreDao {
             }
 
     override suspend fun latestPlayerNames(): List<PlayerLatestName> =
-        entries.filter { it.playerKey !in dismissed }.groupBy { it.playerKey }.map { (playerKey, games) ->
+        statistics.groupBy { it.playerKey }.map { (playerKey, games) ->
             PlayerLatestName(playerKey, games.last { it.timestampEpochMillis == games.maxOf { game -> game.timestampEpochMillis } }.playerName)
         }
 
     override suspend fun playerOutcomes(): List<PlayerOutcome> =
-        entries.filter { it.playerKey !in dismissed }
+        statistics
             .sortedWith(compareBy<ScoreEntry> { it.playerKey }.thenByDescending { it.timestampEpochMillis })
             .mapNotNull { entry -> entry.won?.let { PlayerOutcome(entry.playerKey, it) } }
 
@@ -112,6 +116,6 @@ class InMemoryScoreDao(initial: List<ScoreEntry> = emptyList()) : ScoreDao {
     }
 
     override suspend fun deleteUndoneDismissals() {
-        dismissed.values.removeAll { dismissal -> entries.any { it.playerKey == dismissal.playerKey && it.timestampEpochMillis > dismissal.dismissedAtEpochMillis } }
+        dismissed.values.removeAll { dismissal -> unmodified.any { it.playerKey == dismissal.playerKey && it.timestampEpochMillis > dismissal.dismissedAtEpochMillis } }
     }
 }

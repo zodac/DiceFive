@@ -16,7 +16,7 @@ class IrishEasterEggTest {
     )
 
     @Test
-    fun `Luck of the Irish is Tricolour with player 1 named Ireland or Eire - case and accent insensitively`() {
+    fun `Luck Of The Irish is Tricolour with player 1 named Ireland or Eire - case and accent insensitively`() {
         listOf("Ireland", "ireland", "IRELAND", "Eire", "eire", "Éire", "éire", "  Ireland  ").forEach { name ->
             assertTrue(isIrishPlayerName(name), "\"$name\" should match")
         }
