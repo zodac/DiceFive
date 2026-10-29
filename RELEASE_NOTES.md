@@ -1,5 +1,0 @@
-- Tuned some achievements to be a bit harder (Spotless, Critical Success, Straight Talker, Exact Change)
-- Limited 200/300/400/500pt achievements to only Standard and Tricolour modes
-- Added a tooltip to clarify achievements which are limited to specific modes
-- Adding an error screen for unexpected failures, with ability to report on Github
-- Fixing scroll position in the achievements page when returning to the screen
