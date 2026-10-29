@@ -3,6 +3,7 @@ package net.zodac.dicefive.baselineprofile
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.uiautomator.By
+import org.junit.Assume.assumeFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -13,7 +14,7 @@ import org.junit.runner.RunWith
  * [BaselineProfileGenerator], whose journey covers every screen - marked as startup too, it made the
  * startup profile the whole app, which leaves R8 nothing to put first. Stops at the menu, before
  * `StylesWarmUp` starts pre-drawing the Styles page in the menu's idle frames: that is after startup.
- * Generated with the rest by `./gradlew :app:android:generateBaselineProfile`.
+ * Generated with the rest by `./gradlew :app:android:generateBaselineProfile`. Skipped once the journey has failed.
  */
 @RunWith(AndroidJUnit4::class)
 class StartupProfileGenerator {
@@ -22,14 +23,17 @@ class StartupProfileGenerator {
     val rule = BaselineProfileRule()
 
     @Test
-    fun generate() = rule.collect(
-        packageName = PACKAGE,
-        maxIterations = intArgument("journeyLaps") ?: 15,
-        stableIterations = intArgument("journeyLaps") ?: 3,
-        includeInStartupProfile = true,
-    ) {
-        pressHome()
-        startActivityAndWait()
-        await(By.text("DiceFive"), "the menu's DiceFive wordmark")
+    fun generate() {
+        assumeFalse("The Baseline Profile journey failed, so the run fails without a startup profile", journeyFailed)
+        rule.collect(
+            packageName = PACKAGE,
+            maxIterations = intArgument("journeyLaps") ?: 15,
+            stableIterations = intArgument("journeyLaps") ?: 3,
+            includeInStartupProfile = true,
+        ) {
+            pressHome()
+            startActivityAndWait()
+            await(By.text("DiceFive"), "the menu's DiceFive wordmark")
+        }
     }
 }

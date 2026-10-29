@@ -42,6 +42,7 @@ class BaselineProfileGenerator {
         try {
             journey(first = thisLap == 1)
         } catch (failure: Throwable) {
+            journeyFailed = true
             captureFailure(thisLap)
             throw failure
         }
@@ -80,6 +81,13 @@ class BaselineProfileGenerator {
 }
 
 private const val DEFAULT_LAPS = 15
+
+/**
+ * Set as a lap of [BaselineProfileGenerator] fails. The test classes share one instrumentation process and run in
+ * name order, so [StartupProfileGenerator] sees it and skips itself: a failed journey fails the run anyway.
+ */
+@Volatile
+internal var journeyFailed = false
 
 /** A run of this many laps or fewer is a release's usual one (android-release.yml); longer ones are the soak. */
 private const val SHORT_RUN_LAPS = 3

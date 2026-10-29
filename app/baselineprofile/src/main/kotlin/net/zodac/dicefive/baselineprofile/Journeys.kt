@@ -60,7 +60,7 @@ internal fun MacrobenchmarkScope.captureFailure(lap: Int) {
 /** The text on screen, for a failure's message: what the journey was looking at instead. */
 private fun MacrobenchmarkScope.screenText(): String =
     try {
-        device.findObjects(By.text(Pattern.compile(".+"))).joinToString(" | ") { it.text }.take(SCREEN_TEXT_CHARS)
+        device.findObjects(By.text(Pattern.compile(".+", Pattern.DOTALL))).joinToString(" | ") { it.text }.take(SCREEN_TEXT_CHARS)
     } catch (_: StaleObjectException) {
         "the screen was changing"
     }
@@ -871,7 +871,9 @@ internal fun MacrobenchmarkScope.visitAchievements() {
         while (!device.wait(Until.hasObject(By.text("Tally")), HOP_WAIT_MS) && hops++ < CATEGORY_HOPS) tapDesc(direction)
     }
     // A press can be dropped (the row's tooltip, a banner fading out over it), so it is repeated until the dialog is up.
-    val missing = By.textStartsWith("Scores not yet on the leaderboard")
+    // The scores' line shares its text with the mode restriction above it ("Can only be earned in..."), so it is found
+    // anywhere in that text.
+    val missing = By.textContains("Scores not yet on the leaderboard")
     var pressed = 0
     do {
         longPressAt(await(By.text("Tally"), "Tally's row").visibleBounds)
