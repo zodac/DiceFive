@@ -241,7 +241,7 @@
     <string name="achievement_rock_bottom_title">Tocando fondo</string>
     <string name="achievement_rock_bottom_description">Termina una partida con exactamente 5, la puntuación más baja que permiten las reglas</string>
     <string name="achievement_who_made_this_title">¿Quién hizo esto?</string>
-    <string name="achievement_who_made_this_description">Abre la página Acerca de</string>
+    <string name="achievement_who_made_this_description">Abre la página `Acerca de`</string>
     <string name="achievement_tally_title">Recuento</string>
     <string name="achievement_tally_description">Registra todas las puntuaciones del 5 al 50 en la clasificación</string>
     <string name="achievement_bookkeeper_title">Contable</string>

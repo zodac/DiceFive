@@ -315,7 +315,7 @@
     <string name="achievement_rock_bottom_title">Rock Bottom</string>
     <string name="achievement_rock_bottom_description">Finish a game on exactly 5 - the lowest score the rules allow</string>
     <string name="achievement_who_made_this_title">Who Made This?</string>
-    <string name="achievement_who_made_this_description">Open the About page</string>
+    <string name="achievement_who_made_this_description">Open the `About` page</string>
     <string name="achievement_tally_title">Tally</string>
     <string name="achievement_tally_description">Record every score from 5 to 50 on the leaderboard</string>
     <string name="achievement_bookkeeper_title">Bookkeeper</string>

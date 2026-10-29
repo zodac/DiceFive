@@ -258,7 +258,7 @@
     <string name="achievement_rock_bottom_title">القاع</string>
     <string name="achievement_rock_bottom_description">أنهِ لعبة بمجموع ٥ بالضبط، وهي أدنى نتيجة تسمح بها القواعد</string>
     <string name="achievement_who_made_this_title">من صنع هذا؟</string>
-    <string name="achievement_who_made_this_description">افتح صفحة «حول التطبيق»</string>
+    <string name="achievement_who_made_this_description">افتح صفحة `حول التطبيق`</string>
     <string name="achievement_tally_title">العدّاد</string>
     <string name="achievement_tally_description">سجّل في لوحة المتصدرين كل نتيجة من ٥ إلى ٥٠</string>
     <string name="achievement_bookkeeper_title">مسك الدفاتر</string>
