@@ -2,13 +2,13 @@
 # An Android emulator inside the sandbox, started on demand - for running the Baseline Profile journey
 # (`./gradlew :app:android:generateBaselineProfile`) or any instrumented test without a phone.
 #
-#   sandbox/emulator.sh start     # boot headless (installing anything missing), wait until it's ready
-#   sandbox/emulator.sh status
-#   sandbox/emulator.sh screenshot out.png   # what's on the emulator's screen right now
-#   sandbox/emulator.sh stop
+#   emulator.sh start     # boot headless (installing anything missing), wait until it's ready
+#   emulator.sh status
+#   emulator.sh screenshot out.png   # what's on the emulator's screen right now
+#   emulator.sh stop
 #
 # How it works, what it's for and how to debug it: .claude/EMULATOR.md. Run it INSIDE the sandbox.
-# The emulator, the system image and the virtual device are baked into the image (sandbox/Dockerfile), so
+# The emulator, the system image and the virtual device are baked into the image (ai-sandbox-configuration/Dockerfile), so
 # `start` just boots it (~20 s). If one is missing - a container from an image built before they were
 # added, or another EMULATOR_API - `start` installs it first (~1.5 GB, and only for that container).
 #
@@ -28,7 +28,7 @@
 # shellcheck disable=SC2310,SC2312
 set -euo pipefail
 
-# EMULATOR_API comes from the image (sandbox/Dockerfile ENV), where it is chosen - it follows compileSdk - and
+# EMULATOR_API comes from the image (ai-sandbox-configuration/Dockerfile ENV), where it is chosen - it follows compileSdk - and
 # the value here is only the fallback for a shell without it. The dependency update script keeps the two in
 # step with each other and with compileSdk.
 api="${EMULATOR_API:-37.0}"

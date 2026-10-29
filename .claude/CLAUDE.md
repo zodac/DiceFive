@@ -30,10 +30,10 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 | Version | `VERSION` at the repo root (released from 1.0.0). Never hand-edit for a debug install |
 | Platforms | Android minSdk 26, targetSdk/compileSdk 37 (`gradle/android-sdk.properties`). The shared code also targets the JVM (desktop), with no app yet |
 | Stack | Kotlin Multiplatform, Compose Multiplatform, Material 3 (dark only), Navigation Compose, MVVM (`ViewModel` + `StateFlow`), Room (scores), DataStore (everything else) |
-| Versions | `gradle/libs.versions.toml`, bumped monthly by CI (an entry tied to another is marked `# @update`); sandbox pins in `sandbox/Dockerfile` |
+| Versions | `gradle/libs.versions.toml`, bumped monthly by CI (an entry tied to another is marked `# @update`); sandbox pins in `ai-sandbox-configuration/Dockerfile` |
 | Languages | English (`en-GB` base, British spelling), Spanish, Arabic (RTL) - all player text in Compose resources (`I18N.md`) |
 | Licence | Proprietary, all rights reserved (`LICENSE`), source public read-only; no outside contributions. Third-party parts keep their own licences (the Sora font stays OFL) |
-| Sandbox | Claude runs in the Docker sandbox (`sandbox/README.md`); an emulator boots on demand |
+| Sandbox | Claude runs in the Docker sandbox (`ai-sandbox/README.md`); an emulator boots on demand |
 
 ## Code standards
 

@@ -1,14 +1,14 @@
 # Android emulator in the sandbox: internals
 
 Day-to-day use (start, screenshot, running the Baseline Profile journey) is the `emulator` skill. This file covers why
-`sandbox/emulator.sh` does what it does, CI's twin, troubleshooting, and versions.
+`emulator.sh` does what it does, CI's twin, troubleshooting, and versions.
 
 ## What `start` does, and why
 
 | Step                                                                                                                                                                                          | Why                                                                                                                                                                                                                                                                                       |
 |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `sudo chmod 666 /dev/kvm` if it isn't read-write                                                                                                                                              | The sandbox is `--privileged`, but the node is `root:<host kvm gid>` and `dev` isn't in that group. Without KVM, emulation is far too slow. Only this container's node changes.                                                                                                           |
-| Installs the emulator, system image or AVD **only if missing**                                                                                                                                | They're baked into `sandbox/Dockerfile`. This is the fallback for older images or another `EMULATOR_API`: `sudo android sdk install`, then a permission fix. About 1.5 GB download (5 GB unpacked).                                                                                       |
+| Installs the emulator, system image or AVD **only if missing**                                                                                                                                | They're baked into `ai-sandbox-configuration/Dockerfile`. This is the fallback for older images or another `EMULATOR_API`: `sudo android sdk install`, then a permission fix. About 1.5 GB download (5 GB unpacked).                                                                      |
 | Writes `target=android-<api>` into the AVD's `.ini` and `config.ini`                                                                                                                          | The emulator turns on Vulkan and GLDirectMem only from API 29, reading the level from `target=`. Old `avdmanager`s write `target=android-0` (read as API 3). Apps then abort (`Assertion failed: !gpuCount`, or a crash in `AllocateVulkanMemory`). `-feature Vulkan` alone isn't enough. |
 | Boots `-no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -verbose` (+ `-timezone "$TZ"`)                                                                              | Headless and a clean boot each time. It prints the "Deciding if GLDirectMem/Vulkan should be enabled" line. The guest uses the host's timezone.                                                                                                                                           |
 | `adb root`, then `setprop debug.hwui.renderer skiavk`                                                                                                                                         | **Never remove this.** See below.                                                                                                                                                                                                                                                         |
@@ -49,7 +49,7 @@ drawing DiceFive**.
      -no-window -no-audio -no-snapshot -gpu swiftshader_indirect`
    - Boot, then launch the app over adb.
    - A crash in `libgfxstream_backend.so` or the GLES translator is the known one.
-3. **Check liveness with `adb shell true` or `sandbox/emulator.sh status`**, never a process-listing grep (it can match
+3. **Check liveness with `adb shell true` or `emulator.sh status`**, never a process-listing grep (it can match
    your own command line).
 4. **Fixes.** `adb kill-server` and a re-`start` fixes a wedged adb. `-wipe-data` fixes an AVD left broken by an abrupt
    exit ("Skipping PackageSetting ... missing metadata").
@@ -95,10 +95,10 @@ and an empty `ANDROID_AVD_HOME` and `RUNNER_TEMP`.
 
 ## Versions: the emulator follows compileSdk
 
-- **`ARG EMULATOR_API=37.0` in `sandbox/Dockerfile` is the one place** the emulator's version is chosen.
+- **`ARG EMULATOR_API=37.0` in `ai-sandbox-configuration/Dockerfile` is the one place** the emulator's version is chosen.
     - It's written as the package names it: from API 37 even base releases carry a minor; older ones are plain (`34`).
     - The image (`system-images;android-<API>;google_apis;x86_64`) and the AVD (`sandbox-api<API>`) derive from it.
-    - `entrypoint.sh` forwards it (sudo strips the environment), and `emulator.sh` falls back to `${EMULATOR_API:-37.0}`.
+    - It reaches every session as an `ENV` (the sandbox keeps the image environment), and `emulator.sh` falls back to `${EMULATOR_API:-37.0}`.
 - **It tracks compileSdk's API level**: the newest stable Google APIs image of that level. There's usually no image for
     minor releases (none for 37.2).
 - **`update_dependency_versions.sh`'s `sync_emulator_api` keeps it there.**
@@ -106,7 +106,7 @@ and an empty `ANDROID_AVD_HOME` and `RUNNER_TEMP`.
     - It fails if they disagree, if the image isn't stable, or if a compileSdk-level image exists but isn't used. It only
         warns if none exists yet.
 - **Revisions can't be pinned.** The layer is rebuilt only when `EMULATOR_API` changes.
-- **Another Android version** for this container only: `EMULATOR_API=<N> sandbox/emulator.sh start` (~1.5 GB). The
+- **Another Android version** for this container only: `EMULATOR_API=<N> emulator.sh start` (~1.5 GB). The
     journey has been run on 34 and 37.0.
 - **Limits.** The emulator is slower and software-drawn, and runs one Android version at a time. It adds ~5 GB to the
     sandbox image, in layers below the SDK block.

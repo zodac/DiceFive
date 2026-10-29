@@ -29,7 +29,7 @@ android {
 baselineProfile {
     // Generate on whatever device adb sees (a physical phone, or a userdebug emulator) - no managed
     // devices: the release workflow and the sandbox each boot an emulator of their own
-    // (.github/scripts/ci_emulator.sh, sandbox/emulator.sh). See .claude/DESIGN.md Phase 19.
+    // (.github/scripts/ci_emulator.sh, ai-sandbox-configuration/bin/emulator.sh). See .claude/DESIGN.md Phase 19.
     useConnectedDevices = true
 }
 

@@ -8,10 +8,10 @@ description: Boot the sandbox's Android emulator to look at the real app's scree
 Run everything inside the sandbox. The host's phones and emulators can't be reached from it.
 
 ```sh
-sandbox/emulator.sh start               # idempotent; ~20s; waits until ready, applies the Vulkan renderer fix
-sandbox/emulator.sh status              # exit 0 + a line if running
-sandbox/emulator.sh screenshot out.png  # then Read the PNG
-sandbox/emulator.sh stop                # ALWAYS stop when done: it holds ~4GB RAM and 4 cores
+emulator.sh start               # idempotent; ~20s; waits until ready, applies the Vulkan renderer fix
+emulator.sh status              # exit 0 + a line if running
+emulator.sh screenshot out.png  # then Read the PNG
+emulator.sh stop                # ALWAYS stop when done: it holds ~4GB RAM and 4 cores
 ```
 
 **Use it for:**
@@ -30,19 +30,19 @@ sandbox/emulator.sh stop                # ALWAYS stop when done: it holds ~4GB R
 ## Look at the app
 
 ```sh
-sandbox/emulator.sh start
+emulator.sh start
 ./gradlew -q assembleGithubDebug -PdevStamp && adb install -r "$(ls -t app/android/build/outputs/apk/github/debug/*.apk | head -1)"
 adb shell monkey -p net.zodac.dicefive.github -c android.intent.category.LAUNCHER 1
-sandbox/emulator.sh screenshot <scratchpad>/screen.png
+emulator.sh screenshot <scratchpad>/screen.png
 ```
 
 ## Run the Baseline Profile journey
 
 ```sh
-sandbox/emulator.sh start
+emulator.sh start
 adb uninstall net.zodac.dicefive 2>/dev/null   # a debug build's higher versionCode makes the benchmark install a no-op
 ./gradlew :app:android:generatePlayReleaseBaselineProfile -Pandroid.testInstrumentationRunnerArguments.journeyLaps=1
-sandbox/emulator.sh stop
+emulator.sh stop
 ```
 
 - `journeyLaps=1` takes ~5 min. `journeyLaps=10` (CI's soak of a changed journey) takes ~45 min. The default is up to

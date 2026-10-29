@@ -27,8 +27,8 @@ keystore.properties
 !/app/android/debug.keystore
 
 # Claude Code's ~/.claude bind-mounted into the sandbox container - auth tokens, session
-# transcripts and memory. See sandbox/README.md's Persistence section.
-/sandbox/.claude-history/
+# transcripts and memory. See ai-sandbox/README.md's Persistence section.
+.claude-history/
 
 # The Play Store listing's generated graphics (scripts/generate-store-assets.sh, see .claude/STORE_ASSETS.md) - never
 # committed. Anchored to the root, so an Android source set's own src/*/assets/ folder is still tracked. Its contents,

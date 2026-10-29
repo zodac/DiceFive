@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Exercises .claude/hooks/guard-release-notes.sh the way Claude Code calls it - a JSON payload on
 # stdin - against a throwaway git repo (via CLAUDE_PROJECT_DIR), never this project's own
-# RELEASE_NOTES.md. Run by sandbox/setup.sh before every session, which reports the last line;
+# RELEASE_NOTES.md. Run by ai-sandbox/image/final/setup.sh before every session, which reports the last line;
 # exits non-zero if any case fails. Needs jq, like the guard itself.
 # Each command substitution is a case's subject: a command that fails gives the wrong output, which fails the case.
 # shellcheck disable=SC2312

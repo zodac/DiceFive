@@ -300,12 +300,12 @@ jobs:
         with:
           ffmpeg: "true"
 
-      # The emulator's Android version is sandbox/Dockerfile's EMULATOR_API (see ci_emulator.sh). The SDK's
+      # The emulator's Android version is ai-sandbox-configuration/Dockerfile's EMULATOR_API (see ci_emulator.sh). The SDK's
       # path is read here too: the runner's own environment isn't in the `env` context the cache reads.
       - name: Read the emulator's Android version
         id: emulator
         run: |
-          echo "api=$(grep -oP '^ARG EMULATOR_API=\K[0-9.]+' sandbox/Dockerfile)" >> "$GITHUB_OUTPUT"
+          echo "api=$(grep -oP '^ARG EMULATOR_API=\K[0-9.]+' ai-sandbox-configuration/Dockerfile)" >> "$GITHUB_OUTPUT"
           echo "sdk=$ANDROID_HOME" >> "$GITHUB_OUTPUT"
 
       # About 1.5 GB to download otherwise. Keyed on the Android version: the emulator and its image

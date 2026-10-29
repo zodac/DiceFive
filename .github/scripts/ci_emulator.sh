@@ -4,10 +4,10 @@
 #
 # Description:  Boots a headless Android emulator on a GitHub-hosted Linux runner, for android-release.yml's
 #               baseline-profile job (`./gradlew :app:android:generateBaselineProfile`). The CI twin of
-#               sandbox/emulator.sh, which does the same inside the sandbox; .claude/EMULATOR.md explains
+#               ai-sandbox-configuration/bin/emulator.sh, which does the same inside the sandbox; .claude/EMULATOR.md explains
 #               both, and why each step below is there.
 #
-#               - The Android version is sandbox/Dockerfile's `ARG EMULATOR_API`, read at run time, so the
+#               - The Android version is ai-sandbox-configuration/Dockerfile's `ARG EMULATOR_API`, read at run time, so the
 #                 monthly dependency update (which keeps it on compileSdk's level) moves CI with it and never
 #                 has to edit a workflow file.
 #               - It is a Google APIs image (not Play Store): profile generation and the renderer setting
@@ -34,9 +34,9 @@
 # shellcheck disable=SC2310,SC2312
 set -euo pipefail
 
-api=$(grep -oP '^ARG EMULATOR_API=\K[0-9.]+' sandbox/Dockerfile | head -1 || true)
+api=$(grep -oP '^ARG EMULATOR_API=\K[0-9.]+' ai-sandbox-configuration/Dockerfile | head -1 || true)
 if [[ -z "${api}" ]]; then
-    echo "Could not read ARG EMULATOR_API from sandbox/Dockerfile" >&2
+    echo "Could not read ARG EMULATOR_API from ai-sandbox-configuration/Dockerfile" >&2
     exit 1
 fi
 sdk="${ANDROID_HOME:?ANDROID_HOME is not set}"

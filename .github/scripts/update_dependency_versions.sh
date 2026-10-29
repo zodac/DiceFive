@@ -14,21 +14,22 @@
 #               Every Gradle-side bump is then proven by the build at the end: one that breaks it is
 #               found, taken back and stepped down to the newest version that builds (see "Build
 #               verification"), which is what makes crossing a major safe to do unattended.
-#                 - sandbox/Dockerfile toolchain stages:
+#                 - the sandbox's project layer (ai-sandbox-configuration/Dockerfile) - the toolchains
+#                   DiceFive adds on top of the shared ai-sandbox base image:
 #                     JDK   - eclipse-temurin:X.Y.Z_B-jdk: the newest patch, and a newer LTS major only
 #                             once the project is proven to build on it (see "Java" below)
-#                     Node  - node:X.Y.Z-trixie, within the current major, or to a newer major only once
-#                             that major has reached LTS
-#                 - sandbox/Dockerfile's Debian runtime base (FROM debian:X.Y, within the current major)
-#                 - sandbox/Dockerfile's Debian packages (# BEGIN/END DEBIAN PACKAGES blocks)
-#                 - the sandbox emulator's Android API (`ARG EMULATOR_API` in sandbox/Dockerfile and the
-#                   fallback in sandbox/emulator.sh), which follows compileSdk: the newest stable Google
+#                 - the Debian tag of its download stage (FROM debian:X.Y), kept on the ai-sandbox base's
+#                   own (ai-sandbox/image/base/Dockerfile) rather than bumped on its own
+#                 - its Debian packages (# BEGIN/END DEBIAN PACKAGES blocks), resolved against the
+#                   ai-sandbox base's Debian release - the one the image actually runs on
+#                 - the sandbox emulator's Android API (`ARG EMULATOR_API` in ai-sandbox-configuration/Dockerfile
+#                   and the fallback in ai-sandbox-configuration/bin/emulator.sh), which follows compileSdk: the newest stable Google
 #                   APIs system image of the same API level (Google publishes none for minor releases
 #                   like 37.2, so it matches the level, e.g. 37.0)
 #                 - the Android NDK (`ndkVersion` in gradle/android-sdk.properties and the `ndk;…` package in
-#                   sandbox/Dockerfile): the newest stable NDK in Google's SDK manifest that extracts the
+#                   ai-sandbox-configuration/Dockerfile): the newest stable NDK in Google's SDK manifest that extracts the
 #                   release build's native symbol tables (see "0b. NDK")
-#                 - sandbox/Dockerfile's Android cmdline-tools download (URL + sha1, from Google's own SDK
+#                 - ai-sandbox-configuration/Dockerfile's Android cmdline-tools download (URL + sha1, from Google's own SDK
 #                   repository manifest) and the Playwright CLI pin used for `install-deps`
 #                 - GitHub Actions `uses:` references, in the workflows and .github/actions (always pinned to a
 #                   commit, `@<sha> # v1.2.3`: a floating `@v4` is converted, a commit pin moves to the new release's commit) -
@@ -36,8 +37,10 @@
 #                 - The linter images pinned in .github/scripts/lint_*.sh (actionlint, ShellCheck, hadolint, and
 #                   markdownlint-cli2)
 #                 - The code-quality-config submodule (the linters' shared rules): to its highest X.Y.Z tag
+#                 - The ai-sandbox submodule (the sandbox launcher and its shared base image): to its
+#                   highest X.Y.Z tag
 #                 - ImageMagick's AppImage (version + sha256), pinned in .github/scripts/install_imagemagick.sh
-#                   (CI) and sandbox/Dockerfile (the sandbox), always moved together
+#                   (CI) and ai-sandbox-configuration/Dockerfile (the sandbox), always moved together
 #                 - Claude model IDs keying .claude/settings.json's `modelSettings`: each moves to the newest
 #                   model of its family (sonnet, opus, ...) on Anthropic's models overview
 #               Then two checks (NOT best-effort - either one failing fails the run):
@@ -54,8 +57,10 @@
 #
 #               Deliberately NOT updated (they are product decisions, not version bumps): targetSdk (it
 #               opts the app into runtime behaviour changes a unit test cannot see), minSdk and
-#               buildToolsVersion (AGP dictates its minimum). The Claude Code CLI version in
-#               sandbox/Dockerfile is resolved by sandbox.sh at build time and is not pinned in the file.
+#               buildToolsVersion (AGP dictates its minimum). Nor is anything in the shared ai-sandbox
+#               base image (Debian, Node, the nested Docker engine, the everyday tools): those pins belong
+#               to the ai-sandbox submodule (`ai-sandbox/sandbox.sh update-versions` there), and the Claude
+#               Code CLI version is resolved by ai-sandbox/sandbox.sh at build time, pinned in no file.
 #
 #               Every resolved version is filtered through is_prerelease() first: a release candidate,
 #               alpha/beta, milestone, preview/early-access, nightly or snapshot is NEVER a valid update,
@@ -69,7 +74,7 @@
 #               guard at the end fails the run if the two disagree), and the workflows' setup-java reads
 #               it at run time, so no workflow file ever pins it.
 #               It moves in two steps, because a JDK major cannot be vetted from metadata -
-#               sandbox/Dockerfile's header records the last blind attempt (JDK 26) crashing inside
+#               ai-sandbox-configuration/Dockerfile's header records the last blind attempt (JDK 26) crashing inside
 #               Gradle's kotlin-dsl:
 #                 1. Always: the newest patch of the current major (the eclipse-temurin tag in the
 #                    sandbox; the toolchain itself always takes the newest patch of its major).
@@ -124,8 +129,11 @@
 # shellcheck disable=SC2310,SC2312
 set -euo pipefail
 
-SANDBOX_DOCKERFILE="./sandbox/Dockerfile"
-SANDBOX_EMULATOR_SCRIPT="./sandbox/emulator.sh"
+SANDBOX_DOCKERFILE="./ai-sandbox-configuration/Dockerfile"
+SANDBOX_EMULATOR_SCRIPT="./ai-sandbox-configuration/bin/emulator.sh"
+# The shared ai-sandbox base image the project layer builds on: its Debian release is the one the
+# sandbox actually runs, so the project layer's Debian tag and package pins follow it.
+AI_SANDBOX_BASE_DOCKERFILE="./ai-sandbox/image/base/Dockerfile"
 CLAUDE_SETTINGS="./.claude/settings.json"
 CLAUDE_MODELS_URL="https://platform.claude.com/docs/en/about-claude/models/overview.md"
 WORKFLOWS_DIR=".github/workflows"
@@ -547,7 +555,7 @@ show_build_failure() {
 # compileSdk decides which AndroidX releases the catalog step may take (each declares a minimum), so
 # leaving it behind freezes most of the catalog. It is adopted the same way as a JDK major: for each
 # newer stable Android platform (newest first), install it, set compileSdk, and build + unit-test the
-# project exactly as committed; the first that passes is kept, and written into sandbox/Dockerfile's
+# project exactly as committed; the first that passes is kept, and written into ai-sandbox-configuration/Dockerfile's
 # SDK package install + its check (the workflows pin no platform - .github/scripts/android_sdk_packages.sh
 # reads it from gradle/android-sdk.properties at run time). Runs FIRST, before any dependency moves, so a failure is the platform's alone - and so the
 # catalog step then vets libraries against the new value.
@@ -670,7 +678,7 @@ update_compile_sdk() {
 # Play) and strips those libraries. So a candidate is proven by exactly that: for each stable NDK newer
 # than `ndkVersion` (newest first, majors included), install it, set it, and run the strip and
 # symbol-extraction tasks; the first that runs clean and writes the symbol files is kept, and written
-# into sandbox/Dockerfile's NDK layer (the workflows pin none - .github/scripts/android_sdk_packages.sh
+# into ai-sandbox-configuration/Dockerfile's NDK layer (the workflows pin none - .github/scripts/android_sdk_packages.sh
 # reads it from gradle/android-sdk.properties at run time). The full build gates still run at the end
 # (verify_build), since gradle/android-sdk.properties has then changed.
 #
@@ -763,7 +771,7 @@ update_ndk() {
     return 0
 }
 
-# ── 1. Java (sandbox/Dockerfile jdk stage) ────────────────────────────────────
+# ── 1. Java (ai-sandbox-configuration/Dockerfile jdk stage) ────────────────────────────────────
 # Step 1 of the two in the header's "Java" note: the newest eclipse-temurin:<major>…-jdk tag for the
 # major ALREADY pinned. It also lists every newer LTS major that has a -jdk tag on Docker Hub in
 # JDK_MAJOR_CANDIDATES; try_jdk_major_upgrade (step 2, after the build) decides whether any is adopted.
@@ -856,102 +864,49 @@ update_java() {
     fi
 }
 
-# ── 2. Node (sandbox/Dockerfile node stage) ───────────────────────────────────
-# Node runs Claude Code and Playwright in the sandbox; nothing in the app build uses it. It moves to
-# the newest release of the current major, or of a NEWER major once that major has reached LTS - an
-# odd-numbered or not-yet-LTS "Current" line is never adopted. Never moves backwards.
-# Pre-condition: node:{version}-trixie exists (trixie = Debian 13, matching the runtime base's glibc).
+# ── 2. Node ───────────────────────────────────────────────────────────────────
+# Not here any more: Node (for Claude Code and Playwright) is part of the shared ai-sandbox base image,
+# whose pins the ai-sandbox submodule owns (`ai-sandbox/sandbox.sh update-versions` in that repo).
 
-update_node() {
-    echo
-    section "🔍 Fetching latest Node.js version..."
+# ── 3. The Debian release (follows the ai-sandbox base) ───────────────────────
+# The sandbox runs on the shared ai-sandbox base image, so ITS Debian release (the `FROM debian:X.Y` in
+# ai-sandbox/image/base/Dockerfile, bumped in that repo) is the one that matters. This project's own
+# Dockerfile has a `FROM debian:X.Y` only for its download stage, which is kept on the same release
+# here - never bumped on its own, so the two can't drift apart. The apt updater resolves this file's
+# package pins against the same release (see ai_sandbox_debian), since a pin resolved against a newer
+# point release than the base runs could fail to install there.
 
-    local current current_major
-    current=$(grep -oP '^FROM node:\K[0-9.]+(?=-trixie AS node)' "${SANDBOX_DOCKERFILE}" | head -1 || true)
-    if [[ -z "${current}" ]]; then
-        warn "No 'FROM node:X.Y.Z-trixie AS node' stage in ${SANDBOX_DOCKERFILE}, skipping"
-        return 0
-    fi
-    current_major=$(major_of "${current}")
-
-    local latest
-    latest=$(curl_get "https://nodejs.org/dist/index.json" \
-        | jq -r --argjson m "${current_major}" '
-            .[]
-            | (.version | ltrimstr("v")) as $v
-            | ($v | split(".")[0] | tonumber) as $maj
-            | select($maj == $m or ($maj > $m and .lts != false))
-            | $v' \
-        | filter_stable_versions \
-        | sort -V | tail -1 || true)
-    if [[ -z "${latest}" ]]; then
-        warn "Could not fetch a stable Node.js version from nodejs.org, skipping"
-        return 0
-    fi
-
-    local trixie_tag="${latest}-trixie"
-    if ! hub_tag_exists "library/node" "${trixie_tag}"; then
-        warn "node:${trixie_tag} not on Docker Hub, skipping Node update"
-        return 0
-    fi
-
-    sed -i "s|^FROM node:[0-9.]*-trixie AS node|FROM node:${trixie_tag} AS node|" "${SANDBOX_DOCKERFILE}"
-    [[ "${current}" != "${latest}" ]] && record_update "Sandbox Node: ${current} → ${latest}"
-    # The stage comment names the major; keep it truthful if an LTS move happened.
-    local latest_major
-    latest_major=$(major_of "${latest}")
-    sed -i -E "s|^(#[[:space:]]+Node )[0-9]+( +—)|\\1${latest_major}\\2|" "${SANDBOX_DOCKERFILE}"
+# The ai-sandbox base's Debian image (`debian:X.Y`), or nothing if the submodule isn't checked out.
+ai_sandbox_debian() {
+    grep -oP '^FROM\s+\Kdebian:[0-9]+\.[0-9]+' "${AI_SANDBOX_BASE_DOCKERFILE}" 2>/dev/null | tail -1 || true
 }
-
-# ── 3. sandbox/Dockerfile runtime base image ──────────────────────────────────
-# The sandbox runtime base (`FROM debian:X.Y`) sits outside every `# BEGIN/END ... PACKAGES`
-# block, so the apt updater never touches it. MUST run before update_apt_packages: that updater
-# resolves each package's latest candidate version by querying the base image named in the file's
-# CURRENT `FROM` line, so bumping the base afterward would leave those candidates resolved against
-# the stale base.
-#
-# Stays within the current major rather than ever jumping to the next Debian release on its own -
-# a major bump changes the codename (trixie -> forky), which the node stage's -trixie tag and the
-# Docker APT repo both follow, and is exactly the kind of change that should be reviewed, not
-# silently carried by an update run.
 
 update_sandbox_base() {
     echo
-    section "🔍 Fetching latest Debian version (within the current major)..."
+    section "🔍 Syncing the download stage's Debian to the ai-sandbox base..."
 
-    local current major
+    local base current latest
+    base=$(ai_sandbox_debian)
+    if [[ -z "${base}" ]]; then
+        warn "No FROM debian:X.Y in ${AI_SANDBOX_BASE_DOCKERFILE} (is the ai-sandbox submodule checked out?), skipping"
+        return 0
+    fi
+    latest="${base#debian:}"
     current=$(grep -oP '^FROM debian:\K[0-9]+\.[0-9]+' "${SANDBOX_DOCKERFILE}" | head -1 || true)
     if [[ -z "${current}" ]]; then
         warn "No FROM debian:X.Y pin found in ${SANDBOX_DOCKERFILE}, skipping"
         return 0
     fi
-    major="${current%%.*}"
-
-    local latest
-    latest=$(curl_get "https://hub.docker.com/v2/repositories/library/debian/tags?name=${major}.&page_size=100" \
-        | jq -r '.results[].name' \
-        | grep -E "^${major}\.[0-9]+$" \
-        | filter_stable_versions \
-        | sort -V | tail -1 || true)
-    if [[ -z "${latest}" ]]; then
-        warn "Could not resolve latest debian ${major}.x from Docker Hub, skipping"
-        return 0
-    fi
-
-    if ! hub_tag_exists "library/debian" "${latest}"; then
-        warn "debian:${latest} not on Docker Hub, skipping"
-        return 0
-    fi
 
     if [[ "${current}" != "${latest}" ]]; then
-        changed "debian: ${current} → ${latest}"
-        record_update "Sandbox Debian base: ${current} → ${latest}"
+        changed "debian: ${current} → ${latest} (the ai-sandbox base's)"
+        record_update "Sandbox Debian (download stage, following ai-sandbox): ${current} → ${latest}"
     fi
 
     sed -i -E "s|^FROM debian:[0-9]+\.[0-9]+|FROM debian:${latest}|" "${SANDBOX_DOCKERFILE}"
 }
 
-# ── 4. Playwright CLI pin (sandbox/Dockerfile) ────────────────────────────────
+# ── 4. Playwright CLI pin (ai-sandbox-configuration/Dockerfile) ────────────────────────────────
 # `npx --yes playwright@X.Y.Z install-deps chromium` bakes Chromium's shared libraries into the
 # image. The project itself declares no Playwright version to keep in step with, so this follows
 # the npm registry's latest final release.
@@ -985,7 +940,7 @@ update_playwright() {
     fi
 }
 
-# ── 5. Android cmdline-tools (sandbox/Dockerfile) ─────────────────────────────
+# ── 5. Android cmdline-tools (ai-sandbox-configuration/Dockerfile) ─────────────────────────────
 # The cmdline-tools archive is a direct download verified by sha1, both taken from Google's own SDK
 # repository manifest - the same one the SDK installer reads - for the stable-channel `cmdline-tools;latest`
 # package's Linux archive. The URL, the checksum and the "(tool revision N.M)" note in the comment
@@ -1620,6 +1575,16 @@ update_apt_packages() {
             continue
         fi
 
+        # A stage built on the shared ai-sandbox base (`FROM ${BASE_IMAGE}`) runs on that base's Debian
+        # release; resolve its pins against the plain Debian image of the same release.
+        if [[ "${base_image}" == "\${BASE_IMAGE}" ]]; then
+            base_image=$(ai_sandbox_debian)
+            if [[ -z "${base_image}" ]]; then
+                warn "Could not read the ai-sandbox base's Debian release for section ${section}, skipping"
+                continue
+            fi
+        fi
+
         if ! docker pull "${base_image}" >/dev/null 2>&1; then
             warn "Could not pull ${base_image}, skipping section ${section}"
             continue
@@ -1898,31 +1863,42 @@ update_lint_images() {
         DavidAnson/markdownlint-cli2 true tags
 }
 
-# ── 10c. code-quality-config submodule ────────────────────────────────────────
-# The linters' shared rules (Android lint, actionlint, ShellCheck, hadolint, and markdownlint): a git submodule pinned to a release tag of
-# its repository. Moved to the highest X.Y.Z tag - always a tag, never a branch's newest commit. The tags are read with
-# `git ls-remote`, and only the new tag is fetched; the update workflow's `git add -A` then stages the moved submodule,
-# and its lint gates prove the tree passes the new rules before anything is committed.
+# ── 10c. Submodules: code-quality-config and ai-sandbox ──────────────────────
+# Each a git submodule pinned to a release tag of its repository, moved to the highest X.Y.Z tag - always
+# a tag, never a branch's newest commit. The tags are read with `git ls-remote`, and only the new tag is
+# fetched; the update workflow's `git add -A` then stages the moved submodule.
+#   code-quality-config - the linters' shared rules (Android lint, actionlint, ShellCheck, hadolint, and
+#                         markdownlint); the lint gates prove the tree passes the new rules before anything
+#                         is committed.
+#   ai-sandbox          - the sandbox launcher and its shared base image. Run BEFORE the sandbox Debian sync
+#                         (section 3) and the apt updater, which read the base's Debian release from it.
 
 CODE_QUALITY_CONFIG_DIR="code-quality-config"
+AI_SANDBOX_DIR="ai-sandbox"
 
-update_code_quality_config() {
+# Moves the submodule at ${1} to its repository's highest X.Y.Z tag (a no-op when it is already there).
+update_submodule_tag() {
+    local dir="${1}"
     echo
-    section "🔍 Fetching latest code-quality-config tag..."
+    section "🔍 Fetching latest ${dir} tag..."
 
-    if [[ ! -e "${CODE_QUALITY_CONFIG_DIR}/.git" ]]; then
-        warn "${CODE_QUALITY_CONFIG_DIR} is not checked out (git submodule update --init), skipping"
+    if [[ ! -e "${dir}/.git" ]]; then
+        warn "${dir} is not checked out (git submodule update --init), skipping"
         return 0
     fi
     local url current_commit
-    url=$(git config -f .gitmodules --get "submodule.${CODE_QUALITY_CONFIG_DIR}.url" || true)
-    current_commit=$(git -C "${CODE_QUALITY_CONFIG_DIR}" rev-parse HEAD)
+    url=$(git config -f .gitmodules --get "submodule.${dir}.url" || true)
+    current_commit=$(git -C "${dir}" rev-parse HEAD)
 
     # Each tag's commit: an annotated tag's own line is followed by its `^{}` line, the commit it points at.
     local remote_tags sha ref name
     local -A tag_commit=()
-    if ! remote_tags=$(git ls-remote --tags "${url}" 2>/dev/null) || [[ -z "${remote_tags}" ]]; then
+    if ! remote_tags=$(git ls-remote --tags "${url}" 2>/dev/null); then
         warn "Could not list ${url}'s tags, skipping"
+        return 0
+    fi
+    if [[ -z "${remote_tags}" ]]; then
+        warn "${url} has no tags yet, skipping"
         return 0
     fi
     while read -r sha ref; do
@@ -1944,17 +1920,20 @@ update_code_quality_config() {
         return 0
     fi
 
-    if ! git -C "${CODE_QUALITY_CONFIG_DIR}" fetch --quiet --depth 1 origin "refs/tags/${latest}:refs/tags/${latest}" \
-        || ! git -C "${CODE_QUALITY_CONFIG_DIR}" checkout --quiet "${latest}"; then
-        warn "Could not check out ${CODE_QUALITY_CONFIG_DIR} at ${latest}, skipping"
+    if ! git -C "${dir}" fetch --quiet --depth 1 origin "refs/tags/${latest}:refs/tags/${latest}" \
+        || ! git -C "${dir}" checkout --quiet "${latest}"; then
+        warn "Could not check out ${dir} at ${latest}, skipping"
         return 0
     fi
     current="${current:-${current_commit:0:7}}"
-    changed "code-quality-config: ${current} → ${latest}"
-    record_update "code-quality-config: ${current} → ${latest}"
+    changed "${dir}: ${current} → ${latest}"
+    record_update "${dir}: ${current} → ${latest}"
 }
 
-# ── 10d. ImageMagick (.github/scripts/install_imagemagick.sh + sandbox/Dockerfile) ──
+update_code_quality_config() { update_submodule_tag "${CODE_QUALITY_CONFIG_DIR}"; }
+update_ai_sandbox() { update_submodule_tag "${AI_SANDBOX_DIR}"; }
+
+# ── 10d. ImageMagick (.github/scripts/install_imagemagick.sh + ai-sandbox-configuration/Dockerfile) ──
 # ImageMagick's own x86_64 AppImage, which renders the store assets in CI (the README-assets workflow) and in the
 # sandbox. Both files pin the same release and its SHA-256 (the sandbox image's build context can't reach the CI
 # script), so they are moved together or not at all, and the consistency guard checks they agree. Moved to
@@ -2063,14 +2042,14 @@ update_claude_models() {
 # Values pinned in more than one place that must say the same thing - a drift between them is a
 # broken setup rather than a stale one:
 #   - JDK major: the Gradle toolchain and the sandbox's jdk stage
-#   - Android platform: compileSdk + compileSdkMinor (gradle/android-sdk.properties), and `platforms;android-…` in sandbox/Dockerfile,
+#   - Android platform: compileSdk + compileSdkMinor (gradle/android-sdk.properties), and `platforms;android-…` in ai-sandbox-configuration/Dockerfile,
 #     compared as API.MINOR (android-36 = 36.0), so a minor-release mismatch is caught
-#   - Emulator API: `ARG EMULATOR_API` in sandbox/Dockerfile and the fallback in sandbox/emulator.sh, and
+#   - Emulator API: `ARG EMULATOR_API` in ai-sandbox-configuration/Dockerfile and the fallback in ai-sandbox-configuration/bin/emulator.sh, and
 #     its API level against compileSdk's (the emulator follows it - see sync_emulator_api)
-#   - Build-tools: buildToolsVersion (gradle/android-sdk.properties), and `build-tools;X` / `build-tools/X` in sandbox/Dockerfile
+#   - Build-tools: buildToolsVersion (gradle/android-sdk.properties), and `build-tools;X` / `build-tools/X` in ai-sandbox-configuration/Dockerfile
 #     (AGP enforces a minimum build-tools and silently fetches it over the network when the installed
 #     one is lower, so a stale pin still "works" - which is exactly why it needs a check)
-#   - NDK: ndkVersion (gradle/android-sdk.properties), and `ndk;X` / `ndk/X` in sandbox/Dockerfile (a mismatch only warns, at
+#   - NDK: ndkVersion (gradle/android-sdk.properties), and `ndk;X` / `ndk/X` in ai-sandbox-configuration/Dockerfile (a mismatch only warns, at
 #     release time, and ships an App Bundle without native symbols)
 #   - Followed version catalog entries (`# @update follows|matches`): each at the version its leader
 #     calls for
@@ -2157,7 +2136,7 @@ verify_version_sync() {
     done
     check_group "NDK" "${entries[@]}"
 
-    # ── Emulator API (sandbox/Dockerfile's choice, and the fallback in sandbox/emulator.sh) ──
+    # ── Emulator API (ai-sandbox-configuration/Dockerfile's choice, and the fallback in ai-sandbox-configuration/bin/emulator.sh) ──
     entries=()
     v=$(grep -oP '^ARG EMULATOR_API=\K[0-9.]+' "${SANDBOX_DOCKERFILE}" | head -1 || true)
     entries+=("${v} (${SANDBOX_DOCKERFILE} ARG EMULATOR_API)")
@@ -2251,7 +2230,7 @@ newest_emulator_image_for() {
 }
 
 # ── Emulator: follow compileSdk ──────────────────────────────────────────────
-# The sandbox emulator (sandbox/emulator.sh; baked into sandbox/Dockerfile) runs the newest Android the
+# The sandbox emulator (ai-sandbox-configuration/bin/emulator.sh; baked into ai-sandbox-configuration/Dockerfile) runs the newest Android the
 # app compiles against: the newest stable Google APIs image of compileSdk's API level. Google publishes
 # an image per API level and for some minor releases (36.1, 37.0) but not for every minor (there is
 # none for 37.2), so it matches the LEVEL. Runs after compileSdk has been decided, whether or not that
@@ -2493,12 +2472,13 @@ run_section "settings.gradle.kts plugin update failed, continuing..." update_set
 run_section "Version catalog update failed, continuing..." update_version_catalog
 
 run_section "Java update failed, continuing..." update_java
-run_section "Node update failed, continuing..." update_node
 run_section "Playwright update failed, continuing..." update_playwright
 run_section "Android cmdline-tools update failed, continuing..." update_android_cmdline_tools
+# Before the Debian sync and apt section below: both read the ai-sandbox base's Debian release.
+run_section "ai-sandbox update failed, continuing..." update_ai_sandbox
 # Before the apt section below: it resolves package candidates against the Dockerfile's CURRENT
 # base image, so the base itself must already be at its target version by that point.
-run_section "sandbox Debian base update failed, continuing..." update_sandbox_base
+run_section "sandbox Debian sync failed, continuing..." update_sandbox_base
 run_section "Debian packages update failed for ${SANDBOX_DOCKERFILE}, continuing..." update_apt_packages "${SANDBOX_DOCKERFILE}" "DEBIAN"
 
 run_section "GitHub Actions update failed, continuing..." update_github_actions
@@ -2529,5 +2509,5 @@ if [[ -n "${JDK_MAJOR_ADOPTED}" ]]; then
     echo "   JDK major moved to ${JDK_MAJOR_ADOPTED}: review the JDK rationale in ${SANDBOX_DOCKERFILE}'s header."
 fi
 if ! git diff --quiet -- "${SANDBOX_DOCKERFILE}" 2>/dev/null; then
-    echo "   sandbox/Dockerfile changed - the sandbox image is rebuilt on the next sandbox.sh launch."
+    echo "   ${SANDBOX_DOCKERFILE} changed - the sandbox image is rebuilt on the next ai-sandbox/sandbox.sh launch."
 fi

@@ -9,7 +9,7 @@
 #               `magick` link to it is `magick`.
 #
 #               The version is pinned HERE rather than in a workflow for the same reason as
-#               lint_workflows.sh's image. sandbox/Dockerfile installs the same AppImage from its own copy
+#               lint_workflows.sh's image. ai-sandbox-configuration/Dockerfile installs the same AppImage from its own copy
 #               of the two pins (the image's build context can't reach this file), so the sandbox and CI
 #               render with one build: .github/scripts/update_dependency_versions.sh moves IMAGEMAGICK_VERSION
 #               and IMAGEMAGICK_SHA256 in both files together to ImageMagick's latest release, and its

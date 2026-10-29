@@ -64,7 +64,7 @@ The generators are unit tests in `app/android/src/test/.../store/`, skipped with
 
 - Each is tagged `@StorePart(...)`. `-PstoreAssetParts` picks parts, and `-PstoreAssetsDir` sets where raw renders go.
 - They check nothing, so CI's checks never run them. Only the README-assets workflow does (below).
-- `magick` is ImageMagick's own AppImage, the same build in the sandbox (`sandbox/Dockerfile`) and in CI
+- `magick` is ImageMagick's own AppImage, the same build in the sandbox (`ai-sandbox-configuration/Dockerfile`) and in CI
     (`.github/scripts/install_imagemagick.sh`). The monthly dependency update moves both pins together, and its
     consistency check fails if they differ. The script passes the app's font to every text and `montage` call: the
     AppImage's default font needs system fonts a runner may not have.
