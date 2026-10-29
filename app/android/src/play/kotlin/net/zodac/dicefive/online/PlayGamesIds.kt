@@ -57,7 +57,7 @@ internal val playAchievementIds: Map<Achievement, String> = mapOf(
     Achievement.TRICOLOURFUL to "CgkIjZfJ1v0IEAIQtwE",
     Achievement.TRICOLOUR_ME_IMPRESSED to "CgkIjZfJ1v0IEAIQmwE",
     Achievement.GONE_WITH_THE_WIND to "CgkIjZfJ1v0IEAIQ1wE",
-    Achievement.THIRD_TIMES_THE_CHARM to "CgkIjZfJ1v0IEAIQ2wE",
+    Achievement.CHANCE_ENCOUNTER to "CgkIjZfJ1v0IEAIQ5gE",
     Achievement.HOLD_EM to "CgkIjZfJ1v0IEAIQqAE",
     Achievement.LUCKY_SEVEN to "CgkIjZfJ1v0IEAIQwQE",
     Achievement.NAT_20 to "CgkIjZfJ1v0IEAIQhQE",

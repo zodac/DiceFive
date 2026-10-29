@@ -268,6 +268,21 @@ internal val STRUCK_THROUGH_63_ICON: ImageVector by lazy {
 }
 
 /**
+ * A grey alien's head - a domed skull tapering to a narrow chin, with two long slanted eyes cut out. For Chance Encounter,
+ * 25 or more in all three of Third Wind's Chance slots: a close encounter of the third kind.
+ */
+internal val ALIEN_HEAD_ICON: ImageVector by lazy {
+    icon("AlienHead") {
+        fill(
+            "M12,1.6C6.6,1.6 3,5.6 3,10.4C3,15.4 8.4,22.4 12,22.4C15.6,22.4 21,15.4 21,10.4C21,5.6 17.4,1.6 12,1.6Z" +
+                "M5.2,9.6C7.4,9.4 10,11.3 10.9,13.8C8.6,14.4 5.7,12.6 5.2,9.6Z" +
+                "M18.8,9.6C16.6,9.4 14,11.3 13.1,13.8C15.4,14.4 18.3,12.6 18.8,9.6Z",
+            evenOdd = true,
+        )
+    }
+}
+
+/**
  * A hexagon, the outline of a twenty-sided die seen face on, with a 20 inside it. For Nat 20, the win in D20 mode.
  * Everything is a line, so the white shows through the numerals.
  */

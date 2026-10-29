@@ -171,7 +171,7 @@ The mode's own: Lucky Seven (all seven showing one number).
 **Still earnable**:
 
 - Bonus Round (105, as hard as Standard's 35);
-- Spotless (all 39 slots without a zero and the 105 bonus, so Third Time's The Charm comes with it);
+- Spotless (all 39 slots without a zero and the 105 bonus);
 - Landslide (easier);
 - Dice Whisperer (three times the turns);
 - Twice in a Lifetime (three times the turns, and a 5x in the 2nd or 3rd slot needs no earlier 50; kept, the maintainer's
@@ -180,7 +180,8 @@ The mode's own: Lucky Seven (all seven showing one number).
 - Professional Roller;
 - Green Fingers (117 rolls).
 
-The mode's own: Gone With The Wind (a multiplayer win) and Third Time's The Charm (all 39 slots without a zero).
+The mode's own: Gone With The Wind (a multiplayer win) and Chance Encounter (25 or more in all three
+Chance slots).
 
 ## Hit List (twelve targets and the Alibi)
 

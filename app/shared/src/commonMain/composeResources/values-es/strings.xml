@@ -164,8 +164,8 @@
     <string name="achievement_lucky_seven_description">Consigue que los siete dados muestren el mismo número en el modo `Stud de 7 dados`</string>
     <string name="achievement_gone_with_the_wind_title">Lo que el viento se llevó</string>
     <string name="achievement_gone_with_the_wind_description">Gana una partida del modo `Tercer aliento`</string>
-    <string name="achievement_third_times_the_charm_title">A la tercera va la vencida</string>
-    <string name="achievement_third_times_the_charm_description">Rellena las tres casillas de cada categoría sin ningún cero en el modo `Tercer aliento`</string>
+    <string name="achievement_chance_encounter_title">Encuentro con el azar</string>
+    <string name="achievement_chance_encounter_description">Anota 25 o más en las tres casillas de Azar en el modo `Tercer aliento`</string>
     <string name="achievement_nat_20_title">20 natural</string>
     <string name="achievement_nat_20_description">Gana una partida del modo `D20`</string>
     <string name="achievement_critical_success_title">Éxito crítico</string>

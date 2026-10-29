@@ -21,6 +21,8 @@ import net.zodac.dicefive.resources.achievement_bookkeeper_description
 import net.zodac.dicefive.resources.achievement_bookkeeper_title
 import net.zodac.dicefive.resources.achievement_centurion_description
 import net.zodac.dicefive.resources.achievement_centurion_title
+import net.zodac.dicefive.resources.achievement_chance_encounter_description
+import net.zodac.dicefive.resources.achievement_chance_encounter_title
 import net.zodac.dicefive.resources.achievement_cold_dice_description
 import net.zodac.dicefive.resources.achievement_cold_dice_title
 import net.zodac.dicefive.resources.achievement_comeback_kid_description
@@ -189,8 +191,6 @@ import net.zodac.dicefive.resources.achievement_the_magicians_secret_description
 import net.zodac.dicefive.resources.achievement_the_magicians_secret_title
 import net.zodac.dicefive.resources.achievement_the_solution_description
 import net.zodac.dicefive.resources.achievement_the_solution_title
-import net.zodac.dicefive.resources.achievement_third_times_the_charm_description
-import net.zodac.dicefive.resources.achievement_third_times_the_charm_title
 import net.zodac.dicefive.resources.achievement_tie_break_description
 import net.zodac.dicefive.resources.achievement_tie_break_title
 import net.zodac.dicefive.resources.achievement_time_to_let_it_go_description
@@ -718,11 +718,11 @@ enum class Achievement(
         Res.string.achievement_gone_with_the_wind_description,
         AchievementCategory.GAME_MODES, mode = GameMode.THIRD_WIND, isModeWin = true,
     ),
-    // Every one of Third Wind's 39 slots, no zeroes - Spotless there needs its tripled bonus as well.
-    THIRD_TIMES_THE_CHARM(
-        "third_times_the_charm",
-        Res.string.achievement_third_times_the_charm_title,
-        Res.string.achievement_third_times_the_charm_description,
+    // All three of Third Wind's Chance slots at 25 or more.
+    CHANCE_ENCOUNTER(
+        "chance_encounter",
+        Res.string.achievement_chance_encounter_title,
+        Res.string.achievement_chance_encounter_description,
         AchievementCategory.GAME_MODES, mode = GameMode.THIRD_WIND,
     ),
     HOLD_EM(

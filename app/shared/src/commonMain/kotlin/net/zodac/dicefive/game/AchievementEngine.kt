@@ -205,6 +205,7 @@ object AchievementEngine {
     private val MIDNIGHT_DICE_HOURS = 0 until 6
 
     private const val MAX_CHANCE = 30
+    private const val CHANCE_ENCOUNTER_MIN = 25
     private const val MAX_SIXES = 30
     private const val FULL_TABLE_SIZE = 4
 
@@ -486,7 +487,6 @@ object AchievementEngine {
         // Nor where the best five of more dice score (Stud), whose cards are fuller than Standard's.
         val fullStandardRules = !state.rollModifiers.isActive && state.disabledCategories.isEmpty() && !state.gameMode.scoresHeldDiceOnly
         val singleScoreCard = state.gameMode.scoresPerCategory == 1 && fullStandardRules
-        val noZeroes = anyHuman { player -> player.allScores.none { it == 0 } }
         // Nor on a card of targets (Hit List), where a partial hit leaves a zero only now and then. A card scored three
         // times over (Third Wind) counts: every one of its 39 slots, and its tripled bonus.
         // The upper section bonus must be reached too, on the same card as the clean sheet.
@@ -495,7 +495,13 @@ object AchievementEngine {
             fullStandardRules && state.gameMode.hasStandardCard &&
                 anyHuman { player -> player.allScores.none { it == 0 } && player.upperSectionBonus > 0 },
         )
-        award(Achievement.THIRD_TIMES_THE_CHARM, noZeroes)
+        award(
+            Achievement.CHANCE_ENCOUNTER,
+            anyHuman { player ->
+                val chance = player.scoresIn(ScoreCategory.CHANCE)
+                chance.size == state.gameMode.scoresPerCategory && chance.all { it >= CHANCE_ENCOUNTER_MIN }
+            },
+        )
         // The best is off the Leaderboard, so a game that isn't on it has nothing to compare with.
         award(
             Achievement.NEW_PERSONAL_BEST,

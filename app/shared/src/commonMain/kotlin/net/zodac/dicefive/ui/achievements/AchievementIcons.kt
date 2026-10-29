@@ -162,7 +162,8 @@ val Achievement.icon: ImageVector
         Achievement.HOLD_EM -> Symbols.Style
         Achievement.LUCKY_SEVEN -> Symbols.Filter7
         Achievement.GONE_WITH_THE_WIND -> Symbols.Cyclone
-        Achievement.THIRD_TIMES_THE_CHARM -> Symbols.Air
+        // A grey alien's head, for the close encounter of the Chance box.
+        Achievement.CHANCE_ENCOUNTER -> ALIEN_HEAD_ICON
         // A hexagon, the outline of a twenty-sided die seen face on, with a 20 in it; and a star for each of the two bonuses.
         Achievement.NAT_20 -> D20_NAT_20_ICON
         Achievement.CRITICAL_SUCCESS -> Symbols.Stars

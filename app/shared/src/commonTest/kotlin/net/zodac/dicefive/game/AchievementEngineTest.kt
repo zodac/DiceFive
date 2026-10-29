@@ -474,7 +474,7 @@ class AchievementEngineTest {
                 Achievement.TRICOLOURFUL,
                 Achievement.TRICOLOUR_ME_IMPRESSED,
                 Achievement.GONE_WITH_THE_WIND,
-                Achievement.THIRD_TIMES_THE_CHARM,
+                Achievement.CHANCE_ENCOUNTER,
                 Achievement.HOLD_EM,
                 Achievement.LUCKY_SEVEN,
                 Achievement.NAT_20,
@@ -1117,22 +1117,15 @@ class AchievementEngineTest {
         thirdWindPlayer(name = name, type = type) { _, _ -> 10 }
 
     @Test
-    fun `Third Time's The Charm is no zero in all 39 slots of Third Wind - and Spotless there needs its tripled bonus too`() {
-        // 10 in every slot: no zero, but 180 in the upper section, short of its 189.
-        val thirdWind = unlocked(finishedGame(thirdWindNoZeroes()))
-        assertTrue(Achievement.THIRD_TIMES_THE_CHARM in thirdWind)
-        assertFalse(Achievement.SPOTLESS in thirdWind)
-        // 15 in every upper slot: 270, and the bonus.
-        val withBonus = unlocked(finishedGame(thirdWindPlayer { category, _ -> if (category.section == ScoreSection.UPPER) 15 else 10 }))
-        assertTrue(Achievement.SPOTLESS in withBonus)
-        assertTrue(Achievement.THIRD_TIMES_THE_CHARM in withBonus)
+    fun `Chance Encounter is 25 or more in all three of Third Wind's Chance slots`() {
+        fun chanceCard(vararg slots: Int) = thirdWindPlayer { category, slot -> if (category == ScoreCategory.CHANCE) slots[slot] else 10 }
 
-        val oneZero = thirdWindPlayer { category, slot -> if (category == ScoreCategory.LARGE_STRAIGHT && slot == 2) 0 else 10 }
-        assertFalse(Achievement.THIRD_TIMES_THE_CHARM in unlocked(finishedGame(oneZero)))
-
-        val standard = unlocked(finishedGame(player(total = 250, overrides = spotlessCard)))
-        assertTrue(Achievement.SPOTLESS in standard)
-        assertFalse(Achievement.THIRD_TIMES_THE_CHARM in standard)
+        assertTrue(Achievement.CHANCE_ENCOUNTER in unlocked(finishedGame(chanceCard(25, 30, 27))))
+        // One slot short of 25 - or a zero - is a miss.
+        assertFalse(Achievement.CHANCE_ENCOUNTER in unlocked(finishedGame(chanceCard(25, 24, 30))))
+        assertFalse(Achievement.CHANCE_ENCOUNTER in unlocked(finishedGame(chanceCard(30, 30, 0))))
+        // A Standard game's one Chance slot, however high, is not it: the achievement is Third Wind's.
+        assertFalse(Achievement.CHANCE_ENCOUNTER in unlocked(finishedGame(player(total = 250, overrides = spotlessCard))))
     }
 
     @Test

@@ -181,8 +181,8 @@
     <string name="achievement_lucky_seven_description">اجعل أحجار النرد السبعة كلها تُظهر الرقم نفسه في نمط `ستاد ٧ أحجار`</string>
     <string name="achievement_gone_with_the_wind_title">ذهب مع الريح</string>
     <string name="achievement_gone_with_the_wind_description">افز في لعبة بنمط `النفس الثالث`</string>
-    <string name="achievement_third_times_the_charm_title">الثالثة ثابتة</string>
-    <string name="achievement_third_times_the_charm_description">املأ الخانات الثلاث لكل فئة دون أي صفر في نمط `النفس الثالث`</string>
+    <string name="achievement_chance_encounter_title">لقاء الحظ</string>
+    <string name="achievement_chance_encounter_description">سجّل ٢٥ أو أكثر في خانات الحظ الثلاث في نمط `النفس الثالث`</string>
     <string name="achievement_nat_20_title">العشرون الطبيعية</string>
     <string name="achievement_nat_20_description">افز في لعبة بنمط `D20`</string>
     <string name="achievement_critical_success_title">نجاح حاسم</string>

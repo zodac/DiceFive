@@ -238,8 +238,8 @@
     <string name="achievement_lucky_seven_description">Have all seven dice show the same number in `7 Dice Stud` mode</string>
     <string name="achievement_gone_with_the_wind_title">Gone With The Wind</string>
     <string name="achievement_gone_with_the_wind_description">Win a game of `Third Wind` mode</string>
-    <string name="achievement_third_times_the_charm_title">Third Time's The Charm</string>
-    <string name="achievement_third_times_the_charm_description">Fill all three slots of every category without a zero in `Third Wind` mode</string>
+    <string name="achievement_chance_encounter_title">Chance Encounter</string>
+    <string name="achievement_chance_encounter_description">Score 25 or more in all three Chance slots in `Third Wind` mode</string>
     <string name="achievement_nat_20_title">Nat 20</string>
     <string name="achievement_nat_20_description">Win a game of `D20` mode</string>
     <string name="achievement_critical_success_title">Critical Success</string>
