@@ -55,4 +55,14 @@ class AchievementTextTest {
         val outside = titles.filter { it.first !in StringChecks.localesOutsideSora }.filterNot { it.third.all { c -> c.isInSoraFont() } }
         assertTrue(outside.isEmpty(), "Titles Sora can't draw: ${outside.map { "${it.first} ${it.third}" }}")
     }
+
+    @Test
+    fun `a description's backticks are paired, so its highlighted mode never swallows the rest of the line`() {
+        val unpaired = locales.flatMap { (locale, strings) ->
+            strings.filterKeys { it.startsWith("achievement_") && it.endsWith("_description") }
+                .filterValues { description -> description.count { it == '`' } % 2 != 0 }
+                .map { "$locale ${it.key}" }
+        }
+        assertEquals(emptyList(), unpaired)
+    }
 }

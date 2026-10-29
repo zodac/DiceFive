@@ -151,6 +151,7 @@ import net.zodac.dicefive.ui.common.rememberFilterSwitchState
 import net.zodac.dicefive.ui.common.spokenList
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.timestamp
+import net.zodac.dicefive.ui.common.tooltipMarkup
 import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.style.description
 import net.zodac.dicefive.ui.theme.GoldAccent
@@ -855,11 +856,13 @@ private fun AchievementRow(
                         color = ink(LocalContentColor.current),
                     )
                     Text(
-                        text = if (item.achievement.visibility == AchievementVisibility.HIDDEN && !unlocked) {
-                            stringResource(Res.string.achievements_hidden_description)
-                        } else {
-                            stringResource(item.achievement.description)
-                        },
+                        text = tooltipMarkup(
+                            if (item.achievement.visibility == AchievementVisibility.HIDDEN && !unlocked) {
+                                stringResource(Res.string.achievements_hidden_description)
+                            } else {
+                                stringResource(item.achievement.description)
+                            },
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = ink(MaterialTheme.colorScheme.onSurfaceVariant),
                     )

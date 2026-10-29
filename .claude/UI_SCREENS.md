@@ -47,6 +47,8 @@ Robolectric test shares one process, so a test that opens the screen calls it fi
 - Bespoke drawings are allowed where Symbols has nothing that fits: `DrawnAchievementIcons.kt` (path data on the 24 grid,
     one colour with details cut out), and drawables (`ic_stairs`, `ic_cowboy_hat`).
 - An icon is not a field on `Achievement`, so the model stays free of Compose.
+- **A mode or modifier named in a description is in `backticks`**, drawn bold gold (`tooltipMarkup`) on the list and the
+    banner. TalkBack and the Play Console export drop the backticks, and `AchievementTextTest` checks they pair.
 - **Locked rows all show the same question mark**, so they never spoil the achievement.
 - **Fixed colours** via `iconTintOrUnspecified`, rather than the row's tint:
     - every Easter Egg (Luck Of The Irish shows its real flag fills with `Color.Unspecified`; Big Fan's heart is forced

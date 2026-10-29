@@ -51,6 +51,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -89,6 +90,7 @@ import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.common.tooltipMarkup
 import net.zodac.dicefive.ui.game.LocalLeaveGameConfirmation
 import net.zodac.dicefive.ui.icons.Symbols
 
@@ -576,7 +578,7 @@ private const val BANNER_DESCRIPTION_LINES = 2
  * tall whatever its length.
  */
 @Composable
-private fun BannerDescription(description: String, modifier: Modifier = Modifier) {
+private fun BannerDescription(description: AnnotatedString, modifier: Modifier = Modifier) {
     Text(
         text = description,
         style = MaterialTheme.typography.bodySmall,
@@ -606,13 +608,13 @@ private fun Modifier.announced(announcement: String): Modifier = clearAndSetSema
 @Composable
 private fun UnlockedBanner(achievement: Achievement) {
     val title = stringResource(achievement.title)
-    val description = stringResource(achievement.description)
+    val description = tooltipMarkup(stringResource(achievement.description))
     Surface(
         modifier = Modifier.fillMaxWidth().announced(
             stringResource(
                 if (achievement.unlocksStyle) Res.string.achievements_banner_unlocked_style_spoken else Res.string.achievements_banner_unlocked_spoken,
                 title,
-                description,
+                description.text,
             ),
         ),
         shape = MaterialTheme.shapes.large,
@@ -680,7 +682,7 @@ private fun StylesUnlockedBanner(event: AchievementEvent.StylesUnlocked) {
             }
             Column(modifier = Modifier.weight(1f)) {
                 BannerTitle(stylesUnlockedTitle(event))
-                BannerDescription(stylesUnlockedDescription(event))
+                BannerDescription(AnnotatedString(stylesUnlockedDescription(event)))
             }
         }
     }

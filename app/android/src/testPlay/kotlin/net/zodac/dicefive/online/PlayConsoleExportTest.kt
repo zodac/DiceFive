@@ -69,7 +69,7 @@ class PlayConsoleExportTest {
             val strings = stringsOf(locale)
             for (achievement in onPlay) {
                 val name = strings.getValue(achievement.title.key)
-                val description = strings.getValue(achievement.description.key)
+                val description = plain(strings.getValue(achievement.description.key))
                 assertTrue("$locale $achievement name", name.isNotBlank() && name.length <= MAX_NAME_LENGTH)
                 assertTrue("$locale $achievement description", description.isNotBlank() && description.length <= MAX_DESCRIPTION_LENGTH)
             }
@@ -140,7 +140,7 @@ class PlayConsoleExportTest {
     private fun writeImportZip(file: File, icons: File) {
         val text = LOCALES.associateWith(::stringsOf)
         fun name(achievement: Achievement, locale: Locale) = text.getValue(locale).getValue(achievement.title.key)
-        fun description(achievement: Achievement, locale: Locale) = text.getValue(locale).getValue(achievement.description.key)
+        fun description(achievement: Achievement, locale: Locale) = plain(text.getValue(locale).getValue(achievement.description.key))
 
         val metadata = onPlay.mapIndexed { index, achievement ->
             val type = achievement.playType
@@ -191,10 +191,13 @@ class PlayConsoleExportTest {
                 (type as? PlayAchievementType.Incremental)?.steps?.toString().orEmpty(),
                 if (achievement.playHidden) "Hidden" else "Revealed",
                 "achievement-icons/${achievement.id}.png",
-            ) + LOCALES.flatMap { listOf(text.getValue(it).getValue(achievement.title.key), text.getValue(it).getValue(achievement.description.key)) }
+            ) + LOCALES.flatMap { listOf(text.getValue(it).getValue(achievement.title.key), plain(text.getValue(it).getValue(achievement.description.key))) }
         }
         file.writeText(csvLines(listOf(header) + rows))
     }
+
+    /** Play shows text as-is, so the app's gold backtick markup is dropped from a description. */
+    private fun plain(description: String) = description.replace("`", "")
 
     private companion object {
         const val MIN_POINTS = 5
