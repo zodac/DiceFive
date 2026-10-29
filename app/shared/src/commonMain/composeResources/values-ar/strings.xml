@@ -729,8 +729,8 @@
     <string name="online_signed_out">لم يتم تسجيل الدخول</string>
     <string name="online_signing_in">جارٍ تسجيل الدخول...</string>
     <string name="online_signed_in_cd">%1$s، تم تسجيل الدخول باسم %2$s</string>
-    <string name="online_last_saved">آخر حفظ: %1$s</string>
-    <string name="online_signed_in_saved_cd">%1$s، تم تسجيل الدخول باسم %2$s، آخر حفظ: %3$s</string>
+    <string name="online_last_saved">تم الحفظ: %1$s</string>
+    <string name="online_signed_in_saved_cd">%1$s، تم تسجيل الدخول باسم %2$s، تم الحفظ: %3$s</string>
     <string name="online_unreachable">تعذّر الاتصال بـ %1$s - ستتم إعادة المحاولة</string>
     <string name="online_unreachable_cd">تعذّر الاتصال بـ %1$s، ستتم إعادة المحاولة</string>
     <string name="online_sign_in_failed">تعذّر تسجيل الدخول: %1$s</string>
@@ -762,7 +762,6 @@
     <string name="settings_orientation_landscape">أفقي</string>
     <string name="settings_confirm_leaving">تأكيد مغادرة اللعبة</string>
     <string name="settings_online_achievements">عرض في %1$s</string>
-    <string name="settings_online_achievements_description">اطّلع على إنجازاتك هناك</string>
     <string name="settings_online_achievements_action">فتح %1$s</string>
     <string name="settings_reset_achievements">إعادة ضبط الإنجازات</string>
     <string name="settings_reset_achievements_description">أقفل كل إنجاز من جديد</string>
@@ -776,10 +775,8 @@
     <string name="settings_reset_leaderboard_message">ستُحذف كل نتيجة مسجّلة، فتُفرَّغ شاشة لوحة المتصدرين، ومعها الإحصائيات لأنها تُحسب من النتائج نفسها. لا يمكن التراجع عن هذا. لن تتأثر الإنجازات ولا الإعدادات، لكن أي تقدّم في الإنجازات يُقاس بلوحة المتصدرين سيبدأ من جديد.</string>
     <string name="settings_reset_leaderboard_online_note">تبقى النتائج المُرسلة إلى %1$s هناك.</string>
     <string name="settings_export_progress">تصدير التقدّم</string>
-    <string name="settings_export_progress_description">احفظ الإنجازات والنتائج والإعدادات في ملف</string>
     <string name="settings_export_progress_action">تصدير</string>
     <string name="settings_import_progress">استيراد التقدّم</string>
-    <string name="settings_import_progress_description">أضف التقدّم من ملف مُصدَّر</string>
     <string name="settings_import_progress_action">استيراد</string>
     <string name="settings_import_progress_title">استيراد التقدّم؟</string>
     <string name="settings_import_progress_message">اختر ملفًا مُصدَّرًا من %1$s. تُضاف إنجازاته ونتائجه إلى ما على هذا الجهاز، وحين يكون لدى كليهما إعداد أو لعبة محفوظة، يُحتفظ بالأحدث. لا يمكن التراجع عن هذا.</string>

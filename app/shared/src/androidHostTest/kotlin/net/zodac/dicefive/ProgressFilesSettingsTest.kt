@@ -7,10 +7,12 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -117,11 +119,13 @@ class ProgressFilesSettingsTest : UiTest() {
         compose.onNode(hasText(text) and hasClickAction()).fetchSemanticsNode().config[SemanticsProperties.Text].map { it.text }
 
     @Test
-    fun `each row is one button - its label and line spoken together - naming its action`() = uiTest {
+    fun `each row is one compact button - its label alone - naming its action`() = uiTest {
         show(FilesPlatform(PickerFiles()))
-        // TalkBack: "Export progress, Save achievements, scores, and settings to a file, button, double-tap to export".
-        assertEquals(listOf("Export progress", "Save achievements, scores, and settings to a file"), spoken("Export progress"))
-        assertEquals(listOf("Import progress", "Add progress from an exported file"), spoken("Import progress"))
+        // TalkBack: "Export progress, button, double-tap to export".
+        assertEquals(listOf("Export progress"), spoken("Export progress"))
+        assertEquals(listOf("Import progress"), spoken("Import progress"))
+        // As tall as a switch row: the touch target's 48dp.
+        compose.onNode(hasText("Export progress") and hasClickAction()).assertHeightIsEqualTo(48.dp)
         for ((row, action) in listOf("Export progress" to "Export", "Import progress" to "Import")) {
             val node = compose.onNode(hasText(row) and hasClickAction())
             node.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))

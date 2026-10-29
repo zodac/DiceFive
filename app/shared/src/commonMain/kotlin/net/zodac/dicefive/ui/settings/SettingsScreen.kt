@@ -6,13 +6,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -60,7 +59,6 @@ import net.zodac.dicefive.resources.settings_import_progress_message
 import net.zodac.dicefive.resources.settings_import_progress_title
 import net.zodac.dicefive.resources.settings_online_achievements
 import net.zodac.dicefive.resources.settings_online_achievements_action
-import net.zodac.dicefive.resources.settings_online_achievements_description
 import net.zodac.dicefive.resources.settings_orientation
 import net.zodac.dicefive.resources.settings_orientation_device
 import net.zodac.dicefive.resources.settings_orientation_landscape
@@ -99,8 +97,55 @@ private val LINKS_RAISE = (-8).dp
 /** A setting's label: bodyLarge on one line when it fits, stepped down to [MIN_READABLE_FONT_SIZE] on a
  * narrow screen, and wrapped to a second line (the row grows) rather than shrunk further. */
 @Composable
-internal fun SettingLabel(text: String, modifier: Modifier = Modifier) {
-    ShrinkThenWrapText(text = text, style = MaterialTheme.typography.bodyLarge, modifier = modifier)
+internal fun SettingLabel(text: String, modifier: Modifier = Modifier, color: Color = Color.Unspecified) {
+    ShrinkThenWrapText(text = text, style = MaterialTheme.typography.bodyLarge, modifier = modifier, color = color)
+}
+
+/** The least height of a [SettingRow]: the touch target's minimum, under M3's 56dp list item. */
+private val SETTING_ROW_MIN_HEIGHT = 48.dp
+
+/** How far a [SettingRow]'s content sits from its top and bottom, and a compact card's rows from the card's edges. */
+internal val SETTING_ROW_VERTICAL_PADDING = 4.dp
+
+/**
+ * One row of a compact settings card, in an M3 [androidx.compose.material3.ListItem]'s layout (icon, label over an optional line, optional end
+ * content) but tighter: a one-line row is [SETTING_ROW_MIN_HEIGHT] tall rather than 56dp, a two-line one 52dp rather
+ * than 72dp. It grows with its text at a large font. Semantics are the [modifier]'s; the pieces carry none of their own.
+ */
+@Composable
+internal fun SettingRow(
+    icon: ImageVector,
+    headline: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    supporting: String? = null,
+    trailing: (@Composable () -> Unit)? = null,
+    iconColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = SETTING_ROW_MIN_HEIGHT)
+            .padding(horizontal = 16.dp, vertical = SETTING_ROW_VERTICAL_PADDING),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = iconColor)
+        Column(modifier = Modifier.weight(1f)) {
+            headline()
+            if (supporting != null) {
+                Text(supporting, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        trailing?.invoke()
+    }
+}
+
+/** A Card of [SettingRow]s, with [SETTING_ROW_VERTICAL_PADDING] above the first and below the last. */
+@Composable
+internal fun CompactSettingsCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(vertical = SETTING_ROW_VERTICAL_PADDING)) { content() }
+    }
 }
 
 /**
@@ -111,34 +156,29 @@ internal fun SettingLabel(text: String, modifier: Modifier = Modifier) {
  */
 @Composable
 internal fun SwitchSetting(icon: ImageVector, label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    ListItem(
-        leadingContent = { Icon(imageVector = icon, contentDescription = null) },
-        headlineContent = { SettingLabel(label) },
-        trailingContent = { Switch(checked = checked, onCheckedChange = null) },
+    SettingRow(
+        icon = icon,
+        headline = { SettingLabel(label) },
+        trailing = { Switch(checked = checked, onCheckedChange = null) },
         modifier = Modifier.toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
-        // The Card already supplies the surface; an opaque ListItem container would paint a
-        // second, slightly different one on top of it.
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
     )
 }
 
 /**
  * A link out to the online service's own achievements screen, in [ResetSetting]'s place and shape while signed in
  * (resetting would be undone by the service at the next sign-in), but not tinted as destructive. A screen reader hears
- * one "View in Google Play Games, See your achievements there, button, double-tap to open Google Play Games".
+ * one "View in Google Play Games, button, double-tap to open Google Play Games".
  */
 @Composable
 private fun OnlineAchievementsSetting(serviceName: String, onClick: () -> Unit) {
-    ListItem(
-        leadingContent = { Icon(imageVector = Symbols.EmojiEvents, contentDescription = null) },
-        headlineContent = { SettingLabel(stringResource(Res.string.settings_online_achievements, serviceName)) },
-        supportingContent = { Text(stringResource(Res.string.settings_online_achievements_description)) },
+    SettingRow(
+        icon = Symbols.EmojiEvents,
+        headline = { SettingLabel(stringResource(Res.string.settings_online_achievements, serviceName)) },
         modifier = Modifier.clickable(
             role = Role.Button,
             onClickLabel = stringResource(Res.string.settings_online_achievements_action, serviceName),
             onClick = onClick,
         ),
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
     )
 }
 
@@ -150,16 +190,12 @@ private fun OnlineAchievementsSetting(serviceName: String, onClick: () -> Unit) 
  */
 @Composable
 private fun ResetSetting(icon: ImageVector, label: String, description: String, onClick: () -> Unit) {
-    ListItem(
-        leadingContent = { Icon(imageVector = icon, contentDescription = null) },
-        headlineContent = { SettingLabel(label) },
-        supportingContent = { Text(description) },
+    SettingRow(
+        icon = icon,
+        headline = { SettingLabel(label, color = MaterialTheme.colorScheme.error) },
+        supporting = description,
         modifier = Modifier.clickable(role = Role.Button, onClickLabel = stringResource(Res.string.settings_reset_action), onClick = onClick),
-        colors = ListItemDefaults.colors(
-            containerColor = Color.Transparent,
-            leadingIconColor = MaterialTheme.colorScheme.error,
-            headlineColor = MaterialTheme.colorScheme.error,
-        ),
+        iconColor = MaterialTheme.colorScheme.error,
     )
 }
 
@@ -300,7 +336,7 @@ fun SettingsScreen(
             }
         }
         val switchesCard = @Composable {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            CompactSettingsCard {
                 SwitchSetting(Symbols.VolumeUp, stringResource(Res.string.settings_sound), toggles.soundEnabled, viewModel::setSoundEnabled)
                 SwitchSetting(Symbols.Vibration, stringResource(Res.string.settings_vibration), toggles.vibrationEnabled, viewModel::setVibrationEnabled)
                 SwitchSetting(
@@ -339,7 +375,7 @@ fun SettingsScreen(
             }
         }
         val resetsCard = @Composable {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            CompactSettingsCard {
                 val gameServices = LocalGameServices.current
                 val signedIn = gameServices.state.collectAsStateWithLifecycle().value is GameServicesState.SignedIn
                 if (signedIn && gameServices.canShowAchievementsUi) {

@@ -82,7 +82,7 @@ class OnlineAccountCardTest : UiTest() {
             syncProgress = SyncProgress(SyncStep.SCORES, 3, 7),
         )
         compose.onNodeWithText("Merging scores (3/7)", useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("Last saved Oct", substring = true, useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Oct 2026 ", substring = true, useUnmergedTree = true).assertExists()
         // Whether it got through waits for this sync's result.
         compose.onNodeWithText("Couldn't reach", substring = true, useUnmergedTree = true).assertDoesNotExist()
         assertEquals(
@@ -148,7 +148,7 @@ class OnlineAccountCardTest : UiTest() {
         show(FakeGameServices(GameServicesState.SignedIn(OnlineAccount("Ann", null, "key"))), lastSavedEpochMillis = 1_792_073_100_000L, unreachable = true)
         compose.onNodeWithText("Couldn't reach Test Games\u00A0- will retry", useUnmergedTree = true).assertExists()
         assertEquals(
-            listOf("Test Games, signed in as Ann, last saved Oct 15, 2026 14:05, couldn't reach Test Games, will retry"),
+            listOf("Test Games, signed in as Ann, saved 15 Oct 2026 14:05, couldn't reach Test Games, will retry"),
             compose.onNode(isHeading()).fetchSemanticsNode().config[SemanticsProperties.ContentDescription],
         )
     }
@@ -184,12 +184,12 @@ class OnlineAccountCardTest : UiTest() {
     @Test
     fun `signed in and saved shows when - and speaks it after the full name`() = uiTest(SCREEN) {
         zone = setTimeZone("UTC")
-        // Oct 15, 2026 14:05 UTC.
+        // 15 Oct 2026 14:05 UTC.
         show(FakeGameServices(GameServicesState.SignedIn(OnlineAccount("Ann", null, "key"))), lastSavedEpochMillis = 1_792_073_100_000L)
         compose.onNodeWithText("Ann", useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("Last saved Oct 15, 2026 14:05", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Saved 15 Oct 2026 14:05", useUnmergedTree = true).assertExists()
         assertEquals(
-            listOf("Test Games, signed in as Ann, last saved Oct 15, 2026 14:05"),
+            listOf("Test Games, signed in as Ann, saved 15 Oct 2026 14:05"),
             compose.onNode(isHeading()).fetchSemanticsNode().config[SemanticsProperties.ContentDescription],
         )
     }
@@ -197,7 +197,7 @@ class OnlineAccountCardTest : UiTest() {
     @Test
     fun `never saved - or signed out - shows no save time`() = uiTest(SCREEN) {
         show(FakeGameServices(GameServicesState.SignedOut()), lastSavedEpochMillis = 1_792_073_100_000L)
-        compose.onNodeWithText("Last saved", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithText("Saved", substring = true, useUnmergedTree = true).assertDoesNotExist()
         assertEquals(listOf("Test Games, Not signed in"), compose.onNode(isHeading()).fetchSemanticsNode().config[SemanticsProperties.ContentDescription])
     }
 
@@ -233,12 +233,14 @@ class OnlineAccountCardTest : UiTest() {
                 OnlineAccountCard(FakeGameServices(GameServicesState.SignedIn(OnlineAccount(longName, null, "key"))))
             }
         }
-        // On screen, the name alone - in gold, a size up from the lines under it (14sp): "signed in as" is spoken only.
+        // On screen, the name alone, in the service's place - in gold, a size up from the lines under it (14sp): the
+        // service and "signed in as" are spoken only.
         compose.onNodeWithText("Signed in as", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithText("Test Games", useUnmergedTree = true).assertDoesNotExist()
         val layouts = mutableListOf<TextLayoutResult>()
         compose.onNodeWithText(longName, useUnmergedTree = true).performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
         val style = layouts.single().layoutInput.style
-        assertEquals(15.sp, style.fontSize)
+        assertEquals(16.sp, style.fontSize)
         assertEquals(gold, style.color)
         val header = compose.onNode(isHeading())
         assertEquals(listOf("Test Games, signed in as $longName"), header.fetchSemanticsNode().config[SemanticsProperties.ContentDescription])

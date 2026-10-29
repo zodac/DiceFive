@@ -72,7 +72,7 @@ class StringsLanguageTest : UiTest() {
         assertTrue(back.right < width / 2, "Back arrow at $back on a screen $width wide")
 
         val spoken = openedCard(player)
-        assertTrue(Regex("""First played [A-Z][a-z]{2,3} \d\d, \d{4} \d\d:\d\d\.""").containsMatchIn(spoken), spoken)
+        assertTrue(Regex("""First played \d{1,2} [A-Z][a-z]{2,3} \d{4} \d\d:\d\d\.""").containsMatchIn(spoken), spoken)
     }
 
     @Test

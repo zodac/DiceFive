@@ -2,12 +2,7 @@ package net.zodac.dicefive.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,7 +12,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -32,10 +26,8 @@ import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.resources.settings_export_progress
 import net.zodac.dicefive.resources.settings_export_progress_action
-import net.zodac.dicefive.resources.settings_export_progress_description
 import net.zodac.dicefive.resources.settings_import_progress
 import net.zodac.dicefive.resources.settings_import_progress_action
-import net.zodac.dicefive.resources.settings_import_progress_description
 import net.zodac.dicefive.resources.settings_progress_export_failed
 import net.zodac.dicefive.resources.settings_progress_exported
 import net.zodac.dicefive.resources.settings_progress_import_failed
@@ -54,8 +46,8 @@ import org.jetbrains.compose.resources.StringResource
  * Export progress, which opens the platform's "save as" picker, and Import progress, which asks first ([onImport]
  * opens the confirmation). It sits where the online service's card would, in a build that has none.
  *
- * Each row is one button, as [SwitchSetting]'s are one switch: TalkBack hears "Export progress, Save achievements,
- * scores and settings to a file, button, double-tap to export".
+ * Each row is one compact button row, its label alone, as [SwitchSetting]'s are one switch: TalkBack hears "Export
+ * progress, button, double-tap to export".
  *
  * Under the rows, [status]: while an import runs, its step and how far through ("Merging scores (5/5)") after a spinner
  * and above a bar, as the online card shows a sync ([StepProgress]); then how the last export or import ended, in red
@@ -64,18 +56,16 @@ import org.jetbrains.compose.resources.StringResource
  */
 @Composable
 fun ProgressFilesCard(onExport: () -> Unit, onImport: () -> Unit, modifier: Modifier = Modifier, status: ProgressFilesStatus? = null) {
-    Card(modifier = modifier.fillMaxWidth()) {
+    CompactSettingsCard(modifier = modifier) {
         ProgressFileSetting(
             icon = Symbols.Download,
             label = stringResource(Res.string.settings_export_progress),
-            description = stringResource(Res.string.settings_export_progress_description),
             actionLabel = stringResource(Res.string.settings_export_progress_action),
             onClick = onExport,
         )
         ProgressFileSetting(
             icon = Symbols.FileOpen,
             label = stringResource(Res.string.settings_import_progress),
-            description = stringResource(Res.string.settings_import_progress_description),
             actionLabel = stringResource(Res.string.settings_import_progress_action),
             onClick = onImport,
         )
@@ -162,7 +152,8 @@ private fun StatusLines(status: ProgressFilesStatus) {
         }
     }
     Box(
-        modifier = Modifier.padding(start = TEXT_START, end = 16.dp, bottom = 16.dp).clearAndSetSemantics {
+        // 16dp above the card's edge, with the card's own padding under the rows.
+        modifier = Modifier.padding(start = TEXT_START, end = 16.dp, bottom = 16.dp - SETTING_ROW_VERTICAL_PADDING).clearAndSetSemantics {
             liveRegion = LiveRegionMode.Polite
             contentDescription = spoken
         },
@@ -194,12 +185,10 @@ private val ImportStep.label: StringResource
 
 /** One row of [ProgressFilesCard], in the shape of Settings' other action rows: the whole row is the button. */
 @Composable
-private fun ProgressFileSetting(icon: ImageVector, label: String, description: String, actionLabel: String, onClick: () -> Unit) {
-    ListItem(
-        leadingContent = { Icon(imageVector = icon, contentDescription = null) },
-        headlineContent = { SettingLabel(label) },
-        supportingContent = { Text(description) },
+private fun ProgressFileSetting(icon: ImageVector, label: String, actionLabel: String, onClick: () -> Unit) {
+    SettingRow(
+        icon = icon,
+        headline = { SettingLabel(label) },
         modifier = Modifier.clickable(role = Role.Button, onClickLabel = actionLabel, onClick = onClick),
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
     )
 }

@@ -11,7 +11,7 @@ import net.zodac.dicefive.resources.common_timestamp_pattern
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * [epochMillis] as "Sep 28, 2026 14:05", in the device's own time zone: date *and* time, because
+ * [epochMillis] as "28 Sep 2026 14:05", in the device's own time zone: date *and* time, because
  * several achievements can land in the same burst at the end of a game, and a date alone wouldn't
  * tell two rows in that burst apart. The Leaderboard, Statistics and Achievements screens all show a
  * timestamp in this one format.

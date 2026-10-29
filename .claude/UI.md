@@ -139,6 +139,9 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
         switches with collection positions (`ChoicePickerTest`).
 - **An option the form overrides is locked, not hidden** (`ModifierSetting.lockedNote`, `SegmentedChoiceRow`'s
     `enabled`). The layout stays still, and the player's pick is kept for when it applies again.
+- **Settings' switch and reset cards use compact rows** (`SettingRow`, the maintainer's choice): a `ListItem`'s
+    layout at 48dp for one line and about 52dp for two, under M3's 56dp and 72dp, with 4dp above and below the rows.
+    48dp is the touch-target minimum, so a row never goes below it, and it grows with a large font.
 - **Cards group sections.** A `ListItem` in a Card needs `ListItemDefaults.colors(containerColor = Color.Transparent)`,
     or it paints a second surface.
 - **`CONTENT_MAX_WIDTH` (460dp)** caps page width for tablets.

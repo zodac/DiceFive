@@ -1,25 +1,27 @@
 package net.zodac.dicefive.ui.settings
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -27,7 +29,6 @@ import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.model.sanitizePlayerName
@@ -60,15 +61,15 @@ import org.jetbrains.compose.resources.StringResource
 
 /**
  * The Settings card for the platform's online game service, titled with the service's own name
- * ([GameServices.serviceName]) - the shared UI never writes "Google". Nothing is drawn while the service is
- * [GameServicesState.Unavailable], so a device or build with none looks exactly as it did.
+ * ([GameServices.serviceName]) while signed out - the shared UI never writes "Google". Nothing is drawn while the
+ * service is [GameServicesState.Unavailable], so a device or build with none looks exactly as it did.
  *
- * The account's name appears here and nowhere else - on its own, in gold, a size up from the lines under it: it is
- * ellipsised rather than capped, never fills or renames a player's seat, and TalkBack hears it in full, as "signed in
- * as" the name ([online_signed_in_cd]).
+ * Signed in, the account's name is the title in the service's place, and appears nowhere else - in gold, a size up
+ * from the lines under it: it is ellipsised rather than capped, never fills or renames a player's seat, and TalkBack
+ * hears it in full after the service's name, as "signed in as" the name ([online_signed_in_cd]).
  *
  * Signed in, [lastSavedEpochMillis] - when the account's cloud save last matched this device - shows under the account
- * ("Last saved ..."), once there is one, and a quiet line while the last sync couldn't reach the service
+ * ("Saved ..."), once there is one, and a quiet line while the last sync couldn't reach the service
  * ([unreachable]), which is spoken last. While a sync is under way ([syncProgress]), the step it is on and how far
  * through ("Merging scores (3/7)") show under the header at the card's full width, after a spinner (a still sync icon
  * under reduced motion) and above a progress bar; the unreachable line waits for its result.
@@ -118,54 +119,54 @@ fun OnlineAccountCard(
     }
 
     Card(modifier = modifier.fillMaxWidth()) {
-        // Sign in or out sits on the header's row, outside its cleared semantics, so TalkBack still reaches it.
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            ListItem(
-                leadingContent = {
-                    val avatar = (state as? GameServicesState.SignedIn)?.account?.avatar
-                    if (avatar != null) {
-                        Image(bitmap = avatar, contentDescription = null, modifier = Modifier.size(24.dp).clip(CircleShape))
-                    } else {
-                        Icon(imageVector = Symbols.SportsEsports, contentDescription = null)
-                    }
+        // Sign in or out sits on the header's row, outside its cleared semantics, so TalkBack still reaches it. The text
+        // runs up to the button, whose own padding is the gap, so "Saved" and its time fit one line on a phone; the
+        // button's label ends 16dp from the card's edge, in line with the switches below.
+        Row(modifier = Modifier.heightIn(min = 56.dp).padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.weight(1f).padding(vertical = 8.dp).clearAndSetSemantics {
+                    heading()
+                    contentDescription = spoken
                 },
-                headlineContent = { Text(name, style = MaterialTheme.typography.bodyLarge) },
-                supportingContent = {
-                    Column {
-                        if (accountName != null) {
-                            // The gamer name alone, in the brand's gold, a size up from the lines under it.
-                            val nameStyle = MaterialTheme.typography.bodyMedium
-                            Text(
-                                accountName,
-                                style = nameStyle.copy(fontSize = (nameStyle.fontSize.value + 1).sp),
-                                color = MaterialTheme.colorScheme.primary,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        } else {
-                            Text(status, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        }
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                val avatar = (state as? GameServicesState.SignedIn)?.account?.avatar
+                if (avatar != null) {
+                    Image(bitmap = avatar, contentDescription = null, modifier = Modifier.size(24.dp).clip(CircleShape))
+                } else {
+                    Icon(imageVector = Symbols.SportsEsports, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Column {
+                    if (accountName != null) {
+                        // The gamer name alone, in the brand's gold: the service's name is spoken, not shown.
+                        Text(
+                            accountName,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    } else {
+                        Text(name, style = MaterialTheme.typography.bodyLarge)
+                    }
+                    CompositionLocalProvider(
+                        LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant,
+                        LocalTextStyle provides MaterialTheme.typography.bodyMedium,
+                    ) {
+                        if (accountName == null) Text(status, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         if (lastSaved != null) Text(stringResource(Res.string.online_last_saved, lastSaved))
                         if (showUnreachable) Text(stringResource(Res.string.online_unreachable, name))
                         if (failure != null) Text(stringResource(Res.string.online_sign_in_failed, failure), color = MaterialTheme.colorScheme.error)
                     }
-                },
-                modifier = Modifier.weight(1f).clearAndSetSemantics {
-                    heading()
-                    contentDescription = spoken
-                },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            )
+                }
+            }
             if (state is GameServicesState.SignedIn && signInSynced) {
-                TextButton(onClick = { scope.launch { services.signOut() } }, modifier = Modifier.padding(end = 8.dp)) {
+                TextButton(onClick = { scope.launch { services.signOut() } }) {
                     Text(stringResource(Res.string.online_sign_out))
                 }
             } else {
-                TextButton(
-                    onClick = { scope.launch { services.signIn() } },
-                    enabled = state is GameServicesState.SignedOut,
-                    modifier = Modifier.padding(end = 8.dp),
-                ) {
+                TextButton(onClick = { scope.launch { services.signIn() } }, enabled = state is GameServicesState.SignedOut) {
                     Text(stringResource(Res.string.online_sign_in))
                 }
             }

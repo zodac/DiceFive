@@ -57,7 +57,7 @@ class OnlineSettingsRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[SCORES_RESET_AT_KEY] = epochMillis }
     }
 
-    /** When [accountKey]'s cloud save last matched this device ("Last saved"), or null if it never has. */
+    /** When [accountKey]'s cloud save last matched this device ("Saved"), or null if it never has. */
     fun cloudSavedAt(accountKey: String): Flow<Long?> = dataStore.data.map { it[cloudSavedKey(accountKey)] }
 
     suspend fun setCloudSavedAt(accountKey: String, epochMillis: Long) {

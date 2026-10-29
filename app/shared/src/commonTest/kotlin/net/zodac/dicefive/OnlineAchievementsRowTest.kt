@@ -70,7 +70,8 @@ class OnlineAchievementsRowTest : UiTest() {
         link.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
         // TalkBack: "double-tap to open Test Games".
         link.assert(SemanticsMatcher("double-tap to open the service") { it.config[SemanticsActions.OnClick].label == "Open Test Games" })
-        compose.onNodeWithText("See your achievements there", useUnmergedTree = true).assertExists()
+        // The row is its label alone: no line under it.
+        assertEquals(listOf("View in Test Games"), link.fetchSemanticsNode().config[SemanticsProperties.Text].map { it.text })
         link.performClick()
         assertEquals(1, services.shown)
         compose.onNodeWithText("Reset leaderboard").assertExists()

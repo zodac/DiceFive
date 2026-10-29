@@ -5,6 +5,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
@@ -18,7 +20,10 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import kotlin.test.Test
+import kotlin.test.assertTrue
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
@@ -54,6 +59,12 @@ class SettingsRowsTest : UiTest() {
         compose.onNode(hasText("Version ", substring = true)).assertExists()
         // The two choice rows have no visible title: each icon carries its name for a screen reader.
         listOf("Animations", "Orientation").forEach { compose.onNodeWithContentDescription(it).assertExists() }
+
+        // Compact rows: a switch row is the 48dp touch target's height, a reset (label and a line under it) under M3's
+        // 56dp one-line list item, where a ListItem would make it 72dp.
+        compose.onNode(hasText("Sound effects") and isToggleable()).assertHeightIsEqualTo(48.dp)
+        val resetHeight = compose.onNode(hasText("Reset leaderboard") and hasClickAction()).getUnclippedBoundsInRoot().height
+        assertTrue(resetHeight < 56.dp, "Reset row $resetHeight tall")
 
         // Tapping a setting's label flips it - label and switch are one toggle.
         val vibration = compose.onNode(hasText("Vibration") and isToggleable())

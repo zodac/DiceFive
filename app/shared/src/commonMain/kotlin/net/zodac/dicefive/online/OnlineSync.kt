@@ -42,7 +42,7 @@ import net.zodac.dicefive.model.ProgressStyle
  * One the service didn't take is sent again next time.
  *
  * With a [cloudSave], the whole of this device's progress is also merged with the account's cloud save ([CloudSave]):
- * read and merged in first, then written back if this device added anything, and "Last saved" recorded once the two
+ * read and merged in first, then written back if this device added anything, and "Saved" recorded once the two
  * match ([OnlineSettingsRepository.cloudSavedAt]). A different account's switch wipes all of it here first, and waits
  * for the service to answer about the save too. A save written by a newer app is merged in but never written over.
  * Another device's totals can carry a counter, score band or the career points past a target neither reached alone:

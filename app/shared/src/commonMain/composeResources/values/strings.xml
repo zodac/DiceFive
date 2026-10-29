@@ -29,11 +29,11 @@
     <string name="app_name">DiceFive</string>
 
     <!--
-        How a date and time is written ("Sep 28, 2026 14:05"), as a CLDR date pattern: MMM is the short month name,
-        dd the day, yyyy the year, HH:mm the 24-hour time. Reorder it the way the language writes dates; the month
+        How a date and time is written ("28 Sep 2026 14:05"), as a CLDR date pattern: MMM is the short month name,
+        d the day, yyyy the year, HH:mm the 24-hour time. Reorder it the way the language writes dates; the month
         names and digits follow common_locale.
     -->
-    <string name="common_timestamp_pattern">MMM dd, yyyy HH:mm</string>
+    <string name="common_timestamp_pattern">d MMM yyyy HH:mm</string>
 
     <!--
         How two spoken clauses join, for a sentence whose pieces come and go ("Scored 12, would score
@@ -849,9 +849,9 @@
     <string name="online_signing_in">Signing in...</string>
     <string name="online_signed_in_cd">%1$s, signed in as %2$s</string>
     <!-- Under the account, once its cloud save has matched this device. %1$s is the time, in common_timestamp_pattern. -->
-    <string name="online_last_saved">Last saved %1$s</string>
+    <string name="online_last_saved">Saved %1$s</string>
     <!-- The card read aloud once it has been saved: %1$s the service, %2$s the gamer name, %3$s the time of online_last_saved. -->
-    <string name="online_signed_in_saved_cd">%1$s, signed in as %2$s, last saved %3$s</string>
+    <string name="online_signed_in_saved_cd">%1$s, signed in as %2$s, saved %3$s</string>
     <!-- Under the account while the service couldn't be reached for the last sync; it is tried again at the next sync (a finished game, launch, leaving or coming back to the app). %1$s is the service; the no-break space before the dash keeps the dash off the start of a line. -->
     <string name="online_unreachable">Couldn't reach %1$s - will retry</string>
     <!-- online_unreachable read aloud, as the last clause of the card (joined with common_clauses_join). -->
@@ -893,7 +893,6 @@
     <string name="settings_confirm_leaving">Confirm leaving game</string>
     <!-- In Reset achievements' place while signed in: %1$s is the online service ("Google Play Games"). -->
     <string name="settings_online_achievements">View in %1$s</string>
-    <string name="settings_online_achievements_description">See your achievements there</string>
     <!-- What a screen reader says a tap on that row does: %1$s is the online service. -->
     <string name="settings_online_achievements_action">Open %1$s</string>
     <string name="settings_reset_achievements">Reset achievements</string>
@@ -911,11 +910,9 @@
     <string name="settings_reset_leaderboard_online_note">Scores already sent to %1$s stay there.</string>
     <!-- Progress files, in a build with no online game service (the GitHub APK): the player's own copy of their progress, to keep or carry to another device. -->
     <string name="settings_export_progress">Export progress</string>
-    <string name="settings_export_progress_description">Save achievements, scores, and settings to a file</string>
     <!-- What a screen reader says a tap on the export row does (it opens the system's "save as" picker). -->
     <string name="settings_export_progress_action">Export</string>
     <string name="settings_import_progress">Import progress</string>
-    <string name="settings_import_progress_description">Add progress from an exported file</string>
     <!-- What a screen reader says a tap on the import row does (it opens the "are you sure" dialog). -->
     <string name="settings_import_progress_action">Import</string>
     <string name="settings_import_progress_title">Import Progress?</string>

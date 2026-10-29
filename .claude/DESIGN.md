@@ -266,7 +266,7 @@ will map to Play Games.
     - `achievements`: unlock times and counters, plus the cloud save's counter shares (this file's own share id and the
         others' counts) and the streak's stamp. "Reset achievements" clears only this file.
     - `in_progress_game`, stamped `saved_at` on every save and clear.
-    - `online`: Play Games choices and the cloud save's bookkeeping (leaderboard reset marker, "Last saved").
+    - `online`: Play Games choices and the cloud save's bookkeeping (leaderboard reset marker, "Saved").
         No reset clears it.
     - `purchases`: `owns_all_styles`, what the store last said (`PURCHASES.md`). No reset clears it, and it isn't in
         the cloud save.
@@ -628,14 +628,14 @@ Two apps from one source, one per way the app reaches players: product flavours 
         Games, as above.
     - Named `DiceFive-<yyyy-MM-dd>.dicefive` (the player's day). Tests: `ProgressFileCodecTest`, `ProgressTransferTest`,
         `ProgressFilesViewModelTest`, `ProgressFilesSettingsTest`.
-- **Settings card** (`ProgressFilesCard`): Export progress and Import progress, each a whole-row button, where the online
-    card would be. Import asks first ("Import Progress?"). Under the rows, while an import runs, its step and count over
-    a bar, drawn by the same `StepProgress` as the online card's sync ("Opening the file", then the same four merge
-    steps, `MergeStep`, named the same: `MergeStepTest` keeps the two flows in step), for at least 1s
-    (`IMPORT_SHOWN_MILLIS`, shared out between the steps, so a quick import's bar still visibly runs: the card catches up
-    with the import a step at a time, `nextShownStatus`, counting only while the app is in front); then
-    how the last export or import ended, in red if it failed, until the next starts. No toasts. The line is a polite live
-    region: TalkBack hears "Importing progress" (not each step), then the outcome.
+- **Settings card** (`ProgressFilesCard`): Export progress and Import progress, each a whole-row button (a compact
+    `SettingRow`, its label alone), where the online card would be. Import asks first ("Import Progress?"). Under the
+    rows, while an import runs, its step and count over a bar, drawn by the same `StepProgress` as the online card's
+    sync ("Opening the file", then the same four merge steps, `MergeStep`, named the same: `MergeStepTest` keeps the two
+    flows in step), for at least 1s (`IMPORT_SHOWN_MILLIS`, shared out between the steps, so a quick import's bar still
+    visibly runs: the card catches up with the import a step at a time, `nextShownStatus`, counting only while the app
+    is in front); then how the last export or import ended, in red if it failed, until the next starts. No toasts. The
+    line is a polite live region: TalkBack hears "Importing progress" (not each step), then the outcome.
 
 ## Release pipeline
 

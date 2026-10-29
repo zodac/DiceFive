@@ -128,12 +128,15 @@ Always on while signed in, with no switch and no prompt. Every sync merges; noth
 
 ## Settings card
 
-`OnlineAccountCard`, the top card in Settings, titled `serviceName` (shared UI never says "Google"); hidden when
-`Unavailable`.
+`OnlineAccountCard`, the top card in Settings, titled `serviceName` while signed out (shared UI never says "Google");
+hidden when `Unavailable`.
 
-- Avatar (decorative), the gamer name in gold, and **Sign out**; or "Not signed in" and **Sign in**. Sign in stays
-    greyed while signing in and until that sync ends.
-- "Last saved `<time>`" (`cloud_saved:<account>`, via `formatTimestamp`) under the header.
+- Signed in: avatar (decorative), the gamer name in gold as the title (the service's name is spoken, not shown), and
+    **Sign out**. Signed out: "Not signed in" and **Sign in**. Sign in stays greyed while signing in and until that
+    sync ends.
+- "Saved `<time>`" (`cloud_saved:<account>`, via `formatTimestamp`) under the name, on one line at 360dp: the text
+    runs up to the button rather than stopping at a `ListItem`'s end padding.
+- In the last card, Reset achievements gives way to "View in `serviceName`", a one-line row.
 - While a sign-in's sync runs (`OnlineSync.progress`), a block names the step and count ("Merging scores (5/7)") with
     a spinner and a 400ms gliding bar (a still icon and snapping under reduced motion): `StepProgress`, which the
     github app's import shows too, with the same merge steps (`MergeStep`). Seven steps (`SyncStep`):
