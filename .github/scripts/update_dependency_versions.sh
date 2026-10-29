@@ -1526,10 +1526,12 @@ update_version_catalog() {
 #   - Determines the preceding FROM image and queries apt-cache policy in a fresh container
 #   - If packages aren't in the base image's default repos (a section after an added APT repo), falls
 #     back to building a temporary context image from all Dockerfile content up to that section, using
-#     the Dockerfile's own directory as the build context. Version pins in earlier <LABEL>
-#     PACKAGES blocks are stripped so they install cleanly in the context image, and the section's own
-#     stage drops its `COPY --from=` lines, so the stages they copy from (the ~10 GB of Android
-#     downloads) are not built.
+#     the Dockerfile's own directory as the build context (and, for a `FROM ${BASE_IMAGE}` stage, that
+#     base's Debian image as BASE_IMAGE: the ai-sandbox base itself is only ever built locally).
+#     Version pins in earlier <LABEL> PACKAGES blocks are stripped so they install cleanly in the
+#     context image, and the section's own stage drops its `COPY --from=` lines and any RUN that
+#     bind-mounts another stage, so the stages they name (the ~10 GB of Android downloads, the
+#     Playwright libraries) are not built.
 #   - Updates each package's pinned version in-place via sed
 # Best-effort per section.
 
@@ -1575,13 +1577,16 @@ update_apt_packages() {
         fi
 
         # A stage built on the shared ai-sandbox base (`FROM ${BASE_IMAGE}`) runs on that base's Debian
-        # release; resolve its pins against the plain Debian image of the same release.
+        # release; resolve its pins against the plain Debian image of the same release, which the fallback's
+        # context image is also built on.
+        local context_build_args=()
         if [[ "${base_image}" == "\${BASE_IMAGE}" ]]; then
             base_image=$(ai_sandbox_debian)
             if [[ -z "${base_image}" ]]; then
                 warn "Could not read the ai-sandbox base's Debian release for section ${section}, skipping"
                 continue
             fi
+            context_build_args=(--build-arg "BASE_IMAGE=${base_image}")
         fi
 
         if ! docker pull "${base_image}" >/dev/null 2>&1; then
@@ -1632,10 +1637,11 @@ update_apt_packages() {
         # Extracts all Dockerfile content up to (not including) this section's BEGIN
         # marker and builds a temporary image. Version pins in earlier <label> PACKAGES
         # blocks are stripped (gsub) so they install as latest-available rather than
-        # requiring exact versions that may no longer be in the apt cache. COPY --from
-        # lines in this section's own stage are dropped: an apt query needs none of the
-        # copied toolchains. Earlier stages keep theirs, since a stage this one still
-        # uses (a bind mount) may need them.
+        # requiring exact versions that may no longer be in the apt cache. In this section's
+        # own stage, COPY --from lines and RUN instructions that bind-mount another stage
+        # (`--mount=type=bind,from=...`) are dropped: an apt query needs neither the copied
+        # toolchains nor what a mounted stage installs, and the stages they name are then
+        # never built. Earlier stages keep theirs.
         local temp_image=""
         if [[ -n "${first_missing}" ]]; then
 
@@ -1650,7 +1656,11 @@ update_apt_packages() {
             ' "${dockerfile}")
 
             awk -v start="${start_marker}" -v end="${end_marker}" -v n="${section}" -v stage_from="${stage_from}" '
-                BEGIN { count = 0; in_prev_block = 0 }
+                BEGIN { count = 0; in_prev_block = 0; in_mount_run = 0 }
+                in_mount_run {                  # the rest of a dropped RUN, up to its last continuation
+                    if ($0 !~ /\\$/) in_mount_run = 0
+                    next
+                }
                 $0 ~ start {
                     count++
                     if (count == n) exit        # stop before the nth BEGIN
@@ -1662,10 +1672,15 @@ update_apt_packages() {
                     print; next
                 }
                 NR > stage_from && /^COPY --from=/ { next }    # no toolchains for an apt query
+                NR > stage_from && /^RUN .*--mount=type=bind,from=/ {
+                    if ($0 ~ /\\$/) in_mount_run = 1
+                    next
+                }
                 { print }
             ' "${dockerfile}" > "${tmpdir}/Dockerfile"
 
-            if ! docker build -t "${temp_image}" -f "${tmpdir}/Dockerfile" "$(dirname "${dockerfile}")" >/dev/null 2>&1; then
+            if ! docker build ${context_build_args+"${context_build_args[@]}"} -t "${temp_image}" -f "${tmpdir}/Dockerfile" \
+                "$(dirname "${dockerfile}")" >/dev/null 2>&1; then
                 warn "Context image build failed for section ${section}, skipping"
                 rm -rf "${tmpdir}"
                 temp_image=""
