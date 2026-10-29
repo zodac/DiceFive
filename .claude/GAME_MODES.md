@@ -81,7 +81,7 @@ has changed something there.
 - Copy `STANDARD` and set every field explicitly.
 - `description` is the one line on New Game. Say what's *different*.
 - `maxRollsPerGame`: boxes x rolls per turn, with the derivation on the entry. `GameModeTest` plays every roll.
-    - The Flowerpot blooms only in 3-roll modes (`growsSunflower`), so any other mode can't earn Greenfingers.
+    - The Flowerpot's plant grows over it, and blooms on its last roll in every mode (Green Fingers).
 - `maxPossibleScore`, with the derivation as a doc comment. `GameModeTest` plays a perfect game (every turn a 5x)
     through the engine.
     - A rule that changes what "perfect" means (no 5x possible, say) may need `perfectGame` taught about it.

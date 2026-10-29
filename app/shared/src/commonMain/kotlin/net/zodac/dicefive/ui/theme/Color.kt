@@ -325,7 +325,7 @@ val ManuscriptPaperEdge = Color(0xFF9AA3A8)
 val ManuscriptInk = Color(0xFF1B1F23)
 
 // The Flowerpot cup's plant (FlowerpotDiceCupStyle), from seedling to sunflower, shared with
-// Greenfingers' icon so the achievement shows the same sunflower the player grew. Fixed colours for
+// Green Fingers' icon so the achievement shows the same sunflower the player grew. Fixed colours for
 // the same reason as the rabbit's: a sunflower is one specific look, not a theme-able tint.
 val FlowerpotStem = Color(0xFF5DA34A)
 val FlowerpotLeaf = Color(0xFF7CC95C)

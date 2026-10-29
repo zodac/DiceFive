@@ -623,7 +623,7 @@ class GameAchievementsWiringTest {
     private suspend fun flowerpotSettings() = SettingsRepository(InMemoryPreferences()).apply { setDiceCupStyleId("flowerpot_terracotta") }
 
     @Test
-    fun `a full bloom on any cup but the growing Flowerpot never unlocks Greenfingers`() = runTest {
+    fun `a full bloom on any cup but the growing Flowerpot never unlocks Green Fingers`() = runTest {
         val table = started(LoadedDice(3))
         table.viewModel.playEveryTurnButTheLast { 3 }
         repeat(3) { table.viewModel.rollDice() }
@@ -632,7 +632,7 @@ class GameAchievementsWiringTest {
     }
 
     @Test
-    fun `using every roll of every turn unlocks Greenfingers on the game's very last roll - one turn scored early keeps it locked`() = runTest {
+    fun `using every roll of every turn unlocks Green Fingers on the game's very last roll - one turn scored early keeps it locked`() = runTest {
         val table = started(LoadedDice(3), settingsRepository = flowerpotSettings(), ownsAllStyles = true)
         advanceUntilIdle()
         table.viewModel.playEveryTurnButTheLast { 3 }

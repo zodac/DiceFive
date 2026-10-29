@@ -520,7 +520,7 @@ Each category is two lists in the same order:
 - **Easter eggs in the art:**
     - The Top Hat's rabbit peeks out after a quiet spell.
     - The Flowerpot grows a sunflower over the current player's rolls. It blooms only for one who uses every roll of
-        every turn in a three-roll mode. Greenfingers is earned only with that growing pot picked as the cup
+        every turn, in any mode, with no roll modifier. Green Fingers is earned only with that growing pot picked as the cup
         (not the fixed-stage pots it unlocks).
     - Egg dice (any colour but gold) with the Chicken cup roll a golden egg one time in 500, earned or not, in any
         mode or modifier except D20 (its dice are drawn as D20s).

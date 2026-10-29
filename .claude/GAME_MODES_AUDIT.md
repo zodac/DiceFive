@@ -26,15 +26,15 @@ mode changes, decide:
 - **Count the thing, not its proxy.** Bonus chips equal "2nd/3rd 5x" only while the 5x box has one slot;
     `fiveOfAKindCount` counts the 5x themselves.
 
-| Family           | Achievements                                                                                                                                                                     | Ask                                                                       |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Roll count       | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Time To Let It Go, What Was The Point Of That?, Greenfingers, Probability? Never Heard Of Her | Does "one roll used" or "every roll used" become automatic or impossible? |
-| First roll       | House Call, Straight Away, I Can Count!                                                                                                                                          | Is every roll now a first roll, or none?                                  |
-| Holds            | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues, Hands Off! (Standard only)                                                                             | Can dice still be held?                                                   |
-| Timer            | The timeout guards on low or zeroed cards (`GAME_MODES.md`)                                                                                                                      | Always or never a timer?                                                  |
-| Card contents    | How Do You Play This Game?, Spotless, Bonus Round, Upper/Lower Class, Exact Change, the 5x ones                                                                                  | Is each box still there, and do totals mean the same?                     |
-| Score thresholds | Solid Round ... Dice Deity (Standard and Tricolour only), Cold Dice, Low Rolls, Ton!, Nice, Rock Bottom, the score bands                                                         | Trivial or impossible at this ceiling?                                    |
-| Dice look        | Fresh Coat Of Paint, Luck Of The Irish                                                                                                                                           | Does the mode draw the player's dice style?                               |
+| Family           | Achievements                                                                                                                                                                      | Ask                                                                       |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Roll count       | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Time To Let It Go, What Was The Point Of That?, Green Fingers, Probability? Never Heard Of Her | Does "one roll used" or "every roll used" become automatic or impossible? |
+| First roll       | House Call, Straight Away, I Can Count!                                                                                                                                           | Is every roll now a first roll, or none?                                  |
+| Holds            | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues, Hands Off! (Standard only)                                                                              | Can dice still be held?                                                   |
+| Timer            | The timeout guards on low or zeroed cards (`GAME_MODES.md`)                                                                                                                       | Always or never a timer?                                                  |
+| Card contents    | How Do You Play This Game?, Spotless, Bonus Round, Upper/Lower Class, Exact Change, the 5x ones                                                                                   | Is each box still there, and do totals mean the same?                     |
+| Score thresholds | Solid Round ... Dice Deity (Standard and Tricolour only), Cold Dice, Low Rolls, Ton!, Nice, Rock Bottom, the score bands                                                          | Trivial or impossible at this ceiling?                                    |
+| Dice look        | Fresh Coat Of Paint, Luck Of The Irish                                                                                                                                            | Does the mode draw the player's dice style?                               |
 
 The roll helpers `rollsRemainingAfterFirst`/`AfterSecond` are `rollsPerTurn - 1`/`- 2`. With fewer than three rolls
 they reach 0 or below, so read each comparison against them.
@@ -76,7 +76,7 @@ The draw is always three upper and three lower boxes. A short game with small to
 **Still earnable** (report these):
 
 - Impatient and Naturally Gifted;
-- Greenfingers (18 rolls rather than 39);
+- Green Fingers (18 rolls rather than 39);
 - Nice and Ton! (likelier);
 - Zero To Hero (harder);
 - Landslide and the wins.
@@ -137,7 +137,7 @@ in a Lifetime is guarded in `AchievementTracker.onCommit`):
 - A Cunning Strategy and Commitment Issues count "all five" as the hold slots;
 - Déjà Vu compares all seven dice (harder);
 - Well Rolled counts seven dice a roll;
-- Greenfingers works as in Standard.
+- Green Fingers works as in Standard.
 
 The mode's own: Lucky Seven (all seven showing one number).
 
@@ -178,7 +178,7 @@ The mode's own: Lucky Seven (all seven showing one number).
     call, 2026-10-29);
 - Cold Dice, Low Rolls, Ton! and Nice (harder);
 - Professional Roller;
-- Greenfingers (117 rolls).
+- Green Fingers (117 rolls).
 
 The mode's own: Gone With The Wind (a multiplayer win) and Third Time's The Charm (all 39 slots without a zero).
 
@@ -209,7 +209,7 @@ of 5.
 - Ton!;
 - Wasted Fortune (always a zero);
 - The Dice Hate Me (likelier);
-- Greenfingers (39 rolls).
+- Green Fingers (39 rolls).
 
 The mode's own: Contract Fulfilled (a multiplayer win) and Right On Target (an exact hit on a five-number target,
 judged mid-game).
@@ -246,7 +246,7 @@ Cold Dice and Low Rolls count: under 100 needs a disastrous game, as on Standard
 **Still earnable**:
 
 - Impatient and Naturally Gifted;
-- Greenfingers (110 rolls: every roll of its 22 turns of five);
+- Green Fingers (110 rolls: every roll of its 22 turns of five);
 - Probability? Never Heard Of Her, on a half's bonus: the last box one of a half's numbers that one die would have
     taken to its threshold (never a wildcard);
 - the roll-pattern feats I Can Count! and The Dice Hate Me, far rarer on 20 faces (House Call and Straight Away can't

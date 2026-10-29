@@ -201,7 +201,7 @@
     <string name="achievement_time_wasting_title">Perdiendo el tiempo</string>
     <string name="achievement_time_wasting_description">Conserva y suelta cada dado en secuencia</string>
     <string name="achievement_hands_off_title">¡Sin manos!</string>
-    <string name="achievement_hands_off_description">Suma 200 o más en una partida 'Estándar' sin modificadores, sin conservar nunca un dado</string>
+    <string name="achievement_hands_off_description">Suma 200 o más en una partida 'Estándar', sin conservar nunca un dado</string>
     <string name="achievement_i_didnt_mean_that_title">No quería eso</string>
     <string name="achievement_i_didnt_mean_that_description">Deshaz una puntuación y anota en otra categoría</string>
     <string name="achievement_no_more_rolls_title">Sin más tiradas</string>
@@ -271,11 +271,11 @@
     <string name="achievement_shaken_not_tapped_title">Agitado, no tocado</string>
     <string name="achievement_shaken_not_tapped_description">Agita el teléfono para tirar los dados</string>
     <string name="achievement_eggcellent_discovery_title">Un descubrimiento de oro</string>
-    <string name="achievement_eggcellent_discovery_description">Encuentra el huevo de oro</string>
+    <string name="achievement_eggcellent_discovery_description">¡Encuentra el huevo de oro!</string>
     <string name="achievement_the_magicians_secret_title">El secreto del mago</string>
     <string name="achievement_the_magicians_secret_description">Descubre dónde se esconde Luna</string>
     <string name="achievement_the_solution_title">La solución</string>
-    <string name="achievement_the_solution_description">Juega una partida 'Estándar' en solitario, sin modificadores, como Phil Woodward y anota exactamente 255 puntos</string>
+    <string name="achievement_the_solution_description">Juega una partida 'Estándar' en solitario como 'Phil Woodward' y anota exactamente 255 puntos</string>
     <string name="mode_standard">Estándar</string>
     <string name="mode_standard_description">Las reglas oficiales</string>
     <string name="mode_tricolour">Tricolor</string>

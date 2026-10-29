@@ -275,7 +275,7 @@
     <string name="achievement_time_wasting_title">Time Wasting</string>
     <string name="achievement_time_wasting_description">Hold then unhold each die in sequence</string>
     <string name="achievement_hands_off_title">Hands Off!</string>
-    <string name="achievement_hands_off_description">Score 200 or more in a 'Standard' game with no modifiers, without ever holding a die</string>
+    <string name="achievement_hands_off_description">Score 200 or more in a 'Standard' game, without ever holding a die</string>
     <string name="achievement_i_didnt_mean_that_title">I Didn't Mean That</string>
     <string name="achievement_i_didnt_mean_that_description">Undo a score and score a different category</string>
     <string name="achievement_no_more_rolls_title">No More Rolls</string>
@@ -334,7 +334,7 @@
     <string name="achievement_are_you_a_developer_description">Tap the version number seven times</string>
     <string name="achievement_big_fan_title">Big Fan</string>
     <string name="achievement_big_fan_description">Play a 1v1 game against the creator</string>
-    <string name="achievement_greenfingers_title">Greenfingers</string>
+    <string name="achievement_greenfingers_title">Green Fingers</string>
     <string name="achievement_greenfingers_description">Grow a sunflower</string>
     <string name="achievement_luck_of_the_irish_title">Luck Of The Irish</string>
     <string name="achievement_luck_of_the_irish_description">Play a game of 'Tricolour' mode as Ireland/Éire</string>
@@ -345,11 +345,11 @@
     <string name="achievement_shaken_not_tapped_title">Shaken, Not Tapped</string>
     <string name="achievement_shaken_not_tapped_description">Shake your phone to roll the dice</string>
     <string name="achievement_eggcellent_discovery_title">Eggcellent Discovery</string>
-    <string name="achievement_eggcellent_discovery_description">Find the golden egg</string>
+    <string name="achievement_eggcellent_discovery_description">Find the golden egg!</string>
     <string name="achievement_the_magicians_secret_title">The Magician's Secret</string>
     <string name="achievement_the_magicians_secret_description">Find where Luna is hiding</string>
     <string name="achievement_the_solution_title">The Solution</string>
-    <string name="achievement_the_solution_description">Play a solo 'Standard' game, no modifiers, as Phil Woodward and score exactly 255 points</string>
+    <string name="achievement_the_solution_description">Play a solo 'Standard' game as 'Phil Woodward' and score exactly 255 points</string>
 
     <!-- Game mode names and one-line descriptions, shown in the mode picker (model/GameMode.kt). -->
     <string name="mode_standard">Standard</string>

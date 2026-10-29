@@ -836,13 +836,13 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `a full bloom earns Greenfingers only on the Flowerpot that grows its plant`() {
+    fun `a full bloom earns Green Fingers only on the Flowerpot that grows its plant`() {
         assertTrue(greenfingersAfter(39))
         assertFalse(greenfingersAfter(39, growingFlowerpot = false))
     }
 
     @Test
-    fun `using every roll of every turn unlocks Greenfingers - one roll short does not - in each mode - for player 1 only`() {
+    fun `using every roll of every turn unlocks Green Fingers - one roll short does not - in each mode - for player 1 only`() {
         assertTrue(greenfingersAfter(39))
         assertFalse(greenfingersAfter(38))
         // Tricolour's card is longer, so its sunflower takes every roll of its 17 turns.

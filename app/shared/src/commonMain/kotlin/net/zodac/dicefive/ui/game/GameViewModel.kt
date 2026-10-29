@@ -483,7 +483,7 @@ class GameViewModel(
         if (isPlayerOneTurn) {
             unlockAchievements(tracker.onRoll(state, rolled))
             announceRollAchievementsOnceLanded(
-                // Greenfingers blooms on a roll, not a score: on the game's very last roll, before its last box is filled.
+                // Green Fingers blooms on a roll, not a score: on the game's very last roll, before its last box is filled.
                 bloomed = growsFlowerpot() && _game.value?.players?.firstOrNull()?.hasGrownSunflower == true,
             )
         }

@@ -808,7 +808,7 @@ private val FlowerpotTerracotta = CupPalette(
 
 /**
  * The Flowerpot's colours: the pot that grows its plant through a game (the one everyone has), then
- * one pot for each stage of the plant, held there - secret, all of them, until Greenfingers is
+ * one pot for each stage of the plant, held there - secret, all of them, until Green Fingers is
  * earned. Each shows the plant's own colour on the Styles screen, since the pot is the same.
  */
 private fun flowerpotColours(): List<StyleArt<DiceCupStyle>> {

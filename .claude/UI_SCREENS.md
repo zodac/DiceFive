@@ -150,7 +150,7 @@ available. `StyleRegistryTest` keeps the counts within what can be earned.
 - **Secret colours** (`StyleVariant.secretAchievement`) are left out entirely until earned:
     - the Irish Multicolour dice (Luck Of The Irish);
     - the white and black D20 (Nat 20) and the blue D20 (Critical Success);
-    - the Flowerpot's plant-stage pots (Greenfingers);
+    - the Flowerpot's plant-stage pots (Green Fingers);
     - the Top Hat with its rabbit always out (The Magician's Secret);
     - the gold Egg dice (Eggcellent Discovery).
 - **The golden egg.** With Egg dice (any colour but gold) and the Chicken cup, even once earned, each human-rolled

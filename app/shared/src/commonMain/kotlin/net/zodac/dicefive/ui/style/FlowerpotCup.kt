@@ -35,7 +35,7 @@ import net.zodac.dicefive.ui.theme.SunflowerPetal
 import net.zodac.dicefive.ui.theme.SunflowerPetalShade
 import net.zodac.dicefive.ui.theme.SunflowerSeed
 
-// The flowerpot's soil (its plant's colours are in ui.theme, shared with Greenfingers' icon).
+// The flowerpot's soil (its plant's colours are in ui.theme, shared with Green Fingers' icon).
 private val SoilTop = Color(0xFF5A3D28)
 private val SoilBottom = Color(0xFF3E2819)
 private val SoilGrainDark = Color(0xFF2A1A0F)
@@ -65,7 +65,7 @@ private const val STEM_STEPS = 16
  *
  * An easter egg: in a game the plant grows with the current player's rolls ([LocalFlowerpotGrowth]),
  * from bare soil through a seedling, a stalk with a bud and the bud opening, to a sunflower in full
- * bloom for a player who uses every roll of every turn - which is what earns Greenfingers, and with
+ * bloom for a player who uses every roll of every turn - which is what earns Green Fingers, and with
  * it the secret pots that hold the plant at each stage: one with a [fixedStage] never grows, and is
  * just a pot with that plant in it. Only the one with no [fixedStage] - the empty pot that grows -
  * does the game's Flowerpot tricks (the plant, standing back up to show off its bloom).

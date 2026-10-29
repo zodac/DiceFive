@@ -218,7 +218,7 @@
     <string name="achievement_time_wasting_title">إضاعة الوقت</string>
     <string name="achievement_time_wasting_description">ثبّت كل حجر نرد ثم حرّره بالتتابع</string>
     <string name="achievement_hands_off_title">بلا أيدٍ!</string>
-    <string name="achievement_hands_off_description">سجّل ٢٠٠ نقطة أو أكثر في لعبة «قياسية» دون معدّلات ودون أن تثبّت أي نرد</string>
+    <string name="achievement_hands_off_description">سجّل ٢٠٠ نقطة أو أكثر في لعبة «قياسية» دون أن تثبّت أي نرد</string>
     <string name="achievement_i_didnt_mean_that_title">لم أقصد ذلك</string>
     <string name="achievement_i_didnt_mean_that_description">تراجع عن نتيجة وسجّل في فئة مختلفة</string>
     <string name="achievement_no_more_rolls_title">لا مزيد من الرميات</string>
@@ -288,11 +288,11 @@
     <string name="achievement_shaken_not_tapped_title">هزًّا لا ضغطًا</string>
     <string name="achievement_shaken_not_tapped_description">هزّ هاتفك لترمي النرد</string>
     <string name="achievement_eggcellent_discovery_title">اكتشاف ذهبي</string>
-    <string name="achievement_eggcellent_discovery_description">اعثر على البيضة الذهبية</string>
+    <string name="achievement_eggcellent_discovery_description">اعثر على البيضة الذهبية!</string>
     <string name="achievement_the_magicians_secret_title">سر الساحر</string>
     <string name="achievement_the_magicians_secret_description">اعثر على مخبأ لونا</string>
     <string name="achievement_the_solution_title">الحل</string>
-    <string name="achievement_the_solution_description">العب لعبة «قياسية» فردية دون معدّلات بوصفك Phil Woodward وسجّل ٢٥٥ نقطة بالضبط</string>
+    <string name="achievement_the_solution_description">العب لعبة «قياسية» فردية بوصفك «Phil Woodward» وسجّل ٢٥٥ نقطة بالضبط</string>
     <string name="mode_standard">القياسي</string>
     <string name="mode_standard_description">القواعد الرسمية</string>
     <string name="mode_tricolour">ثلاثي الألوان</string>
