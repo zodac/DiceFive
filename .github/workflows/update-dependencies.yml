@@ -2,7 +2,7 @@ name: Update dependencies
 
 # Once a month (and on demand), runs .github/scripts/update_dependency_versions.sh - every Gradle
 # dependency, the Android SDK platform, the NDK, the JDK, the sandbox image's pins, the linter images, and the
-# code-quality-config submodule (to its newest tag) -
+# code-quality-config and ai-sandbox submodules (each to its newest tag) -
 # then re-runs the same gates the release workflow applies. Only if everything passes is the result
 # committed to main and a release started; a failure anywhere leaves main untouched (the run just
 # fails, with the reason in its log).
@@ -52,7 +52,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: true # code-quality-config: lint's rules, which release builds read too (lintVital)
+          # code-quality-config: lint's rules, which release builds read too (lintVital); ai-sandbox: the base image's
+          # Debian release, which the script keeps the sandbox's download stage on
+          submodules: true
           ref: main
           persist-credentials: false
 

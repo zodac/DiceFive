@@ -1524,10 +1524,9 @@ update_version_catalog() {
 # ── 9. Debian (apt) packages ─────────────────────────────────────────────────
 # For each # BEGIN/END <LABEL> PACKAGES block in the given Dockerfile:
 #   - Determines the preceding FROM image and queries apt-cache policy in a fresh container
-#   - If packages aren't in the base image's default repos (e.g. the Docker-engine packages, which
-#     need the Docker APT repo configured), falls back to building a temporary context image from all
-#     Dockerfile content up to that section, using the Dockerfile's own directory as the build
-#     context (the file COPYs daemon.json before that point). Version pins in earlier <LABEL>
+#   - If packages aren't in the base image's default repos (a section after an added APT repo), falls
+#     back to building a temporary context image from all Dockerfile content up to that section, using
+#     the Dockerfile's own directory as the build context. Version pins in earlier <LABEL>
 #     PACKAGES blocks are stripped so they install cleanly in the context image, and the section's own
 #     stage drops its `COPY --from=` lines, so the stages they copy from (the ~10 GB of Android
 #     downloads) are not built.

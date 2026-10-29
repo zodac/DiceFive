@@ -23,10 +23,10 @@
 # so a sandbox build never has to download a JDK - keep the two on the same major
 # (the update script's consistency check enforces it).
 #
-# NOTE: every version below is pinned, and bumped by running
-# .github/scripts/update_dependency_versions.sh from the repo root (nothing runs it
-# on a schedule), so a build that fails on a version Debian has since dropped means
-# it is time for a run. That script relies on this file's shape: the `FROM … AS
+# NOTE: every version below is pinned, and bumped by
+# .github/scripts/update_dependency_versions.sh (the monthly update-dependencies
+# workflow, or a run from the repo root), so a build that fails on a version Debian
+# has since dropped means it is time for a run. That script relies on this file's shape: the `FROM … AS
 # jdk` stage name, the BEGIN/END DEBIAN PACKAGES markers, the cmdline-tools URL +
 # sha1 line, the `ARG EMULATOR_API` line and the `ENV IMAGEMAGICK_VERSION`/
 # `IMAGEMAGICK_SHA256` lines. The shared base's own pins (Debian, Node, the Docker
