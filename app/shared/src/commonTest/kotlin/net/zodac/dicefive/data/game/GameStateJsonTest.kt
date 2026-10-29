@@ -107,13 +107,17 @@ class GameStateJsonTest {
         assertEquals(listOf(PlayerColour.LIME, PlayerColour.PINK), roundTripped(coloured).players.map { it.colour })
         assertTrue(roundTripped(GameState(players = listOf(human.copy(fiveOfAKindFlashed = true)))).players.single().fiveOfAKindFlashed)
         assertFalse(roundTripped(GameState(players = listOf(human))).players.single().fiveOfAKindFlashed)
-        // The holds a player has made, for Hands Off! once the game is resumed.
-        assertEquals(7, roundTripped(GameState(players = listOf(human.copy(diceHeld = 7)))).players.single().diceHeld)
-        assertEquals(0, roundTripped(GameState(players = listOf(human))).players.single().diceHeld)
+        // Whether a round has ended with the player behind, for Front-Runner once the game is resumed.
+        assertTrue(roundTripped(GameState(players = listOf(human.copy(wasBehindAfterARound = true)))).players.single().wasBehindAfterARound)
+        assertFalse(roundTripped(GameState(players = listOf(human))).players.single().wasBehindAfterARound)
         // The first turn's score, for Slow Start once the game is resumed - a zero among them, which isn't the same as none.
         assertEquals(0, roundTripped(GameState(players = listOf(human.copy(firstTurnScore = 0)))).players.single().firstTurnScore)
         assertEquals(23, roundTripped(GameState(players = listOf(human.copy(firstTurnScore = 23)))).players.single().firstTurnScore)
         assertEquals(null, roundTripped(GameState(players = listOf(human))).players.single().firstTurnScore)
+        // The 5x numbers and Full House hands scored, for Full Set and Full Houses once the game is resumed.
+        assertEquals(setOf(2, 6), roundTripped(GameState(players = listOf(human.copy(fiveOfAKindNumbers = setOf(6, 2))))).players.single().fiveOfAKindNumbers)
+        assertEquals(setOf(1, 2), roundTripped(GameState(players = listOf(human.copy(fullHouseHands = setOf(1, 2))))).players.single().fullHouseHands)
+        assertEquals(emptySet(), roundTripped(GameState(players = listOf(human))).players.single().fullHouseHands)
 
         // The roll modifiers and a player's stored rolls.
         roundTripped(

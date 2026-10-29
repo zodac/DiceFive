@@ -150,6 +150,34 @@ class AchievementsTextTest : UiTest() {
     }
 
     @Test
+    fun `Full Houses opens a list of its two hands - the scored one struck through and read as its dice scored`() = uiTest {
+        // The worst hand scored so far: bit 0.
+        val store = object : AchievementStore {
+            override val state = MutableStateFlow(AchievementsState(counters = mapOf(AchievementCounter.FULL_HOUSES to 0b01)))
+            override suspend fun current() = state.value
+            override suspend fun record(unlockedAt: Map<Achievement, Long>, counters: Map<AchievementCounter, Int>) = Unit
+            override suspend fun resetAll() = Unit
+            override suspend fun forceLock(achievement: Achievement) = Unit
+        }
+        val viewModel = achievementsViewModel(store = store)
+        showAchievements(viewModel)
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Full Houses"))
+        val row = compose.onNode(SemanticsMatcher("clicks to show the missing Full Houses") { it.config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label == "Show the missing Full Houses" })
+        row.performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Full Houses not yet scored: 1 left").assertExists()
+        row.performTouchInput { longClick() }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Full Houses not yet scored (1 left):").assertExists()
+        // Each hand shown as its dice joined by dashes, and spoken as a list of them.
+        compose.onNodeWithText("1-1-1-2-2").assertExists()
+        compose.onNodeWithText("5-5-6-6-6").assertExists()
+        compose.onNodeWithContentDescription("1, 1, 1, 2, and 2, scored").assertExists()
+        compose.onNodeWithContentDescription("5, 5, 6, 6, and 6").assertExists()
+    }
+
+    @Test
     fun `Grand Tour opens a list of every mode by name - the ones finished read as finished`() = uiTest {
         val modesPlayed = listOf(GameMode.STANDARD, GameMode.STUD, GameMode.THIRD_WIND)
         val dao = object : ScoreDao by InMemoryScoreDao(emptyList()) {
@@ -243,9 +271,9 @@ class AchievementsTextTest : UiTest() {
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Scratched"))
         assertEquals(false, SemanticsActions.OnClick in compose.onNode(hasText("Scratched")).fetchSemanticsNode().config)
 
-        // A hidden one never names its modes: Hands Off has nothing else to show, so no action at all.
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Hands Off!"))
-        assertEquals(false, SemanticsActions.OnClick in compose.onNode(hasText("Hands Off!")).fetchSemanticsNode().config)
+        // A hidden one never names its modes: Impatient has nothing else to show, so no action at all.
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Impatient"))
+        assertEquals(false, SemanticsActions.OnClick in compose.onNode(hasText("Impatient")).fetchSemanticsNode().config)
     }
 
     @Test

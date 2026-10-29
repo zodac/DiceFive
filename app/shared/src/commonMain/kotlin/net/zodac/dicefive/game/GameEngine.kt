@@ -3,6 +3,7 @@ package net.zodac.dicefive.game
 import kotlin.math.abs
 import kotlin.random.Random
 import kotlin.uuid.Uuid
+import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
@@ -138,13 +139,7 @@ object GameEngine {
             if (index == dieIndex) current.copy(isHeld = !current.isHeld, heldSlot = null) else current
         }
         val placed = if (!die.isHeld && state.gameMode.scoresHeldDiceOnly) placeInSlots(newDice, state.gameMode.scoringDiceCount) else newDice
-        // A hold, not a release, is counted for the player whose turn it is.
-        val players = if (die.isHeld) {
-            state.players
-        } else {
-            state.players.mapIndexed { index, player -> if (index == state.currentPlayerIndex) player.copy(diceHeld = player.diceHeld + 1) else player }
-        }
-        return state.copy(dice = placed, players = players)
+        return state.copy(dice = placed)
     }
 
     /**
@@ -231,6 +226,11 @@ object GameEngine {
 
         val value = ScoreCalculator.scoreFor(player, category, hand)
         val bonus = ScoreCalculator.awardsFiveOfAKindBonus(player, hand)
+        // A 5x scored, in the box or as a chip - not where held dice alone score (Stud), where it's no feat.
+        val scoresFiveOfAKind = !state.gameMode.scoresHeldDiceOnly &&
+            ((category == ScoreCategory.FIVE_OF_A_KIND && DiceScoring.isFiveOfAKind(hand)) || bonus)
+        // The worst and best Full Houses there are - which a 5x as a joker never is.
+        val fullHouseHand = Achievement.FULL_HOUSES_HANDS.indexOf(hand.map { it.value }.sorted()) + 1
         val updatedPlayer = player.copy(
             scorecard = player.scorecard + (category to player.scoresIn(category) + value),
             fiveOfAKindBonusCount = player.fiveOfAKindBonusCount + if (bonus) 1 else 0,
@@ -242,6 +242,8 @@ object GameEngine {
             lastRoll = state.dice,
             lastScoredCategory = category,
             firstTurnScore = if (player.turnsTaken == 0) value else player.firstTurnScore,
+            fiveOfAKindNumbers = if (scoresFiveOfAKind) player.fiveOfAKindNumbers + hand.first().value else player.fiveOfAKindNumbers,
+            fullHouseHands = if (category == ScoreCategory.FULL_HOUSE && fullHouseHand > 0) player.fullHouseHands + fullHouseHand else player.fullHouseHands,
             // Whatever is left of this turn's rolls waits for their next one (none, unless Stored Rolls is on).
             storedRolls = state.rollModifiers.stored(state.rollsRemaining),
         )
@@ -283,11 +285,21 @@ object GameEngine {
 
     private const val PERCENT = 100
 
-    private fun advanceTurn(state: GameState): GameState {
+    /** A round just ended: every player now behind another player's total has been behind at the end of a round. */
+    private fun noteBehind(state: GameState): GameState {
+        val players = state.players.mapIndexed { index, player ->
+            val bestOther = state.players.filterIndexed { other, _ -> other != index }.maxOfOrNull { it.totalScore }
+            if (bestOther != null && player.totalScore < bestOther) player.copy(wasBehindAfterARound = true) else player
+        }
+        return state.copy(players = players)
+    }
+
+    private fun advanceTurn(turnEnded: GameState): GameState {
+        val nextIndex = (turnEnded.currentPlayerIndex + 1) % turnEnded.players.size
+        val state = if (nextIndex == 0) noteBehind(turnEnded) else turnEnded
         if (state.players.all { it.isScorecardComplete }) {
             return state.copy(isGameOver = true)
         }
-        val nextIndex = (state.currentPlayerIndex + 1) % state.players.size
         val turnRolls = state.rollsPerTurn + state.players[nextIndex].storedRolls
         return state.copy(
             currentPlayerIndex = nextIndex,

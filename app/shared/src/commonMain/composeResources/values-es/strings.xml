@@ -140,6 +140,8 @@
     <string name="achievement_how_do_you_do_fellow_cpus_description">No acabes último en una partida de cuatro jugadores contra tres jugadores CPU difíciles</string>
     <string name="achievement_slow_start_title">Comienzo lento</string>
     <string name="achievement_slow_start_description">Gana una partida tras anotar cero en tu primer turno</string>
+    <string name="achievement_front_runner_title">Siempre en cabeza</string>
+    <string name="achievement_front_runner_description">Gana una partida sin quedar nunca por detrás al final de una ronda</string>
     <string name="achievement_everything_everywhere_all_at_once_title">Todo a la vez en todas partes</string>
     <string name="achievement_everything_everywhere_all_at_once_description">Gana una partida en un modo distinto del estándar con todos los modificadores activados</string>
     <string name="achievement_where_were_going_we_dont_need_rules_title">Donde vamos no hacen falta reglas</string>
@@ -200,8 +202,6 @@
     <string name="achievement_time_to_let_it_go_description">Conserva el mismo dado tras la 1.ª y la 2.ª tirada y luego anota sin usarlo</string>
     <string name="achievement_time_wasting_title">Perdiendo el tiempo</string>
     <string name="achievement_time_wasting_description">Conserva y suelta cada dado en secuencia</string>
-    <string name="achievement_hands_off_title">¡Sin manos!</string>
-    <string name="achievement_hands_off_description">Suma 200 o más en una partida `Estándar`, sin conservar nunca un dado</string>
     <string name="achievement_i_didnt_mean_that_title">No quería eso</string>
     <string name="achievement_i_didnt_mean_that_description">Deshaz una puntuación y anota en otra categoría</string>
     <string name="achievement_no_more_rolls_title">Sin más tiradas</string>
@@ -210,10 +210,8 @@
     <string name="achievement_impatient_description">Termina una partida sin tirar más de una vez en ningún turno</string>
     <string name="achievement_fresh_coat_of_paint_title">Mano de pintura</string>
     <string name="achievement_fresh_coat_of_paint_description">Juega una partida con algún elemento con un estilo no predeterminado</string>
-    <string name="achievement_empty_house_title">Casa vacía</string>
-    <string name="achievement_empty_house_description">Anota el peor Full (tres 1 y dos 2)</string>
-    <string name="achievement_fuller_house_title">Casa llena</string>
-    <string name="achievement_fuller_house_description">Anota el mejor Full (tres 6 y dos 5)</string>
+    <string name="achievement_my_favourite_number_title">Mi número favorito</string>
+    <string name="achievement_my_favourite_number_description">Anota los mismos puntos en 4 categorías distintas en una partida `Estándar`</string>
     <string name="achievement_house_call_title">Visita a domicilio</string>
     <string name="achievement_house_call_description">Saca un full en la primera tirada de un turno</string>
     <string name="achievement_straight_away_title">De inmediato</string>
@@ -242,6 +240,8 @@
     <string name="achievement_rock_bottom_description">Termina una partida con exactamente 5, la puntuación más baja que permiten las reglas</string>
     <string name="achievement_who_made_this_title">¿Quién hizo esto?</string>
     <string name="achievement_who_made_this_description">Abre la página `Acerca de`</string>
+    <string name="achievement_full_houses_title">Casas llenas</string>
+    <string name="achievement_full_houses_description">Anota el mejor y el peor Full posibles</string>
     <string name="achievement_tally_title">Recuento</string>
     <string name="achievement_tally_description">Registra todas las puntuaciones del 5 al 50 en la clasificación</string>
     <string name="achievement_bookkeeper_title">Contable</string>
@@ -936,6 +936,9 @@
     <string name="achievements_missing_numbers_message">Números sin un 5x anotado todavía (faltan %1$s):</string>
     <string name="achievements_missing_numbers_action">Mostrar los números que faltan</string>
     <string name="achievements_missing_numbers_tooltip">Números sin un 5x anotado todavía: faltan %1$s</string>
+    <string name="achievements_missing_hands_message">Fulls aún sin anotar (faltan %1$s):</string>
+    <string name="achievements_missing_hands_action">Mostrar los Fulls que faltan</string>
+    <string name="achievements_missing_hands_tooltip">Fulls aún sin anotar: faltan %1$s</string>
     <string name="achievements_number_scored">%1$s, anotado</string>
     <string name="achievements_number_label">%1$s</string>
     <string name="achievements_missing_modes_message">Modos sin ninguna partida terminada todavía (faltan %1$s):</string>

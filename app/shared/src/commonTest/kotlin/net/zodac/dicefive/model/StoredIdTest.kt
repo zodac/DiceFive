@@ -27,7 +27,7 @@ class StoredIdTest {
         assertEquals(listOf("standard", "tricolour", "third_wind", "stud", "d20", "hit_list", "quickfire"), ids(GameMode.entries))
         assertEquals(listOf("name", "first_played", "highest_score", "highest_average", "most_games"), ids(StatisticsSort.entries))
         // Achievement ids are each the constant's name in lower case - AchievementEngineTest pins that.
-        assertEquals(listOf("GAMES_PLAYED", "GAMES_WON", "WIN_STREAK", "SCORED_5X", "DICE_ROLLED", "FIVE_X_NUMBERS"), ids(AchievementCounter.entries))
+        assertEquals(listOf("GAMES_PLAYED", "GAMES_WON", "WIN_STREAK", "SCORED_5X", "DICE_ROLLED", "FIVE_X_NUMBERS", "FULL_HOUSES"), ids(AchievementCounter.entries))
         assertEquals(
             listOf(
                 "ONES", "TWOS", "THREES", "FOURS", "FIVES", "SIXES",

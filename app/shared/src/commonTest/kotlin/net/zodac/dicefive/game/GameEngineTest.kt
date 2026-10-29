@@ -148,17 +148,39 @@ class GameEngineTest {
     }
 
     @Test
-    fun `each hold is counted for the player whose turn it is - a release is not - and the count lasts the game`() {
-        val rolled = GameEngine.rollDice(GameEngine.newGame(twoPlayers))
-        val held = GameEngine.toggleHold(GameEngine.toggleHold(rolled, dieIndex = 0), dieIndex = 1)
-        assertEquals(listOf(2, 0), held.players.map { it.diceHeld })
-        // Released and held again: one more hold, not two.
-        val again = GameEngine.toggleHold(GameEngine.toggleHold(held, dieIndex = 0), dieIndex = 0)
-        assertEquals(listOf(3, 0), again.players.map { it.diceHeld })
+    fun `a round ending with a player behind another's total is remembered for them - a tie is not behind - and it lasts the game`() {
+        // Player 2 is about to score Chance with five 4s (20) in the last turn of the round.
+        fun roundEnding(playerOneChance: Int): GameState {
+            val start = GameEngine.newGame(twoPlayers)
+            val first = start.players[0]
+            return start.copy(
+                players = listOf(first.copy(scorecard = first.scorecard + (ScoreCategory.CHANCE to listOf(playerOneChance))), start.players[1]),
+                currentPlayerIndex = 1,
+                dice = List(5) { Die(value = 4) },
+                rollsRemaining = 1,
+                phase = TurnPhase.ROLLED,
+            )
+        }
+        fun behind(state: GameState) = GameEngine.commitScore(state, ScoreCategory.CHANCE).players.map { it.wasBehindAfterARound }
 
-        // Into player 2's turn: player 1's count stays, and player 2's holds are their own.
-        val nextTurn = GameEngine.rollDice(GameEngine.commitScore(again, ScoreCategory.CHANCE))
-        assertEquals(listOf(3, 1), GameEngine.toggleHold(nextTurn, dieIndex = 4).players.map { it.diceHeld })
+        assertEquals(listOf(true, false), behind(roundEnding(playerOneChance = 10)))
+        assertEquals(listOf(false, true), behind(roundEnding(playerOneChance = 30)))
+        assertEquals(listOf(false, false), behind(roundEnding(playerOneChance = 20)))
+
+        // Not at the end of a turn that leaves the round going: player 1 scoring below player 2's 0 isn't a round's end.
+        val midRound = GameEngine.newGame(twoPlayers).let { it.copy(dice = List(5) { Die(value = 4) }, rollsRemaining = 1, phase = TurnPhase.ROLLED) }
+        assertEquals(listOf(false, false), GameEngine.commitScore(midRound, ScoreCategory.CHANCE).players.map { it.wasBehindAfterARound })
+
+        // Once behind, a later round in front doesn't clear it.
+        val behindOnce = GameEngine.commitScore(roundEnding(playerOneChance = 10), ScoreCategory.CHANCE)
+        val laterRound = behindOnce.copy(
+            players = behindOnce.players.map { it.copy(scorecard = it.scorecard + (ScoreCategory.ONES to listOf(if (it.wasBehindAfterARound) 20 else 0))) },
+            currentPlayerIndex = 1,
+            dice = List(5) { Die(value = 1) },
+            phase = TurnPhase.ROLLED,
+        )
+        // Player 1 now leads (30 to 20), and stays remembered; player 2 is the one behind now.
+        assertEquals(listOf(true, true), GameEngine.commitScore(laterRound, ScoreCategory.TWOS).players.map { it.wasBehindAfterARound })
     }
 
     @Test
@@ -269,6 +291,38 @@ class GameEngineTest {
             )
         }
         assertTrue(GameEngine.commitScore(lastTurn, ScoreCategory.COLOURED_HOUSE).isGameOver)
+    }
+
+    /** Player 1 having rolled [values] in a game of [mode], with [scored] already on their card. */
+    private fun rolled(vararg values: Int, mode: GameMode = GameMode.STANDARD, scored: Map<ScoreCategory, Int> = emptyMap()): GameState {
+        val game = GameEngine.newGame(onePlayer, mode)
+        val player = game.players.single().let { it.copy(scorecard = it.scorecard + scored.mapValues { (_, score) -> listOf(score) }) }
+        return game.copy(players = listOf(player), dice = values.map { Die(value = it) }, phase = TurnPhase.ROLLED, rollsRemaining = 2)
+    }
+
+    @Test
+    fun `a Full House of the worst or best hand is kept on the player - in any order - only in the Full House box`() {
+        assertEquals(setOf(1), scoreNow(rolled(2, 1, 2, 1, 1), ScoreCategory.FULL_HOUSE).players.single().fullHouseHands)
+        assertEquals(setOf(2), scoreNow(rolled(6, 5, 6, 6, 5), ScoreCategory.FULL_HOUSE).players.single().fullHouseHands)
+        assertEquals(emptySet(), scoreNow(rolled(3, 3, 3, 2, 2), ScoreCategory.FULL_HOUSE).players.single().fullHouseHands)
+        assertEquals(emptySet(), scoreNow(rolled(1, 1, 1, 2, 2), ScoreCategory.CHANCE).players.single().fullHouseHands)
+        // Kept with the hands already scored.
+        val both = rolled(5, 5, 6, 6, 6).let { it.copy(players = listOf(it.players.single().copy(fullHouseHands = setOf(1)))) }
+        assertEquals(setOf(1, 2), scoreNow(both, ScoreCategory.FULL_HOUSE).players.single().fullHouseHands)
+    }
+
+    @Test
+    fun `a 5x scored in its box or as a bonus chip is kept by its number - not one scored elsewhere - nor Stud's`() {
+        assertEquals(setOf(3), scoreNow(rolled(3, 3, 3, 3, 3), ScoreCategory.FIVE_OF_A_KIND).players.single().fiveOfAKindNumbers)
+        // Its upper box, with the 5x box still open: no 5x scored, and no chip.
+        assertEquals(emptySet(), scoreNow(rolled(3, 3, 3, 3, 3), ScoreCategory.THREES).players.single().fiveOfAKindNumbers)
+        // With 50 already in the 5x box, another 5x anywhere is a bonus chip.
+        val chip = scoreNow(rolled(4, 4, 4, 4, 4, scored = mapOf(ScoreCategory.FIVE_OF_A_KIND to 50)), ScoreCategory.FOURS)
+        assertEquals(1, chip.players.single().fiveOfAKindBonusCount)
+        assertEquals(setOf(4), chip.players.single().fiveOfAKindNumbers)
+        // Where only five held dice of seven score, a 5x is no feat.
+        val stud = (0 until 5).fold(rolledStud(6, 6, 6, 6, 6, 1, 2)) { state, index -> GameEngine.toggleHold(state, index) }
+        assertEquals(emptySet(), scoreNow(stud, ScoreCategory.FIVE_OF_A_KIND).players.single().fiveOfAKindNumbers)
     }
 
     // ---- Stud: seven dice, five hold slots, only the held dice score ----------------------------

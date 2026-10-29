@@ -44,15 +44,6 @@ class AchievementTracker {
     /** Whether player 1's most recently completed turn scored a genuine 5x - see [Achievement.TWICE_IN_A_LIFETIME]. */
     private var playerOnePreviousTurnWasFiveOfAKind = false
 
-    /** The number of each 5x player 1 has scored this game, once per 5x - see [GameAchievementContext.fiveOfAKindNumbers]. */
-    private val fiveOfAKindNumbers = mutableListOf<Int>()
-
-    /** The number of the 5x [onCommit] is about to score, until [onCommitted] confirms the commit. */
-    private var committingFiveOfAKindNumber: Int? = null
-
-    /** The number of the 5x the last commit scored, if it was player 1's and scored one - what an undo takes back. */
-    private var lastCommittedFiveOfAKindNumber: Int? = null
-
     private var lastCommittedCategory: ScoreCategory? = null
     private var pendingUndoneCategory: ScoreCategory? = null
 
@@ -110,8 +101,6 @@ class AchievementTracker {
         playerOneTimeouts = 0
         playerOneTimedOutZeroes.clear()
         playerOnePreviousTurnWasFiveOfAKind = false
-        fiveOfAKindNumbers.clear()
-        committingFiveOfAKindNumber = null
         outOfRollsCupTaps = 0
         resetTurn()
     }
@@ -407,10 +396,6 @@ class AchievementTracker {
         // I Can Count!: Chance scored with 1,2,3,4,5 in that order, on any roll of the turn.
         if (category == ScoreCategory.CHANCE && dice.map { it.value } == COUNTING_DICE_VALUES) add(Achievement.I_CAN_COUNT)
 
-        // Empty House and Fuller House: the worst and best full houses there are, which a 5x-as-joker can never produce.
-        if (category == ScoreCategory.FULL_HOUSE && dice.map { it.value }.sorted() == EMPTY_HOUSE_VALUES) add(Achievement.EMPTY_HOUSE)
-        if (category == ScoreCategory.FULL_HOUSE && dice.map { it.value }.sorted() == FULLER_HOUSE_VALUES) add(Achievement.FULLER_HOUSE)
-
         // Commitment Issues: committing the upper box that matches the second, different exact group.
         val committingValue = pendingCommitmentGroupValue
         if (lastReleasedCommitmentGroupValue != null &&
@@ -437,8 +422,6 @@ class AchievementTracker {
             add(Achievement.TWICE_IN_A_LIFETIME)
         }
         playerOnePreviousTurnWasFiveOfAKind = scoresFiveOfAKindNow
-        // Full Set: the same "scored a 5x", and not Stud's either - noted once the commit goes through (onCommitted).
-        committingFiveOfAKindNumber = dice.first().value.takeIf { !state.gameMode.scoresHeldDiceOnly && scoresFiveOfAKindNow }
     }
 
     /**
@@ -449,17 +432,12 @@ class AchievementTracker {
         val undone = pendingUndoneCategory
         pendingUndoneCategory = null
         lastCommittedCategory = category
-        lastCommittedFiveOfAKindNumber = committingFiveOfAKindNumber.takeIf { byPlayerOne }
-        committingFiveOfAKindNumber = null
-        lastCommittedFiveOfAKindNumber?.let { fiveOfAKindNumbers += it }
         return if (byPlayerOne && undone != null && category != undone) setOf(Achievement.I_DIDNT_MEAN_THAT) else emptySet()
     }
 
     /** The last score was undone. */
     fun onUndo() {
         pendingUndoneCategory = lastCommittedCategory
-        lastCommittedFiveOfAKindNumber?.let { fiveOfAKindNumbers.remove(it) }
-        lastCommittedFiveOfAKindNumber = null
     }
 
     /** The game has ended: an undo in it can't lead to I Didn't Mean That in the next one. */
@@ -505,7 +483,6 @@ class AchievementTracker {
         playerOneTookExtraRoll = playerOneTookExtraRoll,
         playerOneTimeouts = playerOneTimeouts,
         playerOneTimedOutZeroes = playerOneTimedOutZeroes.toList(),
-        fiveOfAKindNumbers = fiveOfAKindNumbers.toSet(),
     )
 
     private companion object {
@@ -536,11 +513,5 @@ class AchievementTracker {
 
         /** The menu logo's own dice (`AppLogo`), in its own order - "Product Placement". */
         val LOGO_DICE_VALUES = listOf(2, 4, 5, 3, 6)
-
-        /** Three 1s and two 2s, sorted - the exact roll "Empty House" is named for. */
-        val EMPTY_HOUSE_VALUES = listOf(1, 1, 1, 2, 2)
-
-        /** Three 6s and two 5s, sorted - the exact roll "Fuller House" is named for. */
-        val FULLER_HOUSE_VALUES = listOf(5, 5, 6, 6, 6)
     }
 }

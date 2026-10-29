@@ -28,10 +28,11 @@ mode changes, decide:
 
 | Family           | Achievements                                                                                                                                                                      | Ask                                                                       |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Roll count       | Impatient, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Time To Let It Go, What Was The Point Of That?, Green Fingers, Probability? Never Heard Of Her | Does "one roll used" or "every roll used" become automatic or impossible? |
+| Roll count       | Impatient, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Time To Let It Go, What Was The Point Of That?, Green Fingers, Probability? Never Heard Of Her                   | Does "one roll used" or "every roll used" become automatic or impossible? |
 | First roll       | House Call, Straight Away                                                                                                                                                         | Is every roll now a first roll, or none?                                  |
-| Holds            | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues, Hands Off! (Standard only)                                                                              | Can dice still be held?                                                   |
+| Holds            | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues                                                                                                          | Can dice still be held?                                                   |
 | Timer            | The timeout guards on low or zeroed cards (`GAME_MODES.md`)                                                                                                                       | Always or never a timer?                                                  |
+| Round standings  | Front-Runner                                                                                                                                                                      | Can a player still be behind at the end of a round, against others?       |
 | First turn       | Slow Start                                                                                                                                                                        | Can a first turn still be scored zero, by choice?                         |
 | Card contents    | How Do You Play This Game?, Spotless, Bonus Round, Upper/Lower Class, Exact Change, the 5x ones                                                                                   | Is each box still there, and do totals mean the same?                     |
 | Score thresholds | Solid Round ... Dice Deity (Standard and Tricolour only), Cold Dice, Low Rolls, Ton!, Nice, Rock Bottom, the score bands                                                          | Trivial or impossible at this ceiling?                                    |
@@ -106,8 +107,8 @@ Impatient and Almost Famous are guarded, though any modifier now blocks them any
 
 A roll isn't a hand, so:
 
-- achievements judged at scoring read `scoringDice`: Wasted Fortune, Size Isn't Everything, Empty/Fuller House, Time To Let
-    It Go, Twice in a Lifetime;
+- achievements judged at scoring read `scoringDice`: Wasted Fortune, Size Isn't Everything, Full Houses, Time To Let It
+    Go, Twice in a Lifetime;
 - achievements judged on the roll as it lands are guarded.
 
 **Guarded** (`!scoresHeldDiceOnly` / `scoresRolledHand`, plus `singleScoreCard` and Zero To Hero's own condition; Twice

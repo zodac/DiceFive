@@ -95,6 +95,9 @@ import net.zodac.dicefive.resources.achievements_earned_count_short
 import net.zodac.dicefive.resources.achievements_earned_percent
 import net.zodac.dicefive.resources.achievements_hidden_description
 import net.zodac.dicefive.resources.achievements_missing_action
+import net.zodac.dicefive.resources.achievements_missing_hands_action
+import net.zodac.dicefive.resources.achievements_missing_hands_message
+import net.zodac.dicefive.resources.achievements_missing_hands_tooltip
 import net.zodac.dicefive.resources.achievements_missing_message
 import net.zodac.dicefive.resources.achievements_missing_modes_action
 import net.zodac.dicefive.resources.achievements_missing_modes_message
@@ -699,6 +702,7 @@ private fun AchievementRow(
         when {
             item.achievement.scoreBand != null -> Res.string.achievements_missing_action
             item.achievement.isEveryMode -> Res.string.achievements_missing_modes_action
+            item.achievement == Achievement.FULL_HOUSES -> Res.string.achievements_missing_hands_action
             else -> Res.string.achievements_missing_numbers_action
         },
     )
@@ -713,6 +717,7 @@ private fun AchievementRow(
             when {
                 item.achievement.scoreBand != null -> Res.string.achievements_missing_tooltip
                 item.achievement.isEveryMode -> Res.string.achievements_missing_modes_tooltip
+                item.achievement == Achievement.FULL_HOUSES -> Res.string.achievements_missing_hands_tooltip
                 else -> Res.string.achievements_missing_numbers_tooltip
             },
             item.missing.size.grouped(),
@@ -884,8 +889,8 @@ private fun AchievementRow(
 }
 
 /**
- * Everything a collection achievement needs - a score band's scores, Full Set's numbers ("1s" to "6s"), or Grand Tour's
- * game modes - the ones already collected struck through and faded, in a scrollable pop-up, under [modeMessage] if it
+ * Everything a collection achievement needs - a score band's scores, Full Set's numbers ("1s" to "6s"), Full Houses'
+ * hands ("1-1-1-2-2" and "5-5-6-6-6"), or Grand Tour's game modes - the ones already collected struck through and faded, in a scrollable pop-up, under [modeMessage] if it
  * has one. Modes go one to a line, as a name of several words run together with the next would be hard to tell apart.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -893,6 +898,7 @@ private fun AchievementRow(
 private fun MissingDialog(item: AchievementItem, modeMessage: String?, onDismiss: () -> Unit) {
     val achievement = item.achievement
     val isScores = achievement.scoreBand != null
+    val isHands = achievement == Achievement.FULL_HOUSES
     DiceFiveDialog(
         icon = achievement.icon,
         iconTint = achievement.iconTintOrUnspecified(MaterialTheme.colorScheme.primary),
@@ -903,6 +909,7 @@ private fun MissingDialog(item: AchievementItem, modeMessage: String?, onDismiss
                 when {
                     isScores -> Res.string.achievements_missing_message
                     achievement.isEveryMode -> Res.string.achievements_missing_modes_message
+                    isHands -> Res.string.achievements_missing_hands_message
                     else -> Res.string.achievements_missing_numbers_message
                 },
                 item.missing.size.grouped(),
@@ -925,16 +932,20 @@ private fun MissingDialog(item: AchievementItem, modeMessage: String?, onDismiss
                 // Every entry, the collected ones struck through and faded; TalkBack gets the same as words.
                 achievement.checklist?.forEach { entry ->
                     val collected = entry in item.collected
+                    val hand = if (isHands) Achievement.FULL_HOUSES_HANDS[entry - 1].map { it.localised() } else emptyList()
                     val text = when {
                         isScores -> entry.grouped()
                         achievement.isEveryMode -> stringResource(GameMode.entries[entry].displayName)
+                        isHands -> hand.joinToString("-")
                         else -> stringResource(Res.string.achievements_number_label, entry.localised())
                     }
+                    // A hand is spoken as its dice, not read out with its dashes.
+                    val spokenText = if (isHands) spokenList(hand) else text
                     val spoken = when {
-                        !collected -> text
+                        !collected -> spokenText
                         isScores -> stringResource(Res.string.achievements_score_recorded, text)
                         achievement.isEveryMode -> stringResource(Res.string.achievements_mode_finished, text)
-                        else -> stringResource(Res.string.achievements_number_scored, text)
+                        else -> stringResource(Res.string.achievements_number_scored, spokenText)
                     }
                     Text(
                         text = text,

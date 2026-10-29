@@ -50,12 +50,18 @@ data class PlayerState(
     /** How many times this player has rolled so far this game, every turn's rolls added up - what
      * the Flowerpot cup's plant grows by (see [flowerpotGrowthStage]). */
     val rollCount: Int = 0,
-    /** How many times this player has held a die so far this game - a release isn't counted. Saved with the game, so a
-     * resumed game remembers it (see [net.zodac.dicefive.model.Achievement.HANDS_OFF]). */
-    val diceHeld: Int = 0,
+    /** Whether this player has finished any round so far this game behind another player's total (a tie isn't behind). Saved
+     * with the game, and taken back with an undo (see [net.zodac.dicefive.model.Achievement.FRONT_RUNNER]). */
+    val wasBehindAfterARound: Boolean = false,
     /** What this player's first turn scored, null until it is - and for good if the timer ran out on it before a roll. Saved
      * with the game, and taken back with an undo (see [net.zodac.dicefive.model.Achievement.SLOW_START]). */
     val firstTurnScore: Int? = null,
+    /** Each number this player has scored a 5x of this game, in the box or as a bonus chip - never where held dice alone
+     * score. Saved with the game, and taken back with an undo (see [net.zodac.dicefive.model.Achievement.FULL_SET]). */
+    val fiveOfAKindNumbers: Set<Int> = emptySet(),
+    /** Each of [Achievement.FULL_HOUSES_HANDS] (from 1) this player has scored in the Full House box this game. Saved with
+     * the game, and taken back with an undo (see [net.zodac.dicefive.model.Achievement.FULL_HOUSES]). */
+    val fullHouseHands: Set<Int> = emptySet(),
     /** Rolls this player left unused at the end of their last turn and keeps for their next - always 0
      * unless the Stored Rolls modifier is on. */
     val storedRolls: Int = 0,

@@ -23,6 +23,7 @@ import net.zodac.dicefive.LoadedDice
 import net.zodac.dicefive.ScriptedDice
 import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.achievements.AchievementStore
+import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.achievements.InMemoryAchievementStore
 import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.data.scores.InMemoryScoreDao
@@ -366,14 +367,23 @@ class GameAchievementsWiringTest {
     }
 
     @Test
-    fun `Empty House and Fuller House need a genuine three-and-two of their values - in any order - never a joker`() = runTest {
-        fun fullHouse(vararg dice: Int) = unlockedAfter(ScriptedDice(dice.toList())) {
+    fun `Full Houses notes each hand when the game ends - a genuine three-and-two of its values in any order - never a joker`() = runTest {
+        // The Full Houses hands recorded once a game dealt these dice has played this, then played out to the end.
+        suspend fun handsAfter(dice: List<Int>, play: GameViewModel.() -> Unit): Int {
+            val table = started(ScriptedDice(dice))
+            table.viewModel.play()
+            table.viewModel.playToCompletion()
+            advanceUntilIdle()
+            assertFalse(Achievement.FULL_HOUSES in table.unlocked, "one hand alone shouldn't unlock FULL_HOUSES")
+            return table.store.state.first().counter(AchievementCounter.FULL_HOUSES)
+        }
+        suspend fun fullHouse(vararg dice: Int) = handsAfter(dice.toList()) {
             rollDice()
             commitScore(ScoreCategory.FULL_HOUSE)
         }
         // A 5x used as a joker to fill Full House: turn 1 closes the matching upper box at 0 so the joker rule can't force
         // it later, turn 2 banks the 5x box, and turn 3's same-shaped roll fills Full House - not a genuine three-and-two split.
-        fun joker(value: Int, closed: ScoreCategory, opening: Int) = unlockedAfter(ScriptedDice(List(5) { opening } + List(10) { value })) {
+        suspend fun joker(value: Int, closed: ScoreCategory, opening: Int) = handsAfter(List(5) { opening } + List(10) { value }) {
             rollDice()
             commitScore(closed)
             rollDice()
@@ -382,15 +392,19 @@ class GameAchievementsWiringTest {
             commitScore(ScoreCategory.FULL_HOUSE)
         }
 
-        assertTrue(Achievement.EMPTY_HOUSE in fullHouse(1, 1, 1, 2, 2), "EMPTY_HOUSE should pop")
-        assertTrue(Achievement.EMPTY_HOUSE in fullHouse(1, 2, 1, 2, 1), "EMPTY_HOUSE should pop regardless of dice order")
-        assertTrue(Achievement.FULLER_HOUSE in fullHouse(6, 6, 6, 5, 5), "FULLER_HOUSE should pop")
-        assertTrue(Achievement.FULLER_HOUSE in fullHouse(6, 5, 6, 5, 6), "FULLER_HOUSE should pop regardless of dice order")
-        val otherValues = fullHouse(3, 3, 3, 2, 2)
-        assertFalse(Achievement.EMPTY_HOUSE in otherValues)
-        assertFalse(Achievement.FULLER_HOUSE in otherValues)
-        assertFalse(Achievement.EMPTY_HOUSE in joker(1, closed = ScoreCategory.ONES, opening = 6), "a joker-rule full house should not unlock Empty House")
-        assertFalse(Achievement.FULLER_HOUSE in joker(6, closed = ScoreCategory.SIXES, opening = 1), "a joker-rule full house should not unlock Fuller House")
+        assertEquals(0b01, fullHouse(1, 1, 1, 2, 2), "the worst hand is the first flag")
+        assertEquals(0b01, fullHouse(1, 2, 1, 2, 1), "the worst hand counts in any order")
+        assertEquals(0b10, fullHouse(6, 6, 6, 5, 5), "the best hand is the second flag")
+        assertEquals(0b10, fullHouse(6, 5, 6, 5, 6), "the best hand counts in any order")
+        assertEquals(0, fullHouse(3, 3, 3, 2, 2))
+        assertEquals(0, joker(1, closed = ScoreCategory.ONES, opening = 6), "a joker-rule full house of 1s is no hand")
+        assertEquals(0, joker(6, closed = ScoreCategory.SIXES, opening = 1), "a joker-rule full house of 6s is no hand")
+        // Nor the right dice in another box - every later turn rolling 3-3-3-3-4, so the Full House box never sees them.
+        val inChance = handsAfter(listOf(1, 1, 1, 2, 2) + List(GameMode.STANDARD.turnsPerGame) { listOf(3, 3, 3, 3, 4) }.flatten()) {
+            rollDice()
+            commitScore(ScoreCategory.CHANCE)
+        }
+        assertEquals(0, inChance)
     }
 
     @Test
@@ -851,6 +865,33 @@ class GameAchievementsWiringTest {
         resumed.commitScore(ScoreCategory.CHANCE)
         runCurrent()
         assertTrue(Achievement.I_DIDNT_MEAN_THAT in store.unlocked, "the undo was lost on resuming, got ${store.unlocked}")
+    }
+
+    @Test
+    fun `a Full House hand is stored the moment it's scored - and still counts after the game is left and resumed`() = runTest(testDispatcher) {
+        val saves = InProgressGameRepository(InMemoryPreferences(), backgroundScope)
+        val store = InMemoryAchievementStore()
+        fun table() = gameViewModel(
+            aiDispatcher = testDispatcher,
+            inProgressGameRepository = saves,
+            achievementsRepository = store,
+            random = ScriptedDice(listOf(2, 1, 2, 1, 1)),
+        )
+
+        val left = table()
+        left.startGame()
+        left.rollDice()
+        left.commitScore(ScoreCategory.FULL_HOUSE)
+        runCurrent()
+        assertEquals(0b01, store.state.first().counter(AchievementCounter.FULL_HOUSES), "the hand should be stored mid-game")
+        // Cleared, so the end of the resumed game has to find the hand on the saved card.
+        store.mutableState.value = AchievementsState()
+
+        val resumed = table()
+        assertTrue(resumed.resumeGame())
+        resumed.playToCompletion()
+        advanceUntilIdle()
+        assertEquals(0b01, store.state.first().counter(AchievementCounter.FULL_HOUSES), "the hand was lost on resuming")
     }
 
     @Test

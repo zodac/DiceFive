@@ -47,8 +47,6 @@ import net.zodac.dicefive.resources.achievement_dice_whisperer_description
 import net.zodac.dicefive.resources.achievement_dice_whisperer_title
 import net.zodac.dicefive.resources.achievement_eggcellent_discovery_description
 import net.zodac.dicefive.resources.achievement_eggcellent_discovery_title
-import net.zodac.dicefive.resources.achievement_empty_house_description
-import net.zodac.dicefive.resources.achievement_empty_house_title
 import net.zodac.dicefive.resources.achievement_encore_description
 import net.zodac.dicefive.resources.achievement_encore_title
 import net.zodac.dicefive.resources.achievement_everything_everywhere_all_at_once_description
@@ -61,12 +59,14 @@ import net.zodac.dicefive.resources.achievement_five_x_description
 import net.zodac.dicefive.resources.achievement_five_x_title
 import net.zodac.dicefive.resources.achievement_fresh_coat_of_paint_description
 import net.zodac.dicefive.resources.achievement_fresh_coat_of_paint_title
+import net.zodac.dicefive.resources.achievement_front_runner_description
+import net.zodac.dicefive.resources.achievement_front_runner_title
+import net.zodac.dicefive.resources.achievement_full_houses_description
+import net.zodac.dicefive.resources.achievement_full_houses_title
 import net.zodac.dicefive.resources.achievement_full_set_description
 import net.zodac.dicefive.resources.achievement_full_set_title
 import net.zodac.dicefive.resources.achievement_full_table_description
 import net.zodac.dicefive.resources.achievement_full_table_title
-import net.zodac.dicefive.resources.achievement_fuller_house_description
-import net.zodac.dicefive.resources.achievement_fuller_house_title
 import net.zodac.dicefive.resources.achievement_getting_comfortable_description
 import net.zodac.dicefive.resources.achievement_getting_comfortable_title
 import net.zodac.dicefive.resources.achievement_gone_with_the_wind_description
@@ -77,8 +77,6 @@ import net.zodac.dicefive.resources.achievement_greenfingers_description
 import net.zodac.dicefive.resources.achievement_greenfingers_title
 import net.zodac.dicefive.resources.achievement_hall_of_famer_description
 import net.zodac.dicefive.resources.achievement_hall_of_famer_title
-import net.zodac.dicefive.resources.achievement_hands_off_description
-import net.zodac.dicefive.resources.achievement_hands_off_title
 import net.zodac.dicefive.resources.achievement_hat_trick_description
 import net.zodac.dicefive.resources.achievement_hat_trick_title
 import net.zodac.dicefive.resources.achievement_high_roller_description
@@ -115,6 +113,8 @@ import net.zodac.dicefive.resources.achievement_luck_of_the_irish_description
 import net.zodac.dicefive.resources.achievement_luck_of_the_irish_title
 import net.zodac.dicefive.resources.achievement_lucky_seven_description
 import net.zodac.dicefive.resources.achievement_lucky_seven_title
+import net.zodac.dicefive.resources.achievement_my_favourite_number_description
+import net.zodac.dicefive.resources.achievement_my_favourite_number_title
 import net.zodac.dicefive.resources.achievement_nat_20_description
 import net.zodac.dicefive.resources.achievement_nat_20_title
 import net.zodac.dicefive.resources.achievement_natural_5x_description
@@ -254,6 +254,9 @@ enum class AchievementCounter(
 
     /** Each number player 1 has scored a 5x of: bit `n - 1` for the number `n`. */
     FIVE_X_NUMBERS("FIVE_X_NUMBERS", isFlags = true),
+
+    /** Each of [Achievement.FULL_HOUSES_HANDS] player 1 has scored a Full House with: bit `n - 1` for the `n`th. */
+    FULL_HOUSES("FULL_HOUSES", isFlags = true),
     ;
 
     /** How far [stored] - this counter's stored value - counts towards an achievement's target. */
@@ -573,7 +576,7 @@ enum class Achievement(
         AchievementCategory.DICE, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     // A 5x as the SCORED_5X counter counts one - in the box or as a bonus chip, never Stud's - of each number 1-6, over
-    // any number of games. A banner for every new number.
+    // any number of games. A banner for every new number, the moment it's scored (PlayerState.fiveOfAKindNumbers).
     FULL_SET(
         "full_set",
         Res.string.achievement_full_set_title,
@@ -689,6 +692,13 @@ enum class Achievement(
         "slow_start",
         Res.string.achievement_slow_start_title,
         Res.string.achievement_slow_start_description,
+        AchievementCategory.WINNING,
+    ),
+    // A win never behind at the end of a round - PlayerState.wasBehindAfterARound, so it's saved with a game left and resumed.
+    FRONT_RUNNER(
+        "front_runner",
+        Res.string.achievement_front_runner_title,
+        Res.string.achievement_front_runner_description,
         AchievementCategory.WINNING,
     ),
 
@@ -904,14 +914,6 @@ enum class Achievement(
         Res.string.achievement_time_wasting_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
-    // Judged on the finished game: 200 or more in Standard with no modifiers, never a die held - counted on player 1's
-    // own state (PlayerState.diceHeld), so it's saved with a game left and resumed.
-    HANDS_OFF(
-        "hands_off",
-        Res.string.achievement_hands_off_title,
-        Res.string.achievement_hands_off_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, mode = GameMode.STANDARD,
-    ),
     I_DIDNT_MEAN_THAT(
         "i_didnt_mean_that",
         Res.string.achievement_i_didnt_mean_that_title,
@@ -938,22 +940,13 @@ enum class Achievement(
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
 
-    // The worst full house there is - three 1s and two 2s specifically, never the joker rule's
-    // five-of-a-kind bent into the box instead. Sits right above its opposite number, Fuller House.
-    EMPTY_HOUSE(
-        "empty_house",
-        Res.string.achievement_empty_house_title,
-        Res.string.achievement_empty_house_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
-    ),
-    // The best full house there is - three 6s and two 5s specifically, never the joker rule's
-    // five-of-a-kind bent into the box instead. Sits right above House Call, the more general
-    // "any full house, first roll" feat.
-    FULLER_HOUSE(
-        "fuller_house",
-        Res.string.achievement_fuller_house_title,
-        Res.string.achievement_fuller_house_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
+    // Four boxes holding the same score, judged on the card as it fills - never a zero, which any box can be scratched to.
+    // Standard only, on its own card.
+    MY_FAVOURITE_NUMBER(
+        "my_favourite_number",
+        Res.string.achievement_my_favourite_number_title,
+        Res.string.achievement_my_favourite_number_description,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, mode = GameMode.STANDARD,
     ),
     // The two "straight out of the cup" feats, in ascending order of how unlikely they are on a
     // single throw of five dice: a full house is 300 of the 7776 outcomes, a large straight 240.
@@ -1053,45 +1046,57 @@ enum class Achievement(
     // The six ledger achievements are the longest haul in the game, so they sit at the very end,
     // ascending by band, with Completionist after them.
     //
+    // Every collection achievement - like Full Set and Grand Tour - has a banner for each new entry collected.
+    //
     // They are the one group not backed by a stored counter: progress is derived from the scores
     // table, so they are retroactive - scores already on the leaderboard count - and the progress
     // bar always agrees with what the Leaderboard screen shows. Only human scores are ever recorded
     // there, which is also the rule here.
+    //
+    // Full Houses comes first, the shortest of them, and unlike the ledger is backed by a stored counter: two hands, each
+    // ticked off the moment it's scored, in any game, like Full Set's numbers - never the joker rule's 5x bent into the
+    // box.
+    FULL_HOUSES(
+        "full_houses",
+        Res.string.achievement_full_houses_title,
+        Res.string.achievement_full_houses_description,
+        AchievementCategory.COLLECTION, AchievementCounter.FULL_HOUSES, target = 2, progressStepSize = 1, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
+    ),
     TALLY(
         "tally",
         Res.string.achievement_tally_title,
         Res.string.achievement_tally_description,
-        AchievementCategory.COLLECTION, target = 46, scoreBand = 5..50, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
+        AchievementCategory.COLLECTION, target = 46, scoreBand = 5..50, progressStepSize = 1, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     BOOKKEEPER(
         "bookkeeper",
         Res.string.achievement_bookkeeper_title,
         Res.string.achievement_bookkeeper_description,
-        AchievementCategory.COLLECTION, target = 50, scoreBand = 51..100, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
+        AchievementCategory.COLLECTION, target = 50, scoreBand = 51..100, progressStepSize = 1, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     REGISTRAR(
         "registrar",
         Res.string.achievement_registrar_title,
         Res.string.achievement_registrar_description,
-        AchievementCategory.COLLECTION, target = 50, scoreBand = 101..150, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
+        AchievementCategory.COLLECTION, target = 50, scoreBand = 101..150, progressStepSize = 1, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     AUDITOR(
         "auditor",
         Res.string.achievement_auditor_title,
         Res.string.achievement_auditor_description,
-        AchievementCategory.COLLECTION, target = 50, scoreBand = 151..200, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
+        AchievementCategory.COLLECTION, target = 50, scoreBand = 151..200, progressStepSize = 1, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     ARCHIVIST(
         "archivist",
         Res.string.achievement_archivist_title,
         Res.string.achievement_archivist_description,
-        AchievementCategory.COLLECTION, target = 50, scoreBand = 201..250, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
+        AchievementCategory.COLLECTION, target = 50, scoreBand = 201..250, progressStepSize = 1, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     HISTORIAN(
         "historian",
         Res.string.achievement_historian_title,
         Res.string.achievement_historian_description,
-        AchievementCategory.COLLECTION, target = 50, scoreBand = 251..300, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
+        AchievementCategory.COLLECTION, target = 50, scoreBand = 251..300, progressStepSize = 1, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     COMPLETIONIST(
         "completionist",
@@ -1242,6 +1247,9 @@ enum class Achievement(
 
         /** The achievements [COMPLETIONIST] waits on. */
         val COMPLETION_REQUIREMENTS: List<Achievement> = entries.filter { it.countsTowardCompletion }
+
+        /** The hands [FULL_HOUSES] collects, sorted: the worst Full House there is, then the best. */
+        val FULL_HOUSES_HANDS: List<List<Int>> = listOf(listOf(1, 1, 1, 2, 2), listOf(5, 5, 6, 6, 6))
 
         fun fromId(id: String): Achievement? = storedIdOf<Achievement>(id)
     }

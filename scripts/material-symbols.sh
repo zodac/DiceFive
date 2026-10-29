@@ -47,7 +47,7 @@ Cyclone cyclone
 DeleteForever delete_forever
 DeleteSweep delete_sweep
 DeveloperMode developer_mode
-DoNotTouch do_not_touch
+Dialpad dialpad
 Download download
 EmojiEvents emoji_events
 EmojiPeople emoji_people
@@ -116,6 +116,7 @@ SlowMotionVideo slow_motion_video
 Sort sort mirror
 Speed speed
 SportsEsports sports_esports
+Sprint sprint
 Stairs2 stairs_2
 Star star
 Stars stars

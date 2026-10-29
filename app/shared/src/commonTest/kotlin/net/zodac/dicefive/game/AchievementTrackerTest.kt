@@ -180,36 +180,6 @@ class AchievementTrackerTest {
         assertEquals(5, tracker.endOfGameContext(null, LeaderboardTotals()).diceRolledByPlayerOne)
     }
 
-    /** The 5x numbers [tracker] would hand the end of the game. */
-    private fun fiveOfAKindNumbers(tracker: AchievementTracker) = tracker.endOfGameContext(null, LeaderboardTotals()).fiveOfAKindNumbers
-
-    @Test
-    fun `a 5x scored is noted by its number for Full Set - an undo takes it back - another seat's never counts`() {
-        val tracker = AchievementTracker()
-        tracker.startGame()
-        val fiveThrees = tracker.roll(soloGame())
-        tracker.onCommit(fiveThrees, ScoreCategory.FIVE_OF_A_KIND)
-        tracker.onCommitted(ScoreCategory.FIVE_OF_A_KIND, byPlayerOne = true)
-        assertEquals(setOf(3), fiveOfAKindNumbers(tracker))
-
-        // Undone, it's gone; scored as a zero elsewhere instead, it's no 5x scored.
-        tracker.onUndo()
-        assertEquals(emptySet(), fiveOfAKindNumbers(tracker))
-        tracker.onCommit(fiveThrees, ScoreCategory.LARGE_STRAIGHT)
-        tracker.onCommitted(ScoreCategory.LARGE_STRAIGHT, byPlayerOne = true)
-        assertEquals(emptySet(), fiveOfAKindNumbers(tracker))
-
-        // An undo of another seat's score leaves player 1's 5x alone.
-        tracker.onCommit(fiveThrees, ScoreCategory.FIVE_OF_A_KIND)
-        tracker.onCommitted(ScoreCategory.FIVE_OF_A_KIND, byPlayerOne = true)
-        tracker.onCommitted(ScoreCategory.CHANCE, byPlayerOne = false)
-        tracker.onUndo()
-        assertEquals(setOf(3), fiveOfAKindNumbers(tracker))
-
-        tracker.startGame()
-        assertEquals(emptySet(), fiveOfAKindNumbers(tracker), "a new game starts with none")
-    }
-
     @Test
     fun `Rainy Day Fund - a turn starting with 100 rolls under Stored Rolls - not 99 - and not without the modifier`() {
         fun earns(rolls: Int, stored: Boolean): Boolean {

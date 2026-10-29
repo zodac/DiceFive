@@ -57,9 +57,6 @@ data class GameAchievementContext(
      * against the board.
      */
     val previousLeaderboard: LeaderboardTotals = LeaderboardTotals(),
-    /** Each number (1-6) player 1 scored a 5x of this game, as the [AchievementCounter.SCORED_5X] counter counts one -
-     * [Achievement.FULL_SET]'s. */
-    val fiveOfAKindNumbers: Set<Int> = emptySet(),
     /** Whether the cup in play is the Flowerpot that grows its plant - [Achievement.GREENFINGERS] needs it. */
     val growingFlowerpotInPlay: Boolean = false,
 )
@@ -184,11 +181,12 @@ object AchievementEngine {
     private const val ZEROES_FOR_HERO = 3
     private const val ENCORE_5X_COUNT = 2
     private const val HAT_TRICK_5X_COUNT = 3
+
+    /** The boxes [Achievement.MY_FAVOURITE_NUMBER] needs holding the same score. */
+    private const val MY_FAVOURITE_NUMBER_BOXES = 4
     private const val COLD_DICE_SCORE = 100
     private const val LOW_ROLLS_SCORE = 20
 
-    /** The total [Achievement.HANDS_OFF] needs. */
-    private const val HANDS_OFF_SCORE = 200
 
     /** The total [Achievement.SIX_OF_THE_BEST] needs - a perfect Quickfire game is 210. */
     private const val QUICKFIRE_SCORE_TARGET = 150
@@ -255,9 +253,10 @@ object AchievementEngine {
     /**
      * What a game **in progress** has already earned - called after every scored category, so
      * "Six Appeal" lands the moment the 30 goes in the box rather than waiting for the results
-     * screen. Only judges what a later turn cannot undo (see [earnedDuringPlay]); counters and
-     * progress banners are left entirely to [evaluate], keeping the running totals a
-     * once-per-finished-game affair that an undo can't inflate.
+     * screen. Only judges what a later turn cannot undo (see [earnedDuringPlay]). The one set of
+     * counters moved here is the collected flags ([collectedFlags]), with their progress banners:
+     * a flag set twice is still one, so an undo can't inflate them. Every running total is left to
+     * [evaluate], a once-per-finished-game affair.
      */
     fun evaluateInProgress(
         state: GameState,
@@ -272,7 +271,31 @@ object AchievementEngine {
         if (state.players.firstOrNull()?.type != PlayerType.HUMAN) return AchievementUpdate()
         val humans = listOf(state.players.first())
 
-        return update(earnedDuringPlay(state, humans, timedOutZeroes, growingFlowerpotInPlay), emptyMap(), before, now)
+        // A game with a modifier on moves no counter - see the class doc's first rule. Only a flag newly set is written.
+        val flags = if (state.hasModifiers) {
+            emptyMap()
+        } else {
+            collectedFlags(state, humans.first(), before).filter { (counter, value) -> value != before.counter(counter) }
+        }
+        val collected = Achievement.entries.filterTo(mutableSetOf()) { achievement ->
+            val counter = achievement.counter
+            counter != null && counter in flags && counter.progressOf(flags.getValue(counter)) >= achievement.target
+        }
+        return update(earnedDuringPlay(state, humans, timedOutZeroes, growingFlowerpotInPlay) + collected, flags, before, now)
+    }
+
+    /**
+     * The stored flags with what [player] has collected this game added: Full Set's 5x numbers and Full Houses' hands, each
+     * only where [state] can earn it. Kept on the player ([PlayerState.fiveOfAKindNumbers], [PlayerState.fullHouseHands]), so
+     * they're saved with a game left and resumed. A flag set mid-game stays set if its score is then undone.
+     */
+    private fun collectedFlags(state: GameState, player: PlayerState, before: AchievementsState): Map<AchievementCounter, Int> = buildMap {
+        fun collect(achievement: Achievement, collected: Set<Int>) {
+            val counter = requireNotNull(achievement.counter)
+            if (achievement.isEarnableIn(state)) put(counter, collected.fold(before.counter(counter), counter::withFlag))
+        }
+        collect(Achievement.FULL_SET, player.fiveOfAKindNumbers)
+        collect(Achievement.FULL_HOUSES, player.fullHouseHands)
     }
 
     /**
@@ -328,7 +351,7 @@ object AchievementEngine {
     /**
      * The entries of [achievement]'s [Achievement.checklist] already collected, for the achievements screen to tick off:
      * a score band's scores on the leaderboard, Grand Tour's modes played (by ordinal), Full Set's numbers scored as a
-     * 5x. Empty for an achievement without a checklist.
+     * 5x, Full Houses' hands scored. Empty for an achievement without a checklist.
      */
     fun collectedOf(
         achievement: Achievement,
@@ -355,11 +378,10 @@ object AchievementEngine {
         // The 5x that seven dice hand out (Stud) don't count toward Total 5x.
         val fiveOfAKindsThisGame = humans.filter { it.scoresRolledHand }.sumOf { it.fiveOfAKindCount }
 
-        return mapOf(
+        return collectedFlags(state, humans.first(), before) + mapOf(
             AchievementCounter.GAMES_PLAYED to before.counter(AchievementCounter.GAMES_PLAYED) + 1,
             AchievementCounter.SCORED_5X to before.counter(AchievementCounter.SCORED_5X) + fiveOfAKindsThisGame,
             AchievementCounter.DICE_ROLLED to before.counter(AchievementCounter.DICE_ROLLED) + context.diceRolledByPlayerOne,
-            AchievementCounter.FIVE_X_NUMBERS to context.fiveOfAKindNumbers.fold(before.counter(AchievementCounter.FIVE_X_NUMBERS), AchievementCounter.FIVE_X_NUMBERS::withFlag),
             AchievementCounter.GAMES_WON to before.counter(AchievementCounter.GAMES_WON) +
                 if (multiplayer && humanWon) 1 else 0,
             // A solo game has nobody to beat, so it neither extends nor breaks a streak.
@@ -425,6 +447,14 @@ object AchievementEngine {
             Achievement.SCRATCHED,
             anyHuman { player ->
                 player.scoresIn(ScoreCategory.FIVE_OF_A_KIND).count { it == 0 } > timedOutZeroes.count { it == ScoreCategory.FIVE_OF_A_KIND }
+            },
+        )
+        // The same score, never a zero, in four different boxes: counted once a box, however many slots it has.
+        award(
+            Achievement.MY_FAVOURITE_NUMBER,
+            anyHuman { player ->
+                player.scorecard.values.flatMap { scores -> scores.filter { it > 0 }.distinct() }
+                    .groupingBy { it }.eachCount().values.any { it >= MY_FAVOURITE_NUMBER_BOXES }
             },
         )
 
@@ -591,6 +621,8 @@ object AchievementEngine {
         val playerOneNeverRolledTwice = !context.playerOneTookExtraRoll && state.rollsPerTurn > 1 && noTimeouts
         award(Achievement.IMPATIENT, playerOneNeverRolledTwice)
         // Slow Start: a win after a first turn that scored zero. Not a turn the timer scored, which takes a zero for nothing.
+        // Front-Runner: a win never behind at the end of any round (GameEngine.noteBehind) - first or tied for it every time.
+        award(Achievement.FRONT_RUNNER, multiplayer && humanWon && !humans.first().wasBehindAfterARound)
         award(Achievement.SLOW_START, multiplayer && humanWon && noTimeouts && humans.first().firstTurnScore == 0)
         // Every modifier at once, in a mode of its own: the timer, both roll modifiers, Extended Scores and Unlucky Dice -
         // Extended Scores only where the mode offers it (not D20 or Hit List).
@@ -599,13 +631,6 @@ object AchievementEngine {
             multiplayer && humanWon && !state.gameMode.isOfficialRules && state.turnTimer != TurnTimer.NONE &&
                 state.rollModifiers.rollsPerTurn != null && state.rollModifiers.storedRolls &&
                 (state.extendedScores || !state.gameMode.allowsExtendedScores) && state.unluckyDice != null,
-        )
-
-        // Hands Off!: 200 or more without a die held all game - on Standard's own card and rules, nothing to make it easier.
-        award(
-            Achievement.HANDS_OFF,
-            !state.hasModifiers && humans.first().diceHeld == 0 &&
-                humans.first().totalScore >= HANDS_OFF_SCORE,
         )
 
         // Exactly 69/100 - thresholds the running total can overshoot, so they can only be judged

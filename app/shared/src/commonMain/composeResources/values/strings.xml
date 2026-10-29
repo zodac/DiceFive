@@ -214,6 +214,8 @@
     <string name="achievement_how_do_you_do_fellow_cpus_description">Don't finish last in a four-player game against three Hard CPU players</string>
     <string name="achievement_slow_start_title">Slow Start</string>
     <string name="achievement_slow_start_description">Win a game after scoring zero in your first turn</string>
+    <string name="achievement_front_runner_title">Front-Runner</string>
+    <string name="achievement_front_runner_description">Win a game without ever being behind at the end of a round</string>
     <string name="achievement_everything_everywhere_all_at_once_title">Everything Everywhere All At Once</string>
     <string name="achievement_everything_everywhere_all_at_once_description">Win a non-Standard game with all modifiers enabled</string>
     <string name="achievement_where_were_going_we_dont_need_rules_title">Where We're Going, We Don't Need Rules</string>
@@ -274,8 +276,6 @@
     <string name="achievement_time_to_let_it_go_description">Hold the same die after the 1st and 2nd roll, then score without using it</string>
     <string name="achievement_time_wasting_title">Time Wasting</string>
     <string name="achievement_time_wasting_description">Hold then unhold each die in sequence</string>
-    <string name="achievement_hands_off_title">Hands Off!</string>
-    <string name="achievement_hands_off_description">Score 200 or more in a `Standard` game, without ever holding a die</string>
     <string name="achievement_i_didnt_mean_that_title">I Didn't Mean That</string>
     <string name="achievement_i_didnt_mean_that_description">Undo a score and score a different category</string>
     <string name="achievement_no_more_rolls_title">No More Rolls</string>
@@ -284,10 +284,8 @@
     <string name="achievement_impatient_description">Finish a game never rolling more than once in any turn</string>
     <string name="achievement_fresh_coat_of_paint_title">Fresh Coat Of Paint</string>
     <string name="achievement_fresh_coat_of_paint_description">Play a game with any item using a non-default style</string>
-    <string name="achievement_empty_house_title">Empty House</string>
-    <string name="achievement_empty_house_description">Score the worst Full House (three 1s and two 2s)</string>
-    <string name="achievement_fuller_house_title">Fuller House</string>
-    <string name="achievement_fuller_house_description">Score the best Full House (three 6s and two 5s)</string>
+    <string name="achievement_my_favourite_number_title">My Favourite Number</string>
+    <string name="achievement_my_favourite_number_description">Score the same points in 4 different categories in a `Standard` game</string>
     <string name="achievement_house_call_title">House Call</string>
     <string name="achievement_house_call_description">Roll a full house on the first roll of a turn</string>
     <string name="achievement_straight_away_title">Straight Away</string>
@@ -316,6 +314,8 @@
     <string name="achievement_rock_bottom_description">Finish a game on exactly 5 - the lowest score the rules allow</string>
     <string name="achievement_who_made_this_title">Who Made This?</string>
     <string name="achievement_who_made_this_description">Open the `About` page</string>
+    <string name="achievement_full_houses_title">Full Houses</string>
+    <string name="achievement_full_houses_description">Score the best and worst Full House possible</string>
     <string name="achievement_tally_title">Tally</string>
     <string name="achievement_tally_description">Record every score from 5 to 50 on the leaderboard</string>
     <string name="achievement_bookkeeper_title">Bookkeeper</string>
@@ -1192,6 +1192,12 @@
     <string name="achievements_missing_numbers_action">Show the missing numbers</string>
     <!-- The short tip on tapping a collection achievement; a long press opens the full list. %1$s is how many are missing. -->
     <string name="achievements_missing_numbers_tooltip">Numbers with no 5x scored yet: %1$s left</string>
+    <!-- Full Houses' pop-up: the hands (Achievement.FULL_HOUSES_HANDS, as "1-1-1-2-2") it still needs a Full House scored with. -->
+    <string name="achievements_missing_hands_message">Full Houses not yet scored (%1$s left):</string>
+    <!-- TalkBack's name for tapping Full Houses. -->
+    <string name="achievements_missing_hands_action">Show the missing Full Houses</string>
+    <!-- The short tip on tapping a collection achievement; a long press opens the full list. %1$s is how many are missing. -->
+    <string name="achievements_missing_hands_tooltip">Full Houses not yet scored: %1$s left</string>
     <!-- TalkBack: a die number already scored as a 5x, drawn struck through and faded. -->
     <string name="achievements_number_scored">%1$s, scored</string>
     <!-- Full Set's pop-up: one die number, as in "1s" (a 5x of 1s). %1$s is the number. -->

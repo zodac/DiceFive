@@ -143,6 +143,8 @@ val Achievement.icon: ImageVector
         Achievement.LAST_HUMAN_STANDING -> Symbols.EmojiPeople
         Achievement.HOW_DO_YOU_DO_FELLOW_CPUS -> Symbols.Memory
         Achievement.SLOW_START -> Symbols.SlowMotionVideo
+        // A sprinter out in front.
+        Achievement.FRONT_RUNNER -> Symbols.Sprint
         // Drawn for this app: a googly eye, its pupil off to one side, in its own white and black.
         Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE -> GOOGLY_EYE_ICON
 
@@ -197,8 +199,6 @@ val Achievement.icon: ImageVector
         // Waving goodbye to the die that was held twice and never used.
         Achievement.TIME_TO_LET_IT_GO -> Symbols.WavingHand
         Achievement.TIME_WASTING -> Symbols.HourglassEmpty
-        // A hand crossed out - not a die touched all game.
-        Achievement.HANDS_OFF -> Symbols.DoNotTouch
         // The same glyph UndoButton.kt uses for the real undo control, not its Redo mirror image -
         // this achievement is about undoing, not redoing.
         Achievement.I_DIDNT_MEAN_THAT -> Symbols.Undo
@@ -207,8 +207,8 @@ val Achievement.icon: ImageVector
         Achievement.IMPATIENT -> Symbols.Acute
         // The timer shuffling your scores into place for you.
         Achievement.FRESH_COAT_OF_PAINT -> Symbols.FormatPaint
-        Achievement.EMPTY_HOUSE -> Symbols.OtherHouses
-        Achievement.FULLER_HOUSE -> Symbols.House
+        // A keypad: any number, not one in particular - Getting Comfortable has the number sign.
+        Achievement.MY_FAVOURITE_NUMBER -> Symbols.Dialpad
         Achievement.HOUSE_CALL -> Symbols.HomeWork
         // Open stairs, a straight - not Straight Talker's (and the scorecard's) own stairs.
         Achievement.STRAIGHT_AWAY -> Symbols.Stairs2
@@ -225,6 +225,7 @@ val Achievement.icon: ImageVector
         Achievement.WHO_MADE_THIS -> Symbols.Info
 
         // ---- Collection ---------------------------------------------------------------------------
+        Achievement.FULL_HOUSES -> Symbols.OtherHouses
         // The six score ranges, lowest to highest, count up a die's faces: one pip more for each.
         Achievement.TALLY -> dieFaceIcon(1)
         Achievement.BOOKKEEPER -> dieFaceIcon(2)

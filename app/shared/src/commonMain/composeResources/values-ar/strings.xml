@@ -157,6 +157,8 @@
     <string name="achievement_how_do_you_do_fellow_cpus_description">لا تحتل المركز الأخير في لعبة من أربعة لاعبين ضد ثلاثة لاعبين صعبين من الحاسوب</string>
     <string name="achievement_slow_start_title">بداية بطيئة</string>
     <string name="achievement_slow_start_description">افز في لعبة بعد أن سجّلت صفرًا في دورك الأول</string>
+    <string name="achievement_front_runner_title">في الصدارة</string>
+    <string name="achievement_front_runner_description">افز في لعبة دون أن تكون خلف أي لاعب في نهاية أي جولة</string>
     <string name="achievement_everything_everywhere_all_at_once_title">كل شيء في كل مكان في آن واحد</string>
     <string name="achievement_everything_everywhere_all_at_once_description">افز في لعبة بنمط غير القياسي مع تفعيل جميع المعدّلات</string>
     <string name="achievement_where_were_going_we_dont_need_rules_title">حيث نذهب لا نحتاج إلى قواعد</string>
@@ -217,8 +219,6 @@
     <string name="achievement_time_to_let_it_go_description">ثبّت حجر النرد نفسه بعد الرمية الأولى والثانية، ثم سجّل دون استخدامه</string>
     <string name="achievement_time_wasting_title">إضاعة الوقت</string>
     <string name="achievement_time_wasting_description">ثبّت كل حجر نرد ثم حرّره بالتتابع</string>
-    <string name="achievement_hands_off_title">بلا أيدٍ!</string>
-    <string name="achievement_hands_off_description">سجّل ٢٠٠ نقطة أو أكثر في لعبة `قياسية` دون أن تثبّت أي نرد</string>
     <string name="achievement_i_didnt_mean_that_title">لم أقصد ذلك</string>
     <string name="achievement_i_didnt_mean_that_description">تراجع عن نتيجة وسجّل في فئة مختلفة</string>
     <string name="achievement_no_more_rolls_title">لا مزيد من الرميات</string>
@@ -227,10 +227,8 @@
     <string name="achievement_impatient_description">أنهِ لعبة دون أن ترمي أكثر من مرة واحدة في أي دور</string>
     <string name="achievement_fresh_coat_of_paint_title">طلاء جديد</string>
     <string name="achievement_fresh_coat_of_paint_description">العب لعبة يستخدم فيها أي عنصر نمطًا غير الافتراضي</string>
-    <string name="achievement_empty_house_title">بيت فارغ</string>
-    <string name="achievement_empty_house_description">سجّل أسوأ فول هاوس (ثلاث ١ واثنتان ٢)</string>
-    <string name="achievement_fuller_house_title">بيت أكثر امتلاءً</string>
-    <string name="achievement_fuller_house_description">سجّل أفضل فول هاوس (ثلاث ٦ واثنتان ٥)</string>
+    <string name="achievement_my_favourite_number_title">رقمي المفضّل</string>
+    <string name="achievement_my_favourite_number_description">سجّل النقاط نفسها في ٤ فئات مختلفة في لعبة `قياسية`</string>
     <string name="achievement_house_call_title">زيارة البيت</string>
     <string name="achievement_house_call_description">احصل على فول هاوس في أول رمية من دور</string>
     <string name="achievement_straight_away_title">مباشرة إلى التسلسل</string>
@@ -259,6 +257,8 @@
     <string name="achievement_rock_bottom_description">أنهِ لعبة بمجموع ٥ بالضبط، وهي أدنى نتيجة تسمح بها القواعد</string>
     <string name="achievement_who_made_this_title">من صنع هذا؟</string>
     <string name="achievement_who_made_this_description">افتح صفحة `حول التطبيق`</string>
+    <string name="achievement_full_houses_title">بيوت ممتلئة</string>
+    <string name="achievement_full_houses_description">سجّل أفضل وأسوأ فول هاوس ممكن</string>
     <string name="achievement_tally_title">العدّاد</string>
     <string name="achievement_tally_description">سجّل في لوحة المتصدرين كل نتيجة من ٥ إلى ٥٠</string>
     <string name="achievement_bookkeeper_title">مسك الدفاتر</string>
@@ -1037,6 +1037,9 @@
     <string name="achievements_missing_numbers_message">أرقام لم تسجّل منها 5x بعد (متبقٍ %1$s):</string>
     <string name="achievements_missing_numbers_action">عرض الأرقام الناقصة</string>
     <string name="achievements_missing_numbers_tooltip">أرقام لم تسجّل منها 5x بعد: متبقٍ %1$s</string>
+    <string name="achievements_missing_hands_message">فول هاوس لم تسجّله بعد (متبقٍ %1$s):</string>
+    <string name="achievements_missing_hands_action">اعرض الفول هاوس الناقصة</string>
+    <string name="achievements_missing_hands_tooltip">فول هاوس لم تسجّله بعد: متبقٍ %1$s</string>
     <string name="achievements_number_scored">%1$s، مسجّل</string>
     <string name="achievements_number_label">%1$s</string>
     <string name="achievements_missing_modes_message">أنماط لم تُنهِ فيها أي لعبة بعد (متبقٍ %1$s):</string>

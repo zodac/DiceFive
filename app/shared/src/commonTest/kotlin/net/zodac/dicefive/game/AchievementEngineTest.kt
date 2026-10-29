@@ -633,9 +633,10 @@ class AchievementEngineTest {
         assertEquals(setOf(2, 6), AchievementEngine.collectedOf(Achievement.FULL_SET, mapOf(AchievementCounter.FIVE_X_NUMBERS to numbers), board))
         assertEquals(emptySet(), AchievementEngine.collectedOf(Achievement.FIRST_VICTORY, emptyMap(), board))
 
-        // A band announces progress at its quarter marks: 11 of 46 is under the first quarter; 12 crosses it.
-        val quarter = evaluate(finishedGame(player(total = 16)), context((5..15).toSet()))
-        assertTrue(quarter.progressed.any { it.achievement == Achievement.TALLY && it.current == 12 })
+        // A band announces every new score: 2 of 46 to 3, nowhere near a quarter; one already on the board is no news.
+        val newScore = evaluate(finishedGame(player(total = 7)), context(setOf(5, 6)))
+        assertEquals(AchievementProgress(Achievement.TALLY, 2, 3), newScore.progressed.single { it.achievement == Achievement.TALLY })
+        assertFalse(evaluate(finishedGame(player(total = 6)), context(setOf(5, 6))).progressed.any { it.achievement == Achievement.TALLY })
 
         // Every band's target matches the size of its range, and the bands tile 5 to 300 without gaps or overlap.
         val bands = Achievement.entries.filter { it.scoreBand != null }
@@ -647,34 +648,74 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `Full Set - a 5x of every number - collected across games - a banner for each new number`() {
-        fun numbers(vararg values: Int) = GameAchievementContext(fiveOfAKindNumbers = values.toSet())
+    fun `Full Set - a 5x of every number - collected across games - a banner for each new number as it's scored`() {
+        fun numbers(vararg values: Int) = finishedGame(player().copy(fiveOfAKindNumbers = values.toSet()))
         fun flags(vararg values: Int) = values.fold(0) { flags, value -> flags or (1 shl (value - 1)) }
+        fun stored(vararg values: Int) = AchievementsState(counters = mapOf(AchievementCounter.FIVE_X_NUMBERS to flags(*values)))
 
         // Each game's numbers join those already stored: 1, 2 and 6 stored, plus 2 and 4 this game, is four of six.
-        val partial = evaluate(
-            finishedGame(player()),
-            numbers(2, 4),
-            AchievementsState(counters = mapOf(AchievementCounter.FIVE_X_NUMBERS to flags(1, 2, 6))),
-        )
+        val partial = evaluate(numbers(2, 4), before = stored(1, 2, 6))
         assertEquals(flags(1, 2, 4, 6), partial.counters[AchievementCounter.FIVE_X_NUMBERS])
         assertFalse(Achievement.FULL_SET in partial.newlyUnlocked)
         assertEquals(AchievementProgress(Achievement.FULL_SET, 3, 4), partial.progressed.single { it.achievement == Achievement.FULL_SET })
         assertEquals(4, AchievementEngine.progressOf(Achievement.FULL_SET, partial.counters, LeaderboardTotals()))
 
         // A number already stored is no progress, and no banner.
-        val repeat = evaluate(finishedGame(player()), numbers(6), AchievementsState(counters = mapOf(AchievementCounter.FIVE_X_NUMBERS to flags(6))))
+        val repeat = evaluate(numbers(6), before = stored(6))
         assertEquals(flags(6), repeat.counters[AchievementCounter.FIVE_X_NUMBERS])
         assertFalse(repeat.progressed.any { it.achievement == Achievement.FULL_SET })
 
-        // The sixth number completes the set.
-        val complete = evaluate(
-            finishedGame(player()),
-            numbers(3),
-            AchievementsState(counters = mapOf(AchievementCounter.FIVE_X_NUMBERS to flags(1, 2, 4, 5, 6))),
-        )
-        assertTrue(Achievement.FULL_SET in complete.newlyUnlocked)
+        // Mid-game, a new number is stored, with its banner, the moment it's scored - and the sixth unlocks it there.
+        val midGame = AchievementEngine.evaluateInProgress(inProgress(midGamePlayer(emptyMap()).copy(fiveOfAKindNumbers = setOf(4))), stored(1), NOW)
+        assertEquals(flags(1, 4), midGame.counters[AchievementCounter.FIVE_X_NUMBERS])
+        assertEquals(AchievementProgress(Achievement.FULL_SET, 1, 2), midGame.progressed.single { it.achievement == Achievement.FULL_SET })
+        val sixth = AchievementEngine.evaluateInProgress(inProgress(midGamePlayer(emptyMap()).copy(fiveOfAKindNumbers = setOf(3))), stored(1, 2, 4, 5, 6), NOW)
+        assertTrue(Achievement.FULL_SET in sixth.newlyUnlocked)
+
+        // Not with a modifier on, nor in a mode that can't earn it (Stud).
+        val modified = finishedGame(player().copy(fiveOfAKindNumbers = setOf(3))).copy(turnTimer = TurnTimer.SECONDS_30)
+        assertEquals(null, evaluate(modified).counters[AchievementCounter.FIVE_X_NUMBERS])
+        val stud = finishedGame(player(gameMode = GameMode.STUD).copy(fiveOfAKindNumbers = setOf(3)))
+        assertEquals(null, evaluate(stud).counters[AchievementCounter.FIVE_X_NUMBERS])
         assertTrue(Achievement.FULL_SET in Achievement.COMPLETION_REQUIREMENTS)
+    }
+
+    @Test
+    fun `Full Houses - the worst and best Full House - collected across games - a banner for the first as it's scored`() {
+        fun hands(vararg hands: Int) = finishedGame(player().copy(fullHouseHands = hands.toSet()))
+        fun stored(flags: Int) = AchievementsState(counters = mapOf(AchievementCounter.FULL_HOUSES to flags))
+
+        // The worst hand alone is one of two: progress, not the unlock.
+        val worst = evaluate(hands(1))
+        assertEquals(0b01, worst.counters[AchievementCounter.FULL_HOUSES])
+        assertFalse(Achievement.FULL_HOUSES in worst.newlyUnlocked)
+        assertEquals(AchievementProgress(Achievement.FULL_HOUSES, 0, 1), worst.progressed.single { it.achievement == Achievement.FULL_HOUSES })
+        assertEquals(setOf(1), AchievementEngine.collectedOf(Achievement.FULL_HOUSES, worst.counters, LeaderboardTotals()))
+
+        // A hand already stored is no progress, and no banner.
+        val repeat = evaluate(hands(1), before = stored(0b01))
+        assertEquals(0b01, repeat.counters[AchievementCounter.FULL_HOUSES])
+        assertFalse(repeat.progressed.any { it.achievement == Achievement.FULL_HOUSES })
+
+        // The other hand, in a later game, completes it - or both in one game.
+        assertTrue(Achievement.FULL_HOUSES in evaluate(hands(2), before = stored(0b01)).newlyUnlocked)
+        assertTrue(Achievement.FULL_HOUSES in evaluate(hands(1, 2)).newlyUnlocked)
+
+        // Mid-game, the moment the hand is scored: stored, with its banner - or the unlock.
+        val midGame = AchievementEngine.evaluateInProgress(inProgress(midGamePlayer(emptyMap()).copy(fullHouseHands = setOf(2))), AchievementsState(), NOW)
+        assertEquals(0b10, midGame.counters[AchievementCounter.FULL_HOUSES])
+        assertEquals(AchievementProgress(Achievement.FULL_HOUSES, 0, 1), midGame.progressed.single { it.achievement == Achievement.FULL_HOUSES })
+        val second = AchievementEngine.evaluateInProgress(inProgress(midGamePlayer(emptyMap()).copy(fullHouseHands = setOf(2))), stored(0b01), NOW)
+        assertTrue(Achievement.FULL_HOUSES in second.newlyUnlocked)
+        // An AI's card collects nothing for the device.
+        val bots = AchievementEngine.evaluateInProgress(
+            inProgress(midGamePlayer(emptyMap()), midGamePlayer(emptyMap(), type = PlayerType.AI).copy(fullHouseHands = setOf(1))),
+            AchievementsState(),
+            NOW,
+        )
+        assertEquals(null, bots.counters[AchievementCounter.FULL_HOUSES])
+        assertTrue(Achievement.FULL_HOUSES in Achievement.COMPLETION_REQUIREMENTS)
+        assertEquals(listOf(listOf(1, 1, 1, 2, 2), listOf(5, 5, 6, 6, 6)), Achievement.FULL_HOUSES_HANDS)
     }
 
     @Test
@@ -705,18 +746,14 @@ class AchievementEngineTest {
     // evaluate/evaluateInProgress for the rest of a game.
 
     @Test
-    fun `Hands Off - 200 or more in Standard with no die held - not 199 - not after a hold - not in another mode or with a modifier`() {
-        fun earned(game: GameState) = Achievement.HANDS_OFF in unlocked(game)
-        assertTrue(earned(finishedGame(player(total = 200))))
-        assertFalse(earned(finishedGame(player(total = 199))))
-        assertFalse(earned(finishedGame(player(total = 250).copy(diceHeld = 1))))
-        // Only player 1's holds count: the CPU holding its dice is no matter.
-        assertTrue(earned(finishedGame(player(total = 250), bot(total = 100).copy(diceHeld = 30))))
-        assertFalse(earned(finishedGame(player(total = 250, gameMode = GameMode.TRICOLOUR))))
-        assertFalse(earned(finishedGame(player(total = 250)).copy(turnTimer = TurnTimer.SECONDS_60)))
-        assertFalse(earned(finishedGame(player(total = 250)).copy(extendedScores = true)))
-        // Player 1's own score: a 200 by the CPU beside a lower one of theirs is no help.
-        assertFalse(earned(finishedGame(player(total = 150), bot(total = 260))))
+    fun `Front-Runner - a win never behind at the end of a round - not after one behind - not a loss - not solo`() {
+        fun earned(game: GameState) = Achievement.FRONT_RUNNER in unlocked(game)
+        assertTrue(earned(finishedGame(player(total = 200), bot(total = 100))))
+        assertFalse(earned(finishedGame(player(total = 200).copy(wasBehindAfterARound = true), bot(total = 100))))
+        assertFalse(earned(finishedGame(player(total = 100), bot(total = 200))))
+        assertFalse(earned(finishedGame(player(total = 200))))
+        // Only player 1's rounds count: the CPU having trailed is no matter.
+        assertTrue(earned(finishedGame(player(total = 200), bot(total = 100).copy(wasBehindAfterARound = true))))
     }
 
     @Test
@@ -780,6 +817,21 @@ class AchievementEngineTest {
     }
 
     @Test
+    fun `My Favourite Number - the same score in four boxes - mid-game - never zeros - and only in Standard`() {
+        val twelves = mapOf(ScoreCategory.THREES to 12, ScoreCategory.FOURS to 12, ScoreCategory.SIXES to 12, ScoreCategory.CHANCE to 12)
+        assertTrue(Achievement.MY_FAVOURITE_NUMBER in unlockedMidGame(midGamePlayer(twelves)))
+        // Three is one short, even with a fourth box one point off.
+        assertFalse(Achievement.MY_FAVOURITE_NUMBER in unlockedMidGame(midGamePlayer(twelves + (ScoreCategory.CHANCE to 13))))
+        // Four zeros are four scratched boxes, not a number.
+        val zeros = mapOf(ScoreCategory.ONES to 0, ScoreCategory.TWOS to 0, ScoreCategory.FULL_HOUSE to 0, ScoreCategory.LARGE_STRAIGHT to 0)
+        assertFalse(Achievement.MY_FAVOURITE_NUMBER in unlockedMidGame(midGamePlayer(zeros)))
+        // Only player 1's card, and only Standard's.
+        assertFalse(Achievement.MY_FAVOURITE_NUMBER in unlockedMidGame(midGamePlayer(emptyMap()), midGamePlayer(twelves, type = PlayerType.AI)))
+        assertFalse(Achievement.MY_FAVOURITE_NUMBER in unlockedMidGame(midGamePlayer(twelves, gameMode = GameMode.TRICOLOUR)))
+        assertEquals(listOf(GameMode.STANDARD), Achievement.MY_FAVOURITE_NUMBER.limitedModes)
+    }
+
+    @Test
     fun `mid-game - banked feats unlock at once - nothing a later turn could change does and no counters move`() {
         // A maxed box unlocks mid-game - without waiting for the results screen - but an AI maxing one earns the device nothing.
         assertTrue(Achievement.SIX_APPEAL in unlockedMidGame(midGamePlayer(mapOf(ScoreCategory.SIXES to 30))))
@@ -801,7 +853,7 @@ class AchievementEngineTest {
         assertFalse(Achievement.LOW_ROLLS in almostEmpty)
         assertFalse(Achievement.PRACTICE_MAKES_PERFECT in almostEmpty)
 
-        // Mid-game touches no counters - so an undo can't inflate a running total.
+        // Mid-game touches no running total - so an undo can't inflate one - and a collection with nothing new isn't written.
         val update = AchievementEngine.evaluateInProgress(
             inProgress(midGamePlayer(mapOf(ScoreCategory.SIXES to 30))),
             AchievementsState(counters = mapOf(AchievementCounter.GAMES_PLAYED to 7)),

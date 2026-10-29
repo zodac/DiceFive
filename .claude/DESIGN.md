@@ -412,10 +412,15 @@ can't is a page saying so, with the stack trace to report. The app never just cl
     - A solo game counts for games played, feats and thresholds, but neither extends nor breaks a win streak.
     - A tie at the top is a win only for whoever the tie-break ranks first (`wonBy`); a true tie is a shared win.
     - Superuser mode doesn't disqualify a game.
-    - Undo can't inflate a counter: counters move only at game end, and only human rolls count dice.
+    - Undo can't inflate a counter: running totals move only at game end, and only human rolls count dice.
     - New Personal Best is per name, and reads the best from before this game's rows are written.
-    - Full Set's counter (`FIVE_X_NUMBERS`) is a set of flags, one bit per number; its progress is the bits set
-        (`AchievementCounter.progressOf`).
+    - Full Set's counter (`FIVE_X_NUMBERS`) and Full Houses' (`FULL_HOUSES`, one bit per hand in
+        `Achievement.FULL_HOUSES_HANDS`) are sets of flags; their progress is the bits set (`AchievementCounter.progressOf`).
+        A flag is set the moment its box is scored, with its banner. The game keeps what it has collected on the player
+        (`PlayerState.fiveOfAKindNumbers`, `fullHouseHands`), so a resumed game still has it. A flag stays set if its
+        score is then undone.
+    - Every collection achievement (Full Set, Full Houses, Grand Tour, and the ledger) has a progress banner for each new
+        entry (`progressStepSize = 1`).
     - The ledger, career points and Grand Tour (player 1's modes played) are derived from the scores table, so they
         always agree with the Leaderboard and re-earn after a reset. Career points and Grand Tour read only unmodified
         rows.
@@ -424,8 +429,8 @@ can't is a page saying so, with the stack trace to report. The app never just cl
         `GameViewModel.unlockAchievements` filters the tracker's.
 - **When they're judged.** The engine decides, never a call site.
     - `evaluateAtGameStart`: style and mode picks (Fresh Coat Of Paint).
-    - `evaluateInProgress`, after each scored box: only what a later turn can't take away. Score thresholds wait for game
-        end.
+    - `evaluateInProgress`, after each scored box: only what a later turn can't take away, and the collection flags.
+        Score thresholds wait for game end.
     - `unlockNow` and the pre-commit checks: moments a finished card can't show, such as a hand straight out of the cup
         or the dice and chosen box together (Wasted Fortune, Size Isn't Everything, Almost Famous, The Dice Hate Me,
         Commitment Issues).
