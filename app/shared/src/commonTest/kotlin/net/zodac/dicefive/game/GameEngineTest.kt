@@ -130,6 +130,24 @@ class GameEngineTest {
     }
 
     @Test
+    fun `a player's first turn score is kept for the game - not replaced by a later turn, and not set by a turn forfeited before a roll`() {
+        val first = GameEngine.commitScore(GameEngine.rollDice(GameEngine.newGame(twoPlayers)), ScoreCategory.CHANCE)
+        val chance = first.players[0].scoresIn(ScoreCategory.CHANCE).single()
+        assertEquals(listOf<Int?>(chance, null), first.players.map { it.firstTurnScore })
+
+        // Player 2's turn, then player 1's second: the first turn's score stays.
+        val second = GameEngine.commitScore(GameEngine.rollDice(first), ScoreCategory.CHANCE)
+        val again = GameEngine.commitScore(GameEngine.rollDice(second), ScoreCategory.ONES)
+        assertEquals(listOf<Int?>(chance, second.players[1].scoresIn(ScoreCategory.CHANCE).single()), again.players.map { it.firstTurnScore })
+
+        // A first turn the timer ran out on before a roll is a zero for nothing: no score kept, and no later turn takes its place.
+        val forfeited = GameEngine.forfeitTurn(GameEngine.newGame(twoPlayers))
+        assertEquals(listOf<Int?>(null, null), forfeited.players.map { it.firstTurnScore })
+        val afterForfeit = GameEngine.commitScore(GameEngine.rollDice(GameEngine.commitScore(GameEngine.rollDice(forfeited), ScoreCategory.CHANCE)), ScoreCategory.CHANCE)
+        assertEquals(null, afterForfeit.players[0].firstTurnScore)
+    }
+
+    @Test
     fun `each hold is counted for the player whose turn it is - a release is not - and the count lasts the game`() {
         val rolled = GameEngine.rollDice(GameEngine.newGame(twoPlayers))
         val held = GameEngine.toggleHold(GameEngine.toggleHold(rolled, dieIndex = 0), dieIndex = 1)

@@ -28,10 +28,11 @@ mode changes, decide:
 
 | Family           | Achievements                                                                                                                                                                      | Ask                                                                       |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Roll count       | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Time To Let It Go, What Was The Point Of That?, Green Fingers, Probability? Never Heard Of Her | Does "one roll used" or "every roll used" become automatic or impossible? |
+| Roll count       | Impatient, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Time To Let It Go, What Was The Point Of That?, Green Fingers, Probability? Never Heard Of Her | Does "one roll used" or "every roll used" become automatic or impossible? |
 | First roll       | House Call, Straight Away                                                                                                                                                         | Is every roll now a first roll, or none?                                  |
 | Holds            | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues, Hands Off! (Standard only)                                                                              | Can dice still be held?                                                   |
 | Timer            | The timeout guards on low or zeroed cards (`GAME_MODES.md`)                                                                                                                       | Always or never a timer?                                                  |
+| First turn       | Slow Start                                                                                                                                                                        | Can a first turn still be scored zero, by choice?                         |
 | Card contents    | How Do You Play This Game?, Spotless, Bonus Round, Upper/Lower Class, Exact Change, the 5x ones                                                                                   | Is each box still there, and do totals mean the same?                     |
 | Score thresholds | Solid Round ... Dice Deity (Standard and Tricolour only), Cold Dice, Low Rolls, Ton!, Nice, Rock Bottom, the score bands                                                          | Trivial or impossible at this ceiling?                                    |
 | Dice look        | Fresh Coat Of Paint, Luck Of The Irish                                                                                                                                            | Does the mode draw the player's dice style?                               |
@@ -75,7 +76,7 @@ The draw is always three upper and three lower boxes. A short game with small to
 
 **Still earnable** (report these):
 
-- Impatient and Naturally Gifted;
+- Impatient;
 - Green Fingers (18 rolls rather than 39);
 - Nice and Ton! (likelier);
 - Zero To Hero (harder);
@@ -99,7 +100,7 @@ Scores).
 
 ## One roll a turn (Number of Rolls at 1)
 
-Impatient, Naturally Gifted and Almost Famous are guarded, though any modifier now blocks them anyway.
+Impatient and Almost Famous are guarded, though any modifier now blocks them anyway.
 
 ## Stud (seven rolled, five held)
 
@@ -248,7 +249,7 @@ Cold Dice and Low Rolls count: under 100 needs a disastrous game, as on Standard
 
 **Still earnable**:
 
-- Impatient and Naturally Gifted;
+- Impatient;
 - Green Fingers (110 rolls: every roll of its 22 turns of five);
 - Probability? Never Heard Of Her, on a half's bonus: the last box one of a half's numbers that one die would have
     taken to its threshold (never a wildcard);

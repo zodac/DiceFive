@@ -212,8 +212,8 @@
     <string name="achievement_last_human_standing_description">Win a four-player game against three CPU players</string>
     <string name="achievement_how_do_you_do_fellow_cpus_title">How Do You Do, Fellow CPUs?</string>
     <string name="achievement_how_do_you_do_fellow_cpus_description">Don't finish last in a four-player game against three Hard CPU players</string>
-    <string name="achievement_naturally_gifted_title">Naturally Gifted</string>
-    <string name="achievement_naturally_gifted_description">Win a game never rolling more than once in any turn</string>
+    <string name="achievement_slow_start_title">Slow Start</string>
+    <string name="achievement_slow_start_description">Win a game after scoring zero in your first turn</string>
     <string name="achievement_everything_everywhere_all_at_once_title">Everything Everywhere All At Once</string>
     <string name="achievement_everything_everywhere_all_at_once_description">Win a non-Standard game with all modifiers enabled</string>
     <string name="achievement_where_were_going_we_dont_need_rules_title">Where We're Going, We Don't Need Rules</string>

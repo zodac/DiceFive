@@ -32,7 +32,7 @@ class AchievementTracker {
     private var trailedIntoFinalRound = false
     private var ledIntoFinalRound = false
 
-    /** Whether player 1 has used a 2nd or 3rd roll on at least one of their own turns - see [Achievement.IMPATIENT]/[Achievement.NATURALLY_GIFTED]. */
+    /** Whether player 1 has used a 2nd or 3rd roll on at least one of their own turns - see [Achievement.IMPATIENT]. */
     private var playerOneTookExtraRoll = false
 
     /** How many of player 1's turns the turn timer has run out on. A timed-out score can't be undone, so this never counts down. */

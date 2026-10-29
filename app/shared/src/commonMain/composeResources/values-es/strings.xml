@@ -138,8 +138,8 @@
     <string name="achievement_last_human_standing_description">Gana una partida de cuatro jugadores contra tres jugadores CPU</string>
     <string name="achievement_how_do_you_do_fellow_cpus_title">¿Qué tal, compañeros CPU?</string>
     <string name="achievement_how_do_you_do_fellow_cpus_description">No acabes último en una partida de cuatro jugadores contra tres jugadores CPU difíciles</string>
-    <string name="achievement_naturally_gifted_title">Talento natural</string>
-    <string name="achievement_naturally_gifted_description">Gana una partida sin tirar más de una vez en ningún turno</string>
+    <string name="achievement_slow_start_title">Comienzo lento</string>
+    <string name="achievement_slow_start_description">Gana una partida tras anotar cero en tu primer turno</string>
     <string name="achievement_everything_everywhere_all_at_once_title">Todo a la vez en todas partes</string>
     <string name="achievement_everything_everywhere_all_at_once_description">Gana una partida en un modo distinto del estándar con todos los modificadores activados</string>
     <string name="achievement_where_were_going_we_dont_need_rules_title">Donde vamos no hacen falta reglas</string>

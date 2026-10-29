@@ -35,8 +35,7 @@ data class GameAchievementContext(
     val diceRolledByPlayerOne: Int = 0,
     /**
      * Whether player 1 rolled more than once on at least one of their own turns this game -
-     * [Achievement.IMPATIENT]/[Achievement.NATURALLY_GIFTED] need this false, i.e. every one of
-     * their turns was a single roll.
+     * [Achievement.IMPATIENT] needs this false, i.e. every one of their turns was a single roll.
      */
     val playerOneTookExtraRoll: Boolean = false,
     /**
@@ -586,12 +585,13 @@ object AchievementEngine {
                 players[0].totalScore == THE_SOLUTION_SCORE,
         )
 
-        // Impatient/Naturally Gifted: player 1 took every one of their own turns on a single roll -
+        // Impatient: player 1 took every one of their own turns on a single roll -
         // by choice, so never when a turn has only one roll (the Number of Rolls modifier), where it would be free.
         // Nor with a turn timed out, which takes no extra roll by never being rolled at all.
         val playerOneNeverRolledTwice = !context.playerOneTookExtraRoll && state.rollsPerTurn > 1 && noTimeouts
         award(Achievement.IMPATIENT, playerOneNeverRolledTwice)
-        award(Achievement.NATURALLY_GIFTED, multiplayer && playerOneNeverRolledTwice && humanWon)
+        // Slow Start: a win after a first turn that scored zero. Not a turn the timer scored, which takes a zero for nothing.
+        award(Achievement.SLOW_START, multiplayer && humanWon && noTimeouts && humans.first().firstTurnScore == 0)
         // Every modifier at once, in a mode of its own: the timer, both roll modifiers, Extended Scores and Unlucky Dice -
         // Extended Scores only where the mode offers it (not D20 or Hit List).
         award(

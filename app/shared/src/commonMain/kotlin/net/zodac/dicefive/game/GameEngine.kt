@@ -241,6 +241,7 @@ object GameEngine {
             },
             lastRoll = state.dice,
             lastScoredCategory = category,
+            firstTurnScore = if (player.turnsTaken == 0) value else player.firstTurnScore,
             // Whatever is left of this turn's rolls waits for their next one (none, unless Stored Rolls is on).
             storedRolls = state.rollModifiers.stored(state.rollsRemaining),
         )

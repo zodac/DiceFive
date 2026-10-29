@@ -155,8 +155,8 @@
     <string name="achievement_last_human_standing_description">افز في لعبة من أربعة لاعبين ضد ثلاثة لاعبين من الحاسوب</string>
     <string name="achievement_how_do_you_do_fellow_cpus_title">كيف حالكم يا زملاء المعالج؟</string>
     <string name="achievement_how_do_you_do_fellow_cpus_description">لا تحتل المركز الأخير في لعبة من أربعة لاعبين ضد ثلاثة لاعبين صعبين من الحاسوب</string>
-    <string name="achievement_naturally_gifted_title">موهبة فطرية</string>
-    <string name="achievement_naturally_gifted_description">افز في لعبة دون أن ترمي أكثر من مرة واحدة في أي دور</string>
+    <string name="achievement_slow_start_title">بداية بطيئة</string>
+    <string name="achievement_slow_start_description">افز في لعبة بعد أن سجّلت صفرًا في دورك الأول</string>
     <string name="achievement_everything_everywhere_all_at_once_title">كل شيء في كل مكان في آن واحد</string>
     <string name="achievement_everything_everywhere_all_at_once_description">افز في لعبة بنمط غير القياسي مع تفعيل جميع المعدّلات</string>
     <string name="achievement_where_were_going_we_dont_need_rules_title">حيث نذهب لا نحتاج إلى قواعد</string>

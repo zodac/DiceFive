@@ -142,7 +142,7 @@ val Achievement.icon: ImageVector
         Achievement.COMEBACK_KID -> vectorResource(Res.drawable.ic_cowboy_hat)
         Achievement.LAST_HUMAN_STANDING -> Symbols.EmojiPeople
         Achievement.HOW_DO_YOU_DO_FELLOW_CPUS -> Symbols.Memory
-        Achievement.NATURALLY_GIFTED -> Symbols.Spa
+        Achievement.SLOW_START -> Symbols.SlowMotionVideo
         // Drawn for this app: a googly eye, its pupil off to one side, in its own white and black.
         Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE -> GOOGLY_EYE_ICON
 

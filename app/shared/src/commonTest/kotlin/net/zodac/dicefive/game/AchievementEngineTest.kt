@@ -321,7 +321,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `how the game went - Personal Best - Comeback Kid - Jaws Of Victory - Zero To Hero - Impatient and Naturally Gifted`() {
+    fun `how the game went - Personal Best - Comeback Kid - Jaws Of Victory - Zero To Hero - Impatient`() {
         val state = finishedGame(player(total = 250))
         assertTrue(Achievement.NEW_PERSONAL_BEST in unlocked(state, GameAchievementContext(previousBestScore = 240)))
         assertFalse(Achievement.NEW_PERSONAL_BEST in unlocked(state, GameAchievementContext(previousBestScore = 260)))
@@ -359,18 +359,12 @@ class AchievementEngineTest {
         assertTrue(zeroToHero(threes = 0))
         assertFalse(zeroToHero(threes = 3))
 
-        // Playing first-roll-only unlocks Impatient - and Naturally Gifted if player 1 also won.
+        // Playing first-roll-only unlocks Impatient, won or lost.
         val wonBig = finishedGame(player(total = 200), bot(total = 150))
         val lostBig = finishedGame(player(total = 100), bot(total = 150))
-        val wonFirstRollOnly = unlocked(wonBig, GameAchievementContext(playerOneTookExtraRoll = false))
-        val wonWithExtraRolls = unlocked(wonBig, GameAchievementContext(playerOneTookExtraRoll = true))
-        val lostFirstRollOnly = unlocked(lostBig, GameAchievementContext(playerOneTookExtraRoll = false))
-        assertTrue(Achievement.IMPATIENT in wonFirstRollOnly)
-        assertTrue(Achievement.NATURALLY_GIFTED in wonFirstRollOnly)
-        assertFalse(Achievement.IMPATIENT in wonWithExtraRolls)
-        assertFalse(Achievement.NATURALLY_GIFTED in wonWithExtraRolls)
-        assertTrue(Achievement.IMPATIENT in lostFirstRollOnly, "first-roll-only but lost - Impatient still applies")
-        assertFalse(Achievement.NATURALLY_GIFTED in lostFirstRollOnly, "first-roll-only but lost - not a win")
+        assertTrue(Achievement.IMPATIENT in unlocked(wonBig, GameAchievementContext(playerOneTookExtraRoll = false)))
+        assertFalse(Achievement.IMPATIENT in unlocked(wonBig, GameAchievementContext(playerOneTookExtraRoll = true)))
+        assertTrue(Achievement.IMPATIENT in unlocked(lostBig, GameAchievementContext(playerOneTookExtraRoll = false)), "first-roll-only but lost - Impatient still applies")
 
         // Superuser mode used to disqualify a game outright. It no longer does: the cheat is gated on a debug build,
         // so the rule protected nobody, and it made the one tool best placed to test achievements useless for testing them.
@@ -999,10 +993,28 @@ class AchievementEngineTest {
         for (achievement in lowAndZeroed) assertFalse(achievement in timedOut, "$achievement with a turn timed out")
         // A timeout that zeroed some other box leaves the 5x zero player 1's own.
         assertTrue(Achievement.SCRATCHED in unlocked(rockBottom, GameAchievementContext(playerOneTimeouts = 1, playerOneTimedOutZeroes = listOf(ScoreCategory.ONES))))
-        // Nor is a winner's Naturally Gifted (never rolling twice) earned by never rolling at all.
-        val won = finishedGame(player(total = 200), bot(total = 150))
-        assertTrue(Achievement.NATURALLY_GIFTED in unlocked(won))
-        assertFalse(Achievement.NATURALLY_GIFTED in unlocked(won, GameAchievementContext(playerOneTimeouts = 1)))
+        // Nor is a winner's Slow Start (a first turn scoring zero) earned by letting the clock score it.
+        val won = finishedGame(player(total = 200).copy(firstTurnScore = 0), bot(total = 150))
+        assertTrue(Achievement.SLOW_START in unlocked(won))
+        assertFalse(Achievement.SLOW_START in unlocked(won, GameAchievementContext(playerOneTimeouts = 1)))
+    }
+
+    @Test
+    fun `Slow Start is a win after a first turn that scored zero - not a loss, a solo game, a first turn that scored, or one that never rolled`() {
+        fun earned(game: GameState) = Achievement.SLOW_START in unlocked(game)
+        val bigBot = bot(total = 150)
+
+        assertTrue(earned(finishedGame(player(total = 200).copy(firstTurnScore = 0), bigBot)))
+        // A win after a first turn that scored anything at all is not it.
+        assertFalse(earned(finishedGame(player(total = 200).copy(firstTurnScore = 1), bigBot)))
+        assertFalse(earned(finishedGame(player(total = 200), bigBot)), "no first turn recorded")
+        // A zero first turn, but a loss - or a game with no one to beat.
+        assertFalse(earned(finishedGame(player(total = 100).copy(firstTurnScore = 0), bigBot)))
+        assertFalse(earned(finishedGame(player(total = 200).copy(firstTurnScore = 0))))
+        // Another seat's zero opener is not player 1's.
+        assertFalse(earned(finishedGame(player(total = 200), bigBot.copy(firstTurnScore = 0))))
+        // Any mode: Quickfire's first of six turns is as good as Standard's first of thirteen.
+        assertTrue(earned(finishedGame(player(total = 200, gameMode = GameMode.QUICKFIRE).copy(firstTurnScore = 0), bot(total = 150, gameMode = GameMode.QUICKFIRE))))
     }
 
     @Test
@@ -1075,17 +1087,15 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `a single roll chosen with Number of Rolls isn't Impatient - nor Naturally Gifted for a win - but Quickfire's three rolls still are`() {
+    fun `a single roll chosen with Number of Rolls isn't Impatient - but Quickfire's three rolls still are`() {
         assertFalse(Achievement.IMPATIENT in unlocked(finishedGame(player()).copy(rollModifiers = RollModifiers(rollsPerTurn = 1))))
         assertTrue(Achievement.IMPATIENT in unlocked(finishedGame(player())))
         val firstRollOnly = GameAchievementContext(playerOneTookExtraRoll = false)
         fun won(mode: GameMode) = finishedGame(player(total = 200, gameMode = mode), bot(total = 150, gameMode = mode))
         val oneRoll = unlocked(won(GameMode.STANDARD).copy(rollModifiers = RollModifiers(rollsPerTurn = 1)), firstRollOnly)
         assertFalse(Achievement.IMPATIENT in oneRoll)
-        assertFalse(Achievement.NATURALLY_GIFTED in oneRoll)
         val quickfire = unlocked(won(GameMode.QUICKFIRE), firstRollOnly)
         assertTrue(Achievement.IMPATIENT in quickfire)
-        assertTrue(Achievement.NATURALLY_GIFTED in quickfire)
     }
 
     @Test

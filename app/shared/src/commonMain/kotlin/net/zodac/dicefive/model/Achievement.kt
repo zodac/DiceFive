@@ -119,8 +119,6 @@ import net.zodac.dicefive.resources.achievement_nat_20_description
 import net.zodac.dicefive.resources.achievement_nat_20_title
 import net.zodac.dicefive.resources.achievement_natural_5x_description
 import net.zodac.dicefive.resources.achievement_natural_5x_title
-import net.zodac.dicefive.resources.achievement_naturally_gifted_description
-import net.zodac.dicefive.resources.achievement_naturally_gifted_title
 import net.zodac.dicefive.resources.achievement_new_personal_best_description
 import net.zodac.dicefive.resources.achievement_new_personal_best_title
 import net.zodac.dicefive.resources.achievement_nice_description
@@ -171,6 +169,8 @@ import net.zodac.dicefive.resources.achievement_six_of_the_best_description
 import net.zodac.dicefive.resources.achievement_six_of_the_best_title
 import net.zodac.dicefive.resources.achievement_size_isnt_everything_description
 import net.zodac.dicefive.resources.achievement_size_isnt_everything_title
+import net.zodac.dicefive.resources.achievement_slow_start_description
+import net.zodac.dicefive.resources.achievement_slow_start_title
 import net.zodac.dicefive.resources.achievement_solid_round_description
 import net.zodac.dicefive.resources.achievement_solid_round_title
 import net.zodac.dicefive.resources.achievement_spotless_description
@@ -684,10 +684,11 @@ enum class Achievement(
         Res.string.achievement_how_do_you_do_fellow_cpus_description,
         AchievementCategory.WINNING,
     ),
-    NATURALLY_GIFTED(
-        "naturally_gifted",
-        Res.string.achievement_naturally_gifted_title,
-        Res.string.achievement_naturally_gifted_description,
+    // A win after the first turn scored zero - PlayerState.firstTurnScore, so it's saved with a game left and resumed.
+    SLOW_START(
+        "slow_start",
+        Res.string.achievement_slow_start_title,
+        Res.string.achievement_slow_start_description,
         AchievementCategory.WINNING,
     ),
 

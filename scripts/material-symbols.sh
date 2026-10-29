@@ -112,8 +112,8 @@ ScreenRotation screen_rotation
 SentimentDissatisfied sentiment_dissatisfied
 SentimentNeutral sentiment_neutral
 Skull skull
+SlowMotionVideo slow_motion_video
 Sort sort mirror
-Spa spa
 Speed speed
 SportsEsports sports_esports
 Stairs2 stairs_2

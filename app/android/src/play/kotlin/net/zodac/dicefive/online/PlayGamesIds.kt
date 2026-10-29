@@ -51,7 +51,7 @@ internal val playAchievementIds: Map<Achievement, String> = mapOf(
     Achievement.COMEBACK_KID to "CgkIjZfJ1v0IEAIQkQE",
     Achievement.LAST_HUMAN_STANDING to "CgkIjZfJ1v0IEAIQxgE",
     Achievement.HOW_DO_YOU_DO_FELLOW_CPUS to "CgkIjZfJ1v0IEAIQmgE",
-    Achievement.NATURALLY_GIFTED to "CgkIjZfJ1v0IEAIQfQ",
+    Achievement.SLOW_START to "CgkIjZfJ1v0IEAIQ5wE",
     Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE to "CgkIjZfJ1v0IEAIQeg",
     Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES to "CgkIjZfJ1v0IEAIQhAE",
     Achievement.TRICOLOURFUL to "CgkIjZfJ1v0IEAIQtwE",

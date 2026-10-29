@@ -225,6 +225,7 @@ object GameStateJson {
         put("rollCount", player.rollCount)
         if (player.storedRolls > 0) put("storedRolls", player.storedRolls)
         if (player.diceHeld > 0) put("diceHeld", player.diceHeld)
+        player.firstTurnScore?.let { put("firstTurnScore", it) }
         if (player.fiveOfAKindFlashed) put("fiveOfAKindFlashed", true)
         player.lastRoll?.let { put("lastRoll", JsonArray(it.map(::encodeDie))) }
         player.lastScoredCategory?.let { put("lastScoredCategory", it.id) }
@@ -272,6 +273,8 @@ object GameStateJson {
             storedRolls = if ("storedRolls" in obj) obj.int("storedRolls") else 0,
             // Left out by encode until the player's first hold.
             diceHeld = if ("diceHeld" in obj) obj.int("diceHeld") else 0,
+            // Left out by encode until the player's first turn is scored by a roll.
+            firstTurnScore = if ("firstTurnScore" in obj) obj.int("firstTurnScore") else null,
             rollsModified = rollsModified,
             // Left out unless set: that player's flash is still to come.
             fiveOfAKindFlashed = obj.booleanOrNull("fiveOfAKindFlashed") == true,
