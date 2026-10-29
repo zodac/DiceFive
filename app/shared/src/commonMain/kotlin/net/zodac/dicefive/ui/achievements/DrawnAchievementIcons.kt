@@ -103,7 +103,7 @@ internal val FIVE_X_BURST_ICON: ImageVector by lazy {
 
 /**
  * A number line: three ticks along a rule, with 1, 2 and 3 (Sora Bold) over them - counting as it's first taught. For
- * I Can Count!, 1-2-3-4-5 rolled in order.
+ * I Can Count!, Chance scored with 1-2-3-4-5 in order.
  */
 internal val NUMBER_LINE_ICON: ImageVector by lazy {
     icon("NumberLine") {

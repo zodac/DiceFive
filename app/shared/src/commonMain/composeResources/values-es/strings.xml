@@ -107,7 +107,7 @@
     <string name="achievement_natural_5x_title">5x natural</string>
     <string name="achievement_natural_5x_description">Saca un 5x sin conservar ningún dado</string>
     <string name="achievement_i_can_count_title">¡Sé contar!</string>
-    <string name="achievement_i_can_count_description">Saca 1, 2, 3, 4, 5 en ese orden en la primera tirada de un turno</string>
+    <string name="achievement_i_can_count_description">Anota Azar con 1, 2, 3, 4, 5 en ese orden</string>
     <string name="achievement_a_cunning_strategy_title">Una estrategia astuta</string>
     <string name="achievement_a_cunning_strategy_description">Conserva los cinco dados y luego suelta todos</string>
     <string name="achievement_exact_change_title">Cambio exacto</string>

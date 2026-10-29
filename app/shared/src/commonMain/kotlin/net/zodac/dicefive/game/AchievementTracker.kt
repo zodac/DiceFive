@@ -231,8 +231,6 @@ class AchievementTracker {
         // Lucky Seven: every one of Stud's seven dice showing the same number - an achievement for that one mode.
         if (values.toSet().size == 1) add(Achievement.LUCKY_SEVEN)
 
-        // I Can Count!: 1,2,3,4,5 in that order, first roll of the turn only.
-        if (rollsRemainingBeforeRoll == state.fullRolls && values == COUNTING_DICE_VALUES) add(Achievement.I_CAN_COUNT)
         // Product Placement: the menu logo's own dice, in its own order - any roll of any turn.
         if (values == LOGO_DICE_VALUES) add(Achievement.PRODUCT_PLACEMENT)
 
@@ -406,6 +404,9 @@ class AchievementTracker {
             add(Achievement.PROBABILITY_NEVER_HEARD_OF_HER)
         }
 
+        // I Can Count!: Chance scored with 1,2,3,4,5 in that order, on any roll of the turn.
+        if (category == ScoreCategory.CHANCE && dice.map { it.value } == COUNTING_DICE_VALUES) add(Achievement.I_CAN_COUNT)
+
         // Empty House and Fuller House: the worst and best full houses there are, which a 5x-as-joker can never produce.
         if (category == ScoreCategory.FULL_HOUSE && dice.map { it.value }.sorted() == EMPTY_HOUSE_VALUES) add(Achievement.EMPTY_HOUSE)
         if (category == ScoreCategory.FULL_HOUSE && dice.map { it.value }.sorted() == FULLER_HOUSE_VALUES) add(Achievement.FULLER_HOUSE)
@@ -530,7 +531,7 @@ class AchievementTracker {
         /** The rolls a turn has to start with for Rainy Day Fund. */
         const val RAINY_DAY_FUND_ROLLS = 100
 
-        /** The exact roll "I Can Count!" is named for. */
+        /** The dice, in order, "I Can Count!" scores Chance with. */
         val COUNTING_DICE_VALUES = listOf(1, 2, 3, 4, 5)
 
         /** The menu logo's own dice (`AppLogo`), in its own order - "Product Placement". */

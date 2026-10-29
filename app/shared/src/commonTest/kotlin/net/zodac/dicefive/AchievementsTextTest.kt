@@ -7,12 +7,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
@@ -254,12 +257,17 @@ class AchievementsTextTest : UiTest() {
 
         val midnight = hasText("Rolling The Midnight Dice") and SemanticsMatcher("clickable") { SemanticsActions.OnClick in it.config }
         compose.onNode(hasScrollAction()).performScrollToNode(midnight)
-        compose.onNode(midnight).performClick()
+        // Scrolled to the top, the row's middle sits under the pinned category header: touch its lower edge, clear of it.
+        fun SemanticsNodeInteraction.tapBelowHeader(longPress: Boolean = false) = performTouchInput {
+            val below = Offset(centerX, height - 8f)
+            if (longPress) longClick(below) else click(below)
+        }
+        compose.onNode(midnight).tapBelowHeader()
         compose.waitForIdle()
         compose.onNodeWithText("Earn this to unlock 'Starry' dice, mat, and background").assertExists()
-        compose.onNode(midnight).performClick()
+        compose.onNode(midnight).tapBelowHeader()
         compose.waitForIdle()
-        compose.onNode(midnight).performTouchInput { longClick() }
+        compose.onNode(midnight).tapBelowHeader(longPress = true)
         compose.waitForIdle()
         // A heading, then each style on a bulleted line of its own, capitalised, with no "the".
         compose.onNodeWithText("Earn this to unlock:").assertExists()

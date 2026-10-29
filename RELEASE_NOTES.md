@@ -1,0 +1,2 @@
+- Replaced `Third Times The Charm` achievement with `Chance Encounter`
+- Updated the logic for `I Can Count!` achievement to require scoring 1-2-3-4-5, not rolling it on the first turn

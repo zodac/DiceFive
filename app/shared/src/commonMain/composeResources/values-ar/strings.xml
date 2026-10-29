@@ -124,7 +124,7 @@
     <string name="achievement_natural_5x_title">5x طبيعية</string>
     <string name="achievement_natural_5x_description">احصل على 5x دون تثبيت أي نرد</string>
     <string name="achievement_i_can_count_title">أعرف العدّ!</string>
-    <string name="achievement_i_can_count_description">احصل على ١، ٢، ٣، ٤، ٥ بهذا الترتيب في أول رمية من دور</string>
+    <string name="achievement_i_can_count_description">سجّل في خانة الحظ بالأرقام ١، ٢، ٣، ٤، ٥ بهذا الترتيب</string>
     <string name="achievement_a_cunning_strategy_title">خطة ماكرة</string>
     <string name="achievement_a_cunning_strategy_description">ثبّت أحجار النرد الخمسة كلها، ثم حرّرها واحدًا واحدًا</string>
     <string name="achievement_exact_change_title">الحساب بالدقة</string>

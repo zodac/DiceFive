@@ -29,7 +29,7 @@ mode changes, decide:
 | Family           | Achievements                                                                                                                                                                      | Ask                                                                       |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | Roll count       | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Time To Let It Go, What Was The Point Of That?, Green Fingers, Probability? Never Heard Of Her | Does "one roll used" or "every roll used" become automatic or impossible? |
-| First roll       | House Call, Straight Away, I Can Count!                                                                                                                                           | Is every roll now a first roll, or none?                                  |
+| First roll       | House Call, Straight Away                                                                                                                                                         | Is every roll now a first roll, or none?                                  |
 | Holds            | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues, Hands Off! (Standard only)                                                                              | Can dice still be held?                                                   |
 | Timer            | The timeout guards on low or zeroed cards (`GAME_MODES.md`)                                                                                                                       | Always or never a timer?                                                  |
 | Card contents    | How Do You Play This Game?, Spotless, Bonus Round, Upper/Lower Class, Exact Change, the 5x ones                                                                                   | Is each box still there, and do totals mean the same?                     |
@@ -123,7 +123,7 @@ in a Lifetime is guarded in `AchievementTracker.onCommit`):
 
 **Can't be earned**:
 
-- I Can Count! and Product Placement (seven dice never equal a five-dice sequence);
+- Product Placement (seven dice never equal a five-dice sequence);
 - What Was The Point Of That? (two dice always roll).
 
 **Judged on any five of the seven** (the maintainer's call, 2026-10-28):
@@ -199,7 +199,8 @@ of 5.
 
 **Can't be earned**:
 
-- the 5x ones, Upper/Lower Class, Bonus Round, Exact Change, Six Appeal, Taking A Chance and Straight Talker;
+- the 5x ones, Upper/Lower Class, Bonus Round, Exact Change, Six Appeal, Taking A Chance, and Straight Talker;
+- I Can Count! (the card has no Chance box);
 - the house and straight roll feats;
 - Nice (69 isn't a multiple of 5) and Rock Bottom;
 - New Personal Best and the bands.
@@ -239,7 +240,8 @@ Cold Dice and Low Rolls count: under 100 needs a disastrous game, as on Standard
 
 **Can't be earned**:
 
-- the 5x ones, Upper/Lower Class, Bonus Round, Exact Change, Six Appeal, Taking A Chance and Straight Talker;
+- the 5x ones, Upper/Lower Class, Bonus Round, Exact Change, Six Appeal, Taking A Chance, and Straight Talker;
+- I Can Count! (the card has no Chance box);
 - Time To Let It Go and Commitment Issues (they read the upper boxes only);
 - New Personal Best and the bands;
 - Nice and Rock Bottom.
@@ -250,7 +252,7 @@ Cold Dice and Low Rolls count: under 100 needs a disastrous game, as on Standard
 - Green Fingers (110 rolls: every roll of its 22 turns of five);
 - Probability? Never Heard Of Her, on a half's bonus: the last box one of a half's numbers that one die would have
     taken to its threshold (never a wildcard);
-- the roll-pattern feats I Can Count! and The Dice Hate Me, far rarer on 20 faces (House Call and Straight Away can't
+- the roll-pattern feat The Dice Hate Me, far rarer on 20 faces (House Call and Straight Away can't
     be earned: the card has no full house or straights);
 - Landslide and the wins.
 

@@ -598,7 +598,7 @@ enum class Achievement(
         "i_can_count",
         Res.string.achievement_i_can_count_title,
         Res.string.achievement_i_can_count_description,
-        AchievementCategory.DICE, impossibleIn = setOf(GameMode.STUD),
+        AchievementCategory.DICE, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
     EXACT_CHANGE(
         "exact_change",

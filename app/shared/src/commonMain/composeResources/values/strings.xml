@@ -181,7 +181,7 @@
     <string name="achievement_natural_5x_title">Natural 5x</string>
     <string name="achievement_natural_5x_description">Roll a 5x without holding any dice</string>
     <string name="achievement_i_can_count_title">I Can Count!</string>
-    <string name="achievement_i_can_count_description">Roll 1, 2, 3, 4, 5 in that order on the first roll of a turn</string>
+    <string name="achievement_i_can_count_description">Score Chance with 1, 2, 3, 4, 5 in that order</string>
     <string name="achievement_a_cunning_strategy_title">A Cunning Strategy</string>
     <string name="achievement_a_cunning_strategy_description">Hold all five dice, then unhold every one of them</string>
     <string name="achievement_exact_change_title">Exact Change</string>

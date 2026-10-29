@@ -319,10 +319,10 @@ class GameAchievementsWiringTest {
 
     @Test
     fun `a feat rolled straight out of the cup pops once the dice land - and only while its box is still open`() = runTest {
-        // 1-2-3-4-5 on the first throw: a large straight out of the cup - and I Can Count.
+        // 1-2-3-4-5 on the first throw: a large straight out of the cup. Rolling it alone is no I Can Count.
         val straight = unlockedAfter(ScriptedDice((1..5).toList())) { rollDice() }
         assertTrue(Achievement.STRAIGHT_AWAY in straight, "STRAIGHT_AWAY should pop on the roll, got $straight")
-        assertTrue(Achievement.I_CAN_COUNT in straight, "I_CAN_COUNT should pop, got $straight")
+        assertFalse(Achievement.I_CAN_COUNT in straight, "rolling 1-2-3-4-5 is not scoring it, got $straight")
         assertFalse(Achievement.HOUSE_CALL in straight)
 
         // It waits for the dice to land before it pops.
@@ -391,6 +391,18 @@ class GameAchievementsWiringTest {
         assertFalse(Achievement.FULLER_HOUSE in otherValues)
         assertFalse(Achievement.EMPTY_HOUSE in joker(1, closed = ScoreCategory.ONES, opening = 6), "a joker-rule full house should not unlock Empty House")
         assertFalse(Achievement.FULLER_HOUSE in joker(6, closed = ScoreCategory.SIXES, opening = 1), "a joker-rule full house should not unlock Fuller House")
+    }
+
+    @Test
+    fun `scoring Chance with 1-2-3-4-5 in order is I Can Count - on any roll of the turn - and no other box or order is`() = runTest {
+        fun counted(box: ScoreCategory, dice: List<Int> = (1..5).toList(), rolls: Int = 1) = unlockedAfter(ScriptedDice(dice)) {
+            repeat(rolls) { rollDice() }
+            commitScore(box)
+        }
+        assertTrue(Achievement.I_CAN_COUNT in counted(ScoreCategory.CHANCE), "I_CAN_COUNT should pop on the commit")
+        assertTrue(Achievement.I_CAN_COUNT in counted(ScoreCategory.CHANCE, (1..5).toList() + (1..5).toList(), rolls = 2), "a later roll counts")
+        assertFalse(Achievement.I_CAN_COUNT in counted(ScoreCategory.LARGE_STRAIGHT), "the wrong box")
+        assertFalse(Achievement.I_CAN_COUNT in counted(ScoreCategory.CHANCE, listOf(1, 2, 3, 5, 4)), "the wrong order")
     }
 
     @Test
