@@ -91,7 +91,7 @@ class PlayConsoleLeaderboardsExportTest {
         assumeTrue("Only with -PexportPlayConsole", exportingPlayConsole)
         val dir = playConsoleDir().resolve("leaderboards")
         val icons = dir.resolve("leaderboard-icons").apply { deleteRecursively(); mkdirs() }
-        writeSheet(dir.resolve("leaderboards.csv"))
+        writeSheet(dir.resolve(timestamped("leaderboards.csv")))
 
         var shown by mutableStateOf(modes.first())
         compose.setContent { IconTile(shown, ICON_SIZE) }

@@ -1,6 +1,8 @@
 package net.zodac.dicefive.online
 
 import java.io.File
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 // What the Play Console exports share: the app's languages and their text, and where (and whether) to write.
 
@@ -18,6 +20,10 @@ internal val exportingPlayConsole: Boolean get() = System.getProperty("dicefive.
 
 /** The gitignored `assets/play-console/` folder at the repo root, where the exports go. */
 internal fun playConsoleDir(): File = File(System.getProperty("dicefive.playConsoleDir").orEmpty().ifBlank { "../../assets/play-console" })
+
+/** [name] with this export's time before its extension ("achievements-20261029-143005.csv"), so each run keeps its own files. */
+internal fun timestamped(name: String, at: LocalDateTime = LocalDateTime.now()): String =
+    name.substringBeforeLast('.') + "-" + at.format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + "." + name.substringAfterLast('.')
 
 private val stringEntry = Regex("""<string name="([^"]+)"[^>]*>(.*?)</string>""", RegexOption.DOT_MATCHES_ALL)
 

@@ -170,13 +170,13 @@ Play's overlay: an edge tab that slides out achievements, streaks, offers and re
   A build whose key has no credential fails sign-in with Google's `DEVELOPER_ERROR`, which only logcat shows (its
   `PlayGamesServices[SignInAuthenticator]` lines print the build's SHA-1); the app sees only "not authenticated".
 - **Sheets**: `scripts/export-play-console.sh` writes the gitignored `assets/play-console/`:
-    - `achievements/achievements-import.zip` for Achievements > Import achievements (metadata, es-ES/es-419/ar
+    - `achievements/achievements-import-<timestamp>.zip` for Achievements > Import achievements (metadata, es-ES/es-419/ar
         localisations, icon mappings, icons; no header rows, keyed by English name). Add the translations in Play Console
         first.
-    - `achievements/achievements.csv` and `achievements/achievement-icons/<id>.png` (512px) for review.
+    - `achievements/achievements-<timestamp>.csv` and `achievements/achievement-icons/<id>.png` (512px) for review.
     - `achievements/achievement-ids.xml` isn't the script's: it's Achievements > Get resources (Android), saved there by
         hand after an import. `playAchievementIds` (`PlayGamesIds.kt`) is updated from it.
-    - `leaderboards/leaderboards.csv` and `leaderboards/leaderboard-icons/<key>.png` (`PlayConsoleLeaderboards.kt`),
+    - `leaderboards/leaderboards-<timestamp>.csv` and `leaderboards/leaderboard-icons/<key>.png` (`PlayConsoleLeaderboards.kt`),
         entered by hand: Play has no leaderboard import. An icon can change any time; a board's ordering can't once published.
     - `product-icons/unlock_all_styles.png`: the purchase's icon (`PURCHASES.md`, Phase 3).
 - Everything stays **draft** until publishing, because only drafts can be reset.

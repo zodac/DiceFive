@@ -20,6 +20,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.io.File
+import java.time.LocalDateTime
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import net.zodac.dicefive.model.Achievement
@@ -117,7 +118,8 @@ class PlayConsoleExportTest {
         assumeTrue("Only with -PexportPlayConsole", exportingPlayConsole)
         val dir = playConsoleDir().resolve("achievements")
         val icons = dir.resolve("achievement-icons").apply { deleteRecursively(); mkdirs() }
-        writeSheet(dir.resolve("achievements.csv"))
+        val now = LocalDateTime.now()
+        writeSheet(dir.resolve(timestamped("achievements.csv", now)))
 
         var shown by mutableStateOf(onPlay.first())
         compose.setContent { IconTile(shown, ICON_SIZE) }
@@ -128,7 +130,7 @@ class PlayConsoleExportTest {
             assertEquals(ICON_SIZE, bitmap.width)
             icons.resolve("${achievement.id}.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         }
-        writeImportZip(dir.resolve("achievements-import.zip"), icons)
+        writeImportZip(dir.resolve(timestamped("achievements-import.zip", now)), icons)
     }
 
     /**
@@ -177,7 +179,7 @@ class PlayConsoleExportTest {
     /** One row per achievement, in the app's order (Play's sort rank), with everything Play Console asks for. */
     private fun writeSheet(file: File) {
         val text = LOCALES.associateWith(::stringsOf)
-        val header = listOf("sort_rank", "id", "points", "tier", "type", "steps", "initial_state", "icon") +
+        val header = listOf("sort_rank", "id", "category", "points", "tier", "type", "steps", "initial_state", "icon") +
             LOCALES.flatMap { listOf("name_${it.code}", "description_${it.code}") }
         val rows = onPlay.mapIndexed { index, achievement ->
             val type = achievement.playType
@@ -185,6 +187,7 @@ class PlayConsoleExportTest {
             listOf(
                 (index + 1).toString(),
                 achievement.id,
+                text.getValue(Locale.ENGLISH).getValue("category_${achievement.category.name.lowercase()}"),
                 tier.points.toString(),
                 tier.name.lowercase(),
                 if (type is PlayAchievementType.Incremental) "Incremental" else "Standard",
