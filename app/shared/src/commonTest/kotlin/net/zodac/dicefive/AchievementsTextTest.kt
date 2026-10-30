@@ -349,11 +349,21 @@ class AchievementsTextTest : UiTest() {
     }
 
     @Test
-    fun `the earned count includes the Easter Eggs while the total leaves them out - their number is a secret, so all earned reads more than the total`() = uiTest {
+    fun `the earned count includes the Easter Eggs while the total leaves them out - so all earned reads more than the total`() = uiTest {
         val all = AchievementsState(unlockedAt = Achievement.entries.associateWith { 0L })
         showAchievements(achievementsViewModel(store = InMemoryAchievementStore(all)))
         val total = Achievement.entries.count { it.category != AchievementCategory.EASTER_EGGS }
         compose.onNodeWithText("${Achievement.entries.size} of $total earned").assertExists()
+    }
+
+    @Test
+    fun `the Easter Eggs header is read with its earned count like every other category`() = uiTest {
+        val eggs = Achievement.entries.filter { it.category == AchievementCategory.EASTER_EGGS }
+        val all = AchievementsState(unlockedAt = mapOf(eggs.first() to 0L))
+        showAchievements(achievementsViewModel(store = InMemoryAchievementStore(all)))
+        val header = hasContentDescription("Easter Eggs, 1 of ${eggs.size} earned")
+        compose.onNode(hasScrollAction()).performScrollToNode(header)
+        compose.onNode(header).assertExists()
     }
 
     private fun titleLayout(text: String): TextLayoutResult {

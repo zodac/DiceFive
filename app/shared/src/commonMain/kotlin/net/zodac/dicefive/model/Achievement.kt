@@ -302,8 +302,9 @@ const val MAX_ACHIEVEMENT_TITLE_LENGTH = 38
  *
  * [EASTER_EGGS] is last on purpose, and every achievement in it has [AchievementVisibility.HIDDEN]:
  * showing its title with description as "???" until unlocked. An unlocked one counts towards the earned figure
- * but never the total on the Achievements page, whose total leaves them out so their number stays secret - so a
- * player with everything reads "110 of 100 earned". That is intended, not a bug.
+ * but never the total on the Achievements page, whose total leaves them out - so a player with everything reads
+ * "110 of 100 earned". That is intended, not a bug. Their category header still shows its own earned/total, as
+ * every category's does.
  */
 enum class AchievementCategory(val label: StringResource) {
     MILESTONES(Res.string.category_milestones),

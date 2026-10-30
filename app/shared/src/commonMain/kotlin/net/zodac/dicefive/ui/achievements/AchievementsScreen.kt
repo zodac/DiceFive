@@ -561,12 +561,8 @@ fun AchievementsScreen(
                         stickyHeader(key = headerKey(group.category), contentType = HEADER_CONTENT_TYPE) {
                             GroupHeader(
                                 text = stringResource(group.category.label),
-                                // The full category, not the "locked only" filtered rows; Easter Eggs stay uncounted so their total isn't spoiled.
-                                counts = if (group.category == AchievementCategory.EASTER_EGGS) {
-                                    null
-                                } else {
-                                    fullGroups.first { it.category == group.category }.items.let { all -> all.count { it.unlockedAt != null } to all.size }
-                                },
+                                // The full category, not the "locked only" filtered rows.
+                                counts = fullGroups.first { it.category == group.category }.items.let { all -> all.count { it.unlockedAt != null } to all.size },
                                 onPrevious = headerIndices.getOrNull(groupIndex - 1)?.let { target ->
                                     { scope.launch { listState.animateScrollToItem(target) } }
                                 },
@@ -638,12 +634,12 @@ fun AchievementsScreen(
  * header is the 48dp minimum touch height rather than the bare label's.
  */
 @Composable
-private fun GroupHeader(text: String, counts: Pair<Int, Int>?, onPrevious: (() -> Unit)?, onNext: (() -> Unit)?) {
+private fun GroupHeader(text: String, counts: Pair<Int, Int>, onPrevious: (() -> Unit)?, onNext: (() -> Unit)?) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            val complete = counts != null && counts.first == counts.second
+            val complete = counts.first == counts.second
             val color = if (complete) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-            val spokenCount = counts?.let { stringResource(Res.string.achievements_earned_count, it.first, it.second) }
+            val spokenCount = stringResource(Res.string.achievements_earned_count, counts.first, counts.second)
             Text(
                 text = text,
                 style = categoryHeaderStyle,
@@ -651,18 +647,16 @@ private fun GroupHeader(text: String, counts: Pair<Int, Int>?, onPrevious: (() -
                 // The count after the label, as one heading.
                 modifier = Modifier.weight(1f).padding(start = 12.dp).semantics {
                     heading()
-                    contentDescription = if (spokenCount == null) text else "$text, $spokenCount"
+                    contentDescription = "$text, $spokenCount"
                 },
             )
-            if (counts != null) {
-                // The heading above already speaks the count.
-                Text(
-                    text = stringResource(Res.string.achievements_category_count, counts.first, counts.second),
-                    style = categoryHeaderStyle,
-                    color = color,
-                    modifier = Modifier.padding(horizontal = 8.dp).clearAndSetSemantics { },
-                )
-            }
+            // The heading above already speaks the count.
+            Text(
+                text = stringResource(Res.string.achievements_category_count, counts.first, counts.second),
+                style = categoryHeaderStyle,
+                color = color,
+                modifier = Modifier.padding(horizontal = 8.dp).clearAndSetSemantics { },
+            )
             IconButton(onClick = { onPrevious?.invoke() }, enabled = onPrevious != null) {
                 Icon(imageVector = Symbols.KeyboardArrowUp, contentDescription = stringResource(Res.string.achievements_previous_category_cd))
             }

@@ -14,8 +14,9 @@ Miscellaneous run in alphabetical order instead, and so do the Easter Eggs, whic
 - **A row's title** (`ShrinkThenWrapText`) is one line at `titleSmall` when it fits, stepped down to the 12sp floor, then
     wraps to two lines at 12sp: unlike the banner, which keeps one line down to 11sp. `AchievementsTextTest` pins it. The
     row sits under `IntrinsicSize.Min` (equal cards in landscape), so `ShrinkThenWrapText` answers intrinsic heights.
-- **The count is "earned of total", and the Easter Eggs are in earned but not in total**, so their number stays secret:
-    a player with everything reads "110 of 100 earned". This is intended, not a bug (`AchievementsTextTest`).
+- **The count is "earned of total", and the Easter Eggs are in earned but not in total**: a player with everything
+    reads "110 of 100 earned". This is intended, not a bug (`AchievementsTextTest`). It is not about secrecy: every
+    Easter Egg's row (title shown, description "???") is in the list from the start.
 - The unlocked/total count sits centred above the list. In landscape, where the list has two cards to a row, it moves
     into the app bar after the back arrow, with the Unearned switch at the bar's end (see `UI.md`, "Landscape pages").
 
@@ -27,8 +28,8 @@ Miscellaneous run in alphabetical order instead, and so do the Easter Eggs, whic
 - Each header carries its category's earned/total (`3/12`), counted over the whole category even while the Unearned switch is on
     hides rows. Label and count are `categoryHeaderStyle` (Sora, `titleSmall`, as written), as on the Styles screen. The
     label is `onSurface`, and the whole header turns brand gold (`primary`) once every one is earned. TalkBack reads
-    "Milestones, 3 of 12 unlocked" as the heading; the drawn count is hidden from it. Easter Eggs have no count, as
-    their total is a secret.
+    "Milestones, 3 of 12 earned" as the heading; the drawn count is hidden from it. Every category has a count, Easter
+    Eggs included: their rows are all listed, so their number is no secret.
 - Rows are clipped at the pinned header's bottom (`Modifier.hiddenUnderPinnedHeader`, from `layoutInfo` in the draw
     pass). Otherwise they'd show through its rounded corners.
 
