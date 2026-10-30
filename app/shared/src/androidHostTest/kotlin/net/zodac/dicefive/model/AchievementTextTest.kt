@@ -29,16 +29,18 @@ class AchievementTextTest {
         (locales[locale]?.get("achievement_title_max_length") ?: locales.getValue("values").getValue("achievement_title_max_length")).toInt()
 
     @Test
-    fun `every achievement and category has its text in the base locale - Easter Eggs in alphabetical order by title`() {
+    fun `every achievement and category has its text in the base locale - Easter Eggs, Miscellaneous, Misfortune, and Winning in alphabetical order by title`() {
         val base = locales.getValue("values")
         val missing = Achievement.entries.flatMap { listOf("achievement_${it.name.lowercase()}_title", "achievement_${it.name.lowercase()}_description") } +
             AchievementCategory.entries.map { "category_${it.name.lowercase()}" }
         assertEquals(emptyList(), missing.filterNot { it in base })
         assertEquals(Achievement.entries.size, titles.count { it.first == "values" })
 
-        // Easter Eggs have no ladder to run easiest-first, so they run alphabetically by title instead.
-        val easterEggs = Achievement.entries.filter { it.category == AchievementCategory.EASTER_EGGS }.map { base.getValue("achievement_${it.name.lowercase()}_title") }
-        assertEquals(easterEggs.sortedBy { it.lowercase() }, easterEggs)
+        // Easter Eggs, Miscellaneous, Misfortune, and Winning run alphabetically by title, not easiest-first.
+        listOf(AchievementCategory.EASTER_EGGS, AchievementCategory.MISCELLANEOUS, AchievementCategory.MISFORTUNE, AchievementCategory.WINNING).forEach { category ->
+            val categoryTitles = Achievement.entries.filter { it.category == category }.map { base.getValue("achievement_${it.name.lowercase()}_title") }
+            assertEquals(categoryTitles.sortedBy { it.lowercase() }, categoryTitles, category.name)
+        }
     }
 
     @Test

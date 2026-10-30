@@ -462,10 +462,46 @@ enum class Achievement(
         Res.string.achievement_one_more_time_description,
         AchievementCategory.MILESTONES,
     ),
+    I_DIDNT_MEAN_THAT(
+        "i_didnt_mean_that",
+        Res.string.achievement_i_didnt_mean_that_title,
+        Res.string.achievement_i_didnt_mean_that_description,
+        AchievementCategory.MILESTONES,
+    ),
+    HOW_DO_YOU_PLAY_THIS_GAME(
+        "how_do_you_play_this_game",
+        Res.string.achievement_how_do_you_play_this_game_title,
+        Res.string.achievement_how_do_you_play_this_game_description,
+        AchievementCategory.MILESTONES, notEarnableIn = setOf(GameMode.QUICKFIRE),
+    ),
+    BONUS_ROUND(
+        "bonus_round",
+        Res.string.achievement_bonus_round_title,
+        Res.string.achievement_bonus_round_description,
+        AchievementCategory.MILESTONES, notEarnableIn = setOf(GameMode.STUD, GameMode.QUICKFIRE), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
+    ),
+    FIVE_X(
+        "five_x",
+        Res.string.achievement_five_x_title,
+        Res.string.achievement_five_x_description,
+        AchievementCategory.MILESTONES, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
+    ),
+    NEW_PERSONAL_BEST(
+        "new_personal_best",
+        Res.string.achievement_new_personal_best_title,
+        Res.string.achievement_new_personal_best_description,
+        AchievementCategory.MILESTONES, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
+    ),
     FIRST_VICTORY(
         "first_victory",
         Res.string.achievement_first_victory_title,
         Res.string.achievement_first_victory_description,
+        AchievementCategory.MILESTONES,
+    ),
+    FRESH_COAT_OF_PAINT(
+        "fresh_coat_of_paint",
+        Res.string.achievement_fresh_coat_of_paint_title,
+        Res.string.achievement_fresh_coat_of_paint_description,
         AchievementCategory.MILESTONES,
     ),
     GETTING_COMFORTABLE(
@@ -492,12 +528,6 @@ enum class Achievement(
         Res.string.achievement_hall_of_famer_description,
         AchievementCategory.MILESTONES, AchievementCounter.GAMES_WON, target = 25, progressStepSize = 5,
     ),
-    WELL_ROLLED(
-        "well_rolled",
-        Res.string.achievement_well_rolled_title,
-        Res.string.achievement_well_rolled_description,
-        AchievementCategory.MILESTONES, AchievementCounter.DICE_ROLLED, target = 10_000, progressStepSize = 1_000,
-    ),
     ON_A_ROLL(
         "on_a_roll",
         Res.string.achievement_on_a_roll_title,
@@ -510,6 +540,12 @@ enum class Achievement(
         Res.string.achievement_untouchable_description,
         AchievementCategory.MILESTONES, AchievementCounter.WIN_STREAK, target = 10,
     ),
+    WELL_ROLLED(
+        "well_rolled",
+        Res.string.achievement_well_rolled_title,
+        Res.string.achievement_well_rolled_description,
+        AchievementCategory.MILESTONES, AchievementCounter.DICE_ROLLED, target = 10_000, progressStepSize = 1_000,
+    ),
     PROFESSIONAL_ROLLER(
         "professional_roller",
         Res.string.achievement_professional_roller_title,
@@ -519,18 +555,6 @@ enum class Achievement(
 
     // ---- Dice feats: what the dice themselves did --------------------------------------------
     // Ordered by how hard each one is to actually pull off.
-    BONUS_ROUND(
-        "bonus_round",
-        Res.string.achievement_bonus_round_title,
-        Res.string.achievement_bonus_round_description,
-        AchievementCategory.DICE, notEarnableIn = setOf(GameMode.STUD, GameMode.QUICKFIRE), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
-    ),
-    FIVE_X(
-        "five_x",
-        Res.string.achievement_five_x_title,
-        Res.string.achievement_five_x_description,
-        AchievementCategory.DICE, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
-    ),
     SPOTLESS(
         "spotless",
         Res.string.achievement_spotless_title,
@@ -563,25 +587,17 @@ enum class Achievement(
         Res.string.achievement_encore_description,
         AchievementCategory.DICE, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
-    DICE_WHISPERER(
-        "dice_whisperer",
-        Res.string.achievement_dice_whisperer_title,
-        Res.string.achievement_dice_whisperer_description,
-        AchievementCategory.DICE, AchievementCounter.SCORED_5X, target = 10, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
-    ),
     HAT_TRICK(
         "hat_trick",
         Res.string.achievement_hat_trick_title,
         Res.string.achievement_hat_trick_description,
         AchievementCategory.DICE, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
-    // A 5x as the SCORED_5X counter counts one - in the box or as a bonus chip, never Stud's - of each number 1-6, over
-    // any number of games. A banner for every new number, the moment it's scored (PlayerState.fiveOfAKindNumbers).
-    FULL_SET(
-        "full_set",
-        Res.string.achievement_full_set_title,
-        Res.string.achievement_full_set_description,
-        AchievementCategory.DICE, AchievementCounter.FIVE_X_NUMBERS, target = 6, progressStepSize = 1, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
+    DICE_WHISPERER(
+        "dice_whisperer",
+        Res.string.achievement_dice_whisperer_title,
+        Res.string.achievement_dice_whisperer_description,
+        AchievementCategory.DICE, AchievementCounter.SCORED_5X, target = 10, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
 
     // ---- Dice feats continued: how the dice landed, not just what they show ------------------
@@ -597,12 +613,6 @@ enum class Achievement(
         Res.string.achievement_natural_5x_description,
         AchievementCategory.DICE, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
-    I_CAN_COUNT(
-        "i_can_count",
-        Res.string.achievement_i_can_count_title,
-        Res.string.achievement_i_can_count_description,
-        AchievementCategory.DICE, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
-    ),
     EXACT_CHANGE(
         "exact_change",
         Res.string.achievement_exact_change_title,
@@ -611,12 +621,6 @@ enum class Achievement(
     ),
 
     // ---- Scoring: one ladder, so the rungs must stay adjacent and in order --------------------
-    NEW_PERSONAL_BEST(
-        "new_personal_best",
-        Res.string.achievement_new_personal_best_title,
-        Res.string.achievement_new_personal_best_description,
-        AchievementCategory.SCORING, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
-    ),
     TON(
         "ton",
         Res.string.achievement_ton_title,
@@ -650,28 +654,38 @@ enum class Achievement(
     ),
 
     // ---- Winning: beating whoever else was at the table ---------------------------------------
-    LANDSLIDE(
-        "landslide",
-        Res.string.achievement_landslide_title,
-        Res.string.achievement_landslide_description,
-        AchievementCategory.WINNING,
-    ),
-    PHOTO_FINISH(
-        "photo_finish",
-        Res.string.achievement_photo_finish_title,
-        Res.string.achievement_photo_finish_description,
-        AchievementCategory.WINNING,
-    ),
-    TIE_BREAK(
-        "tie_break",
-        Res.string.achievement_tie_break_title,
-        Res.string.achievement_tie_break_description,
-        AchievementCategory.WINNING,
-    ),
     COMEBACK_KID(
         "comeback_kid",
         Res.string.achievement_comeback_kid_title,
         Res.string.achievement_comeback_kid_description,
+        AchievementCategory.WINNING,
+    ),
+    // Judged on the finished game: every modifier the mode offers on at once - the turn timer, Number of Rolls, Stored Rolls,
+    // Extended Scores, and Unlucky Dice - in a mode other than Standard. D20 and Hit List have no Extended Scores, so the rest
+    // are every modifier there.
+    EVERYTHING_EVERYWHERE_ALL_AT_ONCE(
+        "everything_everywhere_all_at_once",
+        Res.string.achievement_everything_everywhere_all_at_once_title,
+        Res.string.achievement_everything_everywhere_all_at_once_description,
+        AchievementCategory.WINNING, impossibleIn = setOf(GameMode.STANDARD), earnableWithModifiers = true,
+    ),
+    // A win never behind at the end of a round - PlayerState.wasBehindAfterARound, so it's saved with a game left and resumed.
+    FRONT_RUNNER(
+        "front_runner",
+        Res.string.achievement_front_runner_title,
+        Res.string.achievement_front_runner_description,
+        AchievementCategory.WINNING,
+    ),
+    HOW_DO_YOU_DO_FELLOW_CPUS(
+        "how_do_you_do_fellow_cpus",
+        Res.string.achievement_how_do_you_do_fellow_cpus_title,
+        Res.string.achievement_how_do_you_do_fellow_cpus_description,
+        AchievementCategory.WINNING,
+    ),
+    LANDSLIDE(
+        "landslide",
+        Res.string.achievement_landslide_title,
+        Res.string.achievement_landslide_description,
         AchievementCategory.WINNING,
     ),
     LAST_HUMAN_STANDING(
@@ -680,11 +694,10 @@ enum class Achievement(
         Res.string.achievement_last_human_standing_description,
         AchievementCategory.WINNING,
     ),
-
-    HOW_DO_YOU_DO_FELLOW_CPUS(
-        "how_do_you_do_fellow_cpus",
-        Res.string.achievement_how_do_you_do_fellow_cpus_title,
-        Res.string.achievement_how_do_you_do_fellow_cpus_description,
+    PHOTO_FINISH(
+        "photo_finish",
+        Res.string.achievement_photo_finish_title,
+        Res.string.achievement_photo_finish_description,
         AchievementCategory.WINNING,
     ),
     // A win after the first turn scored zero - PlayerState.firstTurnScore, so it's saved with a game left and resumed.
@@ -694,12 +707,17 @@ enum class Achievement(
         Res.string.achievement_slow_start_description,
         AchievementCategory.WINNING,
     ),
-    // A win never behind at the end of a round - PlayerState.wasBehindAfterARound, so it's saved with a game left and resumed.
-    FRONT_RUNNER(
-        "front_runner",
-        Res.string.achievement_front_runner_title,
-        Res.string.achievement_front_runner_description,
+    TIE_BREAK(
+        "tie_break",
+        Res.string.achievement_tie_break_title,
+        Res.string.achievement_tie_break_description,
         AchievementCategory.WINNING,
+    ),
+    ZERO_TO_HERO(
+        "zero_to_hero",
+        Res.string.achievement_zero_to_hero_title,
+        Res.string.achievement_zero_to_hero_description,
+        AchievementCategory.WINNING, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST),
     ),
 
     // ---- Game modes: playing beyond the Standard rules ------------------------------------------
@@ -805,25 +823,52 @@ enum class Achievement(
         Res.string.achievement_bad_omen_description,
         AchievementCategory.GAME_MODES, impossibleIn = setOf(GameMode.STUD), earnableWithModifiers = true,
     ),
-    // Judged on the finished game: every modifier the mode offers on at once - the turn timer, Number of Rolls, Stored Rolls,
-    // Extended Scores, and Unlucky Dice - in a mode other than Standard. D20 and Hit List have no Extended Scores, so the rest
-    // are every modifier there.
-    EVERYTHING_EVERYWHERE_ALL_AT_ONCE(
-        "everything_everywhere_all_at_once",
-        Res.string.achievement_everything_everywhere_all_at_once_title,
-        Res.string.achievement_everything_everywhere_all_at_once_description,
-        AchievementCategory.GAME_MODES, impossibleIn = setOf(GameMode.STANDARD), earnableWithModifiers = true,
-    ),
-    // Measured against the scores table, like career points, so it's retroactive: a game player 1 finished in each mode,
-    // solo or not, modifiers or not. A banner for every new mode.
-    GRAND_TOUR(
-        "grand_tour",
-        Res.string.achievement_grand_tour_title,
-        Res.string.achievement_grand_tour_description,
-        AchievementCategory.GAME_MODES, target = GameMode.entries.size, isEveryMode = true, progressStepSize = 1,
-    ),
 
     // ---- Misfortune: going badly, on purpose or otherwise --------------------------------------
+    ALMOST_FAMOUS(
+        "almost_famous",
+        Res.string.achievement_almost_famous_title,
+        Res.string.achievement_almost_famous_description,
+        AchievementCategory.MISFORTUNE,
+    ),
+    COLD_DICE(
+        "cold_dice",
+        Res.string.achievement_cold_dice_title,
+        Res.string.achievement_cold_dice_description,
+        AchievementCategory.MISFORTUNE, notEarnableIn = setOf(GameMode.HIT_LIST, GameMode.QUICKFIRE),
+    ),
+    DEFEAT_FROM_THE_JAWS_OF_VICTORY(
+        "defeat_from_the_jaws_of_victory",
+        Res.string.achievement_defeat_from_the_jaws_of_victory_title,
+        Res.string.achievement_defeat_from_the_jaws_of_victory_description,
+        AchievementCategory.MISFORTUNE,
+    ),
+    I_ROBOT(
+        "i_robot",
+        Res.string.achievement_i_robot_title,
+        Res.string.achievement_i_robot_description,
+        AchievementCategory.MISFORTUNE,
+    ),
+    LOW_ROLLS(
+        "low_rolls",
+        Res.string.achievement_low_rolls_title,
+        Res.string.achievement_low_rolls_description,
+        AchievementCategory.MISFORTUNE, notEarnableIn = setOf(GameMode.HIT_LIST, GameMode.QUICKFIRE),
+    ),
+    PIPPED_TO_THE_POST(
+        "pipped_to_the_post",
+        Res.string.achievement_pipped_to_the_post_title,
+        Res.string.achievement_pipped_to_the_post_description,
+        AchievementCategory.MISFORTUNE,
+    ),
+    // Judged at the commit: the last box on the card is an upper one, a single die in it would have earned the bonus, and all
+    // the rolls went on a zero. Not with Unlucky Dice, which rigs the dice against you.
+    PROBABILITY_NEVER_HEARD_OF_HER(
+        "probability_never_heard_of_her",
+        Res.string.achievement_probability_never_heard_of_her_title,
+        Res.string.achievement_probability_never_heard_of_her_description,
+        AchievementCategory.MISFORTUNE, impossibleIn = setOf(GameMode.HIT_LIST),
+    ),
     SCRATCHED(
         "scratched",
         Res.string.achievement_scratched_title,
@@ -836,54 +881,28 @@ enum class Achievement(
         Res.string.achievement_the_dice_hate_me_description,
         AchievementCategory.MISFORTUNE,
     ),
-    ALMOST_FAMOUS(
-        "almost_famous",
-        Res.string.achievement_almost_famous_title,
-        Res.string.achievement_almost_famous_description,
+    // Harder and more specific than Scratched: that one just needs a zero sitting in the 5x box
+    // (from dice that never matched at all), this needs the dice to have genuinely been a 5x at
+    // the moment a zero was committed anyway.
+    WASTED_FORTUNE(
+        "wasted_fortune",
+        Res.string.achievement_wasted_fortune_title,
+        Res.string.achievement_wasted_fortune_description,
         AchievementCategory.MISFORTUNE,
-    ),
-    I_ROBOT(
-        "i_robot",
-        Res.string.achievement_i_robot_title,
-        Res.string.achievement_i_robot_description,
-        AchievementCategory.MISFORTUNE,
-    ),
-    PIPPED_TO_THE_POST(
-        "pipped_to_the_post",
-        Res.string.achievement_pipped_to_the_post_title,
-        Res.string.achievement_pipped_to_the_post_description,
-        AchievementCategory.MISFORTUNE,
-    ),
-    DEFEAT_FROM_THE_JAWS_OF_VICTORY(
-        "defeat_from_the_jaws_of_victory",
-        Res.string.achievement_defeat_from_the_jaws_of_victory_title,
-        Res.string.achievement_defeat_from_the_jaws_of_victory_description,
-        AchievementCategory.MISFORTUNE,
-    ),
-    COLD_DICE(
-        "cold_dice",
-        Res.string.achievement_cold_dice_title,
-        Res.string.achievement_cold_dice_description,
-        AchievementCategory.MISFORTUNE, notEarnableIn = setOf(GameMode.HIT_LIST, GameMode.QUICKFIRE),
-    ),
-    LOW_ROLLS(
-        "low_rolls",
-        Res.string.achievement_low_rolls_title,
-        Res.string.achievement_low_rolls_description,
-        AchievementCategory.MISFORTUNE, notEarnableIn = setOf(GameMode.HIT_LIST, GameMode.QUICKFIRE),
-    ),
-    // Judged at the commit: the last box on the card is an upper one, a single die in it would have earned the bonus, and all
-    // the rolls went on a zero. Not with Unlucky Dice, which rigs the dice against you.
-    PROBABILITY_NEVER_HEARD_OF_HER(
-        "probability_never_heard_of_her",
-        Res.string.achievement_probability_never_heard_of_her_title,
-        Res.string.achievement_probability_never_heard_of_her_description,
-        AchievementCategory.MISFORTUNE, impossibleIn = setOf(GameMode.HIT_LIST),
     ),
 
     // ---- Miscellaneous: every hidden achievement, whatever it's about --------------------------
     // This category is exclusive in both directions - see AchievementEngineTest - so it isn't
-    // themed by subject the way the others are; entries are grouped by the subject they're about.
+    // themed by subject the way the others are.
+    //
+    // Miscellaneous, Misfortune, and Winning run alphabetically by title, like Easter Eggs. AchievementTextTest holds
+    // them to it.
+    A_CUNNING_STRATEGY(
+        "a_cunning_strategy",
+        Res.string.achievement_a_cunning_strategy_title,
+        Res.string.achievement_a_cunning_strategy_description,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
     COMMITMENT_ISSUES(
         "commitment_issues",
         Res.string.achievement_commitment_issues_title,
@@ -896,11 +915,88 @@ enum class Achievement(
         Res.string.achievement_decisions_decisions_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
-    A_CUNNING_STRATEGY(
-        "a_cunning_strategy",
-        Res.string.achievement_a_cunning_strategy_title,
-        Res.string.achievement_a_cunning_strategy_description,
+    // The dice not held keep landing on the same faces.
+    DEJA_VU(
+        "deja_vu",
+        Res.string.achievement_deja_vu_title,
+        Res.string.achievement_deja_vu_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    // One of the two "straight out of the cup" feats, with Straight Away: a full house is 300 of the 7776 outcomes of a
+    // single throw of five dice, a large straight 240.
+    HOUSE_CALL(
+        "house_call",
+        Res.string.achievement_house_call_title,
+        Res.string.achievement_house_call_description,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
+    ),
+    I_CAN_COUNT(
+        "i_can_count",
+        Res.string.achievement_i_can_count_title,
+        Res.string.achievement_i_can_count_description,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
+    ),
+    IMPATIENT(
+        "impatient",
+        Res.string.achievement_impatient_title,
+        Res.string.achievement_impatient_description,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    // Four boxes holding the same score, judged on the card as it fills - never a zero, which any box can be scratched to.
+    // Standard only, on its own card.
+    MY_FAVOURITE_NUMBER(
+        "my_favourite_number",
+        Res.string.achievement_my_favourite_number_title,
+        Res.string.achievement_my_favourite_number_description,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, mode = GameMode.STANDARD,
+    ),
+    NICE(
+        "nice",
+        Res.string.achievement_nice_title,
+        Res.string.achievement_nice_description,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
+    ),
+    NO_MORE_ROLLS(
+        "no_more_rolls",
+        Res.string.achievement_no_more_rolls_title,
+        Res.string.achievement_no_more_rolls_description,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    PRODUCT_PLACEMENT(
+        "product_placement",
+        Res.string.achievement_product_placement_title,
+        Res.string.achievement_product_placement_description,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.STUD),
+    ),
+    ROCK_BOTTOM(
+        "rock_bottom",
+        Res.string.achievement_rock_bottom_title,
+        Res.string.achievement_rock_bottom_description,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.QUICKFIRE), impossibleIn = setOf(GameMode.THIRD_WIND, GameMode.D20, GameMode.HIT_LIST),
+    ),
+    SIX_APPEAL(
+        "six_appeal",
+        Res.string.achievement_six_appeal_title,
+        Res.string.achievement_six_appeal_description,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
+    ),
+    SIZE_ISNT_EVERYTHING(
+        "size_isnt_everything",
+        Res.string.achievement_size_isnt_everything_title,
+        Res.string.achievement_size_isnt_everything_description,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
+    ),
+    STRAIGHT_AWAY(
+        "straight_away",
+        Res.string.achievement_straight_away_title,
+        Res.string.achievement_straight_away_description,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
+    ),
+    TAKING_A_CHANCE(
+        "taking_a_chance",
+        Res.string.achievement_taking_a_chance_title,
+        Res.string.achievement_taking_a_chance_description,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
     TIME_TO_LET_IT_GO(
         "time_to_let_it_go",
@@ -914,126 +1010,11 @@ enum class Achievement(
         Res.string.achievement_time_wasting_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
-    I_DIDNT_MEAN_THAT(
-        "i_didnt_mean_that",
-        Res.string.achievement_i_didnt_mean_that_title,
-        Res.string.achievement_i_didnt_mean_that_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
-    ),
-    NO_MORE_ROLLS(
-        "no_more_rolls",
-        Res.string.achievement_no_more_rolls_title,
-        Res.string.achievement_no_more_rolls_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
-    ),
-    IMPATIENT(
-        "impatient",
-        Res.string.achievement_impatient_title,
-        Res.string.achievement_impatient_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
-    ),
-
-    FRESH_COAT_OF_PAINT(
-        "fresh_coat_of_paint",
-        Res.string.achievement_fresh_coat_of_paint_title,
-        Res.string.achievement_fresh_coat_of_paint_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
-    ),
-
-    // Four boxes holding the same score, judged on the card as it fills - never a zero, which any box can be scratched to.
-    // Standard only, on its own card.
-    MY_FAVOURITE_NUMBER(
-        "my_favourite_number",
-        Res.string.achievement_my_favourite_number_title,
-        Res.string.achievement_my_favourite_number_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, mode = GameMode.STANDARD,
-    ),
-    // The two "straight out of the cup" feats, in ascending order of how unlikely they are on a
-    // single throw of five dice: a full house is 300 of the 7776 outcomes, a large straight 240.
-    HOUSE_CALL(
-        "house_call",
-        Res.string.achievement_house_call_title,
-        Res.string.achievement_house_call_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
-    ),
-    STRAIGHT_AWAY(
-        "straight_away",
-        Res.string.achievement_straight_away_title,
-        Res.string.achievement_straight_away_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
-    ),
-    SIX_APPEAL(
-        "six_appeal",
-        Res.string.achievement_six_appeal_title,
-        Res.string.achievement_six_appeal_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
-    ),
-    TAKING_A_CHANCE(
-        "taking_a_chance",
-        Res.string.achievement_taking_a_chance_title,
-        Res.string.achievement_taking_a_chance_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
-    ),
-    // The dice not held keep landing on the same faces.
-    DEJA_VU(
-        "deja_vu",
-        Res.string.achievement_deja_vu_title,
-        Res.string.achievement_deja_vu_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
-    ),
-    PRODUCT_PLACEMENT(
-        "product_placement",
-        Res.string.achievement_product_placement_title,
-        Res.string.achievement_product_placement_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.STUD),
-    ),
     WHAT_WAS_THE_POINT_OF_THAT(
         "what_was_the_point_of_that",
         Res.string.achievement_what_was_the_point_of_that_title,
         Res.string.achievement_what_was_the_point_of_that_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.STUD),
-    ),
-
-    NICE(
-        "nice",
-        Res.string.achievement_nice_title,
-        Res.string.achievement_nice_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
-    ),
-
-    ZERO_TO_HERO(
-        "zero_to_hero",
-        Res.string.achievement_zero_to_hero_title,
-        Res.string.achievement_zero_to_hero_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST),
-    ),
-
-    // Harder and more specific than Scratched: that one just needs a zero sitting in the 5x box
-    // (from dice that never matched at all), this needs the dice to have genuinely been a 5x at
-    // the moment a zero was committed anyway.
-    WASTED_FORTUNE(
-        "wasted_fortune",
-        Res.string.achievement_wasted_fortune_title,
-        Res.string.achievement_wasted_fortune_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
-    ),
-    SIZE_ISNT_EVERYTHING(
-        "size_isnt_everything",
-        Res.string.achievement_size_isnt_everything_title,
-        Res.string.achievement_size_isnt_everything_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
-    ),
-    HOW_DO_YOU_PLAY_THIS_GAME(
-        "how_do_you_play_this_game",
-        Res.string.achievement_how_do_you_play_this_game_title,
-        Res.string.achievement_how_do_you_play_this_game_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.QUICKFIRE),
-    ),
-    ROCK_BOTTOM(
-        "rock_bottom",
-        Res.string.achievement_rock_bottom_title,
-        Res.string.achievement_rock_bottom_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN, notEarnableIn = setOf(GameMode.QUICKFIRE), impossibleIn = setOf(GameMode.THIRD_WIND, GameMode.D20, GameMode.HIT_LIST),
     ),
     WHO_MADE_THIS(
         "who_made_this",
@@ -1043,24 +1024,39 @@ enum class Achievement(
     ),
 
     // ---- Collection: filling in every score there is, and the set of achievements itself ------
-    // The six ledger achievements are the longest haul in the game, so they sit at the very end,
+    // Grand Tour, Full Houses, and Full Set first, then the six ledger achievements, the longest haul in the game,
     // ascending by band, with Completionist after them.
     //
-    // Every collection achievement - like Full Set and Grand Tour - has a banner for each new entry collected.
+    // Every collection achievement has a banner for each new entry collected (progressStepSize = 1).
     //
-    // They are the one group not backed by a stored counter: progress is derived from the scores
-    // table, so they are retroactive - scores already on the leaderboard count - and the progress
+    // The ledger is not backed by a stored counter: progress is derived from the scores
+    // table, so it is retroactive - scores already on the leaderboard count - and the progress
     // bar always agrees with what the Leaderboard screen shows. Only human scores are ever recorded
     // there, which is also the rule here.
     //
-    // Full Houses comes first, the shortest of them, and unlike the ledger is backed by a stored counter: two hands, each
-    // ticked off the moment it's scored, in any game, like Full Set's numbers - never the joker rule's 5x bent into the
-    // box.
+    // Measured against the scores table, like career points, so it's retroactive: a game player 1 finished in each mode,
+    // solo or not, modifiers or not. A banner for every new mode.
+    GRAND_TOUR(
+        "grand_tour",
+        Res.string.achievement_grand_tour_title,
+        Res.string.achievement_grand_tour_description,
+        AchievementCategory.COLLECTION, target = GameMode.entries.size, isEveryMode = true, progressStepSize = 1,
+    ),
+    // Full Houses is backed by a stored counter: two hands, each ticked off the moment it's scored, in any game, like Full
+    // Set's numbers - never the joker rule's 5x bent into the box.
     FULL_HOUSES(
         "full_houses",
         Res.string.achievement_full_houses_title,
         Res.string.achievement_full_houses_description,
         AchievementCategory.COLLECTION, AchievementCounter.FULL_HOUSES, target = 2, progressStepSize = 1, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
+    ),
+    // A 5x as the SCORED_5X counter counts one - in the box or as a bonus chip, never Stud's - of each number 1-6, over
+    // any number of games. A banner for every new number, the moment it's scored (PlayerState.fiveOfAKindNumbers).
+    FULL_SET(
+        "full_set",
+        Res.string.achievement_full_set_title,
+        Res.string.achievement_full_set_description,
+        AchievementCategory.COLLECTION, AchievementCounter.FIVE_X_NUMBERS, target = 6, progressStepSize = 1, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     TALLY(
         "tally",

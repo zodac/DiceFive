@@ -419,8 +419,8 @@ can't is a page saying so, with the stack trace to report. The app never just cl
         A flag is set the moment its box is scored, with its banner. The game keeps what it has collected on the player
         (`PlayerState.fiveOfAKindNumbers`, `fullHouseHands`), so a resumed game still has it. A flag stays set if its
         score is then undone.
-    - Every collection achievement (Full Set, Full Houses, Grand Tour, and the ledger) has a progress banner for each new
-        entry (`progressStepSize = 1`).
+    - Every Collection achievement but Completionist (Full Houses, Full Set, Grand Tour, and the ledger) has a progress
+        banner for each new entry (`progressStepSize = 1`; `AchievementEngineTest`).
     - The ledger, career points and Grand Tour (player 1's modes played) are derived from the scores table, so they
         always agree with the Leaderboard and re-earn after a reset. Career points and Grand Tour read only unmodified
         rows.
@@ -441,7 +441,8 @@ can't is a page saying so, with the stack trace to report. The app never just cl
     guarded (`GAME_MODES_AUDIT.md`).
 - **Display.**
     - Declaration order is display order: grouped by `AchievementCategory`, easiest first, so ladders sit together.
-        `AchievementEngineTest` fails if a category is split.
+        `AchievementEngineTest` fails if a category is split. Winning, Misfortune, and Miscellaneous are alphabetical
+        by English title instead (`AchievementTextTest`).
     - Every Miscellaneous and Easter Egg achievement is `HIDDEN` (the title is shown, the description is "???" until
         earned), and only those are.
     - The ten Easter Eggs are alphabetical, last, and outside Completionist.

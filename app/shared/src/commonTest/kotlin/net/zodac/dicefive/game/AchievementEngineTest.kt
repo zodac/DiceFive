@@ -443,10 +443,9 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `the achievements list - the score ladder - the first-roll feats and the Game Modes are each in order`() {
+    fun `the achievements list - the score ladder - the Game Modes and the Collection are each in order`() {
         assertEquals(
             listOf(
-                Achievement.NEW_PERSONAL_BEST,
                 Achievement.TON,
                 Achievement.SOLID_ROUND,
                 Achievement.SHARPSHOOTER,
@@ -455,10 +454,6 @@ class AchievementEngineTest {
             ),
             Achievement.entries.filter { it.category == AchievementCategory.SCORING },
         )
-
-        // The first-roll feats are listed together - least unlikely first - adjacent, not merely in order.
-        val misc = Achievement.entries.filter { it.category == AchievementCategory.MISCELLANEOUS }
-        assertEquals(1, misc.indexOf(Achievement.STRAIGHT_AWAY) - misc.indexOf(Achievement.HOUSE_CALL))
 
         // The Game Modes achievements are ordered and count towards Completionist.
         val gameModes = Achievement.entries.filter { it.category == AchievementCategory.GAME_MODES }
@@ -479,12 +474,15 @@ class AchievementEngineTest {
                 Achievement.SIX_OF_THE_BEST,
                 Achievement.RAINY_DAY_FUND,
                 Achievement.BAD_OMEN,
-                Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE,
-                Achievement.GRAND_TOUR,
             ),
             gameModes,
         )
         assertTrue(gameModes.all { it in Achievement.COMPLETION_REQUIREMENTS })
+
+        // Every Collection achievement but Completionist has a progress banner for each new entry collected.
+        val collection = Achievement.entries.filter { it.category == AchievementCategory.COLLECTION } - Achievement.COMPLETIONIST
+        assertEquals(listOf(Achievement.GRAND_TOUR, Achievement.FULL_HOUSES, Achievement.FULL_SET), collection.take(3))
+        collection.forEach { assertEquals(1, it.progressStepSize, it.name) }
     }
 
     // ---- Unlocking, counters and progress ---------------------------------------------------------
@@ -1126,7 +1124,7 @@ class AchievementEngineTest {
         )
         assertEquals(listOf(Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE), unlocked(everything))
         assertEquals(
-            listOf(Achievement.RAINY_DAY_FUND, Achievement.BAD_OMEN, Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE),
+            listOf(Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE, Achievement.RAINY_DAY_FUND, Achievement.BAD_OMEN),
             Achievement.entries.filter { it.earnableWithModifiers },
         )
 

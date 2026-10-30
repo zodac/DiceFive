@@ -5,12 +5,12 @@ Achievements, banners, Styles, Leaderboard and menu decisions. The general rules
 
 ## The achievements list
 
-**One list, grouped by theme, easiest first** (the declaration order of `Achievement`). Easter Eggs come last, in
-alphabetical order.
+**One list, grouped by theme, easiest first** (the declaration order of `Achievement`). Winning, Misfortune, and
+Miscellaneous run in alphabetical order instead, and so do the Easter Eggs, which come last.
 
 - **Unlocking doesn't move a row.** It's highlighted in place, with its own icon and a raised `secondaryContainer`
     card, so a ladder reads as a ladder.
-- **Never split the list** into locked and unlocked parts, add a "hide unlocked" filter, or sort it alphabetically.
+- **Never split the list** into locked and unlocked parts, add a "hide unlocked" filter, or sort the whole list alphabetically.
 - The unlocked/total count sits centred above the list. In landscape, where the list has two cards to a row, it moves
     into the app bar after the back arrow, with the Unearned switch at the bar's end (see `UI.md`, "Landscape pages").
 
