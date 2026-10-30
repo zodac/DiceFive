@@ -20,6 +20,7 @@ import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.game.style.StyleCategory
 import net.zodac.dicefive.game.style.access
 import net.zodac.dicefive.ui.common.OffscreenWarmUp
+import net.zodac.dicefive.ui.common.textScale
 
 /** What a page measured: its cards' whole height and the room it has for them, in px. */
 internal class PageMeasure(val content: Int, val viewport: Int)
@@ -93,7 +94,7 @@ internal fun fittedPageScale(full: Int, smallest: Int, viewport: Int): Float {
 fun StylesWarmUp(picks: SavedStyles?, width: Dp, modifier: Modifier = Modifier, onPageFit: (String) -> Unit = {}) {
     val density = LocalDensity.current
     val window = LocalWindowInfo.current.containerSize
-    val fitKey = PageFitKey(window, density.density, density.fontScale)
+    val fitKey = PageFitKey(window, density.density, density.textScale)
     // Done - unless the screen has changed since the page was measured for it (a resized window, a new
     // font scale), when it's measured again, though nothing else is redone.
     if (picks == null || (stylesWarmedUp && PageFit.decode(picks.stylesPageFit)?.key == fitKey)) return

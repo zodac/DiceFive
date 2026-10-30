@@ -162,7 +162,7 @@ fun <T> FittedSegmentedChoiceRow(
             if (constraints.maxWidth == Constraints.Infinity) {
                 FontFit(maxFontSize, wraps = false)
             } else {
-                FontFitCache.getOrPut(FontFitKey(options.map(labels::getValue), textStyle.copy(fontSize = maxFontSize), MIN_READABLE_FONT_SIZE, 0.5.sp, room, density.density, density.fontScale)) {
+                FontFitCache.getOrPut(FontFitKey(options.map(labels::getValue), textStyle.copy(fontSize = maxFontSize), MIN_READABLE_FONT_SIZE, 0.5.sp, room, density.density, density.textScale)) {
                     fitFontSize(maxFontSize, MIN_READABLE_FONT_SIZE, 0.5.sp) { size ->
                         options.withIndex().all { (index, option) ->
                             // The first and last segments' labels sit further in (see SEGMENT_CAP_INSET), so have less room.

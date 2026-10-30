@@ -138,6 +138,7 @@ import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.joinSentences
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.common.textScale
 import net.zodac.dicefive.ui.common.timestamp
 import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.theme.color
@@ -460,7 +461,7 @@ private fun PlayerStatsCardContent(
                         )
                     }
                     // Above STACKED_FONT_SCALE the score goes under the name, which keeps the row's width to itself.
-                    if (LocalDensity.current.fontScale > STACKED_FONT_SCALE) {
+                    if (LocalDensity.current.textScale > STACKED_FONT_SCALE) {
                         Column(modifier = Modifier.weight(1f)) {
                             name(Modifier)
                             best()
@@ -617,7 +618,7 @@ private fun Overview(player: PlayerStatistics) {
  */
 @Composable
 private fun ByMode(player: PlayerStatistics) {
-    val stacked = LocalDensity.current.fontScale > STACKED_FONT_SCALE
+    val stacked = LocalDensity.current.textScale > STACKED_FONT_SCALE
     val headings = listOf(
         stringResource(Res.string.stats_games),
         stringResource(Res.string.stats_win),
@@ -778,7 +779,7 @@ private fun DetailLine(label: String, value: String) {
     val valueText = @Composable {
         Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.End)
     }
-    if (LocalDensity.current.fontScale > STACKED_FONT_SCALE) {
+    if (LocalDensity.current.textScale > STACKED_FONT_SCALE) {
         Column(modifier = Modifier.fillMaxWidth()) {
             labelText(Modifier)
             valueText()

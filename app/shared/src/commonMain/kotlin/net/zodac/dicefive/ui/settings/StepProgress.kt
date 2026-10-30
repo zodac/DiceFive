@@ -28,6 +28,7 @@ import net.zodac.dicefive.resources.online_sync_step_game
 import net.zodac.dicefive.resources.online_sync_step_scores
 import net.zodac.dicefive.resources.online_sync_step_settings
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.spToDp
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.icons.Symbols
 import org.jetbrains.compose.resources.StringResource
@@ -49,9 +50,9 @@ internal fun StepProgress(step: String, number: Int, total: Int, modifier: Modif
     val style = MaterialTheme.typography.bodyMedium
     val colour = MaterialTheme.colorScheme.onSurfaceVariant
     val density = LocalDensity.current
-    val size = with(density) { style.fontSize.toDp() }
+    val size = density.spToDp(style.fontSize)
     // Centred on the first line, however many the text wraps to.
-    val lineHeight = with(density) { style.lineHeight.toDp() }
+    val lineHeight = density.spToDp(style.lineHeight)
     val iconModifier = Modifier.padding(top = (lineHeight - size) / 2).size(size)
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

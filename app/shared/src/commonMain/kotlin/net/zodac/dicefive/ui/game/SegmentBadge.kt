@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.dpToSp
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.theme.TileBadgeBackground
 
@@ -44,7 +45,7 @@ fun SegmentBadge(count: Int, color: Color, modifier: Modifier = Modifier) {
         // scale with it too. Two digits get a smaller fraction than one so the pair still clears
         // the circle's edges instead of being clipped.
         val sizeFraction = if (digits.length == 1) 0.62f else 0.46f
-        val fontSize = with(LocalDensity.current) { (maxWidth * sizeFraction).toSp() }
+        val fontSize = LocalDensity.current.dpToSp(maxWidth * sizeFraction)
         Text(
             text = digits,
             color = color,

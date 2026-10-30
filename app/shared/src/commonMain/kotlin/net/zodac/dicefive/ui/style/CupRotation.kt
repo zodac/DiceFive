@@ -61,6 +61,8 @@ enum class CupShape(val gridWidth: Float, val gridHeight: Float) {
  * The [DrawScope] a cup is drawn in, with its [shape]'s grid ([gx]/[gy] turn grid units into
  * pixels, [centreX] is the cup's centre line) and its current [pose], for any liquid inside it.
  */
+// The delegation generates a fontScale override, which lint flags on the desktop target (see FontScale.kt).
+@Suppress("RestrictedApi")
 class CupDrawScope internal constructor(drawScope: DrawScope, val shape: CupShape, val pose: CupPose) : DrawScope by drawScope {
     val centreX: Float get() = shape.gridWidth / 2f
 

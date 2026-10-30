@@ -120,6 +120,7 @@ import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.common.textScale
 import net.zodac.dicefive.ui.game.GameSetupForm
 import net.zodac.dicefive.ui.game.GameSetupState
 import net.zodac.dicefive.ui.game.GameViewModel
@@ -412,7 +413,7 @@ private fun PlayerRow(
     // The name (or difficulty) and the User/CPU switch share a row at the normal font size. At a larger one
     // the difficulty's three labels no longer fit beside the switch, so it drops beneath - the controls
     // keep the width their labels need instead of being squeezed or cut off.
-    val fontScale = LocalDensity.current.fontScale
+    val fontScale = LocalDensity.current.textScale
     val nameFieldDescription = stringResource(Res.string.setup_player_name_cd, slot.slot)
     val userLabel = stringResource(Res.string.setup_type_user)
     val cpuLabel = stringResource(Res.string.common_cpu_cd)

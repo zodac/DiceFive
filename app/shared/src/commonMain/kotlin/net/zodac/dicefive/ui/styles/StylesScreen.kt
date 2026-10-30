@@ -92,6 +92,7 @@ import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.percentOf
 import net.zodac.dicefive.ui.common.rememberFilterSwitchState
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.common.textScale
 import net.zodac.dicefive.ui.style.DiceCupStyle
 import net.zodac.dicefive.ui.style.DiceMat
 import net.zodac.dicefive.ui.style.DiceStyle
@@ -207,7 +208,7 @@ internal fun StylesScaffold(
     // Just its mark, without its words, where they'd push the title off its centre or onto two lines (a narrow screen, a
     // large font): decided again for each screen size, font scale and label.
     val windowWidth = LocalWindowInfo.current.containerSize.width
-    val fontScale = LocalDensity.current.fontScale
+    val fontScale = LocalDensity.current.textScale
     var compactUnlockAll by remember(windowWidth, fontScale, storeState == StoreState.Pending) { mutableStateOf(false) }
     ScreenScaffold(
         title = stringResource(Res.string.styles_title),
@@ -271,12 +272,12 @@ private fun ColumnScope.StylesPage(
         val pageScroll = rememberScrollState()
         val columns = if (LocalLandscapePage.current) LANDSCAPE_COLUMNS else 1
         val density = LocalDensity.current
-        val fitKey = PageFitKey(LocalWindowInfo.current.containerSize, density.density, density.fontScale)
+        val fitKey = PageFitKey(LocalWindowInfo.current.containerSize, density.density, density.textScale)
         // Read once: the size the page opens at is the size it keeps, even if a warm-up finishes meanwhile.
         val cardsScale = scale ?: remember(fitKey) { PageFit.decode(picks.stylesPageFit)?.takeIf { it.key == fitKey }?.scale ?: 1f }
         // Smaller dp for the cards, the same sp: tiles, art and gaps shrink, but no text does.
         val cardsDensity = remember(density, cardsScale) {
-            if (cardsScale == 1f) density else Density(density.density * cardsScale, density.fontScale / cardsScale)
+            if (cardsScale == 1f) density else Density(density.density * cardsScale, density.textScale / cardsScale)
         }
         if (onMeasured != null) {
             LaunchedEffect(fitKey, cardsScale) {

@@ -41,6 +41,7 @@ import net.zodac.dicefive.resources.game_badge_odds
 import net.zodac.dicefive.resources.game_badge_range
 import net.zodac.dicefive.resources.ic_stairs
 import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.dpToSp
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.icons.Symbols
@@ -173,8 +174,8 @@ private val MATCH_BAR_GAP = 1.dp
 private fun TargetIcon(target: HitTarget, matches: List<PlaceMatch>?, color: Color) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         val density = LocalDensity.current
-        val placeSize = with(density) { (maxWidth * TARGET_PLACE_TEXT_FRACTION).toSp() }
-        val pointsSize = with(density) { (maxWidth * TARGET_POINTS_TEXT_FRACTION).toSp() }
+        val placeSize = density.dpToSp(maxWidth * TARGET_PLACE_TEXT_FRACTION)
+        val pointsSize = density.dpToSp(maxWidth * TARGET_POINTS_TEXT_FRACTION)
         val placeWidth = maxWidth * TARGET_PLACE_WIDTH_FRACTION
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Row {

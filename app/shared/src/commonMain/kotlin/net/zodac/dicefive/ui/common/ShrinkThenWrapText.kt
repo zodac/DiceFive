@@ -63,7 +63,7 @@ fun ShrinkThenWrapText(
         if (available == Constraints.Infinity) {
             FontFit(base.fontSize, wraps = false)
         } else {
-            FontFitCache.getOrPut(FontFitKey(listOf(text), base, minFontSize, fontStep, available, density.density, density.fontScale)) {
+            FontFitCache.getOrPut(FontFitKey(listOf(text), base, minFontSize, fontStep, available, density.density, density.textScale)) {
                 fitFontSize(base.fontSize, minFontSize, fontStep) { size ->
                     measurer.measure(text = text, style = base.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= available
                 }

@@ -29,7 +29,7 @@ fun FittedCountText(full: String, short: String, percent: String, style: TextSty
             val candidates = listOf(full, short)
             for (candidate in candidates) {
                 val fit = FontFitCache.getOrPut(
-                    FontFitKey(listOf(candidate), style, MIN_READABLE_FONT_SIZE, FONT_STEP, available, density.density, density.fontScale),
+                    FontFitKey(listOf(candidate), style, MIN_READABLE_FONT_SIZE, FONT_STEP, available, density.density, density.textScale),
                 ) {
                     fitFontSize(style.fontSize, MIN_READABLE_FONT_SIZE, FONT_STEP) { size ->
                         measurer.measure(text = candidate, style = style.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= available

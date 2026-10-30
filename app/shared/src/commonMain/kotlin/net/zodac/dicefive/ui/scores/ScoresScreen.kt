@@ -94,7 +94,9 @@ import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.localised
+import net.zodac.dicefive.ui.common.spToDp
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.common.textScale
 import net.zodac.dicefive.ui.common.timestampFormatter
 import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.theme.Bronze
@@ -151,7 +153,7 @@ private val NORMAL_COLUMNS = ScoreColumns(rank = 1f, player = 4f, fiveOfAKind = 
 private val LARGE_FONT_COLUMNS = ScoreColumns(rank = 1.5f, player = 3.5f, fiveOfAKind = 1.5f, score = 2.5f)
 
 @Composable
-private fun scoreColumns(): ScoreColumns = if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) LARGE_FONT_COLUMNS else NORMAL_COLUMNS
+private fun scoreColumns(): ScoreColumns = if (LocalDensity.current.textScale > LARGE_FONT_SCALE) LARGE_FONT_COLUMNS else NORMAL_COLUMNS
 
 @Composable
 fun ScoresScreen(
@@ -294,7 +296,7 @@ private fun ColumnScope.CombinedLeaderboard(state: ScoresUiState, viewModel: Sco
     // ended in a different place on a one-page leaderboard than on a two-page one.
     Box(
         // At least the normal height at any font size, and taller with it: the buttons' text grows.
-        modifier = Modifier.fillMaxWidth().heightIn(min = PAGINATION_ROW_HEIGHT * LocalDensity.current.fontScale.coerceAtLeast(1f)),
+        modifier = Modifier.fillMaxWidth().heightIn(min = PAGINATION_ROW_HEIGHT * LocalDensity.current.textScale.coerceAtLeast(1f)),
         contentAlignment = Alignment.Center,
     ) {
         CombinedPagination(board, viewModel)
@@ -517,7 +519,7 @@ private class KeepScrollInside(private val state: LazyListState) : NestedScrollC
 /** What [MODE_CARD_VISIBLE_ROWS] ordinary rows add up to: a row is a line of `bodyMedium` and its padding, so it grows with the font. */
 @Composable
 private fun modeCardListHeight(): Dp {
-    val lineHeight = with(LocalDensity.current) { MaterialTheme.typography.bodyMedium.lineHeight.toDp() }
+    val lineHeight = LocalDensity.current.spToDp(MaterialTheme.typography.bodyMedium.lineHeight)
     return (lineHeight + PLAIN_ROW_VERTICAL_PADDING * 2) * MODE_CARD_VISIBLE_ROWS
 }
 

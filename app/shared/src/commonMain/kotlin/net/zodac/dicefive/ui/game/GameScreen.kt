@@ -89,6 +89,7 @@ import net.zodac.dicefive.ui.common.OffscreenWarmUp
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.common.textScale
 import net.zodac.dicefive.ui.style.ChickenDiceCupStyle
 import net.zodac.dicefive.ui.style.GameVisualTheme
 import net.zodac.dicefive.ui.style.LocalGameVisualTheme
@@ -312,7 +313,7 @@ private fun GamePage(
         val scroll = rememberScrollState()
         // The board is a drawn object, so on a bigger screen all of it is drawn bigger - art, text and
         // touch targets together - rather than its pieces spreading apart. The player's font scale is kept.
-        CompositionLocalProvider(LocalDensity provides Density(density.density * layout.scale, density.fontScale)) {
+        CompositionLocalProvider(LocalDensity provides Density(density.density * layout.scale, density.textScale)) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -375,7 +376,7 @@ fun SavedGameWarmUp(picks: SavedStyles?, hasInProgressGame: Boolean, loadGame: s
 private fun GameArtWarmUp(theme: GameVisualTheme, game: GameState, delayMillis: Long, modifier: Modifier) {
     val window = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
-    val key = GameWarmUpKey(theme, game.gameMode, game.categories, window, density.density, density.fontScale)
+    val key = GameWarmUpKey(theme, game.gameMode, game.categories, window, density.density, density.textScale)
     if (key == gameWarmedUp) return
     // As big as the game's page, so it lays out as it would there.
     val page = with(density) { DpSize(window.width.toDp(), window.height.toDp()) }
@@ -710,7 +711,7 @@ private fun GameTable(landscape: Boolean, board: @Composable () -> Unit, tray: @
     if (landscape) {
         // The board drawn larger than the tray: its three rows are otherwise small beside the dice.
         val density = LocalDensity.current
-        CompositionLocalProvider(LocalDensity provides Density(density.density * LANDSCAPE_BOARD_SCALE, density.fontScale)) { board() }
+        CompositionLocalProvider(LocalDensity provides Density(density.density * LANDSCAPE_BOARD_SCALE, density.textScale)) { board() }
         Row(horizontalArrangement = Arrangement.spacedBy(SECTION_GAP), verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.weight(LANDSCAPE_TRAY_WEIGHT)) { tray() }
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) { sideCup() }
@@ -725,7 +726,7 @@ private fun GameTable(landscape: Boolean, board: @Composable () -> Unit, tray: @
 @Composable
 private fun SideCup(cupScale: Float, cup: @Composable (Modifier) -> Unit) {
     val density = LocalDensity.current
-    CompositionLocalProvider(LocalDensity provides Density(density.density * cupScale, density.fontScale)) {
+    CompositionLocalProvider(LocalDensity provides Density(density.density * cupScale, density.textScale)) {
         cup(Modifier.size(width = SIDE_CUP_WIDTH, height = SIDE_CUP_HEIGHT))
     }
 }

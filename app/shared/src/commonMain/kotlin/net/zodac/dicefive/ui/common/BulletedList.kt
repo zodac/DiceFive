@@ -31,9 +31,9 @@ fun BulletedList(items: List<String>, modifier: Modifier = Modifier) {
     // The bullet sits in a box one line tall, so it's centred on a line's first row, however the line wraps. It and its
     // gap are in sp, so they grow with the text at a large font.
     val density = LocalDensity.current
-    val lineHeight = with(density) { style.lineHeight.toDp() }
-    val bulletSize = with(density) { BULLET_SIZE.toDp() }
-    val bulletGap = with(density) { BULLET_TEXT_GAP.toDp() }
+    val lineHeight = density.spToDp(style.lineHeight)
+    val bulletSize = density.spToDp(BULLET_SIZE)
+    val bulletGap = density.spToDp(BULLET_TEXT_GAP)
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(BULLET_LINE_GAP)) {
         items.forEach { item ->
             Row {

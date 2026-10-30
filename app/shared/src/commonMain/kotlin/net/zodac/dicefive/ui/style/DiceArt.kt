@@ -35,6 +35,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
+import net.zodac.dicefive.ui.common.dpToSp
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.IrishGreenSwatch
 import net.zodac.dicefive.ui.theme.IrishOrangeSwatch
@@ -143,7 +144,7 @@ internal fun StyledDie(
             PipShape.NUMERAL -> BoxWithConstraints(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 // One size for every face of a style, as a fraction of the die's height - set small
                 // enough by numeral systems with longer numerals that their widest one still fits.
-                val fontSize = with(LocalDensity.current) { (maxHeight * numeralSize).toSp() }
+                val fontSize = LocalDensity.current.dpToSp(maxHeight * numeralSize)
                 Text(
                     text = numeral(value),
                     color = pipColor,

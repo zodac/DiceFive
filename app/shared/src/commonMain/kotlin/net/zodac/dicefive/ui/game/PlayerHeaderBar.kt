@@ -64,6 +64,7 @@ import net.zodac.dicefive.ui.common.joinClauses
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.ordinal
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.common.textScale
 import net.zodac.dicefive.ui.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.color
 
@@ -157,7 +158,7 @@ private fun PlayerTab(
     val spokenState = joinClauses(listOfNotNull(currentTurn.takeIf { active }, spokenStanding))
     val viewScorecardLabel = stringResource(Res.string.game_tab_view_action)
     // Larger text fills more of the tab, so a frame's sides and corners need more room to stay off it.
-    val sidePadding = (BASE_SIDE_PADDING_DP + (LocalDensity.current.fontScale - 1f).coerceAtLeast(0f) * SIDE_PADDING_DP_PER_FONT_SCALE).coerceAtMost(MAX_SIDE_PADDING_DP).dp
+    val sidePadding = (BASE_SIDE_PADDING_DP + (LocalDensity.current.textScale - 1f).coerceAtLeast(0f) * SIDE_PADDING_DP_PER_FONT_SCALE).coerceAtMost(MAX_SIDE_PADDING_DP).dp
     val tabModifier = modifier
         .padding(horizontal = 3.dp)
         // Every tab sits on its own panel rather than straight on the page; the frame draws over it.

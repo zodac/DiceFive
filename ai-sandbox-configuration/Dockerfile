@@ -188,7 +188,7 @@ RUN set -eux; \
 # keep those three in step if either changes, or a build will reach out to the
 # network for whatever AGP defaults to instead of what is baked in here (the update
 # script's consistency check fails the run if they drift). build-tools is 36.0.0
-# because AGP 9.4.1 enforces build-tools >= 36.0.0 regardless of compileSdk and
+# because AGP 9.5.0 enforces build-tools >= 36.0.0 regardless of compileSdk and
 # overrides (with a network fetch) anything pinned lower.
 #
 # The runtime stage copies this stage's whole SDK directory (cmdline-tools, the
