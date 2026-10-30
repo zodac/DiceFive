@@ -163,7 +163,7 @@ val Achievement.icon: ImageVector
         // A hand of cards, for the poker game the mode is named after.
         Achievement.HOLD_EM -> Symbols.Style
         Achievement.LUCKY_SEVEN -> Symbols.Filter7
-        Achievement.GONE_WITH_THE_WIND -> Symbols.Cyclone
+        Achievement.GONE_WITH_THE_WIND -> Symbols.Air
         // A grey alien's head, for the close encounter of the Chance box.
         Achievement.CHANCE_ENCOUNTER -> ALIEN_HEAD_ICON
         // A hexagon, the outline of a twenty-sided die seen face on, with a 20 in it; and a star for each of the two bonuses.
@@ -177,7 +177,7 @@ val Achievement.icon: ImageVector
         // A skull, for dice cursed into chains.
         Achievement.BAD_OMEN -> Symbols.Skull
         // A compass, for finding the way round every mode there is.
-        Achievement.GRAND_TOUR -> Symbols.Explore
+        Achievement.GRAND_TOUR -> Symbols.TravelExplore
 
         // ---- Misfortune -------------------------------------------------------------------------
         Achievement.SCRATCHED -> Symbols.Cancel
@@ -208,7 +208,7 @@ val Achievement.icon: ImageVector
         // The timer shuffling your scores into place for you.
         Achievement.FRESH_COAT_OF_PAINT -> Symbols.FormatPaint
         // A keypad: any number, not one in particular - Getting Comfortable has the number sign.
-        Achievement.MY_FAVOURITE_NUMBER -> Symbols.Dialpad
+        Achievement.MY_FAVOURITE_NUMBER -> Symbols.Filter4
         Achievement.HOUSE_CALL -> Symbols.HomeWork
         // Open stairs, a straight - not Straight Talker's (and the scorecard's) own stairs.
         Achievement.STRAIGHT_AWAY -> Symbols.Stairs2
@@ -219,7 +219,7 @@ val Achievement.icon: ImageVector
         Achievement.NICE -> Symbols.ThumbUp
         Achievement.ZERO_TO_HERO -> Symbols.Upgrade
         Achievement.WASTED_FORTUNE -> Symbols.DeleteForever
-        Achievement.SIZE_ISNT_EVERYTHING -> Symbols.Straighten
+        Achievement.SIZE_ISNT_EVERYTHING -> Symbols.MoveUp
         Achievement.HOW_DO_YOU_PLAY_THIS_GAME -> Symbols.Quiz
         Achievement.ROCK_BOTTOM -> Symbols.Anchor
         Achievement.WHO_MADE_THIS -> Symbols.Info

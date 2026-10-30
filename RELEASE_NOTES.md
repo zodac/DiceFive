@@ -7,3 +7,4 @@ A bit of a rework of achievements this release, which has removed/changed some e
 - Removed `Empty House` and `Fuller House` achievements and replaced it with `Full Houses`
 - Replaced `Naturally Gifted` achievement with `Slow Start`
 - Reordered and recategorised some achievements
+- Changed the icons of some achievements

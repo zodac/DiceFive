@@ -43,19 +43,17 @@ Check check
 CheckCircle check_circle
 Close close
 Crown crown
-Cyclone cyclone
 DeleteForever delete_forever
 DeleteSweep delete_sweep
 DeveloperMode developer_mode
-Dialpad dialpad
 Download download
 EmojiEvents emoji_events
 EmojiPeople emoji_people
 EventRepeat event_repeat
-Explore explore
 FastForward fast_forward
 Favorite favorite
 FileOpen file_open
+Filter4 filter_4
 Filter7 filter_7
 FilterNone filter_none
 Flag flag
@@ -88,6 +86,7 @@ Memory memory
 MilitaryTech military_tech
 ModeHeat mode_heat
 MotionPhotosOff motion_photos_off
+MoveUp move_up
 MyLocation my_location
 Numbers numbers
 OpenInNew open_in_new mirror
@@ -123,13 +122,13 @@ Stars stars
 StayCurrentLandscape stay_current_landscape
 StayCurrentPortrait stay_current_portrait
 Storefront storefront
-Straighten straighten
 Style style
 Sync sync
 SyncAlt sync_alt
 Target target
 ThumbUp thumb_up
 Timer timer
+TravelExplore travel_explore
 TrendingDown trending_down mirror
 TrendingUp trending_up mirror
 Undo undo mirror
