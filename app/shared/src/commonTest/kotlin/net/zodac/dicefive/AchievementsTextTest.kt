@@ -29,6 +29,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.text.TextLayoutResult
 import kotlin.math.abs
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -59,6 +60,7 @@ import net.zodac.dicefive.ui.achievements.AchievementsScreen
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
 import net.zodac.dicefive.ui.achievements.resetAchievementsScrollMemory
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
+import org.jetbrains.compose.resources.getString
 
 /** The Achievements page's and its banners' words: the count, categories, a hidden row, and what each banner says and is called. */
 class AchievementsTextTest : UiTest() {
@@ -327,6 +329,37 @@ class AchievementsTextTest : UiTest() {
         compose.waitForIdle()
         lockedOnly.assertIsOff()
         compose.onNodeWithText("The Journey Begins").assertExists()
+    }
+
+    @Test
+    fun `a row's title stays on one line at its own size when it fits - shrinks to the 12sp floor then wraps when it does not`() = uiTest(TestScreen(345, 800)) {
+        showAchievements(achievementsViewModel())
+        val short = getString(Achievement.THE_JOURNEY_BEGINS.title)
+        val short14 = titleLayout(short).layoutInput
+        assertEquals(1, short14.maxLines)
+        assertEquals(14f, short14.style.fontSize.value, 0.01f)
+
+        // The longest title can't fit one line of the row at 14sp, so it is stepped down - never below the app-wide 12sp floor - and wraps to two lines at most.
+        val longest = getString(Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES.title)
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(longest))
+        val layout = titleLayout(longest)
+        assertTrue(layout.layoutInput.style.fontSize.value < 14f, "shrunk from titleSmall's 14sp")
+        assertTrue(layout.layoutInput.style.fontSize.value >= 12f, "never below the 12sp floor")
+        assertTrue(layout.lineCount <= 2, "at most two lines")
+    }
+
+    @Test
+    fun `the earned count includes the Easter Eggs while the total leaves them out - their number is a secret, so all earned reads more than the total`() = uiTest {
+        val all = AchievementsState(unlockedAt = Achievement.entries.associateWith { 0L })
+        showAchievements(achievementsViewModel(store = InMemoryAchievementStore(all)))
+        val total = Achievement.entries.count { it.category != AchievementCategory.EASTER_EGGS }
+        compose.onNodeWithText("${Achievement.entries.size} of $total earned").assertExists()
+    }
+
+    private fun titleLayout(text: String): TextLayoutResult {
+        val results = mutableListOf<TextLayoutResult>()
+        compose.onNodeWithText(text).fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action!!(results)
+        return results.first()
     }
 
     @Test

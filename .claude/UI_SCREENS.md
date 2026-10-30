@@ -11,6 +11,11 @@ Miscellaneous run in alphabetical order instead, and so do the Easter Eggs, whic
 - **Unlocking doesn't move a row.** It's highlighted in place, with its own icon and a raised `secondaryContainer`
     card, so a ladder reads as a ladder.
 - **Never split the list** into locked and unlocked parts, add a "hide unlocked" filter, or sort the whole list alphabetically.
+- **A row's title** (`ShrinkThenWrapText`) is one line at `titleSmall` when it fits, stepped down to the 12sp floor, then
+    wraps to two lines at 12sp: unlike the banner, which keeps one line down to 11sp. `AchievementsTextTest` pins it. The
+    row sits under `IntrinsicSize.Min` (equal cards in landscape), so `ShrinkThenWrapText` answers intrinsic heights.
+- **The count is "earned of total", and the Easter Eggs are in earned but not in total**, so their number stays secret:
+    a player with everything reads "110 of 100 earned". This is intended, not a bug (`AchievementsTextTest`).
 - The unlocked/total count sits centred above the list. In landscape, where the list has two cards to a row, it moves
     into the app bar after the back arrow, with the Unearned switch at the bar's end (see `UI.md`, "Landscape pages").
 

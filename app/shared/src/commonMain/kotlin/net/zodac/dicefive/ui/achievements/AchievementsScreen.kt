@@ -141,6 +141,7 @@ import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.ScreenScaffold
+import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.accessibleCombinedClickable
 import net.zodac.dicefive.ui.common.categoryHeaderStyle
@@ -855,7 +856,8 @@ private fun AchievementRow(
                 }
 
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
+                    // One line at titleSmall when it fits, stepped down to the 12sp floor, then wrapped (the banner's one line is its own rule).
+                    ShrinkThenWrapText(
                         text = stringResource(item.achievement.title),
                         style = MaterialTheme.typography.titleSmall,
                         color = ink(LocalContentColor.current),

@@ -301,8 +301,9 @@ const val MAX_ACHIEVEMENT_TITLE_LENGTH = 38
  * Deity" - instead of being scattered across an alphabetical list.
  *
  * [EASTER_EGGS] is last on purpose, and every achievement in it has [AchievementVisibility.HIDDEN]:
- * showing its title with description as "???" until unlocked, and counting towards total and
- * unlocked achievements.
+ * showing its title with description as "???" until unlocked. An unlocked one counts towards the earned figure
+ * but never the total on the Achievements page, whose total leaves them out so their number stays secret - so a
+ * player with everything reads "110 of 100 earned". That is intended, not a bug.
  */
 enum class AchievementCategory(val label: StringResource) {
     MILESTONES(Res.string.category_milestones),

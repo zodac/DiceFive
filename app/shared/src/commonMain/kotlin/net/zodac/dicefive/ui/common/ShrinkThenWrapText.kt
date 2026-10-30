@@ -1,11 +1,19 @@
 package net.zodac.dicefive.ui.common
 
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.IntrinsicMeasurable
+import androidx.compose.ui.layout.IntrinsicMeasureScope
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -30,7 +38,10 @@ val MIN_READABLE_FONT_SIZE = 12.sp
  *
  * The size is chosen by measuring [text] against the width on offer, rather than with
  * `TextAutoSize`, because that can only shrink: it can't say "it still doesn't fit" and hand over
- * to wrapping. Not usable inside an intrinsic-size layout (it composes on the width it's given).
+ * to wrapping.
+ *
+ * It composes on the width it's given, so an intrinsic-size layout can ask it for its height at a width
+ * (`IntrinsicSize.Min` above it) but not for its width.
  */
 @Composable
 fun ShrinkThenWrapText(
@@ -46,27 +57,60 @@ fun ShrinkThenWrapText(
     val measurer = rememberTextMeasurer()
     val base = if (fontWeight != null) style.copy(fontWeight = fontWeight) else style
     val density = LocalDensity.current
-    BoxWithConstraints(modifier = modifier) {
-        val available = constraints.maxWidth
-        val fit = remember(text, base, minFontSize, fontStep, available, density) {
-            if (available == Constraints.Infinity) {
-                FontFit(base.fontSize, wraps = false)
-            } else {
-                FontFitCache.getOrPut(FontFitKey(listOf(text), base, minFontSize, fontStep, available, density.density, density.fontScale)) {
-                    fitFontSize(base.fontSize, minFontSize, fontStep) { size ->
-                        measurer.measure(text = text, style = base.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= available
-                    }
+    val drawn = LocalTextStyle.current.merge(base)
+
+    fun fitAt(available: Int): FontFit =
+        if (available == Constraints.Infinity) {
+            FontFit(base.fontSize, wraps = false)
+        } else {
+            FontFitCache.getOrPut(FontFitKey(listOf(text), base, minFontSize, fontStep, available, density.density, density.fontScale)) {
+                fitFontSize(base.fontSize, minFontSize, fontStep) { size ->
+                    measurer.measure(text = text, style = base.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= available
                 }
             }
         }
-        Text(
-            text = text,
-            color = color,
-            style = base.copy(fontSize = fit.size),
-            maxLines = if (fit.wraps) wrappedMaxLines else 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+
+    Layout(
+        content = {
+            BoxWithConstraints {
+                val available = constraints.maxWidth
+                val fit = remember(text, base, minFontSize, fontStep, available, density) { fitAt(available) }
+                Text(
+                    text = text,
+                    color = color,
+                    style = base.copy(fontSize = fit.size),
+                    maxLines = if (fit.wraps) wrappedMaxLines else 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        },
+        modifier = modifier,
+        measurePolicy = HeightAtWidthPolicy { width ->
+            val fit = fitAt(width)
+            measurer.measure(
+                text = text,
+                style = drawn.copy(fontSize = fit.size),
+                overflow = TextOverflow.Ellipsis,
+                maxLines = if (fit.wraps) wrappedMaxLines else 1,
+                constraints = Constraints(maxWidth = width),
+            ).size.height
+        },
+    )
+}
+
+/**
+ * Lays out its one child (a `BoxWithConstraints`, which can't answer an intrinsic query itself) as it would be on its
+ * own, and answers the intrinsic heights with [heightAt] the width. The intrinsic widths stay unanswered.
+ */
+private class HeightAtWidthPolicy(private val heightAt: (width: Int) -> Int) : MeasurePolicy {
+    override fun MeasureScope.measure(measurables: List<Measurable>, constraints: Constraints): MeasureResult {
+        val placeable = measurables.single().measure(constraints)
+        return layout(placeable.width, placeable.height) { placeable.place(0, 0) }
     }
+
+    override fun IntrinsicMeasureScope.minIntrinsicHeight(measurables: List<IntrinsicMeasurable>, width: Int): Int = heightAt(width)
+
+    override fun IntrinsicMeasureScope.maxIntrinsicHeight(measurables: List<IntrinsicMeasurable>, width: Int): Int = heightAt(width)
 }
 
 /** A [fitFontSize] result: the size to draw at, and whether even the smallest didn't fit a line. */
