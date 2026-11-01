@@ -47,13 +47,13 @@ rules open up once you've finished your first game.
     every extra 5x.
 - **Tricolour** - every die also lands red, yellow, or blue, and four colour boxes join the card. Five of one colour,
     or a coloured full house, opens up new ways to score.
-- **Quickfire** - a six-turn game: the 5x box and six random boxes are switched off, and the upper bonus shrinks to
-    match.
-- **7 Dice Stud** - roll seven dice, but only the five you hold can score.
 - **Third Wind** - every box is scored three times, with a bigger upper bonus to match.
+- **7 Dice Stud** - roll seven dice, but only the five you hold can score.
 - **D20** - twenty-sided dice and five rolls a turn, with a card of the numbers 1 to 20 and a bonus for each half.
 - **Hit List** - a fresh list of dice targets every game. Roll a target's numbers to hit it, or land them in order
-    for double.
+  for double.
+- **Quickfire** - a six-turn game: the 5x box and six random boxes are switched off, and the upper bonus shrinks to
+  match.
 
 ## House rules
 
