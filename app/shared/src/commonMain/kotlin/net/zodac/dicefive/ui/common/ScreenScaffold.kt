@@ -164,6 +164,8 @@ fun ScreenScaffold(
     scrollable: Boolean = false,
     driftingDice: Boolean = true,
     horizontalPadding: Dp = PAGE_HORIZONTAL_PADDING,
+    verticalPadding: Dp = PAGE_VERTICAL_PADDING,
+    verticalSpacing: Dp = PAGE_VERTICAL_SPACING,
     wide: Boolean = false,
     startActions: @Composable RowScope.() -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
@@ -206,13 +208,14 @@ fun ScreenScaffold(
                         PageColumn(
                             horizontalPadding = horizontalPadding,
                             wide = wide,
+                            verticalPadding = verticalPadding,
                             contentPadding = PaddingValues.Absolute(
                                 left = innerPadding.calculateLeftPadding(layoutDirection),
                                 top = innerPadding.calculateTopPadding(),
                                 right = innerPadding.calculateRightPadding(layoutDirection),
                                 bottom = innerPadding.calculateBottomPadding(),
                             ),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(verticalSpacing),
                             content = content,
                         )
                     } else {
@@ -378,6 +381,9 @@ private val PAGE_HORIZONTAL_PADDING = 24.dp
 /** A [PageColumn]'s margin above and below its content. */
 internal val PAGE_VERTICAL_PADDING = 16.dp
 
+/** The gap between a [scrollable][ScreenScaffold] page's items. */
+internal val PAGE_VERTICAL_SPACING = 16.dp
+
 /**
  * A page body that fills the screen but scrolls if it can't fit - the case on a short screen
  * (landscape, split-screen, a large display font) - with a scrollbar in its right-hand margin while it does.
@@ -397,6 +403,8 @@ fun PageColumn(
     // well would inset it twice.
     contentPadding: PaddingValues = WindowInsets.systemBars.asPaddingValues(),
     verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    // Above the first item and below the last.
+    verticalPadding: Dp = PAGE_VERTICAL_PADDING,
     // Up to wideColumnMaxWidth in landscape - see ScreenScaffold's.
     wide: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
@@ -421,7 +429,7 @@ fun PageColumn(
                     modifier = Modifier
                         .widthIn(max = if (landscape && wide) wideColumnMaxWidth(horizontalPadding) else CONTENT_MAX_WIDTH)
                         .heightIn(min = viewportHeight)
-                        .padding(horizontal = horizontalPadding, vertical = PAGE_VERTICAL_PADDING),
+                        .padding(horizontal = horizontalPadding, vertical = verticalPadding),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = verticalArrangement,
                     content = content,
