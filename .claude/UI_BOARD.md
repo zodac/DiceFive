@@ -83,8 +83,10 @@ indexes), not summed on the 5x tile.
     - While a roll is previewed, each named place the dice show gets a short bar under it: white, or gold with the
         number when the die is in its own column. It's a bar per place because a text underline merged neighbouring places.
     - Spoken state: "3 of 4 rolled, 1 in place", "partial hit, ...", "hit, 0 of 3 in place", "exact hit".
-    - A tile glows only for a hit. A partial is a gold score beside an unlit tile (`tileLit`), because a board of lit
+    - A tile glows only for a hit. A partial is a white score beside an unlit tile (`tileLit`), because a board of lit
         partials hid the hits.
+    - The previewed score is gold only for an exact hit (doubled), so the doubled scores stand out; a hit or a partial is
+        white bold (`isGoldPreview`). The Alibi stays gold.
     - Totals shows Targets and Alibi (`HitListTotalsButton`).
 - **Third Wind: stacked scores** (`StackedScores` in `ScoreGrid.kt`).
     - Each slot is a line beside the tile, in fill order: each filled slot's score, then the preview in the next open slot

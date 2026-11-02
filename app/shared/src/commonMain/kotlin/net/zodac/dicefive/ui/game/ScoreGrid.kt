@@ -358,8 +358,9 @@ internal fun CategoryCell(
     val target = player?.hitList?.get(category)
     val matches = if (target != null && canPreview) target.matches(dice) else null
     // A target's tile lights up for a hit, not a partial one - nearly every roll scores a little on most targets, and a
-    // board of lit tiles would hide the hits. A partial score is still gold beside it.
+    // board of lit tiles would hide the hits.
     val tileLit = isGoodChoice && (target == null || target.isHit(dice))
+    val previewGold = isGoldPreview(target, previewScore)
     // Every 5x after the first earns a bonus chip, kept apart from the scorecard entry (which stays the box's score) and
     // written beside the box the joker scored in - see PlayerState.jokerBonusSlots. Zero for every other category.
     val fiveOfAKindBonusCount = if (category == ScoreCategory.FIVE_OF_A_KIND) player?.fiveOfAKindBonusCount ?: 0 else 0
@@ -493,7 +494,9 @@ internal fun CategoryCell(
             // plain) on that one frame made it the heaviest of the roll; now it's just a swap of
             // which is visible. The number is laid out again only when it changes, as the dice
             // settle. Screen readers hear the cell's stateDescription, never these.
-            val shown = (filled ?: previewScore)?.let { ShownScore(it.localised(), gold = isGoodChoice, scored = filled != null, accent = lastScored?.color) }
+            val shown = (filled ?: previewScore)?.let {
+                ShownScore(it.localised(), gold = previewGold, scored = filled != null, accent = lastScored?.color, worthPicking = isGoodChoice)
+            }
             val lastShown = remember { arrayOfNulls<ShownScore>(1) }
             if (shown != null) lastShown[0] = shown
             Box(modifier = scoreModifier, contentAlignment = Alignment.CenterStart) {
@@ -503,9 +506,9 @@ internal fun CategoryCell(
                         color = when {
                             number.gold -> GoldAccent
                             number.accent != null -> number.accent
-                            else -> TileIconColor.copy(alpha = if (number.scored) 1f else 0.55f)
+                            else -> TileIconColor.copy(alpha = if (number.scored || number.worthPicking) 1f else 0.55f)
                         },
-                        fontWeight = if (number.gold || number.accent != null) FontWeight.Bold else FontWeight.Normal,
+                        fontWeight = if (number.gold || number.accent != null || number.worthPicking) FontWeight.Bold else FontWeight.Normal,
                         style = style,
                         modifier = Modifier.alpha(if (shown != null) 1f else 0f),
                     )
@@ -546,6 +549,13 @@ internal fun CategoryCell(
         }
     }
 }
+
+/**
+ * Whether a box's [previewScore] is shown gold: any score above zero, except on a Hit List [target], where only an exact
+ * hit's (its [HitTarget.exactPoints], doubled) is gold - a hit or a partial one is white, so the doubled scores stand out.
+ */
+internal fun isGoldPreview(target: HitTarget?, previewScore: Int?): Boolean =
+    previewScore != null && previewScore > 0 && (target == null || previewScore == target.exactPoints)
 
 /** The gap between a tile and its score. */
 internal val TILE_SCORE_GAP = 8.dp
@@ -760,12 +770,20 @@ private fun SlotScore(shown: ShownScore?, style: TextStyle) {
 }
 
 /**
- * A cell's score or preview as it was last shown: its text, whether it was a gold "worth picking" one,
- * whether it's scored, and the player's colour if it's their last turn's score (see [LastScoredHighlight]).
+ * A cell's score or preview as it was last shown: its text, whether it was gold, whether it's scored, the player's
+ * colour if it's their last turn's score (see [LastScoredHighlight]), and whether it's a preview worth picking (bold,
+ * and white when it isn't gold - a Hit List hit short of exact, see [isGoldPreview]).
  * Compared by value, so a [SlotScore] handed the same score again - every filled slot, every time the
  * board recomposes - is skipped rather than recomposed.
  */
-private data class ShownScore(val text: String, val gold: Boolean, val scored: Boolean, val accent: Color?, val bonus: Int = 0)
+private data class ShownScore(
+    val text: String,
+    val gold: Boolean,
+    val scored: Boolean,
+    val accent: Color?,
+    val bonus: Int = 0,
+    val worthPicking: Boolean = gold,
+)
 
 /** A number (or "-") beside a category tile. */
 @Composable
