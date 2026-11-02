@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -406,6 +407,13 @@ fun AchievementsScreen(
                     listState.animateScrollToItem(flatIndex, centeredOffset)
                 } else {
                     listState.scrollToItem(flatIndex, centeredOffset)
+                }
+                // The offset above assumed an average row; this one's own height (a progress row has its bar) is known once it's laid out.
+                withFrameNanos { }
+                listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == flatIndex }?.let { row ->
+                    val viewport = listState.layoutInfo.viewportEndOffset - listState.layoutInfo.viewportStartOffset
+                    val error = row.offset - (viewport - row.size) / 2
+                    if (error != 0) listState.scrollBy(error.toFloat())
                 }
                 highlightedAchievementId = request.achievementId
                 // Taken before the flash's hold, not after: leaving the screen part-way through it mustn't leave the request to replay on the next visit.
