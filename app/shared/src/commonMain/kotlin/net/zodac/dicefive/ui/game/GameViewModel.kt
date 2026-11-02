@@ -114,6 +114,11 @@ class GameViewModel(
     private val _game = MutableStateFlow<GameState?>(null)
     val game: StateFlow<GameState?> = _game.asStateFlow()
 
+    private val _leaderboardScores = MutableStateFlow<Set<Int>?>(null)
+
+    /** Every score on the Leaderboard as this game began (null until read, or if it can't be): see [newLeaderboardScoreSeats]. */
+    val leaderboardScores: StateFlow<Set<Int>?> = _leaderboardScores.asStateFlow()
+
     /**
      * The waits a CPU's turn keeps for the screen's animations - see [GamePacing]. Set by the screen; read by
      * the game loop on another thread, hence volatile.
@@ -431,6 +436,11 @@ class GameViewModel(
         // Before the state goes on the table, which saves it with whatever there is to undo.
         setUndoSnapshot(resumedUndoSnapshot)
         resetSuperuserMode()
+        // Nothing is recorded during a game, so one read serves it. The tutorial keeps nothing, so marks nothing.
+        _leaderboardScores.value = null
+        if (tutorial == null) {
+            viewModelScope.launch { _leaderboardScores.value = orNullOnFailure { scoreRepository.distinctScores() } }
+        }
         // The box an undo would take back is the one the last score went in.
         tracker.startGame(resumedUndo, resumedLastCommitted = resumedUndoSnapshot?.let { state.players.getOrNull(it.currentPlayerIndex)?.lastScoredCategory })
         this.resumedSecondsLeft = resumedSecondsLeft

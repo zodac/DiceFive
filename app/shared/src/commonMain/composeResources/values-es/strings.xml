@@ -474,6 +474,7 @@
     </plurals>
     <string name="game_tab_view_action">Ver tarjeta</string>
     <string name="game_tab_current_turn_spoken">Turno actual</string>
+    <string name="game_tab_new_leaderboard_score">Nueva puntuación de la clasificación</string>
     <string name="game_totals_upper">Superior</string>
     <string name="game_totals_bonus">Bonificación</string>
     <string name="game_totals_lower">Inferior</string>

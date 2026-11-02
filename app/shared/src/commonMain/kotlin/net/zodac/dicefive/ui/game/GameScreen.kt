@@ -62,6 +62,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.game.ProjectedHand
+import net.zodac.dicefive.game.newLeaderboardScoreSeats
 import net.zodac.dicefive.game.TutorialStep
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
@@ -129,6 +130,7 @@ fun GameScreen(
     val tutorialStep by viewModel.tutorialStep.collectAsStateWithLifecycle()
     val tutorialTurn by viewModel.tutorialTurn.collectAsStateWithLifecycle()
     val canUndo by viewModel.canUndo.collectAsStateWithLifecycle()
+    val leaderboardScores by viewModel.leaderboardScores.collectAsStateWithLifecycle()
     val confirmBeforeLeaving by viewModel.confirmBeforeLeavingGame.collectAsStateWithLifecycle()
     val superuserModeActive by viewModel.superuserModeActive.collectAsStateWithLifecycle()
     val aiRolling by viewModel.aiRolling.collectAsStateWithLifecycle()
@@ -246,6 +248,7 @@ fun GameScreen(
                     landscape = layout.landscape,
                     cupScale = layout.cupScale,
                     canUndo = canUndo,
+                    newScoreSeats = newLeaderboardScoreSeats(currentState, leaderboardScores),
                     superuserModeActive = superuserModeActive,
                     aiRolling = aiRolling,
                     tapRolling = tapRolling,
@@ -458,6 +461,7 @@ private fun InProgressGame(
     landscape: Boolean,
     cupScale: Float,
     canUndo: Boolean,
+    newScoreSeats: Set<Int>,
     superuserModeActive: Boolean,
     aiRolling: Boolean,
     tapRolling: Boolean,
@@ -623,6 +627,7 @@ private fun InProgressGame(
                 players = state.players,
                 currentPlayerIndex = state.currentPlayerIndex,
                 viewedPlayerIndex = viewedPlayerIndex,
+                newScoreSeats = newScoreSeats,
                 enabled = isHumanTurn,
                 onPlayerTap = onPlayerTap,
                 modifier = Modifier.weight(1f),

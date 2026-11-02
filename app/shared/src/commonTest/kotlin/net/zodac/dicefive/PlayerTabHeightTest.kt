@@ -9,6 +9,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Density
@@ -71,5 +75,25 @@ class PlayerTabHeightTest : UiTest() {
             val solo = heights.getValue("1 players, ${ScoreFrames.all.first().id}")
             assertEquals(emptyMap<String, Float>(), heights.filterValues { it != solo }, "Tabs not ${solo}dp high at font scale $scale")
         }
+    }
+
+    @Test
+    fun aScoreTheLeaderboardLacksIsSpokenOnItsTabAndAddsNoHeight() = uiTest(SCREEN) {
+        var marked by mutableStateOf(emptySet<Int>())
+        compose.setContent {
+            DiceFiveTheme {
+                Box(Modifier.testTag("header").width(344.dp)) {
+                    PlayerHeaderBar(everyone.take(2), currentPlayerIndex = 0, viewedPlayerIndex = null, enabled = true, onPlayerTap = {}, newScoreSeats = marked)
+                }
+            }
+        }
+        compose.waitForIdle()
+        val plain = compose.onNodeWithTag("header").getBoundsInRoot().let { it.bottom - it.top }
+        marked = setOf(0)
+        compose.waitForIdle()
+        val tabs = compose.onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
+        assertEquals("Current turn, 2nd place, New Leaderboard score", tabs[0].fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription))
+        assertEquals("1st place", tabs[1].fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription))
+        assertEquals(plain, compose.onNodeWithTag("header").getBoundsInRoot().let { it.bottom - it.top })
     }
 }

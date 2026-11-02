@@ -56,7 +56,9 @@ import net.zodac.dicefive.resources.game_standing_spoken
 import net.zodac.dicefive.resources.game_standing_tied
 import net.zodac.dicefive.resources.game_standing_tied_spoken
 import net.zodac.dicefive.resources.game_tab_current_turn_spoken
+import net.zodac.dicefive.resources.game_tab_new_leaderboard_score
 import net.zodac.dicefive.resources.game_tab_view_action
+import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.SoraFontFamily
@@ -76,6 +78,9 @@ private const val SCORE_RISE_MILLIS_PER_POINT = 40
 
 /** How much of the player's colour the tab's panel takes on, over `surfaceContainer` - see `UI.md`'s "Player colours". */
 private const val PANEL_TINT = 0.08f
+
+/** How much of the player's colour the pill behind a score the Leaderboard doesn't hold yet takes. */
+private const val NEW_SCORE_PILL_ALPHA = 0.20f
 
 /** How far below the tab's top padding its name sits - see `UI.md`'s "Player colours". */
 private val NAME_TOP_DROP = 3.dp
@@ -108,6 +113,7 @@ fun PlayerHeaderBar(
     onPlayerTap: (Int) -> Unit,
     modifier: Modifier = Modifier,
     singleLine: Boolean = false,
+    newScoreSeats: Set<Int> = emptySet(),
 ) {
     // Three or four tabs leave roughly a quarter of the screen each, which a name at labelLarge
     // can outgrow even at the setup screen's length cap - so the name (not the score) steps down
@@ -124,6 +130,7 @@ fun PlayerHeaderBar(
                 color = player.colour.color,
                 active = index == currentPlayerIndex,
                 viewed = index == viewedPlayerIndex,
+                newScore = index in newScoreSeats,
                 compactName = compactNames,
                 standing = places?.get(index),
                 enabled = enabled,
@@ -143,6 +150,7 @@ private fun PlayerTab(
     color: Color,
     active: Boolean,
     viewed: Boolean,
+    newScore: Boolean,
     compactName: Boolean,
     standing: Standing?,
     enabled: Boolean,
@@ -155,7 +163,8 @@ private fun PlayerTab(
     // Resolved here, in composition: the semantics block below can't read resources itself.
     val spokenStanding = standing?.spoken()
     val currentTurn = stringResource(Res.string.game_tab_current_turn_spoken)
-    val spokenState = joinClauses(listOfNotNull(currentTurn.takeIf { active }, spokenStanding))
+    val newScoreText = stringResource(Res.string.game_tab_new_leaderboard_score)
+    val spokenState = joinClauses(listOfNotNull(currentTurn.takeIf { active }, spokenStanding, newScoreText.takeIf { newScore }))
     val viewScorecardLabel = stringResource(Res.string.game_tab_view_action)
     // Larger text fills more of the tab, so a frame's sides and corners need more room to stay off it.
     val sidePadding = (BASE_SIDE_PADDING_DP + (LocalDensity.current.textScale - 1f).coerceAtLeast(0f) * SIDE_PADDING_DP_PER_FONT_SCALE).coerceAtMost(MAX_SIDE_PADDING_DP).dp
@@ -202,13 +211,25 @@ private fun PlayerTab(
         }
     }
     val scoreText = @Composable { style: TextStyle ->
-        Text(
-            text = risingScore(score).localised(),
-            color = color,
-            fontFamily = SoraFontFamily,
-            fontWeight = FontWeight.Bold,
-            style = style,
-        )
+        val digits = @Composable { modifier: Modifier ->
+            Text(
+                text = risingScore(score).localised(),
+                color = color,
+                fontFamily = SoraFontFamily,
+                fontWeight = FontWeight.Bold,
+                style = style,
+                modifier = modifier,
+            )
+        }
+        if (newScore) {
+            // A score the Leaderboard doesn't hold yet: a pill of the player's colour behind it, explained on a long
+            // press (and spoken with the tab's state, above). The pill's padding is drawn inside the tab's own.
+            AppTooltip(message = newScoreText) {
+                digits(Modifier.background(color.copy(alpha = NEW_SCORE_PILL_ALPHA), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp))
+            }
+        } else {
+            digits(Modifier)
+        }
     }
     val dot = @Composable {
         Box(

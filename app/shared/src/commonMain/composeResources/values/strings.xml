@@ -627,6 +627,7 @@
     <string name="game_tab_view_action">View scorecard</string>
     <!-- Said on the tab of the player whose turn it is, before their place ("Current turn, 2nd place"). -->
     <string name="game_tab_current_turn_spoken">Current turn</string>
+    <string name="game_tab_new_leaderboard_score">New Leaderboard score</string>
     <!-- Lines of the totals tooltip: the upper section, its bonus, the lower section, and Hit List's targets. -->
     <string name="game_totals_upper">Upper</string>
     <string name="game_totals_bonus">Bonus</string>

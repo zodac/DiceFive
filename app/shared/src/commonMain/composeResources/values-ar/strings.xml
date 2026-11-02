@@ -555,6 +555,7 @@
     </plurals>
     <string name="game_tab_view_action">عرض بطاقة النتائج</string>
     <string name="game_tab_current_turn_spoken">الدور الحالي</string>
+    <string name="game_tab_new_leaderboard_score">نتيجة جديدة في لوحة المتصدرين</string>
     <string name="game_totals_upper">العلوي</string>
     <string name="game_totals_bonus">المكافأة</string>
     <string name="game_totals_lower">السفلي</string>
