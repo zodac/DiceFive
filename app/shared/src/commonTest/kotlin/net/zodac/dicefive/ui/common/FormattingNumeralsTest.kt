@@ -5,8 +5,8 @@ import kotlin.test.assertEquals
 
 /**
  * Which numerals a number is written in follows the strings' language tag (`common_locale`), so a translation chooses them:
- * "ar-u-nu-arab" for Arabic-Indic digits, "fa-u-nu-arabext" for Persian, plain "en-GB" for 0-9. Runs against both actuals:
- * Android's uses java.text, the JVM's ICU4J.
+ * "ar-u-nu-arab" for Arabic-Indic digits, "fa-u-nu-arabext" for Persian, plain "en-GB" for 0-9. Runs against Android's
+ * actual, which uses java.text.
  */
 class FormattingNumeralsTest {
 

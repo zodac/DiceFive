@@ -1,7 +1,7 @@
 // The game's platform-neutral code, as a Kotlin Multiplatform library (consumed by :app:android, which builds the APK).
-// Platform code lives in androidMain and jvmMain, behind the expect/actual and PlatformServices seams. commonMain is
-// compiled for both, so an Android API there fails to compile; CommonCodeIsPlatformNeutralTest catches a JDK one, which
-// both targets have. See .claude/MULTIPLATFORM.md.
+// Android is its one target. Platform code lives in androidMain, behind the expect/actual and PlatformServices seams;
+// CommonCodeIsPlatformNeutralTest keeps Android and JDK APIs out of commonMain, so another target can be added back.
+// See .claude/MULTIPLATFORM.md.
 plugins {
     // The Android and JVM targets, SDK levels, Java version, and the strict compiler and lint rules: build-logic's
     // KotlinMultiplatformConventionPlugin. (AGP 9 won't combine Kotlin Multiplatform with com.android.application,
@@ -43,11 +43,6 @@ kotlin {
             implementation(libs.jetbrains.navigation.compose)
             implementation(libs.jetbrains.navigationevent.compose)
         }
-        jvmMain.dependencies {
-            // The JVM's number, list and ordinal formatting (ui/common/Formatting.jvm.kt): the ICU Android's own
-            // android.icu repackages, so both platforms format alike.
-            implementation(libs.icu4j)
-        }
         androidMain.dependencies {
             // On Android, JetBrains' navigation-compose resolves to the androidx release it wraps; this
             // lifts it to androidx's newer one on the same line (the JetBrains API the shared code
@@ -57,7 +52,7 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
-            // The shared UI's tests: runComposeUiTest, on both targets.
+            // The shared UI's tests: runComposeUiTest, the multiplatform test API.
             implementation(libs.jetbrains.compose.ui.test)
         }
         getByName("androidHostTest").dependencies {
@@ -101,16 +96,13 @@ room {
 dependencies {
     // Room's compiler runs once per target, generating each one's AppDatabaseConstructor.
     add("kspAndroid", libs.androidx.room.compiler)
-    add("kspJvm", libs.androidx.room.compiler)
 }
 
 // CI, the dependency-update script and day-to-day habit all run `./gradlew testDebugUnitTest` (the
 // name :app:android's unit tests have). A KMP library's tests have other names, so this answers to
 // that one too, rather than every one of those callers having to learn the new task names.
-// The tests run as Android runs them. They are compiled for the JVM target too (so commonTest stays
-// common), but run there (jvmTest) only monthly, as a gate in update-dependencies.yml: no desktop app ships yet.
 tasks.register("testDebugUnitTest") {
     group = "verification"
-    description = "Runs the shared module's tests as Android runs them, and compiles them for the JVM."
-    dependsOn("testAndroidHostTest", "compileTestKotlinJvm")
+    description = "Runs the shared module's tests as Android runs them."
+    dependsOn("testAndroidHostTest")
 }

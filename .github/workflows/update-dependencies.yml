@@ -118,14 +118,13 @@ jobs:
           git status --short
 
       # The release workflow's gates, run on exactly the tree that would be committed, whatever the
-      # script touched (it only builds when a Gradle input changed): the debug build, unit tests (Android's, and the shared
-      # tests on the JVM target, which no app ships on yet so a push only compiles them there), the
-      # Baseline Profile journey compiling, and lint - with the deprecation checks the build carries - and both
-      # flavours' release builds, unsigned, so a bump R8 can't build with never reaches main.
+      # script touched (it only builds when a Gradle input changed): the debug build, the unit tests (the app's and the
+      # shared code's), the Baseline Profile journey compiling, and lint - with the deprecation checks the build carries -
+      # and both flavours' release builds, unsigned, so a bump R8 can't build with never reaches main.
       - name: Build, test and lint
         if: steps.changes.outputs.changed == 'true'
         run: |
-          ./gradlew assembleDebug testDebugUnitTest :app:shared:jvmTest :app:baselineprofile:compileNonMinifiedReleaseKotlin lintDebug lintRelease \
+          ./gradlew assembleDebug testDebugUnitTest :app:baselineprofile:compileNonMinifiedReleaseKotlin lintDebug lintRelease \
             :app:android:assembleGithubRelease :app:android:bundlePlayRelease --console=plain
 
       # The workflows, shell scripts, Dockerfiles, and Markdown, as lint.yml checks them: also exercises a freshly bumped linter

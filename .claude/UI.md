@@ -11,7 +11,7 @@ for particular screens:
 Code comments that cite one of those sections under `UI.md` now find it in the companion file.
 
 All UI is shared Compose Multiplatform code in `app/shared/src/commonMain/kotlin/net/zodac/dicefive/ui/`; the paths
-below are relative to it. It must stay platform-neutral: no Android or JVM API (nothing enforces it; `MULTIPLATFORM.md`), resources
+below are relative to it. It must stay platform-neutral: no Android or JVM API (`CommonCodeIsPlatformNeutralTest`; `MULTIPLATFORM.md`), resources
 through `Res.*`, and device work through `PlatformServices`.
 
 **In one line**: everything outside the game board is stock Material 3 wearing a brand-seeded palette. The board owns

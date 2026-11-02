@@ -50,14 +50,11 @@ on:
       # The sound effects' build step (the clips themselves are in app/audio).
       - "scripts/normalize-audio.sh"
       # ...except test code and documentation inside those.
-      # The shared code's JVM target is in no app yet: its own code ships nowhere.
-      - "!app/**/src/jvmMain/**"
       - "!app/**/src/test/**"
       - "!app/**/src/testPlay/**"
       - "!app/**/src/testGithub/**"
       - "!app/**/src/commonTest/**"
       - "!app/**/src/androidHostTest/**"
-      - "!app/**/src/jvmTest/**"
       - "!app/**/src/androidTest/**"
       - "!app/**/*.md"
   # Lets a release for the VERSION currently on main be triggered on demand
@@ -184,9 +181,8 @@ jobs:
       - name: Run app unit tests
         run: ./gradlew :app:android:test${{ matrix.flavour }}DebugUnitTest --console=plain
 
-  # app:shared's tests as Android runs them (commonTest and androidHostTest, under Robolectric for the UI), and their
-  # compile for the JVM target - see the testDebugUnitTest task in app/shared/build.gradle.kts. Run on the JVM monthly
-  # (update-dependencies.yml) until an app for another platform ships, when they belong here too.
+  # app:shared's tests as Android runs them (commonTest and androidHostTest, under Robolectric for the UI) - see the
+  # testDebugUnitTest task in app/shared/build.gradle.kts.
   shared-tests:
     needs: version
     if: needs.version.outputs.release == 'true'

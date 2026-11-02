@@ -11,7 +11,7 @@ import kotlinx.coroutines.test.TestResult
 
 /**
  * Each platform's test runner for the shared UI's tests: Robolectric on Android (a real Android window and text
- * rendering on the JVM), plain JUnit on the JVM target (Compose's desktop runtime).
+ * rendering on the JVM).
  */
 expect abstract class PlatformUiTest()
 

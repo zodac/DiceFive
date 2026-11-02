@@ -17,8 +17,7 @@ failure stops what follows.
 ```
 
 - The root `testDebugUnitTest` runs both modules' test suites: `:app:shared`'s as Android runs them (`commonTest`
-    and `androidHostTest`; compiled for the JVM too), and `:app:android`'s. `:app:shared:jvmTest` runs `commonTest` on
-    the JVM: monthly in CI (a gate before the update is committed), and by hand after changing a `commonTest` UI test or the harness.
+    and `androidHostTest`), and `:app:android`'s.
 - `app/android` has two flavours, `play` and `github` (`.claude/DESIGN.md`, "Distribution"). Its `testDebugUnitTest`
     and `lintDebug` run both (`testPlayDebugUnitTest`, `testGithubDebugUnitTest`, ...), so `src/test` runs twice, once
     in each app, with `src/testPlay` and `src/testGithub` once in their own.
@@ -49,7 +48,6 @@ the `code-quality-config` submodule:
 | What | Command |
 | --- | --- |
 | One shared test as Android runs it (`commonTest`, `androidHostTest`; Robolectric for the UI) | `./gradlew -q :app:shared:testAndroidHostTest --tests '*BoardSemanticsTest'` |
-| One shared test on the JVM target (`commonTest`; not in the gate) | `./gradlew -q :app:shared:jvmTest --tests '*GameEngineTest'` |
 | One app test (`app/android/src/test`, or `src/testPlay`) | `./gradlew -q :app:android:testPlayDebugUnitTest --tests '*MainActivitySmokeTest'` |
 | One in the github app (`src/testGithub`, or `src/test` as the github app runs it) | `./gradlew -q :app:android:testGithubDebugUnitTest --tests '*GithubFlavourTest'` |
 | One test method | `--tests '*BoardSemanticsTest.a score box*'` |
@@ -57,7 +55,7 @@ the `code-quality-config` submodule:
 | Regenerate Hard AI's perfect-play table (after any change to how Standard scores; about 20s) | `./gradlew :app:shared:testAndroidHostTest --tests '*StandardPerfectPlayTableTest*' -PregeneratePerfectPlayTable` |
 
 Failures and `println` output are in `app/android/build/test-results/test{Play,Github}DebugUnitTest/TEST-*.xml` and
-`app/shared/build/test-results/{testAndroidHostTest,jvmTest}/TEST-*.xml`. Grep for `<failure`; output is under `system-out`.
+`app/shared/build/test-results/testAndroidHostTest/TEST-*.xml`. Grep for `<failure`; output is under `system-out`.
 Add `--rerun` to re-run a test Gradle thinks is up to date. Otherwise it serves the old result - from the build cache too
 (`FROM-CACHE`), even for source you put back as it was - and a scratch render keeps the old PNG, so check its timestamp.
 Always `--rerun` when proving a guard can fail.
@@ -69,13 +67,14 @@ on the classes before it in the same JVM; nor can a shared one on what another c
 
 The tiers, and why a test isn't in the one above it, are in `.claude/MULTIPLATFORM.md`, "Tests". In short:
 
-- **`app/shared/src/commonTest`**, for both targets, is the default: logic, view models, and UI. A UI test extends
-    `UiTest`, runs each test in `uiTest { }` (`uiTest(TestScreen(360, 800))` for a screen size) and drives `compose` as
-    an Android test's rule. Robolectric draws it on Android (SDK 36, native graphics, `robolectric.properties`), Compose's
-    desktop runtime on the JVM. `Res` resolves in both.
-- **`app/shared/src/androidHostTest`**: a shared test that holds only on Android - another language (`@Config`), an
-    Android API, or a desktop harness limit; it says which. And the checks that read the source tree from disk (the i18n
-    guards, the perfect-play table).
+- **`app/shared/src/commonTest`**, platform-neutral like `commonMain`, is the default: logic, view models, and UI. A UI
+    test extends `UiTest`, runs each test in `uiTest { }` (`uiTest(TestScreen(360, 800))` for a screen size) and drives
+    `compose` as an Android test's rule. Robolectric draws it (SDK 36, native graphics, `robolectric.properties`), and
+    `Res` resolves.
+- **`app/shared/src/androidHostTest`**: a shared test that needs Android - another language (`@Config`), an Android
+    API (`ShadowLooper`, `Bitmap`, `android.icu`), or something a desktop target's test harness couldn't do, should one
+    be added back (`MULTIPLATFORM.md`, "Tests"); it says which. And the checks that read the source tree from disk (the
+    i18n guards, the perfect-play table, `CommonCodeIsPlatformNeutralTest`).
 - **`app/android/src/test`**: the app itself - `MainActivity`, `device/`, the manifest, Room on Android's SQLite, the
     store-asset generators. What only one app has goes in `src/testPlay` (Play Games, Sidekick, the Play Console sheets)
     or `src/testGithub` (progress files on Android).
@@ -85,9 +84,6 @@ The tiers, and why a test isn't in the one above it, are in `.claude/MULTIPLATFO
 - **A screen test** (`GameScreen`) needs `LocalPlatformServices provides SilentPlatformServices`. Under Robolectric,
     step both `compose.mainClock` and the paused main looper (`ShadowLooper.idleMainLooper`), because the view model's
     coroutines delay on the looper. `GameScreenCupGateTest.waitFor` is the pattern.
-- **The desktop harness** (a `commonTest` UI test on the JVM) draws every frame in software, and a composition's own
-    coroutines (`delayWhileResumed` in an effect or a gesture) wait in real time there, not on the test clock. A test that
-    depends on either belongs in `androidHostTest`.
 - **View-model tests** run on a `StandardTestDispatcher`, which must also be passed as `aiDispatcher` (`gameViewModel()`
     requires it). Use `advanceTimeBy` + `runCurrent` for timers. In a timed game, `advanceUntilIdle` plays every turn out
     through timeouts.

@@ -1,12 +1,13 @@
 # DiceFive: multiplatform layout
 
-The app is Kotlin Multiplatform and Compose Multiplatform. The shared code has two targets: Android, which the app is
-built from, and the JVM (desktop), which no app is built from yet.
+The app is Android-only (decided 2026-11-03), built with Kotlin Multiplatform and Compose Multiplatform. The shared
+code has one target, Android. A JVM (desktop) target was dropped then; "Adding a target back" says how to restore it.
 
 - The game, UI and persistence live in `app/shared`; only the platform services are per platform.
-- The split is for segregation: platform code sits behind the seams below, so another app (a desktop one, say) can be
-    added beside Android without moving the shared code.
-- The JVM target keeps the split honest: `commonMain` and `commonTest` are compiled for it on every build.
+- The split is for segregation: platform code sits behind the seams below, so another target can be added beside
+    Android without moving the shared code.
+- `CommonCodeIsPlatformNeutralTest` keeps the split honest. With one target, the compiler lets `commonMain` and
+    `commonTest` see Android's APIs and the JDK's; the test fails on either.
 
 ## Layout
 
@@ -16,7 +17,7 @@ gradle/
 ├── android-sdk.properties       compileSdk (and its minor), minSdk, targetSdk, build-tools, NDK - their one home
 └── gradle-daemon-jvm.properties the Java version (toolchainVersion)
 app/
-├── shared/      :app:shared - KMP library (com.android.kotlin.multiplatform.library, and jvm())
+├── shared/      :app:shared - KMP library (com.android.kotlin.multiplatform.library)
 │   ├── schemas/                 Room's exported schemas (commit every new version)
 │   └── src/
 │       ├── commonMain/kotlin/net/zodac/dicefive/
@@ -31,11 +32,9 @@ app/
 │       │                        needs lives below it (a check the form shows is model/'s or game/'s to own)
 │       ├── commonMain/composeResources/   strings, drawables, fonts, files (Res.*)
 │       ├── androidMain/         Android's actuals
-│       ├── jvmMain/             the JVM's actuals (formatting through ICU4J); in no app yet
-│       ├── commonTest/          logic, view-model and UI tests (kotlin.test), for both targets (see "Tests")
-│       ├── androidHostTest/     Android's test actuals, the shared tests that hold only on Android, and the checks
-│       │                        that read the source tree (the i18n guards, the perfect-play table)
-│       └── jvmTest/             the JVM's test actuals
+│       ├── commonTest/          logic, view-model and UI tests (kotlin.test), platform-neutral (see "Tests")
+│       └── androidHostTest/     Android's test actuals, the shared tests that hold only on Android, and the checks
+│                                that read the source tree (the i18n guards, the perfect-play table)
 ├── android/     :app:android - the APK: MainActivity.kt; device/ (AndroidPlatformServices: SoundPool, Vibrator,
 │                SensorManager, Toast, licence JSON; AndroidAppContainer; TextViewLicenceDocument); the play and
 │                github flavours (src/play: Play Games and Play Billing; src/github: AndroidProgressFiles). Its tests are of it alone.
@@ -46,7 +45,7 @@ app/
 
 - **Two modules**, because AGP 9 won't let one module be both KMP and an Android application.
 - **Naming.** Entry points sit in the root package, and platform implementations in `device/`, prefixed with the
-    platform (`AndroidSoundPlayer`). An actual's file is named for its platform (`Formatting.jvm.kt`).
+    platform (`AndroidSoundPlayer`). An actual's file is named for its platform (`Formatting.android.kt`).
 - **Android's implementations live in `app/android`**, because they need `R.raw`, the generated licence JSON and
     `BuildConfig`.
 - **`app/audio/` and `app/licensing/` sit outside both modules**, because what they hold isn't any one module's.
@@ -56,8 +55,7 @@ app/
 `build-logic/` is compiled before the modules' build scripts, so each script holds only what is its own.
 
 - **Convention plugins** (`build-logic/src/main/kotlin/net/zodac/dicefive/buildlogic/`):
-    - `dicefive.kotlin.multiplatform` (`:app:shared`): the Android library and JVM targets, host tests, and the JVM
-        target's Compose desktop runtime for its tests (the build for the machine they run on).
+    - `dicefive.kotlin.multiplatform` (`:app:shared`): the Android library target and its host tests.
     - `dicefive.android.application` (`:app:android`) and `dicefive.android.test` (`:app:baselineprofile`).
     - Each sets the SDK levels, the Java version, and the strict rules (`StrictChecks.kt`: compiler warnings are errors,
         and lint reads `code-quality-config/android/lint.xml`, where its warnings are errors). A module adds its
@@ -75,44 +73,36 @@ app/
 
 ## Targets, and what keeps common code common
 
-- **An Android API in `commonMain` or `commonTest` fails to compile**, because both are compiled for the JVM target.
-- **A JDK API doesn't**: both targets run on a JVM, so Kotlin lets common code see the JDK. `CommonCodeIsPlatformNeutralTest`
-    (`androidHostTest`) fails on a `java.*` import, `System`, `Thread`, `String.format` and the like there.
-    - A target without a JVM would catch it at compile time, but none can be added yet: Room and DataStore have no web
-        target, and Apple's targets need a Mac to compile.
-- **Platform code** goes in `androidMain`/`jvmMain` or `app/android`, behind an `expect` or `PlatformServices`.
-- **The JVM's actuals** format through ICU4J, the library Android's `android.icu` repackages, so both format alike. It's
-    never in the APK. `ConfigureOverlayDialogWindow` does nothing there yet: how a desktop dialog passes clicks through is
-    for whoever builds the desktop app.
+- **The compiler doesn't keep common code common.** With Android the one target, Kotlin compiles `commonMain` and
+    `commonTest` as Android code, so Android's APIs and the JDK's both compile there.
+- **`CommonCodeIsPlatformNeutralTest` (`androidHostTest`) does**, on every `testDebugUnitTest`. It fails on:
+    - an import from outside the multiplatform libraries the module uses (its `MULTIPLATFORM_IMPORTS`: a new
+        multiplatform dependency adds its package there);
+    - an Android-only part of one of them (`LocalContext`, `AndroidView`, `androidx.compose.ui.res`, `nativeCanvas`,
+        the `*Res` annotations, and the like);
+    - a platform API named without an import: `android.*`, `java.*`, `R.string`, `BuildConfig`, `System`, `Thread`,
+        `String.format`, `::class.java`, `synchronized`.
+- **Platform code** goes in `androidMain` or `app/android`, behind an `expect` or `PlatformServices`. The `expect`s stay
+    even with one actual each: they're the seams another target fills.
 
 ## Tests
 
 `./gradlew :app:shared:testDebugUnitTest` runs `:app:shared`'s tests as Android runs them (`testAndroidHostTest`:
-`commonTest` and `androidHostTest`) and compiles them for the JVM. The root `testDebugUnitTest` adds `:app:android`'s.
+`commonTest` and `androidHostTest`). The root `testDebugUnitTest` adds `:app:android`'s.
 
-- **On the JVM they run monthly**, not on every push: `./gradlew :app:shared:jvmTest`, one of the gates in
-    `update-dependencies.yml`'s update job, so a failure stops the run before anything is committed or released. No
-    app ships on the JVM yet, so running them on every push guarded nothing a player has, at more than double the
-    shared tests' time; monthly, a test that comes to depend on Android is still caught soon after. **When an app for
-    another platform is started, they go back into `android-release.yml`'s `shared-tests` (and `testDebugUnitTest`).**
-
-- **`commonTest`** is the default home, for UI tests too. Write it to pass on both targets. A UI test extends `UiTest`
-  and runs each test in `uiTest { }`,
-    where `compose` drives it as an Android test's rule would (`Showcase`, `UiTestSupport.kt` for the in-memory view
-    models and `AppContainer`).
-    - On Android it runs under Robolectric (`PlatformUiTest.android.kt`); on the JVM, on Compose's desktop runtime, with a
-        test `Dispatchers.Main` that shares the test clock.
-    - `uiTest(TestScreen(360, 800, 3f))` sets the screen on both. With none given, both use Robolectric's default
-        (320 by 470dp).
+- **`commonTest`** is the default home, for UI tests too. It stays platform-neutral, like `commonMain` (the same
+    guard). A UI test extends `UiTest` and runs each test in `uiTest { }`, where `compose` drives it as an Android
+    test's rule would (`Showcase`, `UiTestSupport.kt` for the in-memory view models and `AppContainer`).
+    - It runs under Robolectric (`PlatformUiTest.android.kt`), behind the `runUiTest` test `expect`.
+    - `uiTest(TestScreen(360, 800, 3f))` sets the screen. With none given, it's Robolectric's default (320 by 470dp).
     - A platform call a test needs goes behind a test `expect` too (`setTimeZone`).
 - **`androidHostTest`** is for a shared test that holds only on Android. Each says why, or shows it in its code:
     - another language (`@Config(qualifiers = "es")`), or an Android API (`ShadowLooper`, `Bitmap`, `android.icu`);
     - sizes chosen against the room Android's system bars leave (`StylesPageFitTest`);
-    - a wait on the test clock inside a composition (`delayWhileResumed` in an effect or a gesture): on the desktop
-        harness those coroutines wait in real time instead;
-    - seconds of the clock over a busy page (the Styles tests): the desktop harness draws every frame in software, so
-        they take minutes there.
-- **The checks that read the source tree from disk** are in `androidHostTest` too, as they need nothing from either
+    - what a desktop target's test harness couldn't do, kept here so one can be added back: a wait on the test clock
+        inside a composition (`delayWhileResumed` in an effect or a gesture), which waits in real time there; seconds of
+        the clock over a busy page (the Styles tests), which it draws frame by frame in software.
+- **The checks that read the source tree from disk** are in `androidHostTest` too, as they need nothing from a
     target: the i18n guards (`StringChecks`), the perfect-play table, `NoBackgroundTimersTest`,
     `CommonCodeIsPlatformNeutralTest`.
 - **`:app:android`'s tests** are of the app itself: `MainActivity`, `device/`, the manifest, the flavours, Room on
@@ -134,8 +124,8 @@ app/
     that release builds never activate it.
 - **Text.** `expect fun stripDiacritics`.
 - **Persistence.**
-    - Room KMP: `@ConstructedBy(AppDatabaseConstructor)`, KSP per target. Android uses the framework's SQLite; a desktop
-        app would bring a driver of its own (bundled SQLite), as the JVM target has none.
+    - Room KMP: `@ConstructedBy(AppDatabaseConstructor)`, KSP per target (`kspAndroid`). Android uses the framework's
+        SQLite; a desktop app would bring a driver of its own (bundled SQLite).
     - DataStore: `createPreferencesDataStore(path)` with the `PreferencesFile` names; `AppContainer.create(dataDir,
         databaseBuilder, buildInfo)` builds the container for every platform.
     - Tests: `AndroidAppContainerTest`.
@@ -150,9 +140,9 @@ app/
 
 - **Lint skips the shared code** unless `com.android.lint` is applied to `app/shared` **and** `app/android`'s lint sets
     `checkDependencies = true`. Both are in place.
-- **Lint runs twice on the shared code**: per target. The Android target's run reads the `android { lint }` settings,
-    the JVM target's (`lintJvm`) `com.android.lint`'s own; the convention plugin gives both the strict rules. Only the
-    JVM run reads Room's generated code as the module's, hence the one exception in `app/shared/lint.xml`.
+- **Lint runs twice on the shared code**, though there's one target: `com.android.lint` adds `lintJvm` of the common
+    code beside the Android target's lint. The first reads `com.android.lint`'s own settings, the second the
+    `android { lint }` ones; the convention plugin gives both the strict rules.
 - **Watch the release APK size** before adding a multiplatform library. Compare the R8 mapping class counts per package
     (`build/outputs/mapping/release/`).
 - **Version lines.** JetBrains material3 1.9.x = androidx material3 1.4.x. Keep `composeMultiplatformMaterial3` matched
@@ -165,3 +155,23 @@ app/
     to, or it calls itself (hence `TextViewLicenceDocument`).
 - **The multiplatform test API is experimental.** `app/shared/build.gradle.kts` opts every test source set into
     `ExperimentalTestApi` once, rather than each test.
+
+## Adding a target back
+
+The JVM target was removed in the commit that made the app Android-only
+(`git log --grep "drop the shared code's JVM target"`); its files are in that commit's parent. To add it, or another target, back:
+
+- **Build.** `jvm()` (with `jvmTarget`) in `KotlinMultiplatformConventionPlugin`, `kspJvm` for Room's compiler in
+    `app/shared/build.gradle.kts`, and the desktop UI test runtime (`jetbrains-compose-desktop-jvm`, in the build for
+    the host's OS and architecture) for `jvmTest`.
+- **Actuals.** One per `expect`: the seven in `jvmMain` (formatting through ICU4J, the library `android.icu`
+    repackages, so both format alike) and the two test ones in `jvmTest` (`PlatformUiTest`, with a test
+    `Dispatchers.Main` on the test clock, and `setTimeZone`).
+- **Lint.** With a JVM target, `lintJvm` reads Room's generated code for it as the module's: restore
+    `app/shared/lint.xml`'s `RestrictedApi` exception for `build/generated/ksp/**`. `FontScale.kt` and `CupDrawScope`
+    already suppress the desktop target's `RestrictedApi`.
+- **Tests.** `testDebugUnitTest` compiles them for the new target (`compileTestKotlinJvm`); once an app ships there,
+    `android-release.yml`'s `shared-tests` and the update gates run them (`:app:shared:jvmTest`). The tests in
+    `androidHostTest` for a desktop harness limit stay there.
+- **Path filters.** `android-release.yml` and `readme-assets.yml` exclude the new target's test source sets, and its
+    main source set until an app ships from it.

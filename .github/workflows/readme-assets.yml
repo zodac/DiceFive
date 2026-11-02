@@ -32,13 +32,11 @@ on:
       - "settings.gradle.kts"
       - "build-logic/**"
       - "gradle.properties"
-      - "!app/**/src/jvmMain/**"
       - "!app/**/src/test/**"
       - "!app/**/src/testPlay/**"
       - "!app/**/src/testGithub/**"
       - "!app/**/src/commonTest/**"
       - "!app/**/src/androidHostTest/**"
-      - "!app/**/src/jvmTest/**"
       - "!app/**/src/androidTest/**"
       - "!app/**/*.md"
       # ...and how the images are made (after the exclusions, which would otherwise drop the generator tests).

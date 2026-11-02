@@ -34,9 +34,6 @@ uiautomator = "2.4.0"
 profileinstaller = "1.4.1"
 playGames = "22.1.0"
 playBilling = "9.1.0"
-# ICU for the shared code's JVM target (app/shared/src/jvmMain): the same number, list and ordinal formatting Android's
-# android.icu (a repackaged ICU) gives the app. Never in the APK.
-icu4j = "79.1"
 # Not used by the app: Play Games' play-services-base still asks for fragment 1.1.0, which Play Console reports as
 # outdated, so the Android module raises it to this through a constraint.
 fragment = "1.9.1"
@@ -67,7 +64,6 @@ androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchm
 androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 play-services-games-v2 = { group = "com.google.android.gms", name = "play-services-games-v2", version.ref = "playGames" }
 play-billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "playBilling" }
-icu4j = { group = "com.ibm.icu", name = "icu4j", version.ref = "icu4j" }
 aboutlibraries-core = { group = "com.mikepenz", name = "aboutlibraries-core", version.ref = "aboutLibraries" }
 
 jetbrains-compose-runtime = { group = "org.jetbrains.compose.runtime", name = "runtime", version.ref = "composeMultiplatform" }
@@ -75,10 +71,8 @@ jetbrains-compose-foundation = { group = "org.jetbrains.compose.foundation", nam
 jetbrains-compose-ui = { group = "org.jetbrains.compose.ui", name = "ui", version.ref = "composeMultiplatform" }
 jetbrains-compose-ui-tooling-preview = { group = "org.jetbrains.compose.ui", name = "ui-tooling-preview", version.ref = "composeMultiplatform" }
 jetbrains-compose-components-resources = { group = "org.jetbrains.compose.components", name = "components-resources", version.ref = "composeMultiplatform" }
-# The shared UI's tests (runComposeUiTest, in commonTest), and the desktop runtime they draw with on the JVM target.
-# build-logic adds the host's own build of the runtime: desktop-jvm-<os>-<arch>.
+# The shared UI's tests (runComposeUiTest, in commonTest).
 jetbrains-compose-ui-test = { group = "org.jetbrains.compose.ui", name = "ui-test", version.ref = "composeMultiplatform" }
-jetbrains-compose-desktop-jvm = { group = "org.jetbrains.compose.desktop", name = "desktop-jvm", version.ref = "composeMultiplatform" }
 jetbrains-compose-material3 = { group = "org.jetbrains.compose.material3", name = "material3", version.ref = "composeMultiplatformMaterial3" }
 jetbrains-lifecycle-viewmodel-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "jetbrainsLifecycle" }
 jetbrains-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "jetbrainsLifecycle" }
