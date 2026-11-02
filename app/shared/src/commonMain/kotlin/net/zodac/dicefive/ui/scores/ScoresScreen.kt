@@ -1,53 +1,25 @@
 package net.zodac.dicefive.ui.scores
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.Placeable
-import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -56,74 +28,34 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.data.scores.LeaderboardSource
-import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
-import net.zodac.dicefive.game.TieBreak
 import net.zodac.dicefive.model.GameMode
-import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.online.GameServices
 import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.resources.Res
-import net.zodac.dicefive.resources.common_page_of
-import net.zodac.dicefive.resources.common_tied_rank
+import net.zodac.dicefive.resources.scores_board_empty
+import net.zodac.dicefive.resources.scores_board_label
 import net.zodac.dicefive.resources.scores_empty
 import net.zodac.dicefive.resources.scores_global
 import net.zodac.dicefive.resources.scores_global_cd
-import net.zodac.dicefive.resources.scores_header_player
-import net.zodac.dicefive.resources.scores_header_score
-import net.zodac.dicefive.resources.scores_next
-import net.zodac.dicefive.resources.scores_previous
 import net.zodac.dicefive.resources.scores_title
+import net.zodac.dicefive.resources.scores_view_combined
+import net.zodac.dicefive.ui.common.DropdownChoiceField
 import net.zodac.dicefive.ui.common.HoldPageCover
-import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.OffscreenWarmUp
-import net.zodac.dicefive.ui.common.OnDemandTooltip
 import net.zodac.dicefive.ui.common.ScreenScaffold
-import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 import net.zodac.dicefive.ui.common.SoraFontFamily
-import net.zodac.dicefive.ui.common.VerticalScrollbar
-import net.zodac.dicefive.ui.common.localised
-import net.zodac.dicefive.ui.common.spToDp
 import net.zodac.dicefive.ui.common.stringResource
-import net.zodac.dicefive.ui.common.textScale
-import net.zodac.dicefive.ui.common.timestampFormatter
 import net.zodac.dicefive.ui.icons.Symbols
-import net.zodac.dicefive.ui.theme.Bronze
-import net.zodac.dicefive.ui.theme.Silver
 
-/** [GameMode.HIGHEST_POSSIBLE_SCORE] (a perfect game in whichever mode allows the most) is the longest a score can ever be. */
-private val SCORE_DISPLAY_WIDTH = GameMode.HIGHEST_POSSIBLE_SCORE.toString().length
-
-/** Ranks worth calling out on the leaderboard, whichever page they happen to fall on. */
-private const val PODIUM_RANKS = 3
-
-/** How strong the podium row's own gold/silver/bronze background tint is - faint enough that the
- * row's text (itself already coloured with the same accent) stays comfortably readable over it. */
-private const val PODIUM_BACKGROUND_ALPHA = 0.16f
-
-/** Extra room under the Combined card when its last row is a podium one - see [CombinedLeaderboard]. */
-private val PODIUM_END_EXTRA_PADDING = 4.dp
-
-/** A small gap above the 2nd and 3rd podium rows, outside their own coloured fill, so gold doesn't
- * visibly bleed straight into silver into bronze - three adjacent, touching tinted rows read as
- * one shape otherwise. */
-private val PODIUM_ROW_GAP = 4.dp
-
-/** How many scores a game mode's card shows before the rest scroll. */
-private const val MODE_CARD_VISIBLE_ROWS = 10
-
-/** Either side of a mode card's title. */
+/** Either side of a board's title. */
 private val TITLE_HORIZONTAL_PADDING = 12.dp
 
 private val GLOBAL_ICON_SIZE = 18.dp
@@ -132,29 +64,14 @@ private val GLOBAL_ICON_GAP = 6.dp
 /** A labelled Global button's width besides its label: the icon, the gap, and a text button's 12dp either side. */
 private val GLOBAL_BUTTON_CHROME_WIDTH = GLOBAL_ICON_SIZE + GLOBAL_ICON_GAP + 24.dp
 
-/** The padding above and below an ordinary (non-podium) row's text. */
-private val PLAIN_ROW_VERTICAL_PADDING = 3.dp
+/** Widest the table, and the row over it, are in landscape. */
+private val LANDSCAPE_ROW_WIDTH = 640.dp
 
-/** The page's side margin that [ScreenScaffold] leaves free, where the Game Mode page's scrollbar sits. */
-private val PAGE_MARGIN = 20.dp
-
-/** A text button's own height - the space the pagination row occupies, filled or not. */
-private val PAGINATION_ROW_HEIGHT = 40.dp
-
-/** From this system font scale up, the table's narrow columns (rank, 5x, score) get a bigger share of the
- * row: at the normal split, a three-digit rank or a four-digit score wider than its cell overlaps its
- * neighbour. Below it the split is the one the table has always had. */
-private const val LARGE_FONT_SCALE = 1.15f
-
-/** The share of a row each column gets - [HeaderRow] and every [ScoreRow] use the same, so they line up. */
-private class ScoreColumns(val rank: Float, val player: Float, val fiveOfAKind: Float, val score: Float)
-
-private val NORMAL_COLUMNS = ScoreColumns(rank = 1f, player = 4f, fiveOfAKind = 1f, score = 1.5f)
-private val LARGE_FONT_COLUMNS = ScoreColumns(rank = 1.5f, player = 3.5f, fiveOfAKind = 1.5f, score = 2.5f)
-
-@Composable
-private fun scoreColumns(): ScoreColumns = if (LocalDensity.current.textScale > LARGE_FONT_SCALE) LARGE_FONT_COLUMNS else NORMAL_COLUMNS
-
+/**
+ * The Leaderboard: a drop-down at the top picks the board - Combined, or one game mode's - and the board's table is under
+ * it. Every board is the same [LeaderboardTable], so the top three are in gold, silver, and bronze on each. The pick is
+ * remembered ([ScoresViewModel]).
+ */
 @Composable
 fun ScoresScreen(
     viewModel: ScoresViewModel,
@@ -165,311 +82,96 @@ fun ScoresScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     ScreenScaffold(title = stringResource(Res.string.scores_title), onBack = onBack, modifier = modifier, driftingDice = driftingDice, wide = true) {
-        // Nothing but the title bar until the scores are read, so "No scores yet" never flashes up
+        // Nothing but the title bar until the board is read, so "No scores yet" never flashes up
         // before a leaderboard that has some - and the page cover kept up over it meanwhile.
-        if (!state.isLoaded) return@ScreenScaffold HoldPageCover()
+        val board = state.board
+        if (!state.isLoaded || board == null) return@ScreenScaffold HoldPageCover()
         val landscape = LocalLandscapePage.current
-        // The Game Mode view waits, with the Combined table still up, until every card is read, then replaces it in one frame (or, with an empty table, nothing in between).
-        val shownView = if (state.view == LeaderboardView.GAME_MODE && !state.modeBoardsLoaded) LeaderboardView.COMBINED else state.view
-        // The switch is always there: a board with nothing on the Combined table can still have scores on a
-        // card (a mode that never counts towards it).
-        val viewSwitch = @Composable { switchModifier: Modifier ->
-            SegmentedChoiceRow(
-                options = LeaderboardView.entries,
-                selected = state.view,
-                onSelect = viewModel::selectView,
-                label = { stringResource(it.label) },
-                modifier = switchModifier,
+        val choice = state.choice
+        val picker = @Composable { pickerModifier: Modifier ->
+            DropdownChoiceField(
+                options = LeaderboardChoice.all,
+                selected = choice,
+                onSelect = viewModel::selectChoice,
+                label = stringResource(Res.string.scores_board_label),
+                optionText = { boardName(it) },
+                modifier = pickerModifier,
+                dividerAfterFirst = true,
             )
         }
         if (landscape) {
-            // In landscape the switch shares a row with the Combined table's page controls, so the table has the height
-            // under them. The table, as one, keeps to a readable width.
+            // In landscape the drop-down shares a row with the page controls, so the table has the height under them.
+            // The table, as one, keeps to a readable width.
             Row(
-                modifier = Modifier.widthIn(max = LANDSCAPE_TABLE_WIDTH).fillMaxWidth(),
+                modifier = Modifier.widthIn(max = LANDSCAPE_ROW_WIDTH).fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                viewSwitch(Modifier.weight(1f))
+                picker(Modifier.weight(1f))
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    if (shownView == LeaderboardView.COMBINED) CombinedPagination(state.combined, viewModel)
+                    LeaderboardPagination(board, viewModel::previousPage, viewModel::nextPage)
                 }
             }
         } else {
-            viewSwitch(Modifier.fillMaxWidth())
+            picker(Modifier.fillMaxWidth())
         }
-        when (shownView) {
-            LeaderboardView.COMBINED -> if (state.view == LeaderboardView.COMBINED || state.combined.entries.isNotEmpty()) CombinedLeaderboard(state = state, viewModel = viewModel, landscape = landscape)
-            LeaderboardView.GAME_MODE -> GameModeLeaderboard(state = state, viewModel = viewModel, columns = if (landscape) LANDSCAPE_MODE_COLUMNS else 1)
-        }
-    }
-}
-
-@Composable
-private fun NoScoresCard() {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = stringResource(Res.string.scores_empty),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(24.dp),
-        )
-    }
-}
-
-/** Every mode's scores in one table, 1st-3rd called out in gold, silver and bronze; a long press names a row's mode and date. */
-/** Widest the Combined table, and the row over it, are in landscape. */
-private val LANDSCAPE_TABLE_WIDTH = 640.dp
-
-/** Mode cards to a row in landscape. */
-private const val LANDSCAPE_MODE_COLUMNS = 2
-
-/** The Combined table's page controls, where it has more than one page. */
-@Composable
-private fun CombinedPagination(board: LeaderboardPage, viewModel: ScoresViewModel) {
-    if (board.totalPages > 1) {
-        PaginationControls(
-            pageIndex = board.pageIndex,
-            totalPages = board.totalPages,
-            hasPrevious = board.hasPreviousPage,
-            hasNext = board.hasNextPage,
+        val services = LocalGameServices.current
+        // A mode's board opens that mode's board on the service while signed in to one.
+        val online = services.state.collectAsStateWithLifecycle().value is GameServicesState.SignedIn && services.canShowLeaderboardUi
+        val boardName = boardName(choice)
+        LeaderboardTable(
+            board = board,
+            emptyText = when (choice) {
+                LeaderboardChoice.Combined -> stringResource(Res.string.scores_empty)
+                is LeaderboardChoice.Mode -> stringResource(Res.string.scores_board_empty, boardName)
+            },
+            // The mode only where rows of every mode share a table - on its own board it is the drop-down's.
+            showMode = choice == LeaderboardChoice.Combined,
             onPrevious = viewModel::previousPage,
             onNext = viewModel::nextPage,
+            landscape = landscape,
+            header = {
+                BoardTitle(
+                    title = boardName,
+                    mode = (choice as? LeaderboardChoice.Mode)?.mode,
+                    services = services.takeIf { online },
+                )
+            },
         )
     }
 }
 
-/** In [landscape] its page controls are beside the switch over it (see ScoresScreen), not under it. */
+/** A board's name as the drop-down and its title say it. */
 @Composable
-private fun ColumnScope.CombinedLeaderboard(state: ScoresUiState, viewModel: ScoresViewModel, landscape: Boolean) {
-    val board = state.combined
-    if (board.entries.isEmpty()) {
-        NoScoresCard()
-        return
-    }
-    // Ranks/`=` ties reflect the same house-rule ordering ScoreDao.pagedScores
-    // already sorted this page by - see rankEntries.
-    val ranked = remember(board.entries, board.pageIndex) { rankEntries(board.entries, board.pageIndex) }
-    // A podium row's tint runs to its own edge, so a card that ends on one looks to have less room below it than
-    // one that ends on a plain row, whose text has nothing painted around it. Give it a little more.
-    val endsOnPodium = ranked.last().rank <= PODIUM_RANKS
-    // As tall as its rows, growing with them until it has the page - then the list scrolls inside it.
-    Card(modifier = Modifier.widthIn(max = if (landscape) LANDSCAPE_TABLE_WIDTH else Dp.Infinity).fillMaxWidth().weight(1f, fill = false)) {
-        Column(modifier = Modifier.padding(start = 8.dp, top = 8.dp, end = 8.dp, bottom = if (endsOnPodium) 8.dp + PODIUM_END_EXTRA_PADDING else 8.dp)) {
-            HeaderRow()
-            // No divider here any more - it sat flush against the first row with no gap,
-            // so its line cut straight across the top of a gold/silver/bronze podium row's
-            // own rounded background the moment one was in play. The header cells' own
-            // colour/weight already separate them from the data below without it.
-            Spacer(modifier = Modifier.height(4.dp))
-            val listState = rememberLazyListState()
-            Box(modifier = Modifier.fillMaxWidth()) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxWidth(),
-                    // Matching padding on both sides, not just room on the right for the
-                    // scrollbar - reserving space on the right alone (however deliberate)
-                    // left every row's content visibly closer to the left edge than the
-                    // right, scrollbar or not.
-                    contentPadding = PaddingValues(horizontal = 12.dp),
-                ) {
-                    itemsIndexed(ranked, key = { _, ranked -> ranked.entry.uuid.toHexString() }) { index, rankedEntry ->
-                        ScoreRow(
-                            rank = rankedEntry.rank,
-                            isTrueTie = rankedEntry.isTrueTie,
-                            entry = rankedEntry.entry,
-                            striped = index % 2 == 1,
-                            highlightPodium = true,
-                            showMode = true,
-                        )
-                    }
-                }
-                LazyListScrollbar(listState = listState)
-            }
-        }
-    }
-    if (landscape) return
-    // The row's height is reserved whether or not anything fills it: the controls are only
-    // worth showing when there's somewhere to page to ("Page 1 of 1" between two dead
-    // buttons is furniture), but letting the table grow into the gap would mean the card
-    // ended in a different place on a one-page leaderboard than on a two-page one.
-    Box(
-        // At least the normal height at any font size, and taller with it: the buttons' text grows.
-        modifier = Modifier.fillMaxWidth().heightIn(min = PAGINATION_ROW_HEIGHT * LocalDensity.current.textScale.coerceAtLeast(1f)),
-        contentAlignment = Alignment.Center,
-    ) {
-        CombinedPagination(board, viewModel)
-    }
+private fun boardName(choice: LeaderboardChoice): String = when (choice) {
+    LeaderboardChoice.Combined -> stringResource(Res.string.scores_view_combined)
+    is LeaderboardChoice.Mode -> stringResource(choice.mode.displayName)
 }
 
 /**
- * One card per game mode, stacked in a page that scrolls (its scrollbar in the side margin, where the
- * whole margin is the handle - a card's own list takes the finger inside it). Each card is no taller than
- * its top [MODE_CARD_VISIBLE_ROWS] scores; the rest scroll inside it, and its page controls wait at the
- * end of that scroll.
+ * A board's title, a heading, with - for a [mode]'s board while signed in to a service ([services]) - its Global button.
+ * The button's label goes before the title does: where both won't fit on the line, it's the icon alone.
  */
 @Composable
-private fun ColumnScope.GameModeLeaderboard(state: ScoresUiState, viewModel: ScoresViewModel, columns: Int) {
-    // Only modes with a score get a card; none at all, once every mode has been read, is an empty board.
-    val boards = LEADERBOARD_MODES.mapNotNull { mode -> state.modeBoards[mode]?.takeIf { it.totalCount > 0 }?.let { mode to it } }
-    if (boards.isEmpty()) {
-        if (state.modeBoardsLoaded) NoScoresCard()
-        return
-    }
-    val services = LocalGameServices.current
-    // Each card opens its mode's board on the service while signed in to one.
-    val online = services.state.collectAsStateWithLifecycle().value is GameServicesState.SignedIn && services.canShowLeaderboardUi
-    val pageScroll = rememberScrollState()
-    // [columns] cards to a row: two side by side in landscape, a row's last place left empty so its card keeps the others' width.
-    val rows = boards.chunked(columns)
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth().weight(1f)) {
-        ScreenfulFirstColumn(
-            keys = rows.map { row -> row.first().first },
-            viewportHeight = constraints.maxHeight,
-            spacing = 12.dp,
-            modifier = Modifier.verticalScroll(pageScroll),
-        ) { index ->
-            val row = rows[index]
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                for ((mode, board) in row) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        ModeCard(
-                            mode = mode,
-                            board = board,
-                            onPrevious = { viewModel.previousModePage(mode) },
-                            onNext = { viewModel.nextModePage(mode) },
-                            onlineServices = services.takeIf { online },
-                        )
-                    }
-                }
-                repeat(columns - row.size) { Spacer(modifier = Modifier.weight(1f)) }
-            }
+private fun BoardTitle(title: String, mode: GameMode?, services: GameServices?) {
+    val titleStyle = MaterialTheme.typography.titleMedium.copy(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold)
+    BoxWithConstraints {
+        val measurer = rememberTextMeasurer()
+        val label = stringResource(Res.string.scores_global)
+        val labelStyle = MaterialTheme.typography.labelLarge
+        val fitsLabel = with(LocalDensity.current) {
+            val titleWidth = measurer.measure(title, titleStyle).size.width.toDp() + TITLE_HORIZONTAL_PADDING * 2
+            val buttonWidth = measurer.measure(label, labelStyle).size.width.toDp() + GLOBAL_BUTTON_CHROME_WIDTH
+            titleWidth + buttonWidth <= maxWidth
         }
-        VerticalScrollbar(
-            scrollState = pageScroll,
-            width = PAGE_MARGIN,
-            modifier = Modifier.align(Alignment.TopEnd).offset(x = PAGE_MARGIN),
-        )
-    }
-}
-
-/**
- * A column of items, one per [keys] entry, [spacing] apart, built a screenful first: the frame it opens on composes only
- * the items that reach into the top [viewportHeight] (px), and each frame after it composes one more, until every item is
- * built. Built items stay built, so a later scroll builds nothing. The rest arrive below the fold, so nothing on screen
- * moves. Composing every mode card at once, when two or three are in view, held the switch to Game Mode up for a few frames.
- */
-@Composable
-private fun ScreenfulFirstColumn(
-    keys: List<Any>,
-    viewportHeight: Int,
-    spacing: Dp,
-    modifier: Modifier = Modifier,
-    item: @Composable (index: Int) -> Unit,
-) {
-    // How many items are built: the screenful its first layout reached, then one more each frame.
-    var built by remember { mutableIntStateOf(0) }
-    val screenful = remember { IntArray(1) }
-    // One content per key for good, reading the latest item through state: a new lambda each layout would recompose
-    // every built item each time one more is added.
-    val currentItem by rememberUpdatedState(item)
-    val currentKeys by rememberUpdatedState(keys)
-    val contents = remember { HashMap<Any, @Composable () -> Unit>() }
-    LaunchedEffect(keys.size) {
-        while (built < keys.size) {
-            withFrameNanos { }
-            built = maxOf(built, screenful[0]) + 1
-        }
-    }
-    SubcomposeLayout(modifier) { constraints ->
-        val gap = spacing.roundToPx()
-        val itemConstraints = constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity)
-        val placeables = ArrayList<Placeable>()
-        var height = 0
-        for ((index, key) in keys.withIndex()) {
-            if (index >= built && height >= viewportHeight) break
-            if (index > 0) height += gap
-            val content = contents.getOrPut(key) { { currentItem(currentKeys.indexOf(key)) } }
-            val placeable = subcompose(key, content).single().measure(itemConstraints)
-            placeables += placeable
-            height += placeable.height
-        }
-        screenful[0] = maxOf(screenful[0], placeables.size)
-        layout(constraints.maxWidth, height) {
-            var y = 0
-            for (placeable in placeables) {
-                placeable.place(0, y)
-                y += placeable.height + gap
-            }
-        }
-    }
-}
-
-@Composable
-private fun ModeCard(mode: GameMode, board: LeaderboardPage, onPrevious: () -> Unit, onNext: () -> Unit, onlineServices: GameServices? = null) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(8.dp)) {
-            val title = stringResource(mode.displayName)
-            val titleStyle = MaterialTheme.typography.titleMedium.copy(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold)
-            BoxWithConstraints {
-                // The button's label goes before the title does: where both won't fit on the line, it's the icon alone.
-                val measurer = rememberTextMeasurer()
-                val label = stringResource(Res.string.scores_global)
-                val labelStyle = MaterialTheme.typography.labelLarge
-                val fitsLabel = with(LocalDensity.current) {
-                    val titleWidth = measurer.measure(title, titleStyle).size.width.toDp() + TITLE_HORIZONTAL_PADDING * 2
-                    val buttonWidth = measurer.measure(label, labelStyle).size.width.toDp() + GLOBAL_BUTTON_CHROME_WIDTH
-                    titleWidth + buttonWidth <= maxWidth
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = title,
-                        style = titleStyle,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(1f).padding(horizontal = TITLE_HORIZONTAL_PADDING, vertical = 4.dp).semantics { heading() },
-                    )
-                    if (onlineServices != null) GlobalLeaderboardButton(mode, onlineServices, label.takeIf { fitsLabel })
-                }
-            }
-            HeaderRow()
-            Spacer(modifier = Modifier.height(4.dp))
-            val listState = rememberLazyListState()
-            // A new page starts at its top, not wherever the last one was scrolled to.
-            LaunchedEffect(board.pageIndex) { listState.scrollToItem(0) }
-            val ranked = remember(board.entries, board.pageIndex) { rankEntries(board.entries, board.pageIndex) }
-            Box(modifier = Modifier.fillMaxWidth().heightIn(max = modeCardListHeight()).nestedScroll(remember(listState) { KeepScrollInside(listState) })) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(horizontal = 12.dp),
-                ) {
-                    itemsIndexed(ranked, key = { _, ranked -> ranked.entry.uuid.toHexString() }) { index, rankedEntry ->
-                        ScoreRow(
-                            rank = rankedEntry.rank,
-                            isTrueTie = rankedEntry.isTrueTie,
-                            entry = rankedEntry.entry,
-                            striped = index % 2 == 1,
-                            highlightPodium = false,
-                            showMode = false,
-                        )
-                    }
-                    // Only at the end of the scroll, so a card costs no height for controls it rarely needs.
-                    if (board.totalPages > 1) {
-                        item(key = "pagination") {
-                            PaginationControls(
-                                pageIndex = board.pageIndex,
-                                totalPages = board.totalPages,
-                                hasPrevious = board.hasPreviousPage,
-                                hasNext = board.hasNextPage,
-                                onPrevious = onPrevious,
-                                onNext = onNext,
-                            )
-                        }
-                    }
-                }
-                LazyListScrollbar(listState = listState)
-            }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = title,
+                style = titleStyle,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f).padding(horizontal = TITLE_HORIZONTAL_PADDING, vertical = 4.dp).semantics { heading() },
+            )
+            if (mode != null && services != null) GlobalLeaderboardButton(mode, services, label.takeIf { fitsLabel })
         }
     }
 }
@@ -502,231 +204,7 @@ private fun GlobalLeaderboardButton(mode: GameMode, services: GameServices, labe
     }
 }
 
-/**
- * Stops a card's list handing the rest of a drag or fling to the page once it reaches its end, which made one swipe
- * scroll the card and then the page. A card with nothing to scroll still passes the swipe up, so the page moves.
- */
-private class KeepScrollInside(private val state: LazyListState) : NestedScrollConnection {
-    private val scrolls get() = state.canScrollForward || state.canScrollBackward
-
-    override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset =
-        if (scrolls) available else Offset.Zero
-
-    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity =
-        if (scrolls) available else Velocity.Zero
-}
-
-/** What [MODE_CARD_VISIBLE_ROWS] ordinary rows add up to: a row is a line of `bodyMedium` and its padding, so it grows with the font. */
-@Composable
-private fun modeCardListHeight(): Dp {
-    val lineHeight = LocalDensity.current.spToDp(MaterialTheme.typography.bodyMedium.lineHeight)
-    return (lineHeight + PLAIN_ROW_VERTICAL_PADDING * 2) * MODE_CARD_VISIBLE_ROWS
-}
-
-@Composable
-private fun HeaderRow() {
-    val columns = scoreColumns()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            // Matches the LazyColumn's own contentPadding(horizontal = 12.dp) below on both sides -
-            // without it here too, the header's columns don't line up with where the rows' own
-            // text actually lands.
-            .padding(horizontal = 8.dp + 12.dp, vertical = 2.dp),
-    ) {
-        HeaderCell(text = "#", weight = columns.rank)
-        HeaderCell(text = stringResource(Res.string.scores_header_player), weight = columns.player)
-        HeaderCell(text = requireNotNull(ScoreCategory.FIVE_OF_A_KIND.mark), weight = columns.fiveOfAKind, align = TextAlign.Center)
-        HeaderCell(text = stringResource(Res.string.scores_header_score), weight = columns.score, align = TextAlign.End)
-    }
-}
-
-@Composable
-private fun RowScope.HeaderCell(text: String, weight: Float, align: TextAlign = TextAlign.Start) {
-    Text(
-        text = text,
-        modifier = Modifier.weight(weight),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = align,
-    )
-}
-
-/**
- * The podium accent for a rank, or null off the podium. 1st place reuses `colorScheme.primary` -
- * already the brand's gold - while 2nd/3rd reach for the fixed silver/bronze pair in `Color.kt`,
- * since M3 has no role for either.
- */
-@Composable
-private fun podiumAccent(rank: Int): Color? {
-    return when (rank) {
-        1 -> MaterialTheme.colorScheme.primary
-        2 -> Silver
-        3 -> Bronze
-        else -> null
-    }
-}
-
-/** One page's row, ranked by the tie-break house rule (`game/TieBreak.kt`) rather than plain
- * position - [isTrueTie] means this row shares [rank] with at least one neighbour because every
- * criterion in that list also matched between them, not just their raw score. */
-private data class RankedEntry(val entry: ScoreEntry, val rank: Int, val isTrueTie: Boolean)
-
-/**
- * Assigns each of this page's [entries] its rank, sharing one only for a true tie - the same
- * house-rule ordering `ScoreDao.pagedScores`'s `ORDER BY` already sorted them by (built from
- * [TieBreak.leaderboardOrder]). A tie split across a page boundary
- * isn't caught here - each page only ever compares against its own rows.
- */
-private fun rankEntries(entries: List<ScoreEntry>, pageIndex: Int): List<RankedEntry> {
-    val stats = entries.map { it.toTieBreakStats() }
-    val ranks = IntArray(entries.size)
-    var rank = pageIndex * SCORES_PAGE_SIZE + 1
-    for (index in entries.indices) {
-        if (index > 0 && TieBreak.leaderboardComparator.compare(stats[index - 1], stats[index]) != 0) {
-            rank = pageIndex * SCORES_PAGE_SIZE + index + 1
-        }
-        ranks[index] = rank
-    }
-    return entries.indices.map { index ->
-        val tiedWithPrevious = index > 0 && ranks[index - 1] == ranks[index]
-        val tiedWithNext = index < entries.lastIndex && ranks[index + 1] == ranks[index]
-        RankedEntry(entries[index], ranks[index], isTrueTie = tiedWithPrevious || tiedWithNext)
-    }
-}
-
-@Composable
-private fun ScoreRow(
-    rank: Int,
-    isTrueTie: Boolean,
-    entry: ScoreEntry,
-    striped: Boolean,
-    highlightPodium: Boolean,
-    showMode: Boolean,
-) {
-    val onPodium = highlightPodium && rank <= PODIUM_RANKS
-    val accent = if (highlightPodium) podiumAccent(rank) else null
-    val columns = scoreColumns()
-    val modeName = if (showMode) entry.gameMode?.let { stringResource(it.displayName) } ?: entry.gameModeId else null
-    val formatTimestamp = timestampFormatter()
-
-    // The mode only where rows of every mode share a table - on its own card it's the card's title.
-    // Built on a long press only: see OnDemandTooltip.
-    OnDemandTooltip(message = { scoreRowDetail(formatTimestamp(entry.timestampEpochMillis), modeName) }) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                // Only between podium rows (2nd/3rd get it above them) - a plain divider-free row
-                // still wants to sit flush against its neighbours the way it always has.
-                .padding(top = if (onPodium && rank > 1) PODIUM_ROW_GAP else 0.dp)
-                .clip(MaterialTheme.shapes.small)
-                // A podium row gets a rounded tint in its own gold/silver/bronze instead of the
-                // ordinary zebra striping - that stripe would otherwise fight with the accent
-                // colour for attention. Off the podium, striping instead of a divider per row: at
-                // 100 rows a page, lines turn the table into a grid, while alternating fills stay
-                // quiet.
-                .background(
-                    when {
-                        accent != null -> accent.copy(alpha = PODIUM_BACKGROUND_ALPHA)
-                        striped -> MaterialTheme.colorScheme.surfaceContainerHighest
-                        else -> Color.Transparent
-                    },
-                )
-                .padding(horizontal = 8.dp, vertical = if (onPodium) 6.dp else PLAIN_ROW_VERTICAL_PADDING),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Same style/weight on every row, podium or not - the accent colour above is already
-            // the whole distinction, a second (font) one on top of it was redundant.
-            Text(
-                // "=" only for a true tie (every tie-break criterion also matches) - see rankEntries.
-                text = if (isTrueTie) stringResource(Res.string.common_tied_rank, rank) else rank.localised(),
-                modifier = Modifier.weight(columns.rank),
-                style = MaterialTheme.typography.bodySmall,
-                color = accent ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                softWrap = false,
-            )
-            Text(
-                text = entry.playerName,
-                modifier = Modifier.weight(columns.player),
-                style = MaterialTheme.typography.bodyMedium,
-                // A second line before an ellipsis: at a large font a name that no longer fits one line
-                // wraps rather than losing its end. Names that fit one line look as they always did.
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            // How many 5x that game scored - a quiet secondary column, so it takes the rank's muted
-            // colour rather than competing with the score.
-            Text(
-                text = entry.fiveOfAKindCount.localised(),
-                modifier = Modifier.weight(columns.fiveOfAKind),
-                style = MaterialTheme.typography.bodySmall,
-                color = accent ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                softWrap = false,
-            )
-            Text(
-                // Space-padded to a fixed width, same reasoning as Statistics' max score: keeps
-                // every row's score the same width regardless of digit count. Always bodyMedium,
-                // podium or not - the row's own background tint is what calls out a podium finish
-                // now, not a second size bump on top of it.
-                text = entry.score.localised().padStart(SCORE_DISPLAY_WIDTH),
-                modifier = Modifier.weight(columns.score),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = accent ?: MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.End,
-                softWrap = false,
-            )
-        }
-    }
-}
-
-/** When the entry was played ([timestamp]), and - with [modeName] - in which mode, on a line of its own. */
-private fun scoreRowDetail(timestamp: String, modeName: String?): String =
-    if (modeName != null) "$timestamp\n$modeName" else timestamp
-
-@Composable
-private fun PaginationControls(
-    pageIndex: Int,
-    totalPages: Int,
-    hasPrevious: Boolean,
-    hasNext: Boolean,
-    onPrevious: () -> Unit,
-    onNext: () -> Unit,
-) {
-    // A FlowRow, not a Row: at a large font the three no longer fit across, and the page count drops to a
-    // second line instead of running off the edge. At the normal size it's one row, as before.
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalArrangement = Arrangement.Center,
-        itemVerticalAlignment = Alignment.CenterVertically,
-    ) {
-        TextButton(onClick = onPrevious, enabled = hasPrevious) {
-            Icon(
-                imageVector = Symbols.ArrowBack,
-                contentDescription = null,
-                modifier = Modifier.padding(end = 4.dp),
-            )
-            Text(stringResource(Res.string.scores_previous))
-        }
-        Text(
-            text = stringResource(Res.string.common_page_of, pageIndex + 1, totalPages),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        TextButton(onClick = onNext, enabled = hasNext) {
-            Text(stringResource(Res.string.scores_next))
-            Icon(
-                imageVector = Symbols.ArrowForward,
-                contentDescription = null,
-                modifier = Modifier.padding(start = 4.dp),
-            )
-        }
-    }
-}
-
-/** Set once [ScoresWarmUp] has drawn both views, for the life of the process. */
+/** Set once [ScoresWarmUp] has drawn every board it draws, for the life of the process. */
 private var scoresWarmedUp = false
 
 /**
@@ -741,11 +219,14 @@ fun resetScoresWarmUpForTest() {
 // After the menu's own entrance, and clear of the Styles warm-up, which starts at 600ms and runs for a few hundred.
 private const val SCORES_WARM_UP_DELAY_MILLIS = 2000L
 
-// Frames each view gets: enough for the page's own fade-in (100ms) to finish, so it's really drawn.
+// Frames each board gets: enough for the page's own fade-in (100ms) to finish, so it's really drawn.
 private const val SCORES_WARM_UP_FRAMES = 8
 
+/** The boards the warm-up draws: the table, and a mode's board (the same table, with its own title row). */
+private val WARM_UP_CHOICES = listOf(LeaderboardChoice.Combined, LeaderboardChoice.Mode(GameMode.STANDARD))
+
 /**
- * Draws the Leaderboard - the Combined table, then the Game Mode cards - once, out of sight, so opening it isn't
+ * Draws the Leaderboard - the Combined table, then a mode's board - once, out of sight, so opening it isn't
  * the first time its code runs. That's most of the lag on a first open: a few rows take no time, but loading
  * and running the page's first-time code (the switch, the table, the lists, their scrollbars) lands on the
  * frame the page opens on. Placed on the menu under its opaque backdrop, in a 1dp clipped box, once the menu
@@ -758,15 +239,15 @@ fun ScoresWarmUp(width: Dp, modifier: Modifier = Modifier) {
     val viewModel = remember { ScoresViewModel(WarmUpBoard) }
     // As big as the page would be, so it lays out as it would there.
     val height = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
-    OffscreenWarmUp<LeaderboardView>(
+    OffscreenWarmUp<LeaderboardChoice>(
         key = Unit,
         delayMillis = SCORES_WARM_UP_DELAY_MILLIS,
         pageSize = DpSize(width, height),
         modifier = modifier,
         run = {
-            for (view in LeaderboardView.entries) {
-                viewModel.selectView(view)
-                draw(view, frames = SCORES_WARM_UP_FRAMES)
+            for (choice in WARM_UP_CHOICES) {
+                viewModel.selectChoice(choice)
+                draw(choice, frames = SCORES_WARM_UP_FRAMES)
             }
             scoresWarmedUp = true
         },
@@ -775,7 +256,7 @@ fun ScoresWarmUp(width: Dp, modifier: Modifier = Modifier) {
     }
 }
 
-/** A board of a few made-up scores, on the table and on two cards. */
+/** A board of a few made-up scores, on the Combined table and on two modes' boards. */
 private object WarmUpBoard : LeaderboardSource {
     private fun entry(id: Long, score: Int, mode: GameMode) = ScoreEntry(
         playerName = "Player $id", // i18n: not translated - made-up warm-up data, never shown

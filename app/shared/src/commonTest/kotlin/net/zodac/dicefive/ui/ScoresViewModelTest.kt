@@ -8,6 +8,7 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -24,7 +25,7 @@ import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.scores.LEADERBOARD_MODES
-import net.zodac.dicefive.ui.scores.LeaderboardView
+import net.zodac.dicefive.ui.scores.LeaderboardChoice
 import net.zodac.dicefive.ui.scores.ScoresViewModel
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -87,63 +88,99 @@ class ScoresViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
+    private val combined = LeaderboardChoice.Combined
+    private fun mode(mode: GameMode) = LeaderboardChoice.Mode(mode)
+    private fun ScoresViewModel.board(choice: LeaderboardChoice) = uiState.value.boards.getValue(choice)
+
     @Test
-    fun `the game mode cards are read once that view is chosen - each paging on its own - with a card for a mode off the combined board`() = runTest(testDispatcher) {
+    fun `a mode's board is read when it is first picked and kept, and each board pages on its own`() = runTest(testDispatcher) {
         val dao = ListScoreDao(listOf(entry(1, 200, GameMode.STANDARD)))
         val viewModel = ScoresViewModel(ScoreRepository(dao))
         advanceUntilIdle()
-        assertEquals(LeaderboardView.COMBINED, viewModel.uiState.value.view)
+        assertEquals(combined, viewModel.uiState.value.choice)
+        assertEquals(setOf<LeaderboardChoice>(combined), viewModel.uiState.value.boards.keys)
         assertEquals(0, dao.modeReads)
-        viewModel.selectView(LeaderboardView.GAME_MODE)
+        viewModel.selectChoice(mode(GameMode.STANDARD))
         advanceUntilIdle()
-        assertEquals(LeaderboardView.GAME_MODE, viewModel.uiState.value.view)
-        assertEquals(LEADERBOARD_MODES.toSet(), viewModel.uiState.value.modeBoards.keys)
-        // All at once, so the view appears whole rather than card by card.
-        assertTrue(viewModel.uiState.value.modeBoardsLoaded)
-        // Switching back and forth doesn't read them again.
-        viewModel.selectView(LeaderboardView.COMBINED)
-        viewModel.selectView(LeaderboardView.GAME_MODE)
+        assertEquals(mode(GameMode.STANDARD), viewModel.uiState.value.choice)
+        assertEquals(1, dao.modeReads)
+        // Switching back and forth doesn't read a board again.
+        viewModel.selectChoice(combined)
+        viewModel.selectChoice(mode(GameMode.STANDARD))
         advanceUntilIdle()
-        assertEquals(LEADERBOARD_MODES.size, dao.modeReads)
+        assertEquals(1, dao.modeReads)
 
-        // Every card pages on its own.
         val tricolour = (1..SCORES_PAGE_SIZE + 5).map { entry(it.toLong(), it, GameMode.TRICOLOUR) }
         val paging = ScoresViewModel(ScoreRepository(ListScoreDao(tricolour + entry(1000, 50, GameMode.STANDARD))))
-        paging.selectView(LeaderboardView.GAME_MODE)
         advanceUntilIdle()
-        val before = paging.uiState.value.modeBoards.getValue(GameMode.TRICOLOUR)
+        paging.selectChoice(mode(GameMode.TRICOLOUR))
+        advanceUntilIdle()
+        val before = paging.board(mode(GameMode.TRICOLOUR))
         assertEquals(2, before.totalPages)
         assertEquals(SCORES_PAGE_SIZE, before.entries.size)
         assertFalse(before.hasPreviousPage)
-        paging.nextModePage(GameMode.TRICOLOUR)
+        paging.nextPage()
         advanceUntilIdle()
-        val after = paging.uiState.value.modeBoards.getValue(GameMode.TRICOLOUR)
+        val after = paging.board(mode(GameMode.TRICOLOUR))
         assertEquals(1, after.pageIndex)
         assertEquals(5, after.entries.size)
         assertTrue(after.hasPreviousPage)
-        // Standard's card didn't move, nor did the combined table.
-        assertEquals(0, paging.uiState.value.modeBoards.getValue(GameMode.STANDARD).pageIndex)
-        assertEquals(0, paging.uiState.value.combined.pageIndex)
-        paging.previousModePage(GameMode.TRICOLOUR)
+        // The combined table didn't move.
+        assertEquals(0, paging.board(combined).pageIndex)
+        paging.previousPage()
         advanceUntilIdle()
-        assertEquals(0, paging.uiState.value.modeBoards.getValue(GameMode.TRICOLOUR).pageIndex)
+        assertEquals(0, paging.board(mode(GameMode.TRICOLOUR)).pageIndex)
+    }
 
-        // A mode that stays off the combined board still has a card.
+    @Test
+    fun `a mode that stays off the combined board still has its own, and a game with modifiers on is on none`() = runTest(testDispatcher) {
         val quickfire = entry(1, 90, GameMode.QUICKFIRE)
         val modifiers = entry(2, 300, GameMode.STANDARD).copy(playedUnmodified = false)
         val quickfireModifiers = entry(4, 120, GameMode.QUICKFIRE).copy(playedUnmodified = false)
-        val offBoard = ScoresViewModel(ScoreRepository(ListScoreDao(listOf(quickfire, modifiers, entry(3, 200, GameMode.STANDARD), quickfireModifiers))))
-        offBoard.selectView(LeaderboardView.GAME_MODE)
+        val viewModel = ScoresViewModel(ScoreRepository(ListScoreDao(listOf(quickfire, modifiers, entry(3, 200, GameMode.STANDARD), quickfireModifiers))))
         advanceUntilIdle()
-        val state = offBoard.uiState.value
+        for (mode in LEADERBOARD_MODES) {
+            viewModel.selectChoice(mode(mode))
+            advanceUntilIdle()
+        }
+        advanceUntilIdle()
         // Not on the combined table, nor counted in it...
-        assertEquals(listOf(3L), state.combined.entries.map { it.timestampEpochMillis })
-        assertEquals(1, state.combined.totalCount)
-        // ...but listed on its own card; a game with modifiers on is on no card, whichever its mode.
-        assertEquals(listOf(1L), state.modeBoards.getValue(GameMode.QUICKFIRE).entries.map { it.timestampEpochMillis })
-        assertEquals(listOf(3L), state.modeBoards.getValue(GameMode.STANDARD).entries.map { it.timestampEpochMillis })
-        assertEquals(0, state.modeBoards.getValue(GameMode.STUD).totalCount)
-        assertTrue(state.modeBoardsLoaded)
+        assertEquals(listOf(3L), viewModel.board(combined).entries.map { it.timestampEpochMillis })
+        assertEquals(1, viewModel.board(combined).totalCount)
+        // ...but on its own board.
+        assertEquals(listOf(1L), viewModel.board(mode(GameMode.QUICKFIRE)).entries.map { it.timestampEpochMillis })
+        assertEquals(listOf(3L), viewModel.board(mode(GameMode.STANDARD)).entries.map { it.timestampEpochMillis })
+        assertEquals(0, viewModel.board(mode(GameMode.STUD)).totalCount)
+    }
+
+    @Test
+    fun `the board last picked is opened first and each pick is handed on to be kept`() = runTest(testDispatcher) {
+        val saved = MutableStateFlow<LeaderboardChoice?>(null)
+        val kept = mutableListOf<LeaderboardChoice>()
+        val viewModel = ScoresViewModel(ScoreRepository(ListScoreDao(listOf(entry(1, 200, GameMode.TRICOLOUR)))), saved) { kept += it }
+        advanceUntilIdle()
+        // Nothing until the saved pick has loaded.
+        assertFalse(viewModel.uiState.value.isLoaded)
+        saved.value = mode(GameMode.TRICOLOUR)
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.isLoaded)
+        assertEquals(mode(GameMode.TRICOLOUR), viewModel.uiState.value.choice)
+        // Restoring it isn't a pick.
+        assertEquals(emptyList(), kept)
+        viewModel.selectChoice(combined)
+        advanceUntilIdle()
+        assertEquals(listOf<LeaderboardChoice>(combined), kept)
+        assertEquals(combined, viewModel.uiState.value.choice)
+    }
+
+    @Test
+    fun `a stored board names itself by its id and a stored mode that is no longer known falls back to combined`() {
+        for (choice in LeaderboardChoice.all) assertEquals(choice, LeaderboardChoice.parse(choice.stored))
+        assertEquals(LEADERBOARD_MODES.size + 1, LeaderboardChoice.all.size)
+        assertEquals(combined, LeaderboardChoice.parse(null))
+        assertEquals(combined, LeaderboardChoice.parse("retired_mode"))
+        assertEquals("combined", combined.stored)
+        assertEquals(GameMode.TRICOLOUR.id, mode(GameMode.TRICOLOUR).stored)
     }
 
     @Test
@@ -153,14 +190,14 @@ class ScoresViewModelTest {
         advanceUntilIdle()
         viewModel.nextPage()
         advanceUntilIdle()
-        assertEquals(1, viewModel.uiState.value.combined.pageIndex)
+        assertEquals(1, viewModel.board(combined).pageIndex)
 
         // Back to page 1, slowly - then on to page 3 before it arrives: page 3 is what stays.
         dao.pageDelays = mapOf(0 to 1_000L)
         viewModel.previousPage()
         viewModel.nextPage()
         advanceUntilIdle()
-        assertEquals(2, viewModel.uiState.value.combined.pageIndex)
-        assertEquals(SCORES_PAGE_SIZE, viewModel.uiState.value.combined.entries.size)
+        assertEquals(2, viewModel.board(combined).pageIndex)
+        assertEquals(SCORES_PAGE_SIZE, viewModel.board(combined).entries.size)
     }
 }

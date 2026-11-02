@@ -4,21 +4,23 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import net.zodac.dicefive.data.scores.InMemoryScoreDao
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
@@ -29,6 +31,7 @@ import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.online.NoGameServices
 import net.zodac.dicefive.online.OnlineAccount
+import net.zodac.dicefive.ui.scores.LeaderboardChoice
 import net.zodac.dicefive.ui.scores.ScoresScreen
 import net.zodac.dicefive.ui.scores.ScoresViewModel
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
@@ -45,15 +48,20 @@ private class LeaderboardServices : GameServices by NoGameServices {
 }
 
 /**
- * The Leaderboard's Combined / Game Mode switch: what each view shows, and what a screen reader hears for a
- * row (the mode and date a long press shows). How the cards look is for a render; this pins the structure.
+ * The Leaderboard's drop-down: the board it opens on, what each board shows, and what a screen reader hears for the
+ * field and a row (the mode and date a long press shows). How the boards look is for a render; this pins the structure.
  */
 class ScoresScreenTest : UiTest() {
 
     private val showcase = Showcase { compose }
 
-    private fun show(rows: List<ScoreEntry>, services: GameServices = NoGameServices) {
-        val viewModel = ScoresViewModel(ScoreRepository(InMemoryScoreDao(rows)))
+    private fun show(
+        rows: List<ScoreEntry>,
+        services: GameServices = NoGameServices,
+        saved: StateFlow<LeaderboardChoice?> = MutableStateFlow(LeaderboardChoice.Combined),
+        onPick: (LeaderboardChoice) -> Unit = {},
+    ) {
+        val viewModel = ScoresViewModel(ScoreRepository(InMemoryScoreDao(rows)), saved) { onPick(it) }
         showcase.show {
             CompositionLocalProvider(LocalGameServices provides services) {
                 DiceFiveTheme { ScoresScreen(viewModel = viewModel, onBack = {}) }
@@ -67,14 +75,22 @@ class ScoresScreenTest : UiTest() {
     private fun modeName(mode: GameMode): String = Regex("""<string name="mode_${mode.id}">([^<]*)</string>""")
         .find(File("../shared/src/commonMain/composeResources/values/strings.xml").readText())!!.groupValues[1]
 
+    private fun ComposeUiTest.field(value: String) = onNodeWithContentDescription("Leaderboard, $value")
+
+    private fun ComposeUiTest.pick(name: String) {
+        onNodeWithContentDescription("Leaderboard, ", substring = true).performClick()
+        waitForIdle()
+        onNodeWithContentDescription(name).performClick()
+        waitForIdle()
+    }
+
     @Test
-    fun opensOnTheCombinedTableWithTheSwitchAtTheTopAndARowSpeaksItsModeAndDateWhichALongPressShows() = uiTest {
+    fun opensOnTheCombinedTableWithTheDropDownAtTheTopAndARowSpeaksItsModeAndDateWhichALongPressShows() = uiTest {
         show(someRows)
-        compose.onNodeWithText("Combined").assertIsSelected()
-        compose.onNodeWithText("Game Mode").assertExists()
+        field("Combined").assertExists()
         compose.onNodeWithText("Player1").assertExists()
-        // The mode names only exist as cards in the other view.
-        compose.onAllNodesWithText("7 Dice Stud").assertCountEquals(0)
+        // The mode names only exist as boards of their own.
+        compose.onAllNodesWithText("Tricolour").assertCountEquals(0)
 
         val detail = compose.onNodeWithText("Player2").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)
         assertTrue(detail!!.endsWith(", Tricolour"), detail.orEmpty())
@@ -86,25 +102,60 @@ class ScoresScreenTest : UiTest() {
     }
 
     @Test
-    fun gameModeShowsACardOnlyForModesWithScoresEachRowDatedAndItsPageControlsAtTheEndOfItsOwnScroll() = uiTest {
-        // Quickfire never counts on the combined table, yet gets its card; Stud has no score, so no card.
-        show(someRows + rowOf(4, 90, GameMode.QUICKFIRE))
-        compose.onNodeWithText("Game Mode").performClick()
+    fun theDropDownIsOneControlWithItsValueAndStateAndItsMenuListsCombinedThenEveryModeWithTheBoardOnViewSelected() = uiTest {
+        show(someRows)
+        val config = field("Combined").fetchSemanticsNode().config
+        assertEquals(Role.DropdownList, config.getOrNull(SemanticsProperties.Role))
+        assertEquals("Collapsed", config.getOrNull(SemanticsProperties.StateDescription))
+
+        field("Combined").performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Standard").assertExists()
-        compose.onNodeWithText("Tricolour").assertExists()
-        compose.onNodeWithText(modeName(GameMode.QUICKFIRE)).assertExists()
-        compose.onAllNodesWithText(modeName(GameMode.STUD)).assertCountEquals(0)
-        // On its own card a row's detail is the date alone - the mode is the card's title.
+        assertEquals("Expanded", field("Combined").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription))
+        // Combined, then each mode, each one of a set the size of the menu, the one on view selected.
+        val names = listOf("Combined") + GameMode.entries.map(::modeName)
+        names.forEachIndexed { index, name ->
+            val item = compose.onNodeWithContentDescription(name).fetchSemanticsNode().config
+            assertEquals(Role.RadioButton, item.getOrNull(SemanticsProperties.Role), name)
+            assertEquals(index == 0, item.getOrNull(SemanticsProperties.Selected), name)
+            assertEquals(index, item.getOrNull(SemanticsProperties.CollectionItemInfo)!!.rowIndex, name)
+        }
+        assertEquals("Selected", compose.onNodeWithContentDescription("Combined").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription))
+    }
+
+    @Test
+    fun pickingAModeShowsOnlyItsBoardUnderItsTitleAndARowThereSpeaksItsDateAlone() = uiTest {
+        val picked = mutableListOf<LeaderboardChoice>()
+        show(someRows + rowOf(4, 90, GameMode.QUICKFIRE), onPick = { picked += it })
+        compose.pick("Tricolour")
+        field("Tricolour").assertExists()
+        assertEquals(listOf<LeaderboardChoice>(LeaderboardChoice.Mode(GameMode.TRICOLOUR)), picked)
+        // Its board's title is a heading; the other modes' players aren't on it.
+        compose.onNode(hasText("Tricolour") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)).assertExists()
+        compose.onNodeWithText("Player2").assertExists()
+        compose.onAllNodesWithText("Player1").assertCountEquals(0)
         val detail = compose.onNodeWithText("Player2").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)
         assertTrue(GameMode.entries.none { detail!!.contains(modeName(it)) }, detail.orEmpty())
 
-        show((1..SCORES_PAGE_SIZE + 5).map { rowOf(it.toLong(), it, GameMode.STANDARD) })
-        compose.onNodeWithText("Game Mode").performClick()
-        compose.waitForIdle()
-        // Standard's card is the only one with a list, and its controls aren't in view until it scrolls to its end.
-        compose.onAllNodesWithText("Page 1 of 2").assertCountEquals(0)
-        compose.onAllNodes(hasScrollToIndexAction())[0].performScrollToIndex(SCORES_PAGE_SIZE)
+        // Quickfire never counts on the combined table, yet has its board.
+        compose.pick(modeName(GameMode.QUICKFIRE))
+        compose.onNodeWithText("Player4").assertExists()
+        // A mode with no score says so.
+        compose.pick(modeName(GameMode.STUD))
+        compose.onNodeWithText("No scores in ${modeName(GameMode.STUD)} yet").assertExists()
+        compose.onAllNodesWithText("Player").assertCountEquals(0)
+    }
+
+    @Test
+    fun theBoardSavedIsTheOneItOpensOnOnceItHasLoaded() = uiTest {
+        show(someRows, saved = MutableStateFlow(LeaderboardChoice.Mode(GameMode.TRICOLOUR)))
+        field("Tricolour").assertExists()
+        compose.onNodeWithText("Player2").assertExists()
+        compose.onAllNodesWithText("Player1").assertCountEquals(0)
+    }
+
+    @Test
+    fun aModesBoardPagesLikeTheCombinedTableWithItsControlsUnderTheCard() = uiTest {
+        show((1..SCORES_PAGE_SIZE + 5).map { rowOf(it.toLong(), it, GameMode.STANDARD) }, saved = MutableStateFlow(LeaderboardChoice.Mode(GameMode.STANDARD)))
         compose.onNodeWithText("Page 1 of 2").assertExists()
         compose.onNodeWithText("Next").performClick()
         compose.waitForIdle()
@@ -112,48 +163,25 @@ class ScoresScreenTest : UiTest() {
     }
 
     @Test
-    fun gameModeBuildsTheCardsOnScreenOnTheFrameItAppearsAndTheRestOverTheFramesAfter() = uiTest(TestScreen(360, 800)) {
-        // Every mode with ten scores: a full card each, two or three to a screen.
-        show(GameMode.entries.flatMapIndexed { m, mode -> (1..10).map { rowOf(m * 100L + it, 100 + it, mode) } })
-        compose.mainClock.autoAdvance = false
-        compose.onNodeWithText("Game Mode").performClick()
-        val first = modeName(GameMode.entries.first())
-        val last = modeName(GameMode.entries.last())
-        repeat(30) {
-            if (compose.onAllNodesWithText(first).fetchSemanticsNodes().isEmpty()) {
-                compose.mainClock.advanceTimeByFrame()
-                compose.waitForIdle()
-            }
-        }
-        compose.onNodeWithText(first).assertExists()
-        compose.onAllNodesWithText(last).assertCountEquals(0)
-
-        repeat(GameMode.entries.size) {
-            compose.mainClock.advanceTimeByFrame()
-            compose.waitForIdle()
-        }
-        GameMode.entries.forEach { compose.onAllNodesWithText(modeName(it)).assertCountEquals(1) }
-    }
-
-    @Test
-    fun signedInEachModeCardOpensItsGlobalLeaderboardWithoutMovingAnythingOnIt() = uiTest {
-        // Signed out (or with no service): no button, and where the card's header row sits.
-        show(someRows)
-        compose.onNodeWithText("Game Mode").performClick()
-        compose.waitForIdle()
+    fun signedInAModesBoardOpensItsGlobalLeaderboardWithoutMovingAnythingOnIt() = uiTest {
+        val standard = MutableStateFlow<LeaderboardChoice?>(LeaderboardChoice.Mode(GameMode.STANDARD))
+        // Signed out (or with no service): no button, and where the table's headings sit.
+        show(someRows, saved = standard)
         compose.onAllNodes(hasContentDescription("Global leaderboard", substring = true)).assertCountEquals(0)
         val headerTop = compose.onAllNodesWithText("Player")[0].fetchSemanticsNode().boundsInRoot.top
 
         val services = LeaderboardServices()
-        show(someRows, services)
-        compose.onNodeWithText("Game Mode").performClick()
-        compose.waitForIdle()
+        show(someRows, services, saved = standard)
         val button = compose.onNode(hasContentDescription("Global leaderboard for Standard on Google Play Games"))
         assertEquals(Role.Button, button.fetchSemanticsNode().config.getOrNull(SemanticsProperties.Role))
-        compose.onNode(hasContentDescription("Global leaderboard for Tricolour on Google Play Games")).assertExists()
+        // Only this board's own button, and none on Combined, which has no board on the service.
+        compose.onAllNodes(hasContentDescription("Global leaderboard for Tricolour", substring = true)).assertCountEquals(0)
         assertEquals(headerTop, compose.onAllNodesWithText("Player")[0].fetchSemanticsNode().boundsInRoot.top)
 
         button.performClick()
         assertEquals(listOf<String?>("standard"), services.opened)
+
+        show(someRows, services)
+        compose.onAllNodes(hasContentDescription("Global leaderboard", substring = true)).assertCountEquals(0)
     }
 }

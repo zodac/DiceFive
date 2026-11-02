@@ -119,6 +119,7 @@ class SettingsRepositoryCloudTest {
         repository.setStylesPageFit("fit")
         repository.setLockedOnlyAchievements(true)
         repository.setUnlockedOnlyStyles(true)
+        repository.setLeaderboardChoice("tricolour")
         repository.wipeSynced()
         assertEquals(emptyMap(), repository.cloudSettings())
         assertEquals(DefaultStyleIds.DICE, repository.diceStyleId.first())
@@ -128,6 +129,21 @@ class SettingsRepositoryCloudTest {
         assertEquals(ScreenOrientation.PORTRAIT, repository.screenOrientation.first())
         assertEquals(true, repository.lockedOnlyAchievements.first())
         assertEquals(true, repository.unlockedOnlyStyles.first())
+        assertEquals(null, repository.leaderboardChoice.first())
+    }
+
+    @Test
+    fun `the Leaderboard's board - none until one is picked - is stamped and goes in the cloud save, and another device takes it`() = runTest {
+        assertEquals(null, repository.leaderboardChoice.first())
+        repository.setLeaderboardChoice("tricolour")
+        assertEquals("tricolour", repository.leaderboardChoice.first())
+        val save = repository.cloudSettings()
+        assertEquals(Stamped<SettingValue?>(SettingValue.Text("tricolour"), 100L), save["leaderboard_choice"])
+
+        val other = SettingsRepository(InMemoryPreferences(), now = { clock })
+        assertEquals(null, other.leaderboardChoice.first())
+        other.mergeCloud(save)
+        assertEquals("tricolour", other.leaderboardChoice.first())
     }
 
     @Test

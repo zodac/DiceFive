@@ -80,10 +80,11 @@ Each of these fixed a reported stutter. New work must keep them.
         nothing ahead on a device.
     - `StylesWarmUp` pre-draws on the menu's idle frames (`UI_SCREENS.md`).
 - **The Leaderboard and Statistics.** Neither page's frames grow with the scores behind them: the Combined table reads
-    50 rows a page, Statistics is a `LazyColumn` (only the cards on screen are built), and each Game Mode card is capped
-    at ten rows that scroll inside it. What grew was elsewhere:
-    - The Game Mode view builds a screenful of cards first, then one a frame (`ScreenfulFirstColumn`, `UI_SCREENS.md`).
-        Built all at once, seven cards (~10-12ms each) held the switch up while only two or three could be seen.
+    50 rows a page, Statistics is a `LazyColumn` (only the cards on screen are built), and every Leaderboard board is
+    one `LeaderboardTable`, read when first picked. What grew was elsewhere:
+    - The old Game Mode view built a screenful of cards first, then one a frame (`ScreenfulFirstColumn`). Built all at
+        once, seven cards (~10-12ms each) held the switch up while only two or three could be seen. The drop-down shows
+        one board at a time, so that view and its warm-up are gone.
     - Statistics reads every player in three queries (`ScoreDao.playerRecords`), not two more per player.
     - Statistics finds whether every card fits open from the real list laid out with them open, which builds only the
         cards on screen, rather than from a hidden copy with every card open.

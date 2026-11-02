@@ -34,10 +34,11 @@ import net.zodac.dicefive.model.TurnTimer
  * - the Styles picks (as ids) and the Styles page's fitted size;
  * - the Achievements page's Locked only switch and the Styles page's Unlocked only switch;
  * - the Statistics screen's sort;
+ * - the Leaderboard's board (Combined or a game mode);
  * - sound, vibration, the Animations level and whether leaving a game in progress asks first;
  * - whether a game has ever been finished here, which unlocks the New Game form's game modes and modifiers.
  *
- * Every setting but the Animations level, the Orientation, the Styles page fit and the two list filters goes in the cloud
+ * Every setting but the Animations level, the Orientation, the Styles page fit and the list filters goes in the cloud
  * save ([SYNCED_KEYS]): those are about this device - what it can draw, how it's held, its screen, and how this player likes
  * to browse. Each synced key is stamped with when its value last changed
  * ([stampKey]), and the cloud save keeps whichever device set it last. A Styles pick Reset achievements unstamps
@@ -374,6 +375,11 @@ class SettingsRepository(
 
     suspend fun setStatisticsSort(sort: String) = set(STATISTICS_SORT_KEY, sort)
 
+    /** The Leaderboard's board as stored (`LeaderboardChoice.stored`: `combined` or a game mode's id), or null until one is picked. */
+    val leaderboardChoice: Flow<String?> = read { prefs -> prefs[LEADERBOARD_CHOICE_KEY] }
+
+    suspend fun setLeaderboardChoice(choice: String) = set(LEADERBOARD_CHOICE_KEY, choice)
+
     private companion object {
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
         val SOUND_ENABLED_KEY = booleanPreferencesKey("sound_enabled")
@@ -402,6 +408,7 @@ class SettingsRepository(
         val STATISTICS_SORT_KEY = stringPreferencesKey("statistics_sort")
         val LOCKED_ONLY_ACHIEVEMENTS_KEY = booleanPreferencesKey("locked_only_achievements")
         val UNLOCKED_ONLY_STYLES_KEY = booleanPreferencesKey("unlocked_only_styles")
+        val LEADERBOARD_CHOICE_KEY = stringPreferencesKey("leaderboard_choice")
         fun playerNameKey(slot: Int) = stringPreferencesKey("player_name_$slot")
         fun playerTypeKey(slot: Int) = stringPreferencesKey("player_type_$slot")
         fun playerColourKey(slot: Int) = stringPreferencesKey("player_colour_$slot")
@@ -416,10 +423,10 @@ class SettingsRepository(
          * What the cloud save carries: everything but the Animations level ([ANIMATION_LEVEL_KEY]), chosen for what this
          * device can draw, the Orientation ([SCREEN_ORIENTATION_KEY]), chosen for how it's held, and the Styles page fit
          * ([STYLES_PAGE_FIT_KEY]), a measurement of its screen, and the two list filters ([LOCKED_ONLY_ACHIEVEMENTS_KEY],
-         * [UNLOCKED_ONLY_STYLES_KEY]), a way of browsing.
+         * [UNLOCKED_ONLY_STYLES_KEY]) a way of browsing.
          */
         private val SYNCED: List<SyncedKey<*>> = buildList {
-            (STYLE_KEYS + listOf(TURN_TIMER_KEY, TURN_TIMER_LENGTH_KEY, GAME_MODE_KEY, STATISTICS_SORT_KEY)).mapTo(this) { SyncedKey.Text(it) }
+            (STYLE_KEYS + listOf(TURN_TIMER_KEY, TURN_TIMER_LENGTH_KEY, GAME_MODE_KEY, STATISTICS_SORT_KEY, LEADERBOARD_CHOICE_KEY)).mapTo(this) { SyncedKey.Text(it) }
             for (slot in 1..PLAYER_SLOTS) {
                 listOf(playerNameKey(slot), playerTypeKey(slot), playerColourKey(slot), playerDifficultyKey(slot)).mapTo(this) { SyncedKey.Text(it) }
             }

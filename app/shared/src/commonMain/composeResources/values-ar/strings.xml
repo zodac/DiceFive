@@ -430,6 +430,9 @@
     <string name="common_done">تم</string>
     <string name="common_tooltip_show_details_action">عرض التفاصيل</string>
     <string name="common_picker_choose_action">اختيار %1$s</string>
+    <string name="common_dropdown_expanded">موسّع</string>
+    <string name="common_dropdown_collapsed">مطوي</string>
+    <string name="common_dropdown_selected">محدد</string>
     <string name="common_picker_state_spoken">%1$s. %2$s</string>
     <string name="common_modifiers_none">بلا</string>
     <plurals name="common_modifiers_enabled">
@@ -1079,7 +1082,8 @@
     <string name="common_ok">حسنًا</string>
     <string name="scores_title">لوحة المتصدرين</string>
     <string name="scores_view_combined">الكل معًا</string>
-    <string name="scores_view_game_mode">نمط اللعب</string>
+    <string name="scores_board_label">لوحة المتصدرين</string>
+    <string name="scores_board_empty">لا توجد نتائج في %1$s بعد</string>
     <string name="scores_empty">لا توجد نتائج بعد، العب لعبة!</string>
     <string name="scores_global">عالمية</string>
     <string name="scores_global_cd">لوحة المتصدرين العالمية لوضع %1$s على %2$s</string>

@@ -373,6 +373,9 @@
     <string name="common_done">Hecho</string>
     <string name="common_tooltip_show_details_action">Mostrar detalles</string>
     <string name="common_picker_choose_action">Elegir %1$s</string>
+    <string name="common_dropdown_expanded">Desplegado</string>
+    <string name="common_dropdown_collapsed">Plegado</string>
+    <string name="common_dropdown_selected">Seleccionado</string>
     <string name="common_picker_state_spoken">%1$s. %2$s</string>
     <string name="common_modifiers_none">Ninguno</string>
     <plurals name="common_modifiers_enabled">
@@ -978,7 +981,8 @@
     <string name="common_ok">Aceptar</string>
     <string name="scores_title">Clasificación</string>
     <string name="scores_view_combined">Combinada</string>
-    <string name="scores_view_game_mode">Modo de juego</string>
+    <string name="scores_board_label">Clasificación</string>
+    <string name="scores_board_empty">Aún no hay puntuaciones en %1$s</string>
     <string name="scores_empty">Aún no hay puntuaciones: ¡juega una partida!</string>
     <string name="scores_global">Global</string>
     <string name="scores_global_cd">Clasificación global de %1$s en %2$s</string>

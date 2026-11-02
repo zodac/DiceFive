@@ -2,6 +2,7 @@ package net.zodac.dicefive
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import kotlin.test.Test
 import net.zodac.dicefive.data.InMemoryPreferences
@@ -31,8 +32,8 @@ class ScoresStatisticsTextTest : UiTest() {
         showScores(emptyList())
         compose.onNodeWithText("Leaderboard").assertExists()
         compose.onNodeWithText("No scores yet - play a game!").assertExists()
-        compose.onNodeWithText("Combined").assertExists()
-        compose.onNodeWithText("Game Mode").assertExists()
+        // The drop-down, on the board it opens on: one control, named and valued.
+        compose.onNodeWithContentDescription("Leaderboard, Combined").assertExists()
 
         showScores(listOf(rowOf(1, 300, GameMode.STANDARD)))
         listOf("#", "Player", "5x", "Score").forEach { compose.onAllNodesWithText(it).assertCountEquals(1) }

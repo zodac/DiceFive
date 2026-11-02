@@ -35,6 +35,7 @@ import net.zodac.dicefive.game.StandardPerfectPlayTable
 import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.purchases.PurchasesRepository
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.ui.scores.LeaderboardChoice
 import net.zodac.dicefive.ui.statistics.StatisticsSortOrder
 
 /**
@@ -111,6 +112,10 @@ class AppContainer(
 
     /** The Styles page's Unlocked only switch, loaded as [lockedOnlyAchievements] is. */
     val unlockedOnlyStyles: StateFlow<Boolean?> = settingsRepository.unlockedOnlyStyles.stateIn(scope, SharingStarted.Eagerly, null)
+
+    /** The Leaderboard's board, loaded with the container so the screen opens already on it - null until then. */
+    val leaderboardChoice: StateFlow<LeaderboardChoice?> =
+        settingsRepository.leaderboardChoice.map { LeaderboardChoice.parse(it) }.stateIn(scope, SharingStarted.Eagerly, null)
 
     /**
      * The dice every game rolls ([net.zodac.dicefive.ui.game.GameViewModel]'s random). Replaced only by the store-asset

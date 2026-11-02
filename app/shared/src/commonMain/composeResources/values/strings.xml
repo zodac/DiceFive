@@ -494,6 +494,10 @@
     <string name="common_tooltip_show_details_action">Show details</string>
     <!-- TalkBack's name for tapping a picker field. %1$s is the picker's title ("Game Mode"). -->
     <string name="common_picker_choose_action">Choose %1$s</string>
+    <!-- A drop-down's spoken state, and the option it has picked. -->
+    <string name="common_dropdown_expanded">Expanded</string>
+    <string name="common_dropdown_collapsed">Collapsed</string>
+    <string name="common_dropdown_selected">Selected</string>
     <!-- What TalkBack says for a picker field after its title: the current choice, then its description. -->
     <string name="common_picker_state_spoken">%1$s. %2$s</string>
     <!-- The modifiers field when no modifier is on. -->
@@ -1262,9 +1266,10 @@
 
     <!-- Leaderboard (ui/scores/*) -->
     <string name="scores_title">Leaderboard</string>
-    <!-- The two ways to read the board, switched at the top: every mode in one table, or one card per mode. -->
+    <!-- The board's drop-down, at the top: Combined (every mode in one table), then a board for each game mode. -->
     <string name="scores_view_combined">Combined</string>
-    <string name="scores_view_game_mode">Game Mode</string>
+    <string name="scores_board_label">Leaderboard</string>
+    <string name="scores_board_empty">No scores in %1$s yet</string>
     <string name="scores_empty">No scores yet - play a game!</string>
     <string name="scores_global">Global</string>
     <string name="scores_global_cd">Global leaderboard for %1$s on %2$s</string>

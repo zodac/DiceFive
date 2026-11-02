@@ -13,7 +13,7 @@ import net.zodac.dicefive.ui.scores.resetScoresWarmUpForTest
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /**
- * The Leaderboard's hidden warm-up draws both views from its made-up board without a repository, then goes away.
+ * The Leaderboard's hidden warm-up draws its boards from its made-up board without a repository, then goes away.
  *
  * Android only: on the desktop test harness a composition's coroutines wait in real time, not on the test clock, so
  * the warm-up's start delay never ends there.
@@ -21,7 +21,7 @@ import net.zodac.dicefive.ui.theme.DiceFiveTheme
 class ScoresWarmUpTest : UiTest() {
 
     @Test
-    fun drawsBothViewsThenGoesAway() = uiTest {
+    fun drawsEveryBoardItWarmsThenGoesAway() = uiTest {
         // An earlier test in this process may already have run it (the menu shows it), and it runs once.
         resetScoresWarmUpForTest()
         compose.setContent { DiceFiveTheme { Box { ScoresWarmUp(width = 360.dp) } } }
@@ -42,7 +42,7 @@ class ScoresWarmUpTest : UiTest() {
             }
         }
         assertTrue(drawn, "never drawn")
-        // ...and once both views have had their frames, it's gone.
+        // ...and once every board has had their frames, it's gone.
         assertFalse(onScreen())
     }
 }

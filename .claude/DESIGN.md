@@ -165,8 +165,8 @@ The first criterion that differs decides it. If all match, it's a true tie with 
 | Hit List   | Twelve targets drawn per game plus the Alibi. Hits, exact hits (double) and partial hits. No Extended Scores.                                                                                  | No          |
 | Quickfire  | 5x plus three random upper and three random lower boxes are off each game: six turns. The upper bonus threshold scales to the upper boxes left.                                                | No          |
 
-A mode off the Leaderboard still records its games for Statistics and career points. The Leaderboard's Game Mode view
-lists it on its own card.
+A mode off the Leaderboard still records its games for Statistics and career points. The Leaderboard's drop-down
+lists it as a board of its own.
 
 ## Modifiers
 
@@ -357,11 +357,13 @@ can't is a page saying so, with the stack trace to report. The app never just cl
 
 ## Leaderboard and Statistics
 
-- **Leaderboard** (`ScoresScreen`). A switch picks one of two views; details are in `UI_SCREENS.md`.
-    - **Combined**: every on-board score, score-descending, 50 a page, 1st-3rd in gold/silver/bronze, "=" only for a true
-        tie.
-    - **Game Mode**: one card per mode, each ranked and paged on its own, no medals. Only games with no modifier on
-        (`playedUnmodified`), the same ones its online leaderboard takes.
+- **Leaderboard** (`ScoresScreen`). A drop-down (`LeaderboardChoice`) picks one board: Combined, or one game mode's.
+    The pick is the `leaderboard_choice` preference (`combined` or the mode's id), restored on every open and
+    carried in the cloud save and the GitHub app's export; details are in `UI_SCREENS.md`.
+    - **Every board is the same `LeaderboardTable`**: score-descending, 50 a page, 1st-3rd in gold/silver/bronze, "="
+        only for a true tie, paged on its own.
+    - **Combined** is every on-board score. A **mode's board** has only games with no modifier on (`playedUnmodified`),
+        the same ones its online leaderboard takes, as Combined does.
     - Rows show rank, name, 5x count and score. A long press shows the date (and the mode on Combined), which is also the
         row's spoken state.
 - **Statistics** (`StatisticsScreen`). One card per distinct human *name*; a rename starts a new player.

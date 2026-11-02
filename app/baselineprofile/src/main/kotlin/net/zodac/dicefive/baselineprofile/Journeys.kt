@@ -839,12 +839,14 @@ private fun MacrobenchmarkScope.playTutorial() {
 }
 
 /**
- * Leaderboard, on its Game Mode table and back on Combined, and Statistics, with the first player's card opened on
- * its By mode view.
+ * Leaderboard, on the Standard board picked from its drop-down and back on Combined, and Statistics, with the first
+ * player's card opened on its By mode view.
  */
 internal fun MacrobenchmarkScope.visitScoreScreens() {
     openFromMenu("Leaderboard")
-    tapDesc("Game Mode")
+    tapDesc("Leaderboard, Combined")
+    tapDesc("Standard")
+    tapDesc("Leaderboard, Standard")
     tapDesc("Combined")
     backToMenu()
     openFromMenu("Statistics")
