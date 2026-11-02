@@ -94,7 +94,7 @@ ARG EMULATOR_API=37.0
 #   JDK 25  — self-contained under /opt/java/openjdk, portable onto glibc Debian.
 #             LTS; see the file-header note above for how a new major is adopted.
 # (Node, for Claude Code and Playwright, is in the shared base.)
-FROM eclipse-temurin:25.0.4.1_1-jdk AS jdk
+FROM eclipse-temurin:25.0.5_8-jdk AS jdk
 
 # ── Download stage: curl + unzip for the Android and ImageMagick stages ───────
 # Unpinned on purpose, unlike every other package in this file: nothing installed
@@ -211,8 +211,8 @@ RUN set -eux; \
 # in a container); its AppRun runs the tool named by the link it was called through, so the runtime
 # stage's `magick` link is `magick`.
 FROM fetch AS imagemagick
-ENV IMAGEMAGICK_VERSION=7.1.2-34
-ENV IMAGEMAGICK_SHA256=6e9edfd35d5f30b57c27533afe003d6085faaf8607b207426f398d11751acf93
+ENV IMAGEMAGICK_VERSION=7.1.2-35
+ENV IMAGEMAGICK_SHA256=f111044ed06b68cfb478df724c5a32d35145afa21073242f888d234a2f8cc002
 # --appimage-extract unpacks into the working directory.
 WORKDIR /opt
 # pipefail is set: the stage inherits fetch's SHELL, which hadolint does not follow.

@@ -21,8 +21,8 @@
 # ------------------------------------------------------------------------------
 set -euo pipefail
 
-IMAGEMAGICK_VERSION="7.1.2-34"
-IMAGEMAGICK_SHA256="6e9edfd35d5f30b57c27533afe003d6085faaf8607b207426f398d11751acf93"
+IMAGEMAGICK_VERSION="7.1.2-35"
+IMAGEMAGICK_SHA256="f111044ed06b68cfb478df724c5a32d35145afa21073242f888d234a2f8cc002"
 
 dir="${RUNNER_TEMP:?set by GitHub Actions}/imagemagick"
 mkdir -p "${dir}/bin"
