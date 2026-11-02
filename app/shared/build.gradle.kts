@@ -108,7 +108,7 @@ dependencies {
 // name :app:android's unit tests have). A KMP library's tests have other names, so this answers to
 // that one too, rather than every one of those callers having to learn the new task names.
 // The tests run as Android runs them. They are compiled for the JVM target too (so commonTest stays
-// common), but run there (jvmTest) only monthly, in update-dependencies.yml: no desktop app ships yet.
+// common), but run there (jvmTest) only monthly, as a gate in update-dependencies.yml: no desktop app ships yet.
 tasks.register("testDebugUnitTest") {
     group = "verification"
     description = "Runs the shared module's tests as Android runs them, and compiles them for the JVM."

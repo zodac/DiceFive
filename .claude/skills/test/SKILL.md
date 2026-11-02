@@ -18,7 +18,7 @@ failure stops what follows.
 
 - The root `testDebugUnitTest` runs both modules' test suites: `:app:shared`'s as Android runs them (`commonTest`
     and `androidHostTest`; compiled for the JVM too), and `:app:android`'s. `:app:shared:jvmTest` runs `commonTest` on
-    the JVM: monthly in CI, and by hand after changing a `commonTest` UI test or the harness.
+    the JVM: monthly in CI (a gate before the update is committed), and by hand after changing a `commonTest` UI test or the harness.
 - `app/android` has two flavours, `play` and `github` (`.claude/DESIGN.md`, "Distribution"). Its `testDebugUnitTest`
     and `lintDebug` run both (`testPlayDebugUnitTest`, `testGithubDebugUnitTest`, ...), so `src/test` runs twice, once
     in each app, with `src/testPlay` and `src/testGithub` once in their own.

@@ -90,11 +90,11 @@ app/
 `./gradlew :app:shared:testDebugUnitTest` runs `:app:shared`'s tests as Android runs them (`testAndroidHostTest`:
 `commonTest` and `androidHostTest`) and compiles them for the JVM. The root `testDebugUnitTest` adds `:app:android`'s.
 
-- **On the JVM they run monthly**, not on every push: `./gradlew :app:shared:jvmTest`, the last step of
-    `update-dependencies.yml`. No app ships on the JVM yet, so running them on every push guarded nothing a player has,
-    at more than double the shared tests' time; monthly, a test that comes to depend on Android is still caught soon
-    after. **When an app for another platform is started, they go back into `android-release.yml`'s `shared-tests`
-    (and `testDebugUnitTest`).**
+- **On the JVM they run monthly**, not on every push: `./gradlew :app:shared:jvmTest`, one of the gates in
+    `update-dependencies.yml`'s update job, so a failure stops the run before anything is committed or released. No
+    app ships on the JVM yet, so running them on every push guarded nothing a player has, at more than double the
+    shared tests' time; monthly, a test that comes to depend on Android is still caught soon after. **When an app for
+    another platform is started, they go back into `android-release.yml`'s `shared-tests` (and `testDebugUnitTest`).**
 
 - **`commonTest`** is the default home, for UI tests too. Write it to pass on both targets. A UI test extends `UiTest`
   and runs each test in `uiTest { }`,

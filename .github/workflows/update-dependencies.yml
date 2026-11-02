@@ -3,8 +3,8 @@ name: Update dependencies
 # Once a month (and on demand), runs .github/scripts/update_dependency_versions.sh - every Gradle
 # dependency, the Android SDK platform, the NDK, the JDK, the sandbox image's pins, the linter images, and the
 # code-quality-config and ai-sandbox submodules (each to its newest tag) -
-# then re-runs the same gates the release workflow applies. Only if everything passes is the result
-# committed to main and a release started; a failure anywhere leaves main untouched (the run just
+# then re-runs the same gates the release workflow applies, plus the shared tests on the JVM. Only if everything
+# passes is the result committed to main and a release started; a failure anywhere leaves main untouched (the run just
 # fails, with the reason in its log).
 #
 # Two jobs, so the versions it has just moved to never run with a token that can write: the update job runs the script
@@ -118,13 +118,14 @@ jobs:
           git status --short
 
       # The release workflow's gates, run on exactly the tree that would be committed, whatever the
-      # script touched (it only builds when a Gradle input changed): the debug build, unit tests, the
+      # script touched (it only builds when a Gradle input changed): the debug build, unit tests (Android's, and the shared
+      # tests on the JVM target, which no app ships on yet so a push only compiles them there), the
       # Baseline Profile journey compiling, and lint - with the deprecation checks the build carries - and both
       # flavours' release builds, unsigned, so a bump R8 can't build with never reaches main.
       - name: Build, test and lint
         if: steps.changes.outputs.changed == 'true'
         run: |
-          ./gradlew assembleDebug testDebugUnitTest :app:baselineprofile:compileNonMinifiedReleaseKotlin lintDebug lintRelease \
+          ./gradlew assembleDebug testDebugUnitTest :app:shared:jvmTest :app:baselineprofile:compileNonMinifiedReleaseKotlin lintDebug lintRelease \
             :app:android:assembleGithubRelease :app:android:bundlePlayRelease --console=plain
 
       # The workflows, shell scripts, Dockerfiles, and Markdown, as lint.yml checks them: also exercises a freshly bumped linter
@@ -206,26 +207,3 @@ jobs:
         run: |
           gh workflow run android-release.yml --ref main
           echo "Started android-release.yml on main - see the Actions tab for the release run." >> "$GITHUB_STEP_SUMMARY"
-
-  # The shared tests on the JVM target, which no app ships on yet, so a push only compiles them there
-  # (app/shared/build.gradle.kts): run here instead, so one that comes to depend on Android is caught within a
-  # month. Last, on main as the commit job left it, and whether or not anything was updated, so a failure turns the run
-  # red without holding back the updates already committed. Once an app for another platform ships, they belong in
-  # android-release.yml.
-  shared-jvm-tests:
-    needs: [update, commit]
-    if: ${{ !cancelled() }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          submodules: true # code-quality-config: lint's rules, which release builds read too (lintVital)
-          ref: main
-          persist-credentials: false
-
-      - name: Set up the build
-        uses: ./.github/actions/build-setup
-
-      - name: Shared tests on the JVM
-        run: ./gradlew :app:shared:jvmTest --console=plain
