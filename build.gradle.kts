@@ -29,5 +29,9 @@ subprojects {
             "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED",
             "-XX:+UseCompactObjectHeaders",
         )
+        // A failing test's whole message and stack in the log, not just its class and line: CI's log is all there is to go on.
+        testLogging {
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        }
     }
 }
