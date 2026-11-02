@@ -6,6 +6,7 @@
 # "three/four/five of a kind".
 game=Roll, hold, and score
 modes=Twists on the classic rules
+d20=Twists on the classic rules
 styles=Unlock dozens of styles
 game-over=Beat friends or the computer
 achievements=Earn achievements as you play

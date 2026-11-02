@@ -43,11 +43,12 @@ class StoreScreensGeneratorTest {
     private companion object {
         const val GAME = "game"
         const val MODES = "modes"
+        const val D20 = "d20"
         const val STYLES = "styles"
         const val GAME_OVER = "game-over"
         const val ACHIEVEMENTS = "achievements"
         /** The same screens on both devices, numbered alike (the order is [screenshots]'). */
-        val SHOTS = setOf(GAME, MODES, STYLES, GAME_OVER, ACHIEVEMENTS)
+        val SHOTS = setOf(GAME, MODES, D20, STYLES, GAME_OVER, ACHIEVEMENTS)
 
         /** The Styles categories opened as galleries for the styles shot - side by side in landscape. */
         val PHONE_GALLERIES = listOf("Dice")
@@ -87,7 +88,7 @@ class StoreScreensGeneratorTest {
 
     /**
      * Play takes 2 to 8 screenshots per device type, and only considers a listing for featuring with at least 4 at
-     * 1080px or more; most people see only the first two or three. So: a few strong ones, not all eight - the same 5
+     * 1080px or more; most people see only the first two or three. So: a few strong ones, not all eight - the same 6
      * on the phone and the 10-inch tablet. Names are listing order, and the script captions each.
      */
     private fun screenshots(device: String, shots: Set<String>, galleries: List<String>) {
@@ -111,6 +112,14 @@ class StoreScreensGeneratorTest {
             StoreState.applyStyles(container, Scenes.SHOWPIECE)
             resume(Scenes.tricolour(rolled = true))
             shoot(MODES)
+            leaveGame()
+            StoreState.applyStyles(container, StylePicks())
+        }
+
+        if (D20 in shots) {
+            StoreState.applyStyles(container, Scenes.D20_TABLE)
+            resume(Scenes.d20(rolled = true))
+            shoot(D20)
             leaveGame()
             StoreState.applyStyles(container, StylePicks())
         }
@@ -201,12 +210,25 @@ class StoreScreensGeneratorTest {
         leaveGame()
         StoreState.applyStyles(container, StylePicks())
 
+        // A D20 game, with the green faceted cup.
+        StoreState.applyStyles(container, Scenes.D20_TABLE)
+        resume(Scenes.d20(rolled = false))
+        settle()
+        FrameRecorder(compose, File(root, "3-d20")).apply {
+            hold(500)
+            tap(cup())
+            hold(2_600)
+            finish()
+        }
+        leaveGame()
+        StoreState.applyStyles(container, StylePicks())
+
         // Styles: the dice gallery, picking a few.
         openFromMenu("Styles")
         compose.waitUntil(5_000) { exists(hasContentDescription("Dice gallery")) }
         compose.onNode(hasContentDescription("Dice gallery")).performClick()
         settle()
-        FrameRecorder(compose, File(root, "3-styles")).apply {
+        FrameRecorder(compose, File(root, "4-styles")).apply {
             hold(600)
             for (style in Scenes.VIDEO_DICE_PICKS) {
                 // The first tile of that family - the dice gallery comes first on the page.
@@ -223,7 +245,7 @@ class StoreScreensGeneratorTest {
         // The last box of a game Sam wins.
         resume(Scenes.lastTurn())
         settle()
-        FrameRecorder(compose, File(root, "4-game-over")).apply {
+        FrameRecorder(compose, File(root, "5-game-over")).apply {
             hold(600)
             tap(compose.onNode(openBox()))
             hold(3_600)
@@ -235,7 +257,7 @@ class StoreScreensGeneratorTest {
         // An achievement unlocking.
         openFromMenu("Achievements")
         settle()
-        FrameRecorder(compose, File(root, "5-achievements")).apply {
+        FrameRecorder(compose, File(root, "6-achievements")).apply {
             hold(500)
             // Not the 5x again - the first scene unlocked that one for real.
             AchievementEvents.emit(AchievementEvent.Unlocked(Achievement.SHARPSHOOTER))
@@ -335,6 +357,9 @@ internal object Scenes {
     /** A dressed-up table, for the Tricolour scenes: all unlocked by the achievements [StoreState.seed] grants. */
     val SHOWPIECE = StylePicks(cup = "treasure_oak", background = "planks_walnut", mat = "casino_green", frame = "greek_key")
 
+    /** The D20 scenes' table: the default look with the green faceted cup. Unlocked by the achievements [StoreState.seed] grants. */
+    val D20_TABLE = StylePicks(cup = "faceted_green")
+
     /** The game-over scene's table: the default look with the Pixel frame, so the listing shows three frames in all. */
     val PIXEL_TABLE = StylePicks(frame = "pixel_retro")
 
@@ -378,6 +403,14 @@ internal object Scenes {
         val players = table().take(2)
         val state = StoreState.play(GameEngine.newGame(players, gameMode = GameMode.TRICOLOUR, random = random), turns = 2 * 5, random)
         return if (rolled) GameEngine.rollDice(state, DealtRandom().apply { deal(5, 0, 5, 2, 3, 1, 5, 0, 2, 1) }) else state
+    }
+
+    /** Round 8 of Sam against the CPU in D20 - [rolled] once, or not yet. */
+    fun d20(rolled: Boolean): GameState {
+        val random = Random(11)
+        val players = table().take(2)
+        val state = StoreState.play(GameEngine.newGame(players, gameMode = GameMode.D20, random = random), turns = 2 * 7, random)
+        return if (rolled) GameEngine.rollDice(state, random) else state
     }
 
     /** The last turn of a game Sam has already won: Jo, last to play, has rolled, with one box to fill. */

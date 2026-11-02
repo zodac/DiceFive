@@ -23,9 +23,10 @@ rules open up once you've finished your first game.
 <p align="center">
   <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/phone-1-game.png" alt="Roll, hold, and score: a three-player game, with the scorecard above the dice tray" width="160">
   <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/phone-2-modes.png" alt="Twists on the classic rules: a Tricolour game at a wooden table, with red, yellow, and blue dice" width="160">
-  <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/phone-3-styles.png" alt="Unlock dozens of styles: the Styles screen's gallery of dice" width="160">
-  <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/phone-4-game-over.png" alt="Beat friends or the computer: the Game Over screen, with Sam the winner on 347" width="160">
-  <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/phone-5-achievements.png" alt="Earn achievements as you play: the Achievements list, as a 5x achievement unlocks" width="160">
+  <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/phone-3-d20.png" alt="Twists on the classic rules: a D20 game, with twenty-sided dice and a card of the numbers 1 to 20" width="160">
+  <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/phone-4-styles.png" alt="Unlock dozens of styles: the Styles screen's gallery of dice" width="160">
+  <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/phone-5-game-over.png" alt="Beat friends or the computer: the Game Over screen, with Sam the winner on 347" width="160">
+  <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/phone-6-achievements.png" alt="Earn achievements as you play: the Achievements list, as a 5x achievement unlocks" width="160">
 </p>
 
 <details>
@@ -34,9 +35,10 @@ rules open up once you've finished your first game.
 <p align="center">
   <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/tablet-10-1-game.png" alt="Roll, hold, and score on a tablet: the scorecard laid out wide above the dice tray" width="400">
   <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/tablet-10-2-modes.png" alt="Twists on the classic rules on a tablet: a Tricolour game at a wooden table" width="400">
-  <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/tablet-10-3-styles.png" alt="Unlock dozens of styles on a tablet: the dice and dice cup galleries side by side" width="400">
-  <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/tablet-10-4-game-over.png" alt="Beat friends or the computer on a tablet: the Game Over screen, with Sam the winner on 347" width="400">
-  <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/tablet-10-5-achievements.png" alt="Earn achievements as you play on a tablet: the Achievements list in two columns" width="400">
+  <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/tablet-10-3-d20.png" alt="Twists on the classic rules on a tablet: a D20 game, with twenty-sided dice" width="400">
+  <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/tablet-10-4-styles.png" alt="Unlock dozens of styles on a tablet: the dice and dice cup galleries side by side" width="400">
+  <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/tablet-10-5-game-over.png" alt="Beat friends or the computer on a tablet: the Game Over screen, with Sam the winner on 347" width="400">
+  <img src="https://github.com/zodac/DiceFive/releases/download/readme-assets/tablet-10-6-achievements.png" alt="Earn achievements as you play on a tablet: the Achievements list in two columns" width="400">
 </p>
 </details>
 <!-- markdownlint-enable MD013 MD033 -->
