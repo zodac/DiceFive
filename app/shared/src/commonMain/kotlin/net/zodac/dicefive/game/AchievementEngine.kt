@@ -432,6 +432,10 @@ object AchievementEngine {
             Achievement.STRAIGHT_TALKER,
             anyHuman { it.scoresRolledHand && it.scored(ScoreCategory.SMALL_STRAIGHT) && it.scored(ScoreCategory.LARGE_STRAIGHT) },
         )
+        // The upper section filled with exactly the matching pip count in every box: judged as the last upper box is
+        // scored, since a filled box can't change. Every slot of each box (Third Wind), so the ladder costs the bonus
+        // as it does on one slot.
+        award(Achievement.EXACT_CHANGE, anyHuman { it.matchesExactUpperLadder() })
         // A box "holds" a score if any one of its slots does, so these mean one turn's score.
         award(Achievement.TAKING_A_CHANCE, anyHuman { it.scoresRolledHand && it.hasScore(ScoreCategory.CHANCE, MAX_CHANCE) })
         award(Achievement.SIX_APPEAL, anyHuman { it.scoresRolledHand && it.hasScore(ScoreCategory.SIXES, MAX_SIXES) })
@@ -636,11 +640,6 @@ object AchievementEngine {
         // now, unlike the 200-or-more/300-or-more rungs further up the ladder.
         award(Achievement.NICE, anyHuman { it.totalScore == NICE_SCORE })
         award(Achievement.TON, anyHuman { it.totalScore == TON_SCORE })
-
-        // The upper section filled with exactly the matching pip count in every box, in this one
-        // game - can only be judged once every upper box is actually filled in.
-        // Every slot of each box (Third Wind), so the ladder costs the bonus as it does on one slot.
-        award(Achievement.EXACT_CHANGE, anyHuman { it.matchesExactUpperLadder() })
 
         return earned.earnableIn(state)
     }

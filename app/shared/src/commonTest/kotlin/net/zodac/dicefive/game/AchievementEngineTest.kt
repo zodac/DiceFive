@@ -291,6 +291,11 @@ class AchievementEngineTest {
         val exact = upper.withIndex().associate { (index, category) -> category to index + 1 }
         assertTrue(Achievement.EXACT_CHANGE in unlocked(finishedGame(player(total = 21, overrides = exact))))
         assertFalse(Achievement.EXACT_CHANGE in unlocked(finishedGame(player(total = 22, overrides = exact + (ScoreCategory.TWOS to 4)))))
+
+        // It lands as the last upper box is scored - the lower section still open - and not before.
+        assertTrue(Achievement.EXACT_CHANGE in unlockedMidGame(midGamePlayer(exact)))
+        assertFalse(Achievement.EXACT_CHANGE in unlockedMidGame(midGamePlayer(exact - ScoreCategory.SIXES)))
+        assertFalse(Achievement.EXACT_CHANGE in unlockedMidGame(midGamePlayer(exact + (ScoreCategory.TWOS to 4))))
     }
 
     @Test
