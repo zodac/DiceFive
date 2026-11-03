@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,8 +45,11 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 import net.zodac.dicefive.game.Standing
 import net.zodac.dicefive.game.standings
@@ -59,11 +63,14 @@ import net.zodac.dicefive.resources.game_tab_current_turn_spoken
 import net.zodac.dicefive.resources.game_tab_new_leaderboard_score
 import net.zodac.dicefive.resources.game_tab_view_action
 import net.zodac.dicefive.ui.common.AppTooltip
+import net.zodac.dicefive.ui.common.FontFit
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.MIN_READABLE_FONT_SIZE
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.fitFontSize
+import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.joinClauses
-import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.ordinal
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.textScale
@@ -210,16 +217,36 @@ private fun PlayerTab(
             )
         }
     }
+    val finalScore = score.grouped()
     val scoreText = @Composable { style: TextStyle ->
         val digits = @Composable { modifier: Modifier ->
-            Text(
-                text = risingScore(score).localised(),
-                color = color,
-                fontFamily = SoraFontFamily,
-                fontWeight = FontWeight.Bold,
-                style = style,
-                modifier = modifier,
-            )
+            // On one line, stepped down to fit the tab when the total is too wide for it (four tabs, a four-digit total
+            // with its separator, a large font); wrapped only when even MIN_READABLE_FONT_SIZE doesn't fit (four tabs at
+            // 200%). Sized by the total the score is rising to, not each frame of the rise: a lower number on the way up
+            // is no wider, and the size is measured once, not every frame.
+            BoxWithConstraints(modifier = modifier) {
+                val base = style.copy(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold)
+                val measurer = rememberTextMeasurer()
+                val available = constraints.maxWidth
+                val density = LocalDensity.current
+                val fit = remember(finalScore, base, available, density) {
+                    if (available == Constraints.Infinity) {
+                        FontFit(base.fontSize, wraps = false)
+                    } else {
+                        fitFontSize(base.fontSize, MIN_READABLE_FONT_SIZE, SCORE_FONT_STEP) { size ->
+                            measurer.measure(finalScore, base.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= available
+                        }
+                    }
+                }
+                Text(
+                    text = risingScore(score).grouped(),
+                    color = color,
+                    style = base.copy(fontSize = fit.size),
+                    textAlign = TextAlign.Center,
+                    maxLines = if (fit.wraps) Int.MAX_VALUE else 1,
+                    softWrap = fit.wraps,
+                )
+            }
         }
         if (newScore) {
             // A score the Leaderboard doesn't hold yet: a pill of the player's colour behind it, explained on a long
@@ -298,6 +325,7 @@ private fun PlayerTab(
 }
 
 private const val BASE_SIDE_PADDING_DP = 2f
+private val SCORE_FONT_STEP = 0.5.sp
 private const val SIDE_PADDING_DP_PER_FONT_SCALE = 25f
 private const val MAX_SIDE_PADDING_DP = 10f
 

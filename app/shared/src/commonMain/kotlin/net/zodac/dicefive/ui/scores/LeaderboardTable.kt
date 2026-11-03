@@ -53,6 +53,7 @@ import net.zodac.dicefive.resources.scores_next
 import net.zodac.dicefive.resources.scores_previous
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.OnDemandTooltip
+import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.textScale
@@ -61,8 +62,6 @@ import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.theme.Bronze
 import net.zodac.dicefive.ui.theme.Silver
 
-/** [GameMode.HIGHEST_POSSIBLE_SCORE] (a perfect game in whichever mode allows the most) is the longest a score can ever be. */
-private val SCORE_DISPLAY_WIDTH = GameMode.HIGHEST_POSSIBLE_SCORE.toString().length
 
 /** Ranks worth calling out on the leaderboard, whichever page they happen to fall on. */
 private const val PODIUM_RANKS = 3
@@ -289,6 +288,9 @@ private fun ScoreRow(
     val columns = scoreColumns()
     val modeName = if (showMode) entry.gameMode?.let { stringResource(it.displayName) } ?: entry.gameModeId else null
     val formatTimestamp = timestampFormatter()
+    // A perfect game in whichever mode allows the most ([GameMode.HIGHEST_POSSIBLE_SCORE]), grouped, is the longest a
+    // score can ever be.
+    val scoreDisplayWidth = GameMode.HIGHEST_POSSIBLE_SCORE.grouped().length
 
     // The mode only where rows of every mode share a table - on its own card it's the card's title.
     // Built on a long press only: see OnDemandTooltip.
@@ -349,7 +351,7 @@ private fun ScoreRow(
                 // every row's score the same width regardless of digit count. Always bodyMedium,
                 // podium or not - the row's own background tint is what calls out a podium finish
                 // now, not a second size bump on top of it.
-                text = entry.score.localised().padStart(SCORE_DISPLAY_WIDTH),
+                text = entry.score.grouped().padStart(scoreDisplayWidth),
                 modifier = Modifier.weight(columns.score),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,

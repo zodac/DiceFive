@@ -64,6 +64,7 @@ import net.zodac.dicefive.ui.common.PageColumn
 import net.zodac.dicefive.ui.common.PageTopBar
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.TwoPanes
+import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.icons.Symbols
@@ -273,7 +274,7 @@ private fun WinnerCard(player: PlayerState, solo: Boolean, tieBreakReason: TieBr
                 }
             }
             Text(
-                text = player.totalScore.localised(),
+                text = player.totalScore.grouped(),
                 style = MaterialTheme.typography.displaySmall,
                 fontFamily = SoraFontFamily,
                 fontWeight = FontWeight.Bold,
@@ -320,7 +321,7 @@ private fun RunnerUpRow(rank: Int, isTrueTie: Boolean, player: PlayerState, tieB
             }
         }
         Text(
-            text = player.totalScore.localised(),
+            text = player.totalScore.grouped(),
             style = MaterialTheme.typography.titleLarge,
             fontFamily = SoraFontFamily,
             fontWeight = FontWeight.Bold,
