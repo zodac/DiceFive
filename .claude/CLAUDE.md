@@ -7,7 +7,7 @@ roll five dice to make poker hands and score big!"
 
 - **Players.** 1-4 per game: solo, pass-and-play, or CPU opponents (Easy/Medium/Hard).
 - **Content.** Seven game modes, optional house-rule modifiers, a Leaderboard, per-player Statistics, 100+
-    achievements (some hidden, some Easter eggs) and 90+ unlockable table styles.
+    achievements (some hidden, some Easter eggs), and 200+ unlockable table styles (each colour counts).
 - **Aims.**
     - A polished, offline-first game for the Play Store: no account, no network, data stays on the device.
     - Accessible: TalkBack and large fonts are first-class.
@@ -35,6 +35,7 @@ roll five dice to make poker hands and score big!"
 | Languages | English (`en-GB` base, British spelling), Spanish, Arabic (RTL) - all player text in Compose resources (`I18N.md`) |
 | Licence | Proprietary, all rights reserved (`LICENSE`), source public read-only; no outside contributions. Third-party parts keep their own licences (the Sora font stays OFL) |
 | Sandbox | Claude runs in the Docker sandbox (`ai-sandbox/README.md`); an emulator boots on demand |
+| Sandbox tools | git, gh, jq, python3, node, curl, sqlite3, adb, `emulator.sh`, taskset, `ps`/`pgrep`/`pkill`, `magick`, ffmpeg, and docker (the linters run in it). Not there: `file`, `tree`, `wget`, `zip`, `xmllint`, and `strace`. CI's logs and artifacts need `gh` logged in: ask the maintainer to run `! gh auth login -h github.com -p https -w`, then `gh run view <id> --log-failed` and `gh run download` |
 
 ## Code standards
 

@@ -80,7 +80,7 @@ until the player signs in.
     - the modes under "Seven ways to play" (and that heading's count);
     - the modifiers under "House rules";
     - "Over 100 achievements" (110 today: 100 count towards completion, plus 10 Easter eggs);
-    - "over 90 styles", and its examples;
+    - "over 200 styles" (each colour of a style counts: about 270 today), and its examples;
     - what "Google Play Games" says sign-in brings (`PLAY_GAMES.md`).
 - **The banned-word rule applies.** Play also rejects listings that lean on another product's trademark. Use 3x/4x/5x.
 - **Open-source notices are done in-app** (Settings > Licences, generated with a copyleft guard).

@@ -11,7 +11,7 @@ the `store-assets` skill. The rest of the Play submission is in `PUBLISHING.md`.
 | `feature-graphic-1024x500.png`                                      | 1024x500, JPEG or 24-bit PNG (no alpha)                          |
 | `phone/phone-1-game.png` ... `phone-6-achievements.png`             | 1440x2560                                                        |
 | `tablet-10/tablet-10-1-game.png` ... `tablet-10-6-achievements.png` | 2560x1440 (landscape)                                            |
-| `DiceFive-Promo-1080p60.mp4`                                        | ~25s, 1920x1080, 60fps, H.264; the app's sounds over music (AAC) |
+| `DiceFive-<version>-Promo-1080p60.mp4`                              | ~25s, 1920x1080, 60fps, H.264; the app's sounds over music (AAC) |
 | `video-description.txt`                                             | not uploaded: the YouTube description, with its credits          |
 | `feature-graphic.gif`                                               | not uploaded: the README's title, the feature graphic moving     |
 | `contact-sheet.png`                                                 | not uploaded: every still, for review                            |

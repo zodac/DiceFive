@@ -58,6 +58,8 @@ fi
 VERSION="$(tr -d '[:space:]' < VERSION)"
 RAW="${ROOT}/build/store-assets/raw"
 OUT="${ROOT}/assets/${VERSION}"
+# Named with the version, as the release's own files are (DiceFive-<version>.aab).
+VIDEO_FILE="${OUT}/DiceFive-${VERSION}-Promo-1080p60.mp4"
 WORK="${ROOT}/build/store-assets/work"
 FONT="${ROOT}/app/shared/src/commonMain/composeResources/font/sora.ttf"
 CAPTIONS="${ROOT}/scripts/store-assets/captions.txt"
@@ -306,7 +308,7 @@ if wants video; then
     # H.264 High at 60fps, about 16Mbps: well over what YouTube asks for 1080p60, so its own re-encode has plenty to work from.
     ffmpeg -loglevel error -y "${inputs[@]}" -filter_complex "${filter}" -map '[v]' "${audio[@]}" \
         -c:v libx264 -preset slow -profile:v high -crf 16 -maxrate 24M -bufsize 48M -r "${FPS}" -movflags +faststart \
-        -t "${total}" "${OUT}/DiceFive-Promo-1080p60.mp4"
+        -t "${total}" "${VIDEO_FILE}"
 
     # The video's YouTube description, pasted as it is: the full description's opening paragraph, the app's Play Store
     # link headed with the version the video shows, then the credits - any clip whose licence asks for one (from the same records the app's Licences screen is
@@ -394,9 +396,9 @@ for device in phone tablet-10; do
     (( count >= 4 )) || echo "  note: ${device}: fewer than 4 screenshots, so not considered for featuring"
     for shot in "${OUT}/${device}"/*.png; do check_image "${shot}" screenshot; done
 done
-if [[ -f "${OUT}/DiceFive-Promo-1080p60.mp4" ]]; then
+if [[ -f "${VIDEO_FILE}" ]]; then
     ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate:format=duration \
-        -of default=noprint_wrappers=1 "${OUT}/DiceFive-Promo-1080p60.mp4" | sed 's/^/  video /'
+        -of default=noprint_wrappers=1 "${VIDEO_FILE}" | sed 's/^/  video /'
 fi
 
 # ---- A contact sheet to review it all at a glance -------------------------------------------------------------------

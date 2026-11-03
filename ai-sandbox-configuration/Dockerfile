@@ -329,6 +329,9 @@ ENV JAVA_HOME=/opt/java/openjdk \
 # (app/android/src/main/res/raw/) and re-encoding/gain-adjusting one occasionally comes up (e.g. boosting a
 # clip that plays too quiet at SoundPool's volume ceiling of 1.0).
 #
+# procps gives ps, pgrep, and pkill: finding and stopping the emulator's process or a stuck Gradle run, and the busy
+# loops of a starved-emulator soak (the emulator skill).
+#
 # fontconfig backs the copied-in Temurin JDK: the temurin base image normally supplies it (the JDK
 # itself only bundles freetype), so on this Debian base we add it explicitly, for the reflective
 # java.desktop paths. (tzdata, which the JDK also needs, is in the shared base.)
@@ -342,6 +345,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
     apt-get update && apt-get install -yqq --no-install-recommends \
         ffmpeg="7:7.1.5-0+deb13u1" \
         fontconfig="2.15.0-2.3" \
+        procps="2:4.0.4-9" \
         python3-fonttools="4.57.0-1+deb13u1"
 # END DEBIAN PACKAGES
 

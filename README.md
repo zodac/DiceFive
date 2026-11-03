@@ -71,7 +71,7 @@ for yourself.
 
 ## Make the table your own
 
-Unlock over 90 styles as you earn achievements, most in several colours:
+Unlock over 200 styles as you earn achievements:
 
 - **Dice** - gemstones, marble, mahjong tiles, LCD digits, googly eyes, Roman numerals, cake, and more
 - **Dice cups** - a top hat, a treasure chest, a volcano, a flowerpot, a cauldron, a fishbowl, and more
