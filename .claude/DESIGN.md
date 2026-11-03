@@ -701,6 +701,8 @@ Two apps from one source, one per way the app reaches players: product flavours 
 - **To Google Play, on demand**, `.github/workflows/play-release.yml` (run by hand: a release tag, blank for the newest,
     and a track) uploads a GitHub release's `.aab` and its play mapping to that track as a completed release. Nothing is
     built.
+    - **`publish`** (boolean, default on) decides whether the update is sent for review. Off, it is only prepared: the
+        upload lands in Play Console with `changesNotSentForReview`, to be sent from Publishing overview.
     - **What's new** (en-GB): the GitHub release's URL, then as many of its bullets as fit whole in Play's 500
         characters, without their commit links, then "..." for the rest (`scripts/play-release-notes.sh`, tested by
         `scripts/tests/play-release-notes-test.sh`).

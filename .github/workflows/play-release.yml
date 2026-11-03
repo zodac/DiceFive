@@ -11,9 +11,11 @@ name: Play release
 # The release's "What's new" (en-GB, Play's 500 characters) is the GitHub release's URL, then as many of its bullets as
 # fit whole, then "..." for the rest (scripts/play-release-notes.sh).
 #
-# The commit sends the edit for review with Play's default (changesInReviewBehavior unset), which "send[s] all the
-# changes for publishing" - whether that includes store listing changes saved in Play Console isn't confirmed yet. Play Games Services' achievements and leaderboards are published from
-# Play Console, not here: the API has no call for it.
+# With `publish` on (the default) the commit sends the edit for review with Play's default, which "send[s] all the
+# changes for publishing" - whether that includes store listing changes saved in Play Console isn't confirmed yet. With
+# it off, the bundle is uploaded and the release prepared, but the changes are not sent for review
+# (changesNotSentForReview): they wait in Play Console's Publishing overview until the maintainer sends them. Play Games
+# Services' achievements and leaderboards are published from Play Console, not here: the API has no call for it.
 #
 # Signs in with the PLAY_SERVICE_ACCOUNT_JSON secret: a Google Cloud service account's JSON key, the account invited
 # in Play Console (Users and permissions) with release rights to the app.
@@ -35,6 +37,11 @@ on:
           - alpha
           - beta
           - production
+      publish:
+        description: "Publish the update (send it for review); off only prepares it in Play Console"
+        required: true
+        default: true
+        type: boolean
 
 permissions:
   contents: read
@@ -127,4 +134,5 @@ jobs:
           releaseName: ${{ steps.release.outputs.version }}
           tracks: ${{ inputs.track }}
           status: completed
+          changesNotSentForReview: ${{ !inputs.publish }}
           whatsNewDirectory: ${{ steps.notes.outputs.dir }}
