@@ -539,8 +539,8 @@ class AchievementEngineTest {
         assertFalse(gamesProgressed(1))
         assertTrue(gamesProgressed(24))
 
-        // Well Rolled announces progress every 1,000 dice - not every quarter of its 10,000 target: 990 -> 995 doesn't
-        // cross a thousand, 999 -> 1,000 does, nowhere near the default cadence's 2,500-dice first quarter.
+        // Well Rolled announces progress every 1,000 dice - not every quarter of its 50,000 target: 990 -> 995 doesn't
+        // cross a thousand, 999 -> 1,000 does, nowhere near the default cadence's 12,500-dice first quarter.
         fun diceProgressed(before: Int, rolled: Int) = evaluate(
             finishedGame(player()),
             context = GameAchievementContext(diceRolledByPlayerOne = rolled),

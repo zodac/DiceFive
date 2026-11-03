@@ -75,7 +75,7 @@
     <string name="achievement_hall_of_famer_title">Salón de la fama</string>
     <string name="achievement_hall_of_famer_description">Gana 25 partidas</string>
     <string name="achievement_well_rolled_title">Buen lanzador</string>
-    <string name="achievement_well_rolled_description">Lanza 10.000 dados</string>
+    <string name="achievement_well_rolled_description">Lanza 50.000 dados</string>
     <string name="achievement_on_a_roll_title">En racha</string>
     <string name="achievement_on_a_roll_description">Gana 3 partidas seguidas</string>
     <string name="achievement_untouchable_title">Intocable</string>

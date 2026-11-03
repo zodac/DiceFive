@@ -546,7 +546,7 @@ enum class Achievement(
         "well_rolled",
         Res.string.achievement_well_rolled_title,
         Res.string.achievement_well_rolled_description,
-        AchievementCategory.MILESTONES, AchievementCounter.DICE_ROLLED, target = 10_000, progressStepSize = 1_000,
+        AchievementCategory.MILESTONES, AchievementCounter.DICE_ROLLED, target = 50_000, progressStepSize = 1_000,
     ),
     PROFESSIONAL_ROLLER(
         "professional_roller",
