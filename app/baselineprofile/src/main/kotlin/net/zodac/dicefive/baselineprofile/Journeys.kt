@@ -844,9 +844,10 @@ private fun MacrobenchmarkScope.playTutorial() {
  */
 internal fun MacrobenchmarkScope.visitScoreScreens() {
     openFromMenu("Leaderboard")
-    tapDesc("Leaderboard, Combined")
+    // The drop-down's menu is tapped open until its options show: a tap on a starved emulator can be dropped.
+    tapDescUntil("Leaderboard, Combined") { device.hasObject(By.desc("Standard")) }
     tapDesc("Standard")
-    tapDesc("Leaderboard, Standard")
+    tapDescUntil("Leaderboard, Standard") { device.hasObject(By.desc("Combined")) }
     tapDesc("Combined")
     backToMenu()
     openFromMenu("Statistics")
