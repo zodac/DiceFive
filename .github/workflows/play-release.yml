@@ -125,6 +125,6 @@ jobs:
           releaseFiles: ${{ steps.release.outputs.bundle }}
           mappingFile: ${{ steps.release.outputs.mapping }}
           releaseName: ${{ steps.release.outputs.version }}
-          track: ${{ inputs.track }}
+          tracks: ${{ inputs.track }}
           status: completed
           whatsNewDirectory: ${{ steps.notes.outputs.dir }}
