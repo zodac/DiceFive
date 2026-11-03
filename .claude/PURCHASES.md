@@ -301,7 +301,7 @@ On a real phone signed in to Play as a license tester (the emulator has no Play 
 - **Target audience**: if it includes children, the Families policy rules for purchases apply; check before
     submitting.
 - **Store listing and `README.md`**: mention that every style can be earned for free or unlocked with a one-time
-    purchase. Keep the "Fully offline" tagline true (buying needs Play; playing never does).
+    purchase. Keep any offline claim true (buying needs Play; playing never does).
 - Update `DESIGN.md` (Table art, locks), `UI_SCREENS.md` (banners, Styles screen), `PUBLISHING.md` (checklist "Later"
     item, data safety), `CLAUDE.md` (move this from "Planned"). Release notes are the maintainer's.
 

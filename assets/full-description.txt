@@ -1,4 +1,4 @@
-DiceFive is a classic five-dice scorecard game. Roll up to three times a turn, hold the dice you want to keep, and decide where each roll scores. Chase a full house, a large straight, or a 5x, and try to make the upper-section bonus before your boxes run out.
+DiceFive is the family classic where you roll five dice to make poker hands and score big! Roll up to three times a turn, hold the dice you want to keep, and decide where each roll scores. Chase a full house, a large straight, or a 5x, and try to make the upper-section bonus before your boxes run out.
 
 Play solo to beat your best score, pass the phone around with up to four players, or fill the empty seats with computer opponents on Easy, Medium, or Hard.
 

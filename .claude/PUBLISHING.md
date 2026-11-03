@@ -68,13 +68,14 @@ until the player signs in.
 
 - **Graphics**: generated (the `store-assets` skill). The hi-res icon follows the launcher icon. The video goes to
     YouTube; Play takes its URL.
-- **Short description** (80 chars max), drafted, 77 chars:
+- **Short description** (80 chars max), 78 chars:
 
     ```text
-    Roll five dice and outscore friends or AI. Offline unless you use Play Games.
+    The family classic where you roll five dice to make poker hands and score big!
     ```
 
-    The full tagline (`README.md`'s first line, 120 chars) doesn't fit. Keep both true when the purchase ships.
+    It's the tagline: also `README.md`'s first line, the GitHub repo description, and the opening of the full
+    description. Keep them the same.
 - **Full description**: `assets/full-description.txt`, about 3000 of 4000 characters. Keep its counts and lists true:
     - the modes under "Seven ways to play" (and that heading's count);
     - the modifiers under "House rules";

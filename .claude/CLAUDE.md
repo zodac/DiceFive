@@ -2,8 +2,8 @@
 
 ## The project
 
-A local (no netplay) five-dice scorecard game for Android. Its tagline: "Roll five dice, fill your
-scorecard, and outscore friends or AI. Fully offline, unless you sign in to Google Play Games."
+A local (no netplay) five-dice scorecard game for Android. Its tagline: "The family classic where you
+roll five dice to make poker hands and score big!"
 
 - **Players.** 1-4 per game: solo, pass-and-play, or CPU opponents (Easy/Medium/Hard).
 - **Content.** Seven game modes, optional house-rule modifiers, a Leaderboard, per-player Statistics, 100+
