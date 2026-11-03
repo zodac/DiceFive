@@ -228,6 +228,7 @@ object GameStateJson {
         player.firstTurnScore?.let { put("firstTurnScore", it) }
         if (player.fiveOfAKindNumbers.isNotEmpty()) put("fiveOfAKindNumbers", jsonInts(player.fiveOfAKindNumbers.sorted()))
         if (player.fullHouseHands.isNotEmpty()) put("fullHouseHands", jsonInts(player.fullHouseHands.sorted()))
+        if (player.fiveOfAKindsCounted > 0) put("fiveOfAKindsCounted", player.fiveOfAKindsCounted)
         if (player.fiveOfAKindFlashed) put("fiveOfAKindFlashed", true)
         player.lastRoll?.let { put("lastRoll", JsonArray(it.map(::encodeDie))) }
         player.lastScoredCategory?.let { put("lastScoredCategory", it.id) }
@@ -280,6 +281,8 @@ object GameStateJson {
             // Left out by encode until the player scores one.
             fiveOfAKindNumbers = (obj["fiveOfAKindNumbers"] as? JsonArray)?.ints()?.toSet().orEmpty(),
             fullHouseHands = (obj["fullHouseHands"] as? JsonArray)?.ints()?.toSet().orEmpty(),
+            // Left out by encode until one is counted, and by a game saved before they were counted as scored: resuming counts those.
+            fiveOfAKindsCounted = if ("fiveOfAKindsCounted" in obj) obj.int("fiveOfAKindsCounted") else 0,
             rollsModified = rollsModified,
             // Left out unless set: that player's flash is still to come.
             fiveOfAKindFlashed = obj.booleanOrNull("fiveOfAKindFlashed") == true,

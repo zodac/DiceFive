@@ -444,10 +444,10 @@ class GameViewModel(
         // The box an undo would take back is the one the last score went in.
         tracker.startGame(resumedUndo, resumedLastCommitted = resumedUndoSnapshot?.let { state.players.getOrNull(it.currentPlayerIndex)?.lastScoredCategory })
         this.resumedSecondsLeft = resumedSecondsLeft
-        applyGameState(state)
+        applyGameState(GameEngine.markFiveOfAKindsCounted(state))
         this.resumedSecondsLeft = null
         prepareHardCpus()
-        checkInProgressAchievements()
+        checkInProgressAchievements(state)
         checkGameStartAchievements(startedAtLocalHour, previousGame)
     }
 
@@ -606,17 +606,19 @@ class GameViewModel(
         val committedUnlocks = tracker.onCommitted(category, byPlayerOne = isPlayerOneTurn)
         Breadcrumbs.record("Scored ${category.id}, player ${committing.currentPlayerIndex + 1}") // i18n: not translated - a crash report's breadcrumb
         setUndoSnapshot(undoTo)
-        applyGameState(GameEngine.commitScore(committing, category))
+        val committed = GameEngine.commitScore(committing, category)
+        applyGameState(GameEngine.markFiveOfAKindsCounted(committed))
 
         unlockAchievements(committedUnlocks)
         // Only player 1's own commits are checked: every mid-game achievement reads player 1's
         // scorecard, which nobody else's turn can change.
-        if (isPlayerOneTurn) checkInProgressAchievements()
+        if (isPlayerOneTurn) checkInProgressAchievements(committed)
     }
 
     /** Reverts just the most recent human move, if there is one to undo. Cancels any pending AI turn it would have triggered. */
     fun undo() {
         val snapshot = undoSnapshot ?: return
+        val undoing = _game.value ?: return
         if (tutorial != null) {
             if (currentTutorialStep !is TutorialStep.Undo) return
             advanceTutorial()
@@ -626,7 +628,7 @@ class GameViewModel(
         cpuTurns.cancel()
         cancelTurnTimer()
         setUndoSnapshot(null)
-        applyGameState(snapshot, checkForAiTurn = false)
+        applyGameState(GameEngine.keepFiveOfAKindsCounted(snapshot, undoing), checkForAiTurn = false)
     }
 
     /** A tap on the dice cup once a turn's last roll is already spent - it does nothing for the
@@ -871,10 +873,12 @@ class GameViewModel(
      *
      * Skipped once the game is over, where [finishGame] evaluates the same things (and more) -
      * running both would race to unlock the same achievement and pop it twice.
+     *
+     * A caller that has just marked a game's 5x as counted ([GameEngine.markFiveOfAKindsCounted]) passes the [state] from
+     * before it, which is what says how many to add.
      */
-    private fun checkInProgressAchievements() {
-        val state = _game.value ?: return
-        if (state.isGameOver || tutorial != null) return
+    private fun checkInProgressAchievements(state: GameState? = _game.value) {
+        if (state == null || state.isGameOver || tutorial != null) return
 
         viewModelScope.launch {
             achievementUnlocker.apply { stored -> AchievementEngine.evaluateInProgress(state, stored, nowEpochMillis(), tracker.timedOutZeroes, growsFlowerpot()) }

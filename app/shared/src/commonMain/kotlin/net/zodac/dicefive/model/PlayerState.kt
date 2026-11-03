@@ -62,6 +62,9 @@ data class PlayerState(
     /** Each of [Achievement.FULL_HOUSES_HANDS] (from 1) this player has scored in the Full House box this game. Saved with
      * the game, and taken back with an undo (see [net.zodac.dicefive.model.Achievement.FULL_HOUSES]). */
     val fullHouseHands: Set<Int> = emptySet(),
+    /** How many of this game's 5x the [net.zodac.dicefive.model.AchievementCounter.SCORED_5X] total already holds. Saved
+     * with the game, and kept through an undo, so scoring a 5x again after one adds nothing. */
+    val fiveOfAKindsCounted: Int = 0,
     /** Rolls this player left unused at the end of their last turn and keeps for their next - always 0
      * unless the Stored Rolls modifier is on. */
     val storedRolls: Int = 0,

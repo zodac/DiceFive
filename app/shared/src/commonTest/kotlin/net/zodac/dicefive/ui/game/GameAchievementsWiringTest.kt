@@ -890,6 +890,73 @@ class GameAchievementsWiringTest {
     }
 
     @Test
+    fun `a 5x counts the moment it's scored and only once - through an undo - leaving and resuming - and the game's end`() = runTest(testDispatcher) {
+        val saves = InProgressGameRepository(InMemoryPreferences(), backgroundScope)
+        val store = InMemoryAchievementStore()
+        // Two 5x, ten turns of no 5x, and a 5x on the last turn.
+        val dice = ScriptedDice(List(10) { 6 } + List(10) { listOf(1, 2, 3, 4, 6) }.flatten() + List(5) { 6 })
+        fun table() = gameViewModel(aiDispatcher = testDispatcher, inProgressGameRepository = saves, achievementsRepository = store, random = dice)
+        suspend fun total() = store.state.first().counter(AchievementCounter.SCORED_5X)
+
+        val left = table()
+        left.setupForm.setPlayerCount(1)
+        left.startGame()
+        left.rollDice()
+        left.commitScore(ScoreCategory.FIVE_OF_A_KIND)
+        runCurrent()
+        assertEquals(1, total(), "the 5x should count as it's scored")
+
+        left.undo()
+        runCurrent()
+        assertEquals(1, total(), "an undo leaves the total")
+        left.commitScore(ScoreCategory.FIVE_OF_A_KIND)
+        runCurrent()
+        assertEquals(1, total(), "scoring it again after an undo is the same 5x")
+
+        left.rollDice()
+        left.commitScore(ScoreCategory.SIXES)
+        runCurrent()
+        assertEquals(2, total(), "a bonus chip is a 5x too")
+
+        val resumed = table()
+        assertTrue(resumed.resumeGame())
+        runCurrent()
+        assertEquals(2, total(), "resuming counts nothing twice")
+
+        resumed.playToCompletion()
+        advanceUntilIdle()
+        assertTrue(resumed.game.value?.isGameOver == true, "the game should have been played out")
+        assertEquals(3, total(), "the end of the game adds only the last turn's 5x")
+    }
+
+    @Test
+    fun `a game saved before 5x counted as scored counts its 5x on resuming - once`() = runTest(testDispatcher) {
+        val saves = InProgressGameRepository(InMemoryPreferences(), backgroundScope)
+        val store = InMemoryAchievementStore()
+        val dice = LoadedDice(6)
+        fun table() = gameViewModel(aiDispatcher = testDispatcher, inProgressGameRepository = saves, achievementsRepository = store, random = dice)
+
+        val left = table()
+        left.setupForm.setPlayerCount(1)
+        left.startGame()
+        left.rollDice()
+        left.commitScore(ScoreCategory.ONES)
+        left.rollDice()
+        left.commitScore(ScoreCategory.FIVE_OF_A_KIND)
+        runCurrent()
+        val saved = left.game.value!!
+        saves.save(saved.copy(players = saved.players.map { it.copy(fiveOfAKindsCounted = 0) }))
+        runCurrent()
+        store.mutableState.value = AchievementsState()
+
+        val resumed = table()
+        assertTrue(resumed.resumeGame())
+        runCurrent()
+        assertEquals(1, store.state.first().counter(AchievementCounter.SCORED_5X), "the saved card's 5x should count on resuming")
+        assertEquals(1, resumed.game.value?.players?.single()?.fiveOfAKindsCounted, "and be marked as counted")
+    }
+
+    @Test
     fun `a score left undoable is still undoable on resuming - undone into another box it's I Didn't Mean That`() = runTest(testDispatcher) {
         val saves = InProgressGameRepository(InMemoryPreferences(), backgroundScope)
         val store = InMemoryAchievementStore()

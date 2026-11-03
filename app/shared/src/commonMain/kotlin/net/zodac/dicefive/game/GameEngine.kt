@@ -252,6 +252,26 @@ object GameEngine {
     }
 
     /**
+     * [state] with player 1's 5x so far marked as held by the [net.zodac.dicefive.model.AchievementCounter.SCORED_5X] total
+     * ([PlayerState.fiveOfAKindsCounted]). A finished game is left as it is: the end of the game counts what the last turn
+     * scored from it.
+     */
+    fun markFiveOfAKindsCounted(state: GameState): GameState {
+        val player = state.players.firstOrNull() ?: return state
+        if (state.isGameOver || player.fiveOfAKindCount <= player.fiveOfAKindsCounted) return state
+        return state.withFiveOfAKindsCounted(player.fiveOfAKindCount)
+    }
+
+    /** [snapshot], which an undo is going back to, still knowing how many 5x [current] has counted: an undo takes back the score, not the count. */
+    fun keepFiveOfAKindsCounted(snapshot: GameState, current: GameState): GameState {
+        val counted = current.players.firstOrNull()?.fiveOfAKindsCounted ?: return snapshot
+        return if (counted > (snapshot.players.firstOrNull()?.fiveOfAKindsCounted ?: 0)) snapshot.withFiveOfAKindsCounted(counted) else snapshot
+    }
+
+    private fun GameState.withFiveOfAKindsCounted(counted: Int): GameState =
+        copy(players = players.mapIndexed { seat, player -> if (seat == 0) player.copy(fiveOfAKindsCounted = counted) else player })
+
+    /**
      * The turn timer running out: the rest of the turn's rolls are forfeited, and a box is filled - a forced miss, never
      * the best option picked for the player. A turn not yet rolled scores a zero ([forfeitTurn]): nothing is rolled the
      * player didn't roll. A rolled one goes in the first box, in scorecard order, its dice can go in

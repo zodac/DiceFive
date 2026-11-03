@@ -427,7 +427,11 @@ they open on, then **Combined**, every mode's games together, last (a divider af
     - A solo game counts for games played, feats and thresholds, but neither extends nor breaks a win streak.
     - A tie at the top is a win only for whoever the tie-break ranks first (`wonBy`); a true tie is a shared win.
     - Superuser mode doesn't disqualify a game.
-    - Undo can't inflate a counter: running totals move only at game end, and only human rolls count dice.
+    - Undo can't inflate a counter: running totals move only at game end, and only human rolls count dice. The one total
+        that moves sooner is Dice Whisperer's (`SCORED_5X`): each 5x counts the moment it's scored, with its banner (or,
+        on the tenth, the unlock), so one in a game then left still counts. `PlayerState.fiveOfAKindsCounted` keeps the
+        game's count through an undo and a resume, so a 5x undone and scored again counts once, and one undone and never
+        scored again stays counted.
     - New Personal Best is per name, and reads the best from before this game's rows are written.
     - Full Set's counter (`FIVE_X_NUMBERS`) and Full Houses' (`FULL_HOUSES`, one bit per hand in
         `Achievement.FULL_HOUSES_HANDS`) are sets of flags; their progress is the bits set (`AchievementCounter.progressOf`).
@@ -447,12 +451,12 @@ they open on, then **Combined**, every mode's games together, last (a divider af
         `GameViewModel.unlockAchievements` filters the tracker's.
 - **When they're judged.** The engine decides, never a call site.
     - `evaluateAtGameStart`: style and mode picks (Fresh Coat Of Paint).
-    - `evaluateInProgress`, after each scored box: only what a later turn can't take away, and the collection flags.
-        Score thresholds wait for game end.
+    - `evaluateInProgress`, after each scored box: only what a later turn can't take away, the collection flags, and the
+        5x total. Score thresholds wait for game end.
     - `unlockNow` and the pre-commit checks: moments a finished card can't show, such as a hand straight out of the cup
         or the dice and chosen box together (Wasted Fortune, Size Isn't Everything, Almost Famous, The Dice Hate Me,
         Commitment Issues).
-    - `evaluate` at game end: everything else, and every counter.
+    - `evaluate` at game end: everything else, and every counter (of the 5x total, only what the last turn scored).
     - Every unlock goes through the app's one `AchievementUnlocker` (`app/`, `AppContainer.achievementUnlocker`), whose
         locks (its own and the store's `locked`) serialise them all across screens, so nothing is announced twice.
 - **Modes.** Each mode's own achievements are in the Game Modes category. Achievements a mode would make trivial are

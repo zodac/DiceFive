@@ -253,9 +253,10 @@ object AchievementEngine {
     /**
      * What a game **in progress** has already earned - called after every scored category, so
      * "Six Appeal" lands the moment the 30 goes in the box rather than waiting for the results
-     * screen. Only judges what a later turn cannot undo (see [earnedDuringPlay]). The one set of
-     * counters moved here is the collected flags ([collectedFlags]), with their progress banners:
-     * a flag set twice is still one, so an undo can't inflate them. Every running total is left to
+     * screen. Only judges what a later turn cannot undo (see [earnedDuringPlay]). The counters moved
+     * here, with their progress banners, are the collected flags ([collectedFlags]), where a flag set
+     * twice is still one, and the 5x total, which adds only what [state] hasn't counted
+     * ([uncountedFiveOfAKinds]), so an undo can't inflate either. Every other running total is left to
      * [evaluate], a once-per-finished-game affair.
      */
     fun evaluateInProgress(
@@ -271,18 +272,28 @@ object AchievementEngine {
         if (state.players.firstOrNull()?.type != PlayerType.HUMAN) return AchievementUpdate()
         val humans = listOf(state.players.first())
 
-        // A game with a modifier on moves no counter - see the class doc's first rule. Only a flag newly set is written.
-        val flags = if (state.hasModifiers) {
+        // A game with a modifier on moves no counter - see the class doc's first rule. Only what has moved is written.
+        val counters = if (state.hasModifiers) {
             emptyMap()
         } else {
-            collectedFlags(state, humans.first(), before).filter { (counter, value) -> value != before.counter(counter) }
+            val total = before.counter(AchievementCounter.SCORED_5X) + uncountedFiveOfAKinds(humans)
+            (collectedFlags(state, humans.first(), before) + (AchievementCounter.SCORED_5X to total))
+                .filter { (counter, value) -> value != before.counter(counter) }
         }
-        val collected = Achievement.entries.filterTo(mutableSetOf()) { achievement ->
+        val reached = Achievement.entries.filterTo(mutableSetOf()) { achievement ->
             val counter = achievement.counter
-            counter != null && counter in flags && counter.progressOf(flags.getValue(counter)) >= achievement.target
+            counter != null && counter in counters && counter.progressOf(counters.getValue(counter)) >= achievement.target
         }
-        return update(earnedDuringPlay(state, humans, timedOutZeroes, growingFlowerpotInPlay) + collected, flags, before, now)
+        return update(earnedDuringPlay(state, humans, timedOutZeroes, growingFlowerpotInPlay) + reached, counters, before, now)
     }
+
+    /**
+     * The 5x on [humans]' cards that the [AchievementCounter.SCORED_5X] total doesn't hold yet
+     * ([PlayerState.fiveOfAKindsCounted]). The 5x that seven dice hand out (Stud) don't count toward it, and a 5x undone
+     * after it was counted leaves the card short of the count, which is no reason to take any back.
+     */
+    private fun uncountedFiveOfAKinds(humans: List<PlayerState>): Int =
+        humans.filter { it.scoresRolledHand }.sumOf { (it.fiveOfAKindCount - it.fiveOfAKindsCounted).coerceAtLeast(0) }
 
     /**
      * The stored flags with what [player] has collected this game added: Full Set's 5x numbers and Full Houses' hands, each
@@ -375,12 +386,10 @@ object AchievementEngine {
     ): Map<AchievementCounter, Int> {
         val multiplayer = state.players.size > 1
         val humanWon = state.wonBy(0) == true
-        // The 5x that seven dice hand out (Stud) don't count toward Total 5x.
-        val fiveOfAKindsThisGame = humans.filter { it.scoresRolledHand }.sumOf { it.fiveOfAKindCount }
 
         return collectedFlags(state, humans.first(), before) + mapOf(
             AchievementCounter.GAMES_PLAYED to before.counter(AchievementCounter.GAMES_PLAYED) + 1,
-            AchievementCounter.SCORED_5X to before.counter(AchievementCounter.SCORED_5X) + fiveOfAKindsThisGame,
+            AchievementCounter.SCORED_5X to before.counter(AchievementCounter.SCORED_5X) + uncountedFiveOfAKinds(humans),
             AchievementCounter.DICE_ROLLED to before.counter(AchievementCounter.DICE_ROLLED) + context.diceRolledByPlayerOne,
             AchievementCounter.GAMES_WON to before.counter(AchievementCounter.GAMES_WON) +
                 if (multiplayer && humanWon) 1 else 0,

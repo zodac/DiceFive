@@ -599,7 +599,7 @@ enum class Achievement(
         "dice_whisperer",
         Res.string.achievement_dice_whisperer_title,
         Res.string.achievement_dice_whisperer_description,
-        AchievementCategory.DICE, AchievementCounter.SCORED_5X, target = 10, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
+        AchievementCategory.DICE, AchievementCounter.SCORED_5X, target = 10, progressStepSize = 1, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
 
     // ---- Dice feats continued: how the dice landed, not just what they show ------------------

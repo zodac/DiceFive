@@ -885,7 +885,7 @@ class AchievementEngineTest {
         assertFalse(Achievement.LOW_ROLLS in almostEmpty)
         assertFalse(Achievement.PRACTICE_MAKES_PERFECT in almostEmpty)
 
-        // Mid-game touches no running total - so an undo can't inflate one - and a collection with nothing new isn't written.
+        // Mid-game touches no running total but the 5x one - so an undo can't inflate one - and a collection with nothing new isn't written.
         val update = AchievementEngine.evaluateInProgress(
             inProgress(midGamePlayer(mapOf(ScoreCategory.SIXES to 30))),
             AchievementsState(counters = mapOf(AchievementCounter.GAMES_PLAYED to 7)),
@@ -898,6 +898,47 @@ class AchievementEngineTest {
         // nothing from a game that isn't.
         assertTrue(AchievementEngine.evaluateInProgress(finishedGame(player(total = 300)), AchievementsState(), NOW).isEmpty)
         assertTrue(evaluate(GameState(players = listOf(player()), isGameOver = false)).isEmpty)
+    }
+
+    @Test
+    fun `Dice Whisperer moves as each 5x is scored - with a banner for every one - and the game's end adds only what's left`() {
+        val fiveX = mapOf(ScoreCategory.FIVE_OF_A_KIND to 50)
+        fun stored(total: Int) = AchievementsState(counters = mapOf(AchievementCounter.SCORED_5X to total))
+        fun midGame(player: PlayerState, total: Int = 0) = AchievementEngine.evaluateInProgress(inProgress(player), stored(total), NOW)
+
+        // The first of ten has its banner, and so does the ninth: no waiting for a quarter mark.
+        val first = midGame(midGamePlayer(fiveX))
+        assertEquals(mapOf(AchievementCounter.SCORED_5X to 1), first.counters)
+        assertEquals(listOf(AchievementProgress(Achievement.DICE_WHISPERER, 0, 1)), first.progressed)
+        assertTrue(AchievementProgress(Achievement.DICE_WHISPERER, 8, 9) in midGame(midGamePlayer(fiveX), total = 8).progressed)
+
+        // The tenth is the unlock, with no banner of progress alongside it.
+        val tenth = midGame(midGamePlayer(fiveX), total = 9)
+        assertTrue(Achievement.DICE_WHISPERER in tenth.newlyUnlocked)
+        assertEquals(10, tenth.counters[AchievementCounter.SCORED_5X])
+        assertTrue(tenth.progressed.none { it.achievement == Achievement.DICE_WHISPERER })
+
+        // Only what isn't counted yet moves it: one already counted adds nothing, including with a card an undo left short.
+        assertTrue(AchievementCounter.SCORED_5X !in midGame(midGamePlayer(fiveX).copy(fiveOfAKindsCounted = 1), total = 1).counters)
+        assertTrue(AchievementCounter.SCORED_5X !in midGame(midGamePlayer(emptyMap()).copy(fiveOfAKindsCounted = 1), total = 1).counters)
+        assertEquals(2, midGame(midGamePlayer(fiveX, fiveOfAKindBonusCount = 1).copy(fiveOfAKindsCounted = 1), total = 1).counters[AchievementCounter.SCORED_5X])
+        // A saved game from before they were counted as scored: everything on its card is still to count.
+        assertEquals(5, midGame(midGamePlayer(fiveX, fiveOfAKindBonusCount = 2), total = 2).counters[AchievementCounter.SCORED_5X])
+
+        // Player 1's own, never another seat's; not Stud's; and not in a game with a modifier on.
+        assertTrue(AchievementEngine.evaluateInProgress(inProgress(midGamePlayer(emptyMap()), midGamePlayer(fiveX, type = PlayerType.AI)), stored(0), NOW).counters.isEmpty())
+        assertTrue(midGame(midGamePlayer(fiveX, gameMode = GameMode.STUD)).counters.isEmpty())
+        val modified = inProgress(midGamePlayer(fiveX)).copy(turnTimer = TurnTimer.SECONDS_30)
+        assertTrue(AchievementEngine.evaluateInProgress(modified, stored(0), NOW).counters.isEmpty())
+
+        // The game's end adds the last turn's 5x, with its banner, and no second one for those already announced.
+        fun finished(counted: Int) = player(total = 300, fiveOfAKindBonusCount = 2, overrides = fiveX).copy(fiveOfAKindsCounted = counted)
+        val lastTurn = evaluate(finishedGame(finished(counted = 2)), before = stored(4))
+        assertEquals(5, lastTurn.counters[AchievementCounter.SCORED_5X])
+        assertEquals(AchievementProgress(Achievement.DICE_WHISPERER, 4, 5), lastTurn.progressed.single { it.achievement == Achievement.DICE_WHISPERER })
+        val nothingNew = evaluate(finishedGame(finished(counted = 3)), before = stored(5))
+        assertEquals(5, nothingNew.counters[AchievementCounter.SCORED_5X])
+        assertTrue(nothingNew.progressed.none { it.achievement == Achievement.DICE_WHISPERER })
     }
 
     /** Player 1 part-way through a game in [mode], having rolled [rolls] times, as [evaluateInProgress] sees it after a roll. */

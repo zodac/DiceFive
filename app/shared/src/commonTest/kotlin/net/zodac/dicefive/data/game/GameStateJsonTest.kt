@@ -118,6 +118,9 @@ class GameStateJsonTest {
         assertEquals(setOf(2, 6), roundTripped(GameState(players = listOf(human.copy(fiveOfAKindNumbers = setOf(6, 2))))).players.single().fiveOfAKindNumbers)
         assertEquals(setOf(1, 2), roundTripped(GameState(players = listOf(human.copy(fullHouseHands = setOf(1, 2))))).players.single().fullHouseHands)
         assertEquals(emptySet(), roundTripped(GameState(players = listOf(human))).players.single().fullHouseHands)
+        // The 5x the total already holds - and none, as a game saved before they were counted as scored reads.
+        assertEquals(2, roundTripped(GameState(players = listOf(human.copy(fiveOfAKindsCounted = 2)))).players.single().fiveOfAKindsCounted)
+        assertEquals(0, roundTripped(GameState(players = listOf(human))).players.single().fiveOfAKindsCounted)
 
         // The roll modifiers and a player's stored rolls.
         roundTripped(
