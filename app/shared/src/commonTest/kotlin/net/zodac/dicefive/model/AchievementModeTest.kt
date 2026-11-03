@@ -53,6 +53,15 @@ class AchievementModeTest {
     }
 
     @Test
+    fun `the ledger names Standard in its description, so it lists no limited modes - though only Standard can earn it`() {
+        val ledger = listOf(Achievement.TALLY, Achievement.BOOKKEEPER, Achievement.REGISTRAR, Achievement.AUDITOR, Achievement.ARCHIVIST, Achievement.HISTORIAN)
+        ledger.forEach { achievement ->
+            assertEquals(emptyList(), achievement.limitedModes, "$achievement")
+            assertEquals(listOf(GameMode.STANDARD), GameMode.entries.filter { achievement.isEarnableIn(it) }, "$achievement")
+        }
+    }
+
+    @Test
     fun `a deliberately limited achievement lists the modes left - neither the ones it's kept out of nor the impossible ones`() {
         // Encore is guarded in Third Wind and Stud; D20, Hit List and Quickfire have no 5x box.
         assertEquals(listOf(GameMode.STANDARD, GameMode.TRICOLOUR), Achievement.ENCORE.limitedModes)
