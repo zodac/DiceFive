@@ -172,7 +172,8 @@ Profile).
     switching to `Moving` once off the mat would hide the first rebuild in the shake.
 - **Always-on animations' battery cost.** The menu drift is capped at ~30fps and sleeps between its frames. Starry,
     steam, cauldron, and the tile glow run at the display rate at High. Measure on a real 120Hz phone (Macrobenchmark
-    `PowerMetric`, or Android Studio's Power Profiler) before capping.
+    `PowerMetric`, or Android Studio's Power Profiler) before capping. Not by frame-rate votes (see "Tried and
+    dropped").
 - **Baseline Profile benchmarks on a phone.**
     - Measure the generated profile's before and after
         (`./gradlew :app:baselineprofile:connectedBenchmarkReleaseAndroidTest`).
@@ -182,6 +183,13 @@ Profile).
 
 ## Tried and dropped
 
+- **A 60Hz vote for ambient art at High** (`Modifier.preferredFrameRate(FrameRateCategory.Normal)`, 2026-11-03,
+    investigated, not built). From Android 15, Compose takes the highest vote among the layers that redrew in a frame;
+    a layer with no vote, and Compose's own scrolling and flings, add nothing. So a vote on always-running art (stars,
+    steam, the cauldron, Neon) would pull whatever moves with it, unvoted, down to 60: the roll on those tables, and
+    flings on the Styles page once the finger lifts. Keeping them at the screen's rate means a High vote on every
+    other animation, kept up for each new one. Dropped by the maintainer's choice: High stays fully uncapped. Only
+    the score tile glow, lit while the dice are still, would have been low-risk, and it's the smallest saving.
 - **Moving `stringsLanguageConfiguration()`'s `runBlocking` off `attachBaseContext`** (2026-10-20, measured only).
     Sandbox emulator, debug build: 8-71ms on a cold start (most runs 10-35ms). About 2-4ms is coroutines' first load and
     nearly all the rest Compose resources' first read; a second call takes 0.2ms. The first screen would pay that first
