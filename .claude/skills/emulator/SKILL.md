@@ -63,6 +63,9 @@ emulator.sh stop
 - A tap whose effect later steps rely on goes through `tapUntil` (or `startGame`, `roll`, `setChecked`, `selectTab`),
     which taps again until that effect shows: a starved emulator drops taps.
 - Open screens with `openFromMenu`, which retries until the "DiceFive" wordmark is gone.
+- A check read straight after a tap can still see the screen from before it. So a tap's check must not hold
+    before the tap. `tapUntil` won't tap while it holds (read once idle), and a hand-written retry re-checks once
+    idle (`settledHolds`) before tapping again, so a slow tap is never doubled.
 - Never race anything that times out on its own, such as the 4s banner.
 - To shake out races, pin the emulator and two busy loops to two cores (`taskset -c 0-1`) and run two laps.
 

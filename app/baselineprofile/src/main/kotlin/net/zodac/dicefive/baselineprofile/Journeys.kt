@@ -92,12 +92,18 @@ private fun MacrobenchmarkScope.tap(what: String, find: () -> UiObject2) {
 /**
  * Taps what [find] returns until [done] says the tap took. A starved emulator drops taps - two in a row went with the
  * unlock banners animating at the foot of the screen - and the step after one then waits for what never comes. Tapped
- * again only after [TIMEOUT_MS] without [done], so a slow tap isn't doubled into one that undoes it. The first tap is
- * on [found] when the caller has just looked it up, saving a lookup; later ones look again.
+ * again only after [TIMEOUT_MS] without [done]. The first tap is on [found] when the caller has just looked it up,
+ * saving a lookup; later ones look again.
+ *
+ * Never tapped while [done] already holds, read once the screen is idle - before the first tap as before each retry.
+ * [done] read straight after a tap can still see the screen from before it, so one that held already would pass before
+ * the tap landed, and the tap could then undo it (a card or switch tapped again closes): a Statistics card the page had
+ * opened was closed that way on a 7th lap. Before a retry, the wait for idle lets a slow tap land, so it isn't doubled.
  */
 private fun MacrobenchmarkScope.tapUntil(what: String, find: () -> UiObject2, found: UiObject2? = null, done: () -> Boolean) {
     var next = found
     repeat(TAP_ATTEMPTS) {
+        if (settledHolds(done)) return
         val target = next ?: find()
         next = null
         try {
@@ -112,6 +118,16 @@ private fun MacrobenchmarkScope.tapUntil(what: String, find: () -> UiObject2, fo
         }
     }
     error("Baseline Profile journey: tapping '$what' never took (on screen: ${screenText()})")
+}
+
+/** Whether [done] holds once the screen has gone idle (the usual wait, not [withShortIdleWait]'s); gone stale, it doesn't yet. */
+private fun MacrobenchmarkScope.settledHolds(done: () -> Boolean): Boolean {
+    device.waitForIdle()
+    return try {
+        done()
+    } catch (_: StaleObjectException) {
+        false
+    }
 }
 
 private fun MacrobenchmarkScope.tapTextUntil(text: String, done: () -> Boolean) = tapUntil(text, { await(By.text(text), text) }, done = done)
@@ -209,7 +225,9 @@ private val ANY_BANNER = By.desc(Pattern.compile("(Achievement unlocked|Styles? 
  */
 internal fun MacrobenchmarkScope.openFromMenu(label: String) {
     await(By.text(label), label)
-    repeat(CLOSE_ATTEMPTS) {
+    repeat(CLOSE_ATTEMPTS) { attempt ->
+        // Tapped again only if the menu is still up once the screen is idle: a slow tap may have opened the page late.
+        if (attempt > 0 && settledHolds { !device.hasObject(MENU) }) return
         try {
             device.findObject(By.text(label))?.click()
         } catch (_: StaleObjectException) {
@@ -252,10 +270,12 @@ internal fun MacrobenchmarkScope.back() {
 /**
  * Back from a page opened from the menu, pressed again if the menu hasn't come back: a starved emulator can drop a back
  * press, and the next step would then look for the menu on that page. Pressed again only after [TIMEOUT_MS] without
- * the menu, so a slow press isn't doubled into one that leaves the app.
+ * the menu, and only if the menu is still not up once the screen is idle, so a slow press isn't doubled into one that
+ * leaves the app.
  */
 internal fun MacrobenchmarkScope.backToMenu() {
-    repeat(CLOSE_ATTEMPTS) {
+    repeat(CLOSE_ATTEMPTS) { attempt ->
+        if (attempt > 0 && settledHolds { device.hasObject(MENU) }) return
         back()
         // The menu's wordmark found is the menu there, so it's looked for without waiting for idle.
         if (withShortIdleWait { device.wait(Until.hasObject(MENU), TIMEOUT_MS) }) return
@@ -719,9 +739,11 @@ private fun MacrobenchmarkScope.toMainMenu() = tapTextUntil("Main Menu") { devic
 private fun MacrobenchmarkScope.setOneRollPerTurn(on: Boolean) {
     val decrease = By.desc("Decrease rolls per turn")
     // Tapped until the modifiers page is up: a tap can be dropped while a dialog's dim layer fades.
-    repeat(CLOSE_ATTEMPTS) {
-        device.findObject(By.desc("Modifiers"))?.click()
-        if (device.wait(Until.hasObject(By.text("Number of Rolls")), CLOSE_WAIT_MS)) {
+    val rolls = By.text("Number of Rolls")
+    repeat(CLOSE_ATTEMPTS) { attempt ->
+        // Tapped again only if the page isn't up once the screen is idle: a slow tap may have opened it late.
+        if (attempt == 0 || !settledHolds { device.hasObject(rolls) }) device.findObject(By.desc("Modifiers"))?.click()
+        if (device.wait(Until.hasObject(rolls), CLOSE_WAIT_MS)) {
             if (device.hasObject(decrease) != on) tapTextUntil("Number of Rolls") { device.hasObject(decrease) == on }
             if (on) {
                 // Down to the lowest, whatever it was left at: a tap at the lowest does nothing.
@@ -794,9 +816,10 @@ private fun MacrobenchmarkScope.playTurnsToGameOver(nextTurn: BySelector) {
  * the current mode's name too, so that name could be found twice.
  */
 private fun MacrobenchmarkScope.chooseMode(mode: String) {
-    tapDescUntil("Game Mode") { device.hasObject(By.text(mode)) }
-    // The picker's list is the only place another mode's name shows, so its going says the pick closed it.
+    // The picker's list is the only place another mode's name shows, so its going says the pick closed it. The list is
+    // open once both names show: one alone can be there before the rest of the list, which would read as already closed.
     val otherMode = if (mode == "Standard") "Tricolour" else "Standard"
+    tapDescUntil("Game Mode") { device.hasObject(By.text(mode)) && device.hasObject(By.text(otherMode)) }
     tapTextUntil(mode) { !device.hasObject(By.text(otherMode)) }
 }
 
@@ -839,21 +862,47 @@ private fun MacrobenchmarkScope.playTutorial() {
 }
 
 /**
- * Leaderboard, on the Standard board picked from its drop-down and back on Combined, and Statistics, with the first
- * player's card opened on its By mode view.
+ * Leaderboard, on Combined picked from its drop-down (every mode's rows, each coloured by mode) and back on Standard's,
+ * and Statistics, with the first player's card opened, then on the Combined page (its mode table) and back on Standard's.
  */
 internal fun MacrobenchmarkScope.visitScoreScreens() {
     openFromMenu("Leaderboard")
-    // The drop-down's menu is tapped open until its options show: a tap on a starved emulator can be dropped.
-    tapDescUntil("Leaderboard, Combined") { device.hasObject(By.desc("Standard")) }
-    tapDesc("Standard")
-    tapDescUntil("Leaderboard, Standard") { device.hasObject(By.desc("Combined")) }
-    tapDesc("Combined")
+    pickFromDropDown("Leaderboard", "Combined")
+    pickFromDropDown("Leaderboard", "Standard")
     backToMenu()
     openFromMenu("Statistics")
-    tapUntil("Player 1's card", { await(By.descStartsWith("Player 1."), "Player 1's card") }) { device.hasObject(By.text("By mode")) }
-    tapText("By mode")
+    // The page deals cards open (all of them when they fit), so this taps the card only if it came up closed.
+    await(By.descStartsWith("Player 1."), "Player 1's card")
+    // An opened card's numbers are spoken ("Played 3, won 1, ..."); a closed card's are silent. Player 1's card is
+    // first by name, and the first card always opens, so it is tapped only if it came up closed.
+    tapUntil("Player 1's card", { await(By.descStartsWith("Player 1."), "Player 1's card") }) { device.hasObject(By.descStartsWith("Played ")) }
+    pickFromDropDown("Statistics", "Combined")
+    pickFromDropDown("Statistics", "Standard")
     backToMenu()
+}
+
+/**
+ * On the Leaderboard or Statistics (the drop-down [field] names): [option] picked from the drop-down, until the field says
+ * it's the one on view. The menu is tapped open until its options show, then the option tapped; the menu can close again
+ * before that tap lands (it did on a starved emulator's 10th lap), so the pair is tried again, never while [option] is
+ * already picked.
+ */
+private fun MacrobenchmarkScope.pickFromDropDown(field: String, option: String) {
+    val picked = By.desc("$field, $option")
+    val choice = By.desc(option)
+    repeat(TAP_ATTEMPTS) {
+        if (settledHolds { device.hasObject(picked) }) return
+        tapUntil("the $field drop-down", { await(By.descStartsWith("$field, "), "the $field drop-down") }) {
+            device.hasObject(choice)
+        }
+        try {
+            device.findObject(choice)?.click()
+        } catch (_: StaleObjectException) {
+            // Re-composed between the lookup and the tap - the menu is opened and the option looked up again.
+        }
+        device.wait(Until.hasObject(picked), TIMEOUT_MS)
+    }
+    if (!settledHolds { device.hasObject(picked) }) error("Baseline Profile journey: '$option' never picked on $field (on screen: ${screenText()})")
 }
 
 /**
@@ -866,26 +915,61 @@ internal fun MacrobenchmarkScope.visitAchievements() {
     scrollDown(2)
     // The switch's label is the filter in force: "All" turns to "Unearned" as the switch takes the tap, and back.
     tapTextUntil("All") { device.hasObject(By.text("Unearned")) }
-    // Category by category until Tally's row is on screen: back first, then on. The page opens where it was last left,
-    // which after visitAchievementBanner is that banner's row in Easter Eggs, the category after Tally's.
-    // The scroll to a category goes on after the tap has returned, so each hop is given a moment to show it.
-    for (direction in listOf("Previous category", "Next category")) {
-        var hops = 0
-        while (!device.wait(Until.hasObject(By.text("Tally")), HOP_WAIT_MS) && hops++ < CATEGORY_HOPS) tapDesc(direction)
-    }
+    // The page opens where it was last left, which after visitAchievementBanner is that banner's row in Easter Eggs.
+    hopToCategory("Collection")
     // A press can be dropped (the row's tooltip, a banner fading out over it), so it is repeated until the dialog is up.
     // The scores' line shares its text with the mode restriction above it ("Can only be earned in..."), so it is found
     // anywhere in that text.
     val missing = By.textContains("Scores not yet on the leaderboard")
-    var pressed = 0
-    do {
+    // Pressed again only if the dialog isn't up once the screen is idle: a slow press may have opened it late.
+    for (pressed in 0 until CLOSE_ATTEMPTS) {
+        if (pressed > 0 && settledHolds { device.hasObject(missing) }) break
         longPressAt(await(By.text("Tally"), "Tally's row").visibleBounds)
-    } while (!device.wait(Until.hasObject(missing), CLOSE_WAIT_MS) && ++pressed < CLOSE_ATTEMPTS)
+        if (device.wait(Until.hasObject(missing), CLOSE_WAIT_MS)) break
+    }
     await(missing, "Tally's missing scores")
     closeDialog(By.text("Done"), "the missing scores' Done button")
     tapTextUntil("Unearned") { device.hasObject(By.text("All")) }
     backToMenu()
 }
+
+/**
+ * On the Achievements page: hops a category at a time, by the arrows on the pinned header, until [category]'s header is
+ * the one pinned. Each hop is tapped until the pinned header has changed - its glide over - so a hop never starts from
+ * part way through the one before: from there, the arrow jumps relative to wherever the glide had got to.
+ */
+private fun MacrobenchmarkScope.hopToCategory(category: String) {
+    val target = CATEGORIES.indexOf(category)
+    repeat(CATEGORIES.size) {
+        val pinned = pinnedCategory()
+        if (pinned == category) return
+        val arrow = if (CATEGORIES.indexOf(pinned) < target) "Next category" else "Previous category"
+        tapUntil("$pinned's $arrow", { topmostDesc(arrow) }) { pinnedCategory() != pinned }
+    }
+    error("Baseline Profile journey: the Achievements arrows never reached $category (on screen: ${screenText()})")
+}
+
+/** The category whose header is pinned at the top of the Achievements list: the topmost header on screen. */
+private fun MacrobenchmarkScope.pinnedCategory(): String {
+    await(CATEGORY_HEADER, "a category's header")
+    return device.findObjects(CATEGORY_HEADER).minByOrNull { it.visibleBounds.top }?.contentDescription?.substringBefore(", ")
+        ?: error("Baseline Profile journey: no category's header on the Achievements page")
+}
+
+/** The topmost match for the description [description]: on the Achievements page, the pinned header's arrow. */
+private fun MacrobenchmarkScope.topmostDesc(description: String): UiObject2 {
+    await(By.desc(description), description)
+    return device.findObjects(By.desc(description)).minByOrNull { it.visibleBounds.top }
+        ?: error("Baseline Profile journey: '$description' never appeared")
+}
+
+/** The Achievements page's categories, in its order. */
+private val CATEGORIES = listOf(
+    "Milestones", "Dice feats", "Scoring", "Winning", "Game Modes", "Misfortune", "Miscellaneous", "Collection", "Easter Eggs",
+)
+
+/** A category's header, by its spoken name and count ("Collection, 0 of 10 earned"). */
+private val CATEGORY_HEADER = By.desc(Pattern.compile("(${CATEGORIES.joinToString("|")}), \\d+ of \\d+ earned"))
 
 /**
  * The Styles page: the costliest to open the first time (BENCHMARKS.md, "The Styles page"), so
@@ -943,10 +1027,6 @@ private const val ROLL_ATTEMPTS = 12
 private const val ROLL_WAIT_MS = 2_500L
 private const val TURN_WAIT_MS = 60_000L
 private const val CELEBRATION_MS = 1_000L
-// Each way: the page has seven categories, and a hop at either end does nothing.
-private const val CATEGORY_HOPS = 8
-// Long enough for a starved emulator's scroll to land: given 800ms, the journey hopped on past Tally's category.
-private const val HOP_WAIT_MS = 3_000L
 private const val ROLL_SETTLE_MS = 2_000L
 private const val PICKER_CLOSE_MS = 1_000L
 private const val CLOSE_ATTEMPTS = 4
