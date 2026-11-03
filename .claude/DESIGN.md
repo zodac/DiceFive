@@ -451,8 +451,9 @@ they open on, then **Combined**, every mode's games together, last (a divider af
         `GameViewModel.unlockAchievements` filters the tracker's.
 - **When they're judged.** The engine decides, never a call site.
     - `evaluateAtGameStart`: style and mode picks (Fresh Coat Of Paint).
-    - `evaluateInProgress`, after each scored box: only what a later turn can't take away, the collection flags, and the
-        5x total. Score thresholds wait for game end.
+    - `evaluateInProgress`, after each scored box: only what a later turn can't take away, and the counters whose
+        `AchievementCounter.timing` is `AS_SCORED` (the collection flags and the 5x total). Score thresholds wait for game
+        end. Making a counter `AS_SCORED` also needs a way to stop an undo inflating it and game end counting it again.
     - `unlockNow` and the pre-commit checks: moments a finished card can't show, such as a hand straight out of the cup
         or the dice and chosen box together (Wasted Fortune, Size Isn't Everything, Almost Famous, The Dice Hate Me,
         Commitment Issues).

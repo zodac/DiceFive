@@ -240,23 +240,26 @@ import org.jetbrains.compose.resources.StringResource
  * many are set ([progressOf]), and a game adds its flags with a bitwise or.
  *
  * [cloudMerge] is how the cloud save combines devices' values of it.
+ *
+ * [timing] is when it moves, and so when its achievements' progress banners and unlocks land.
  */
 enum class AchievementCounter(
     override val id: String,
     val isFlags: Boolean = false,
     val cloudMerge: CounterMerge = if (isFlags) CounterMerge.FLAGS else CounterMerge.SUM,
+    val timing: CounterTiming = CounterTiming.GAME_END,
 ) : StoredId {
     GAMES_PLAYED("GAMES_PLAYED"),
     GAMES_WON("GAMES_WON"),
     WIN_STREAK("WIN_STREAK", cloudMerge = CounterMerge.LATEST),
-    SCORED_5X("SCORED_5X"),
+    SCORED_5X("SCORED_5X", timing = CounterTiming.AS_SCORED),
     DICE_ROLLED("DICE_ROLLED"),
 
     /** Each number player 1 has scored a 5x of: bit `n - 1` for the number `n`. */
-    FIVE_X_NUMBERS("FIVE_X_NUMBERS", isFlags = true),
+    FIVE_X_NUMBERS("FIVE_X_NUMBERS", isFlags = true, timing = CounterTiming.AS_SCORED),
 
     /** Each of [Achievement.FULL_HOUSES_HANDS] player 1 has scored a Full House with: bit `n - 1` for the `n`th. */
-    FULL_HOUSES("FULL_HOUSES", isFlags = true),
+    FULL_HOUSES("FULL_HOUSES", isFlags = true, timing = CounterTiming.AS_SCORED),
     ;
 
     /** How far [stored] - this counter's stored value - counts towards an achievement's target. */
@@ -267,6 +270,19 @@ enum class AchievementCounter(
 
     /** Whether [stored] has [number] marked - see [withFlag]. */
     fun hasFlag(stored: Int, number: Int): Boolean = stored and (1 shl (number - 1)) != 0
+}
+
+/**
+ * When an [AchievementCounter] moves. Changing a counter to [AS_SCORED] takes more than this value: an undo must not be able
+ * to inflate it and the game's end must not count it again, so the engine's `countersAsScored` needs a way to work it out
+ * that holds to both, as a set of flags does by nature and `PlayerState.fiveOfAKindsCounted` does for a total.
+ */
+enum class CounterTiming {
+    /** After each box player 1 scores, in `AchievementEngine.evaluateInProgress`, and for the last box at the game's end. */
+    AS_SCORED,
+
+    /** Once, when a game finishes, in `AchievementEngine.evaluate`. */
+    GAME_END,
 }
 
 /** How the cloud save combines one [AchievementCounter] from several devices. */

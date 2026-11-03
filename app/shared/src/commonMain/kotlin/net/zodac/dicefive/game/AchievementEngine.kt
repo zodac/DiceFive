@@ -4,6 +4,7 @@ import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.model.AchievementCounter
+import net.zodac.dicefive.model.CounterTiming
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
@@ -254,10 +255,8 @@ object AchievementEngine {
      * What a game **in progress** has already earned - called after every scored category, so
      * "Six Appeal" lands the moment the 30 goes in the box rather than waiting for the results
      * screen. Only judges what a later turn cannot undo (see [earnedDuringPlay]). The counters moved
-     * here, with their progress banners, are the collected flags ([collectedFlags]), where a flag set
-     * twice is still one, and the 5x total, which adds only what [state] hasn't counted
-     * ([uncountedFiveOfAKinds]), so an undo can't inflate either. Every other running total is left to
-     * [evaluate], a once-per-finished-game affair.
+     * here, with their progress banners, are the [CounterTiming.AS_SCORED] ones ([countersAsScored]).
+     * Every other running total is left to [evaluate], a once-per-finished-game affair.
      */
     fun evaluateInProgress(
         state: GameState,
@@ -276,9 +275,7 @@ object AchievementEngine {
         val counters = if (state.hasModifiers) {
             emptyMap()
         } else {
-            val total = before.counter(AchievementCounter.SCORED_5X) + uncountedFiveOfAKinds(humans)
-            (collectedFlags(state, humans.first(), before) + (AchievementCounter.SCORED_5X to total))
-                .filter { (counter, value) -> value != before.counter(counter) }
+            countersAsScored(state, humans, before).filter { (counter, value) -> value != before.counter(counter) }
         }
         val reached = Achievement.entries.filterTo(mutableSetOf()) { achievement ->
             val counter = achievement.counter
@@ -296,17 +293,28 @@ object AchievementEngine {
         humans.filter { it.scoresRolledHand }.sumOf { (it.fiveOfAKindCount - it.fiveOfAKindsCounted).coerceAtLeast(0) }
 
     /**
-     * The stored flags with what [player] has collected this game added: Full Set's 5x numbers and Full Houses' hands, each
-     * only where [state] can earn it. Kept on the player ([PlayerState.fiveOfAKindNumbers], [PlayerState.fullHouseHands]), so
-     * they're saved with a game left and resumed. A flag set mid-game stays set if its score is then undone.
+     * What every [CounterTiming.AS_SCORED] counter comes to with what [humans] have scored so far, none of which an undo can
+     * inflate. The 5x total adds only what isn't counted yet ([uncountedFiveOfAKinds]). The flags are the stored ones with
+     * what's been collected this game added: Full Set's 5x numbers and Full Houses' hands, each only where [state] can earn
+     * it, and a flag set twice is still one. Kept on the player ([PlayerState.fiveOfAKindNumbers],
+     * [PlayerState.fullHouseHands]), so they're saved with a game left and resumed. A flag set mid-game stays set if its
+     * score is then undone.
      */
-    private fun collectedFlags(state: GameState, player: PlayerState, before: AchievementsState): Map<AchievementCounter, Int> = buildMap {
-        fun collect(achievement: Achievement, collected: Set<Int>) {
+    private fun countersAsScored(state: GameState, humans: List<PlayerState>, before: AchievementsState): Map<AchievementCounter, Int> = buildMap {
+        val player = humans.first()
+        fun flagsWith(achievement: Achievement, collected: Set<Int>): Int? {
             val counter = requireNotNull(achievement.counter)
-            if (achievement.isEarnableIn(state)) put(counter, collected.fold(before.counter(counter), counter::withFlag))
+            return if (achievement.isEarnableIn(state)) collected.fold(before.counter(counter), counter::withFlag) else null
         }
-        collect(Achievement.FULL_SET, player.fiveOfAKindNumbers)
-        collect(Achievement.FULL_HOUSES, player.fullHouseHands)
+        for (counter in AchievementCounter.entries.filter { it.timing == CounterTiming.AS_SCORED }) {
+            val value = when (counter) {
+                AchievementCounter.SCORED_5X -> before.counter(counter) + uncountedFiveOfAKinds(humans)
+                AchievementCounter.FIVE_X_NUMBERS -> flagsWith(Achievement.FULL_SET, player.fiveOfAKindNumbers)
+                AchievementCounter.FULL_HOUSES -> flagsWith(Achievement.FULL_HOUSES, player.fullHouseHands)
+                AchievementCounter.GAMES_PLAYED, AchievementCounter.GAMES_WON, AchievementCounter.WIN_STREAK, AchievementCounter.DICE_ROLLED -> null
+            }
+            if (value != null) put(counter, value)
+        }
     }
 
     /**
@@ -387,9 +395,8 @@ object AchievementEngine {
         val multiplayer = state.players.size > 1
         val humanWon = state.wonBy(0) == true
 
-        return collectedFlags(state, humans.first(), before) + mapOf(
+        return countersAsScored(state, humans, before) + mapOf(
             AchievementCounter.GAMES_PLAYED to before.counter(AchievementCounter.GAMES_PLAYED) + 1,
-            AchievementCounter.SCORED_5X to before.counter(AchievementCounter.SCORED_5X) + uncountedFiveOfAKinds(humans),
             AchievementCounter.DICE_ROLLED to before.counter(AchievementCounter.DICE_ROLLED) + context.diceRolledByPlayerOne,
             AchievementCounter.GAMES_WON to before.counter(AchievementCounter.GAMES_WON) +
                 if (multiplayer && humanWon) 1 else 0,
