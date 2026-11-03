@@ -223,8 +223,8 @@ class AchievementTracker {
         // Product Placement: the menu logo's own dice, in its own order - any roll of any turn.
         if (values == LOGO_DICE_VALUES) add(Achievement.PRODUCT_PLACEMENT)
 
-        // Natural 5x: landed without holding anything for this roll, on any roll of the turn, and scorable as a 5x - in
-        // Stud, any five of the seven matching.
+        // Natural 5x: landed without holding anything for this roll, on any roll of the turn, and scorable as a 5x. Kept
+        // out of Stud (Achievement.notEarnableIn), where any five of seven matching makes it routine.
         val fiveMatching = fiveMatchingDice(dice, state.gameMode.scoringDiceCount)
         if (rollIsWhole &&
             diceBeforeRoll.none { it.isHeld } &&

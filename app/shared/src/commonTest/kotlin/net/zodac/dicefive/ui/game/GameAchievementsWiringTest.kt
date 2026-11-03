@@ -756,24 +756,17 @@ class GameAchievementsWiringTest {
     }
 
     @Test
-    fun `Stud - seven matching dice are Lucky Seven - five of them with none held a Natural 5x - and a timed-out turn scores only the held hand`() = runTest {
+    fun `Stud - seven matching dice are Lucky Seven but no Natural 5x - and a timed-out turn scores only the held hand`() = runTest {
         val stud: GameViewModel.() -> Unit = { setupForm.setGameMode(GameMode.STUD) }
         val firstRoll = unlockedAfter(LoadedDice(6), setUp = stud) { rollDice() }
         assertTrue(Achievement.LUCKY_SEVEN in firstRoll, "LUCKY_SEVEN should pop, got $firstRoll")
-        assertTrue(Achievement.NATURAL_5X in firstRoll, "NATURAL_5X should pop on a first roll too, got $firstRoll")
-        // Any five of the seven matching, rolled with none held.
+        // Kept out of Stud: any five of seven matching would make it routine.
+        assertFalse(Achievement.NATURAL_5X in firstRoll, "NATURAL_5X should not pop in Stud, got $firstRoll")
         val rerolled = unlockedAfter(ScriptedDice(listOf(1, 2, 3, 4, 5, 6, 1) + listOf(4, 4, 2, 4, 4, 6, 4)), setUp = stud) {
             rollDice()
             rollDice()
         }
-        assertTrue(Achievement.NATURAL_5X in rerolled, "NATURAL_5X should pop in Stud with five of seven matching, got $rerolled")
-        // Not with a die held for the roll.
-        val held = unlockedAfter(ScriptedDice(listOf(4, 2, 3, 1, 5, 6, 1) + listOf(4, 2, 4, 4, 6, 4)), setUp = stud) {
-            rollDice()
-            toggleHold(0)
-            rollDice()
-        }
-        assertFalse(Achievement.NATURAL_5X in held, "NATURAL_5X should not pop with a die held, got $held")
+        assertFalse(Achievement.NATURAL_5X in rerolled, "NATURAL_5X should not pop in Stud with five of seven matching, got $rerolled")
 
         // 6, 1, 6, 2, 6, 3, 1: the player holds the first 1 (die 2), then lets the timer run out. The turn goes in Ones, the
         // hand completed with the last 1 and then the leftmost dice (the first, third and fourth) - so the third 6 and the

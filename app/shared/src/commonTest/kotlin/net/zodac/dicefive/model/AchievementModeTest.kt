@@ -58,6 +58,10 @@ class AchievementModeTest {
         assertEquals(listOf(GameMode.STANDARD, GameMode.TRICOLOUR), Achievement.ENCORE.limitedModes)
         assertFalse(Achievement.ENCORE.isEarnableIn(GameMode.THIRD_WIND))
         assertFalse(Achievement.ENCORE.isEarnableIn(GameMode.QUICKFIRE))
+        // Natural 5x and Wasted Fortune are kept out of Stud, where any five of seven matching makes a 5x routine.
+        assertEquals(listOf(GameMode.STANDARD, GameMode.TRICOLOUR, GameMode.THIRD_WIND), Achievement.NATURAL_5X.limitedModes)
+        assertFalse(Achievement.WASTED_FORTUNE.isEarnableIn(GameMode.STUD))
+        assertTrue(Achievement.WASTED_FORTUNE.isEarnableIn(GameMode.STANDARD))
         assertEquals(setOf(Achievement.FIRST_VICTORY), setOf(Achievement.ENCORE, Achievement.FIRST_VICTORY).earnableIn(GameMode.QUICKFIRE))
         // Cold Dice is kept out of Hit List and Quickfire, whose totals are low by design.
         assertEquals(GameMode.entries - GameMode.HIT_LIST - GameMode.QUICKFIRE, Achievement.COLD_DICE.limitedModes)

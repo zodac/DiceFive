@@ -613,7 +613,7 @@ enum class Achievement(
         "natural_5x",
         Res.string.achievement_natural_5x_title,
         Res.string.achievement_natural_5x_description,
-        AchievementCategory.DICE, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
+        AchievementCategory.DICE, notEarnableIn = setOf(GameMode.STUD), impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE),
     ),
     EXACT_CHANGE(
         "exact_change",
@@ -890,7 +890,7 @@ enum class Achievement(
         "wasted_fortune",
         Res.string.achievement_wasted_fortune_title,
         Res.string.achievement_wasted_fortune_description,
-        AchievementCategory.MISFORTUNE,
+        AchievementCategory.MISFORTUNE, notEarnableIn = setOf(GameMode.STUD),
     ),
 
     // ---- Miscellaneous: every hidden achievement, whatever it's about --------------------------

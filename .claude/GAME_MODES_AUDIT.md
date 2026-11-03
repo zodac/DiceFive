@@ -107,8 +107,8 @@ Impatient and Almost Famous are guarded, though any modifier now blocks them any
 
 A roll isn't a hand, so:
 
-- achievements judged at scoring read `scoringDice`: Wasted Fortune, Size Isn't Everything, Full Houses, Time To Let It
-    Go, Twice in a Lifetime;
+- achievements judged at scoring read `scoringDice`: Size Isn't Everything, Full Houses, Time To Let It Go, and Twice in
+    a Lifetime;
 - achievements judged on the roll as it lands are guarded.
 
 **Guarded** (`!scoresHeldDiceOnly` / `scoresRolledHand`, plus `singleScoreCard` and Zero To Hero's own condition; Twice
@@ -123,6 +123,9 @@ in a Lifetime is guarded in `AchievementTracker.onCommit`):
 | Spotless, Zero To Hero                                      | Zeros are rare                                                                 |
 | New Personal Best                                           | Off the Leaderboard                                                            |
 
+**Kept out** (`notEarnableIn`, the maintainer's call, 2026-11-03): Natural 5x and Wasted Fortune. Any five of the seven
+matching makes a 5x routine, so neither is a feat here.
+
 **Can't be earned**:
 
 - Product Placement (seven dice never equal a five-dice sequence);
@@ -130,7 +133,6 @@ in a Lifetime is guarded in `AchievementTracker.onCommit`):
 
 **Judged on any five of the seven** (the maintainer's call, 2026-10-28):
 
-- Natural 5x: five of the seven matching on any roll with none held (about 16 times likelier than five dice);
 - The Dice Hate Me: a scoring option means some five of the seven score in an open box;
 - Almost Famous: a first-roll 4x held to the last roll, with no five of the seven ever matching.
 
