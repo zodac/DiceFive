@@ -679,11 +679,13 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `Full Houses - the worst and best Full House - collected across games - a banner for the first as it's scored`() {
+    fun `Full Houses - every Full House - collected across games - a banner for each new one as it's scored`() {
         fun hands(vararg hands: Int) = finishedGame(player().copy(fullHouseHands = hands.toSet()))
         fun stored(flags: Int) = AchievementsState(counters = mapOf(AchievementCounter.FULL_HOUSES to flags))
 
-        // The worst hand alone is one of two: progress, not the unlock.
+        val all = (1 shl Achievement.FULL_HOUSES_HANDS.size) - 1
+
+        // The worst hand alone is one of 30: progress, not the unlock.
         val worst = evaluate(hands(1))
         assertEquals(0b01, worst.counters[AchievementCounter.FULL_HOUSES])
         assertFalse(Achievement.FULL_HOUSES in worst.newlyUnlocked)
@@ -695,15 +697,21 @@ class AchievementEngineTest {
         assertEquals(0b01, repeat.counters[AchievementCounter.FULL_HOUSES])
         assertFalse(repeat.progressed.any { it.achievement == Achievement.FULL_HOUSES })
 
-        // The other hand, in a later game, completes it - or both in one game.
-        assertTrue(Achievement.FULL_HOUSES in evaluate(hands(2), before = stored(0b01)).newlyUnlocked)
-        assertTrue(Achievement.FULL_HOUSES in evaluate(hands(1, 2)).newlyUnlocked)
+        // The best hand too is only progress now: 2 of 30.
+        val two = evaluate(hands(2), before = stored(0b01))
+        assertEquals(0b11, two.counters[AchievementCounter.FULL_HOUSES])
+        assertFalse(Achievement.FULL_HOUSES in two.newlyUnlocked)
+        assertEquals(AchievementProgress(Achievement.FULL_HOUSES, 1, 2), two.progressed.single { it.achievement == Achievement.FULL_HOUSES })
+
+        // The last hand, in a later game, completes it - or all 30 in one (impossible) game.
+        assertTrue(Achievement.FULL_HOUSES in evaluate(hands(30), before = stored(all xor (1 shl 29))).newlyUnlocked)
+        assertTrue(Achievement.FULL_HOUSES in evaluate(hands(*(1..30).toList().toIntArray())).newlyUnlocked)
 
         // Mid-game, the moment the hand is scored: stored, with its banner - or the unlock.
         val midGame = AchievementEngine.evaluateInProgress(inProgress(midGamePlayer(emptyMap()).copy(fullHouseHands = setOf(2))), AchievementsState(), NOW)
         assertEquals(0b10, midGame.counters[AchievementCounter.FULL_HOUSES])
         assertEquals(AchievementProgress(Achievement.FULL_HOUSES, 0, 1), midGame.progressed.single { it.achievement == Achievement.FULL_HOUSES })
-        val second = AchievementEngine.evaluateInProgress(inProgress(midGamePlayer(emptyMap()).copy(fullHouseHands = setOf(2))), stored(0b01), NOW)
+        val second = AchievementEngine.evaluateInProgress(inProgress(midGamePlayer(emptyMap()).copy(fullHouseHands = setOf(2))), stored(all xor 0b10), NOW)
         assertTrue(Achievement.FULL_HOUSES in second.newlyUnlocked)
         // An AI's card collects nothing for the device.
         val bots = AchievementEngine.evaluateInProgress(
@@ -713,7 +721,27 @@ class AchievementEngineTest {
         )
         assertEquals(null, bots.counters[AchievementCounter.FULL_HOUSES])
         assertTrue(Achievement.FULL_HOUSES in Achievement.COMPLETION_REQUIREMENTS)
-        assertEquals(listOf(listOf(1, 1, 1, 2, 2), listOf(5, 5, 6, 6, 6)), Achievement.FULL_HOUSES_HANDS)
+    }
+
+    @Test
+    fun `Full Houses' hands - every Full House once - the two collected before it took all 30 keep the first two bits`() {
+        val hands = Achievement.FULL_HOUSES_HANDS
+        assertEquals(Achievement.FULL_HOUSES.target, hands.size)
+        assertEquals(30, hands.toSet().size)
+        for (hand in hands) {
+            assertEquals(hand.sorted(), hand)
+            assertEquals(listOf(2, 3), hand.groupingBy { it }.eachCount().values.sorted(), "$hand isn't a three and a two")
+        }
+        // Stored bits never move: bit 0 the worst hand, bit 1 the best, as before.
+        assertEquals(listOf(listOf(1, 1, 1, 2, 2), listOf(5, 5, 6, 6, 6)), hands.take(2))
+        assertEquals(listOf(1, 1, 1, 3, 3), hands[2])
+        assertEquals(listOf(4, 4, 6, 6, 6), hands[29])
+        // Listed by the number of the three, then of the two: a row of five for each.
+        val listed = Achievement.FULL_HOUSES_LISTED.map { hands[it - 1].joinToString("-") }
+        assertEquals(Achievement.FULL_HOUSES.checklist, Achievement.FULL_HOUSES_LISTED)
+        assertEquals(listOf("1-1-1-2-2", "1-1-1-3-3", "1-1-1-4-4", "1-1-1-5-5", "1-1-1-6-6"), listed.take(5))
+        assertEquals(listOf("1-1-2-2-2", "2-2-2-3-3", "2-2-2-4-4", "2-2-2-5-5", "2-2-2-6-6"), listed.subList(5, 10))
+        assertEquals(listOf("1-1-6-6-6", "2-2-6-6-6", "3-3-6-6-6", "4-4-6-6-6", "5-5-6-6-6"), listed.takeLast(5))
     }
 
     @Test

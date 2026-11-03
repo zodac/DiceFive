@@ -421,6 +421,9 @@ can't is a page saying so, with the stack trace to report. The app never just cl
         A flag is set the moment its box is scored, with its banner. The game keeps what it has collected on the player
         (`PlayerState.fiveOfAKindNumbers`, `fullHouseHands`), so a resumed game still has it. A flag stays set if its
         score is then undone.
+    - Full Houses takes all 30 Full Houses. Until 2026-11-03 it took two (1-1-1-2-2 and 5-5-6-6-6), and those keep bits
+        0 and 1; the rest follow, never reordered. The Achievements screen lists them by `FULL_HOUSES_LISTED`, five to a
+        line (one number's three). Anyone who earned it with the two keeps it earned, with no list or progress shown.
     - Every Collection achievement but Completionist (Full Houses, Full Set, Grand Tour, and the ledger) has a progress
         banner for each new entry (`progressStepSize = 1`; `AchievementEngineTest`).
     - The ledger, career points and Grand Tour (player 1's modes played) are derived from the scores table, so they

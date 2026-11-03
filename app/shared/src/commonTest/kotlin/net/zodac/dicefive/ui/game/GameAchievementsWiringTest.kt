@@ -396,7 +396,9 @@ class GameAchievementsWiringTest {
         assertEquals(0b01, fullHouse(1, 2, 1, 2, 1), "the worst hand counts in any order")
         assertEquals(0b10, fullHouse(6, 6, 6, 5, 5), "the best hand is the second flag")
         assertEquals(0b10, fullHouse(6, 5, 6, 5, 6), "the best hand counts in any order")
-        assertEquals(0, fullHouse(3, 3, 3, 2, 2))
+        val twosAndThrees = 1 shl Achievement.FULL_HOUSES_HANDS.indexOf(listOf(2, 2, 3, 3, 3))
+        assertEquals(twosAndThrees, fullHouse(3, 3, 3, 2, 2), "every other Full House is a hand too")
+        assertEquals(twosAndThrees, fullHouse(2, 3, 2, 3, 3), "every other Full House counts in any order")
         assertEquals(0, joker(1, closed = ScoreCategory.ONES, opening = 6), "a joker-rule full house of 1s is no hand")
         assertEquals(0, joker(6, closed = ScoreCategory.SIXES, opening = 1), "a joker-rule full house of 6s is no hand")
         // Nor the right dice in another box - every later turn rolling 3-3-3-3-4, so the Full House box never sees them.

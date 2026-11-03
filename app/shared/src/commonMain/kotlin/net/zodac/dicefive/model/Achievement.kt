@@ -1044,13 +1044,13 @@ enum class Achievement(
         Res.string.achievement_grand_tour_description,
         AchievementCategory.COLLECTION, target = GameMode.entries.size, isEveryMode = true, progressStepSize = 1,
     ),
-    // Full Houses is backed by a stored counter: two hands, each ticked off the moment it's scored, in any game, like Full
-    // Set's numbers - never the joker rule's 5x bent into the box.
+    // Full Houses is backed by a stored counter: every one of the 30 hands, each ticked off the moment it's scored, in any
+    // game, like Full Set's numbers - never the joker rule's 5x bent into the box.
     FULL_HOUSES(
         "full_houses",
         Res.string.achievement_full_houses_title,
         Res.string.achievement_full_houses_description,
-        AchievementCategory.COLLECTION, AchievementCounter.FULL_HOUSES, target = 2, progressStepSize = 1, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
+        AchievementCategory.COLLECTION, AchievementCounter.FULL_HOUSES, target = 30, progressStepSize = 1, impossibleIn = setOf(GameMode.D20, GameMode.HIT_LIST),
     ),
     // A 5x as the SCORED_5X counter counts one - in the box or as a bonus chip, never Stud's - of each number 1-6, over
     // any number of games. A banner for every new number, the moment it's scored (PlayerState.fiveOfAKindNumbers).
@@ -1213,13 +1213,14 @@ enum class Achievement(
     /**
      * What a collection achievement collects, one entry each, for the list of what's still missing: a score band's
      * scores, the numbers an [AchievementCounter.isFlags] counter's bits stand for (bit `n - 1` for `n`), or for
-     * [isEveryMode] each [GameMode]'s position in [GameMode.entries] (for display only, never stored). Null for every
-     * other achievement.
+     * [isEveryMode] each [GameMode]'s position in [GameMode.entries] (for display only, never stored). Full Houses'
+     * hands are listed in [FULL_HOUSES_LISTED] order. Null for every other achievement.
      */
     val checklist: List<Int>?
         get() = when {
             scoreBand != null -> scoreBand.toList()
             isEveryMode -> GameMode.entries.indices.toList()
+            this == FULL_HOUSES -> FULL_HOUSES_LISTED
             counter?.isFlags == true -> (1..target).toList()
             else -> null
         }
@@ -1246,8 +1247,25 @@ enum class Achievement(
         /** The achievements [COMPLETIONIST] waits on. */
         val COMPLETION_REQUIREMENTS: List<Achievement> = entries.filter { it.countsTowardCompletion }
 
-        /** The hands [FULL_HOUSES] collects, sorted: the worst Full House there is, then the best. */
-        val FULL_HOUSES_HANDS: List<List<Int>> = listOf(listOf(1, 1, 1, 2, 2), listOf(5, 5, 6, 6, 6))
+        /** The worst Full House there is, then the best: the hands [FULL_HOUSES] collected before it took every one. */
+        private val FIRST_FULL_HOUSES: List<List<Int>> = listOf(listOf(1, 1, 1, 2, 2), listOf(5, 5, 6, 6, 6))
+
+        /**
+         * Every Full House there is, each sorted: three dice of one number and two of another, as many as [FULL_HOUSES]'
+         * target. It collects them, its stored counter's bit `n - 1` for the `n`th, so a hand never moves: [FIRST_FULL_HOUSES], then the rest by
+         * the number of the three, then of the two.
+         */
+        val FULL_HOUSES_HANDS: List<List<Int>> = FIRST_FULL_HOUSES + (1..6).flatMap { three ->
+            (1..6).filter { it != three }.map { two -> (List(3) { three } + List(2) { two }).sorted() }
+        }.filter { it !in FIRST_FULL_HOUSES }
+
+        /**
+         * [FULL_HOUSES_HANDS]' positions (from 1) in the order the Achievements screen lists them: by the number of the
+         * three, then of the two - five hands for each number of the three.
+         */
+        val FULL_HOUSES_LISTED: List<Int> = FULL_HOUSES_HANDS.indices.sortedWith(
+            compareBy({ FULL_HOUSES_HANDS[it][2] }, { FULL_HOUSES_HANDS[it].first { die -> die != FULL_HOUSES_HANDS[it][2] } }),
+        ).map { it + 1 }
 
         fun fromId(id: String): Achievement? = storedIdOf<Achievement>(id)
     }

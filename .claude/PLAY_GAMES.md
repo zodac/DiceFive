@@ -88,6 +88,9 @@ app/android/src/play/.../online/  PlayGamesServices, PlayGamesIds, PlayGamesAchi
 - **Mapping**: `PlayGamesIds.kt`. `PlayGamesAchievements.kt` sets each one's Play type and visibility (`playType`,
     `playHidden`). Every achievement is mapped, steps ≤10,000, Professional Roller scaled
     (`PlayGamesIdsTest`).
+- **Published steps never change.** An incremental achievement whose target grows afterwards keeps Play's steps in
+    `PUBLISHED_PLAY_STEPS` and is sent no progress, only the unlock (`unlockOnly`). Full Houses: 2 steps on Play, 30
+    hands in the game.
 - **Points** by tier (`PlayConsoleAchievements.kt`, test sources): trivial 5, easy 10, medium 15, hard 25, very hard
     45, extreme 70, Completionist 100, every Easter egg 5. That spends all 2,000 (`PlayConsoleExportTest`), so a new
     achievement needs points freed first.

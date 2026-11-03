@@ -241,7 +241,7 @@
     <string name="achievement_who_made_this_title">¿Quién hizo esto?</string>
     <string name="achievement_who_made_this_description">Abre la página `Acerca de`</string>
     <string name="achievement_full_houses_title">Casas llenas</string>
-    <string name="achievement_full_houses_description">Anota el mejor y el peor Full posibles</string>
+    <string name="achievement_full_houses_description">Anota todos los Fulls posibles</string>
     <string name="achievement_tally_title">Recuento</string>
     <string name="achievement_tally_description">Registra todas las puntuaciones del 5 al 50 en la clasificación</string>
     <string name="achievement_bookkeeper_title">Contable</string>

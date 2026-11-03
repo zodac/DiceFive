@@ -229,7 +229,7 @@ object GameEngine {
         // A 5x scored, in the box or as a chip - not where held dice alone score (Stud), where it's no feat.
         val scoresFiveOfAKind = !state.gameMode.scoresHeldDiceOnly &&
             ((category == ScoreCategory.FIVE_OF_A_KIND && DiceScoring.isFiveOfAKind(hand)) || bonus)
-        // The worst and best Full Houses there are - which a 5x as a joker never is.
+        // Any Full House there is - which a 5x as a joker never is.
         val fullHouseHand = Achievement.FULL_HOUSES_HANDS.indexOf(hand.map { it.value }.sorted()) + 1
         val updatedPlayer = player.copy(
             scorecard = player.scorecard + (category to player.scoresIn(category) + value),

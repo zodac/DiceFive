@@ -8,6 +8,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
+import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.GameMode
@@ -301,10 +302,12 @@ class GameEngineTest {
     }
 
     @Test
-    fun `a Full House of the worst or best hand is kept on the player - in any order - only in the Full House box`() {
+    fun `every Full House is kept on the player by its hand - in any order - only in the Full House box`() {
         assertEquals(setOf(1), scoreNow(rolled(2, 1, 2, 1, 1), ScoreCategory.FULL_HOUSE).players.single().fullHouseHands)
         assertEquals(setOf(2), scoreNow(rolled(6, 5, 6, 6, 5), ScoreCategory.FULL_HOUSE).players.single().fullHouseHands)
-        assertEquals(emptySet(), scoreNow(rolled(3, 3, 3, 2, 2), ScoreCategory.FULL_HOUSE).players.single().fullHouseHands)
+        val twosAndThrees = Achievement.FULL_HOUSES_HANDS.indexOf(listOf(2, 2, 3, 3, 3)) + 1
+        assertEquals(setOf(twosAndThrees), scoreNow(rolled(3, 3, 3, 2, 2), ScoreCategory.FULL_HOUSE).players.single().fullHouseHands)
+        assertEquals(emptySet(), scoreNow(rolled(1, 2, 3, 4, 5), ScoreCategory.FULL_HOUSE).players.single().fullHouseHands)
         assertEquals(emptySet(), scoreNow(rolled(1, 1, 1, 2, 2), ScoreCategory.CHANCE).players.single().fullHouseHands)
         // Kept with the hands already scored.
         val both = rolled(5, 5, 6, 6, 6).let { it.copy(players = listOf(it.players.single().copy(fullHouseHands = setOf(1)))) }

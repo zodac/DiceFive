@@ -239,6 +239,15 @@ private val LIST_SCROLLBAR_OFFSET = 12.dp
 /** The missing-numbers list's scrollbar, at its end edge; the list keeps as much clear at each side. */
 private val MISSING_SCROLLBAR_WIDTH = 8.dp
 
+/**
+ * The missing list's height before it scrolls: all 30 Full Houses, three to a line, in a 360dp-wide phone's dialog at
+ * 100% font.
+ */
+private val MISSING_LIST_MAX_HEIGHT = 280.dp
+
+/** The most Full Houses on one line of the missing list: the five that share the number of their three. */
+private const val HANDS_PER_THREE = 5
+
 /** The pinned category header's height (48dp arrows plus card padding), until it's measured. */
 private val ESTIMATED_HEADER_HEIGHT_DP = 56.dp
 
@@ -894,8 +903,9 @@ private fun AchievementRow(
 
 /**
  * Everything a collection achievement needs - a score band's scores, Full Set's numbers ("1s" to "6s"), Full Houses'
- * hands ("1-1-1-2-2" and "5-5-6-6-6"), or Grand Tour's game modes - the ones already collected struck through and faded, in a scrollable pop-up, under [modeMessage] if it
+ * hands ("1-1-1-2-2" to "5-5-6-6-6"), or Grand Tour's game modes - the ones already collected struck through and faded, in a scrollable pop-up, under [modeMessage] if it
  * has one. Modes go one to a line, as a name of several words run together with the next would be hard to tell apart.
+ * Hands go at most five to a line, so a line that fits all five holds one number's three ([Achievement.FULL_HOUSES_LISTED]).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -925,13 +935,17 @@ private fun MissingDialog(item: AchievementItem, modeMessage: String?, onDismiss
     ) {
         val scroll = rememberScrollState()
         // A long list scrolls, with a scrollbar at its edge to say so.
-        Box(modifier = Modifier.padding(top = 12.dp).heightIn(max = 240.dp)) {
+        Box(modifier = Modifier.padding(top = 12.dp).heightIn(max = MISSING_LIST_MAX_HEIGHT)) {
             FlowRow(
                 // Kept clear of the scrollbar at either side, so the centred entries stay centred.
                 modifier = Modifier.fillMaxWidth().verticalScroll(scroll).padding(horizontal = MISSING_SCROLLBAR_WIDTH),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
-                maxItemsInEachRow = if (achievement.isEveryMode) 1 else Int.MAX_VALUE,
+                maxItemsInEachRow = when {
+                    achievement.isEveryMode -> 1
+                    isHands -> HANDS_PER_THREE
+                    else -> Int.MAX_VALUE
+                },
             ) {
                 // Every entry, the collected ones struck through and faded; TalkBack gets the same as words.
                 achievement.checklist?.forEach { entry ->

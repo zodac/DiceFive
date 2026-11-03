@@ -152,7 +152,7 @@ class AchievementsTextTest : UiTest() {
     }
 
     @Test
-    fun `Full Houses opens a list of its two hands - the scored one struck through and read as its dice scored`() = uiTest {
+    fun `Full Houses opens a list of all 30 hands - the scored one struck through and read as its dice scored`() = uiTest {
         // The worst hand scored so far: bit 0.
         val store = object : AchievementStore {
             override val state = MutableStateFlow(AchievementsState(counters = mapOf(AchievementCounter.FULL_HOUSES to 0b01)))
@@ -167,16 +167,18 @@ class AchievementsTextTest : UiTest() {
         val row = compose.onNode(SemanticsMatcher("clicks to show the missing Full Houses") { it.config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label == "Show the missing Full Houses" })
         row.performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Full Houses not yet scored: 1 left").assertExists()
+        compose.onNodeWithText("Full Houses not yet scored: 29 left").assertExists()
         row.performTouchInput { longClick() }
         compose.waitForIdle()
 
-        compose.onNodeWithText("Full Houses not yet scored (1 left):").assertExists()
+        compose.onNodeWithText("Full Houses not yet scored (29 left):").assertExists()
         // Each hand shown as its dice joined by dashes, and spoken as a list of them.
         compose.onNodeWithText("1-1-1-2-2").assertExists()
         compose.onNodeWithText("5-5-6-6-6").assertExists()
         compose.onNodeWithContentDescription("1, 1, 1, 2, and 2, scored").assertExists()
         compose.onNodeWithContentDescription("5, 5, 6, 6, and 6").assertExists()
+        compose.onNodeWithText("2-2-3-3-3").assertExists()
+        compose.onNodeWithContentDescription("2, 2, 3, 3, and 3").assertExists()
     }
 
     @Test
