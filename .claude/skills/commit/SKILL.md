@@ -34,6 +34,7 @@ commit**, and tell the user so they can rename it before it spreads.
 | `[Play Games]`   | Google Play Games Services - sign-in, online sync, cloud save, Sidekick |
 | `[Project]`      | Repo-wide setup that isn't any one feature (tooling, docs, skills)      |
 | `[Purchases]`    | The "Unlock all styles" purchase - Play Billing and the entitlement     |
+| `[Release]`      | Version bumps and the release notes (`RELEASE_NOTES.md`)                |
 | `[Sandbox]`      | The sandbox and its emulator tooling (`ai-sandbox-configuration/`)      |
 | `[Settings]`     | The Settings screen and the preferences behind it                       |
 | `[Stability]`    | Crash fixes and hardening across the app - bad input, I/O, threads      |
