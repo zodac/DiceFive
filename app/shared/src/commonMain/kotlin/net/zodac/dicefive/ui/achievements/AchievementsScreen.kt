@@ -1,6 +1,8 @@
 package net.zodac.dicefive.ui.achievements
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -263,6 +265,41 @@ private val LIST_SPACING = 8.dp
 private fun LazyListState.centeredScrollOffset(estimatedItemHeightPx: Int): Int {
     val viewportHeight = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
     return -((viewportHeight - estimatedItemHeightPx) / 2).coerceAtLeast(0)
+}
+
+/** The shortest and longest an arrow's scroll to another category header takes. */
+private const val CATEGORY_SCROLL_MIN_MILLIS = 350
+private const val CATEGORY_SCROLL_MAX_MILLIS = 800
+
+/** The extra time an arrow's scroll takes for each viewport of list it crosses. */
+private const val CATEGORY_SCROLL_MILLIS_PER_VIEWPORT = 90
+
+/**
+ * Scrolls to the item at [target] with one eased animation, slower the further it goes: [LazyListState.animateScrollToItem] is a
+ * fixed spring that is over in a quarter of a second, which across several screens of rows reads as a snap.
+ *
+ * Items between here and [target] haven't been measured, so the distance starts as an estimate (the visible items' average size
+ * per item crossed) and is replaced by the real one as soon as [target] is laid out. A last [LazyListState.scrollToItem] absorbs
+ * whatever the estimate still got wrong.
+ */
+private suspend fun LazyListState.smoothScrollToItem(target: Int) {
+    val visible = layoutInfo.visibleItemsInfo
+    if (visible.isEmpty()) return scrollToItem(target)
+    val averageStep = visible.sumOf { it.size }.toFloat() / visible.size + layoutInfo.mainAxisItemSpacing
+    val viewport = (layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset).coerceAtLeast(1)
+    val estimate = (target - firstVisibleItemIndex) * averageStep - firstVisibleItemScrollOffset
+    val duration = (CATEGORY_SCROLL_MIN_MILLIS + abs(estimate) / viewport * CATEGORY_SCROLL_MILLIS_PER_VIEWPORT)
+        .toInt().coerceIn(CATEGORY_SCROLL_MIN_MILLIS, CATEGORY_SCROLL_MAX_MILLIS)
+    scroll {
+        var total = estimate
+        var done = 0f
+        animate(0f, 1f, animationSpec = tween(duration, easing = FastOutSlowInEasing)) { progress, _ ->
+            layoutInfo.visibleItemsInfo.firstOrNull { it.index == target }?.let { total = done + it.offset }
+            val wanted = total * progress
+            done += scrollBy(wanted - done)
+        }
+    }
+    scrollToItem(target)
 }
 
 /**
@@ -581,10 +618,10 @@ fun AchievementsScreen(
                                 // The full category, not the "locked only" filtered rows.
                                 counts = fullGroups.first { it.category == group.category }.items.let { all -> all.count { it.unlockedAt != null } to all.size },
                                 onPrevious = headerIndices.getOrNull(groupIndex - 1)?.let { target ->
-                                    { scope.launch { listState.animateScrollToItem(target) } }
+                                    { scope.launch { listState.smoothScrollToItem(target) } }
                                 },
                                 onNext = headerIndices.getOrNull(groupIndex + 1)?.let { target ->
-                                    { scope.launch { listState.animateScrollToItem(target) } }
+                                    { scope.launch { listState.smoothScrollToItem(target) } }
                                 },
                             )
                         }

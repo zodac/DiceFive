@@ -22,8 +22,9 @@ Miscellaneous run in alphabetical order instead, and so do the Easter Eggs, whic
 
 **Category headers** are `stickyHeader`s styled as a plain `Card`. A bare `Surface` has square corners.
 
-- Up and down arrows jump to the previous or next header (`animateScrollToItem`). The arrow with nowhere to go is
-    greyed, not removed.
+- Up and down arrows glide to the previous or next header (`smoothScrollToItem`: one eased animation, 350-800ms by
+    distance; the stock `animateScrollToItem` spring ends in a quarter of a second and reads as a snap). The arrow with
+    nowhere to go is greyed, not removed.
 - They're stock `IconButton`s, so the header is 48dp tall.
 - Each header carries its category's earned/total (`3/12`), counted over the whole category even while the Unearned switch is on
     hides rows. Label and count are `categoryHeaderStyle` (Sora, `titleSmall`, as written), as on the Styles screen. The
