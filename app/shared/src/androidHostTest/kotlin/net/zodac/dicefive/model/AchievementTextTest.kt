@@ -67,4 +67,17 @@ class AchievementTextTest {
         }
         assertEquals(emptyList(), unpaired)
     }
+
+    @Test
+    fun `a game mode named in a description is in backticks - in every language, by that language's own mode name`() {
+        val plain = locales.flatMap { (locale, strings) ->
+            val modeNames = strings.filterKeys { it.startsWith("mode_") && !it.endsWith("_description") }.values
+            strings.filterKeys { it.startsWith("achievement_") && it.endsWith("_description") }.flatMap { (key, description) ->
+                // Odd-numbered pieces of a split on backticks are the highlighted ones.
+                val outsideBackticks = description.split('`').filterIndexed { index, _ -> index % 2 == 0 }
+                modeNames.filter { name -> outsideBackticks.any { name in it } }.map { "$locale $key: $it" }
+            }
+        }
+        assertEquals(emptyList(), plain)
+    }
 }
