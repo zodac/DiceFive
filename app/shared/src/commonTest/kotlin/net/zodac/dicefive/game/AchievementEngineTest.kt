@@ -1220,6 +1220,17 @@ class AchievementEngineTest {
         assertFalse(Achievement.CHANCE_ENCOUNTER in unlocked(finishedGame(chanceCard(30, 30, 0))))
         // A Standard game's one Chance slot, however high, is not it: the achievement is Third Wind's.
         assertFalse(Achievement.CHANCE_ENCOUNTER in unlocked(finishedGame(player(total = 250, overrides = spotlessCard))))
+
+        // It lands as the third Chance slot is scored - the rest of the card still open - and not before.
+        fun midGame(chance: List<Int>) = PlayerState(
+            name = "Player 1",
+            type = PlayerType.HUMAN,
+            gameMode = GameMode.THIRD_WIND,
+            scorecard = GameMode.THIRD_WIND.categories.associateWith { emptyList<Int>() } + (ScoreCategory.CHANCE to chance),
+        )
+        assertTrue(Achievement.CHANCE_ENCOUNTER in unlockedMidGame(midGame(listOf(25, 30, 27))))
+        assertFalse(Achievement.CHANCE_ENCOUNTER in unlockedMidGame(midGame(listOf(25, 30))))
+        assertFalse(Achievement.CHANCE_ENCOUNTER in unlockedMidGame(midGame(listOf(25, 30, 24))))
     }
 
     @Test

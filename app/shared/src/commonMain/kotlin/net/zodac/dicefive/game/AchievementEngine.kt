@@ -436,6 +436,15 @@ object AchievementEngine {
         // scored, since a filled box can't change. Every slot of each box (Third Wind), so the ladder costs the bonus
         // as it does on one slot.
         award(Achievement.EXACT_CHANGE, anyHuman { it.matchesExactUpperLadder() })
+        // Every Chance slot (Third Wind's three) at 25 or more: judged as the last of them is scored, since a filled slot
+        // can't change.
+        award(
+            Achievement.CHANCE_ENCOUNTER,
+            anyHuman { player ->
+                val chance = player.scoresIn(ScoreCategory.CHANCE)
+                chance.size == state.gameMode.scoresPerCategory && chance.all { it >= CHANCE_ENCOUNTER_MIN }
+            },
+        )
         // A box "holds" a score if any one of its slots does, so these mean one turn's score.
         award(Achievement.TAKING_A_CHANCE, anyHuman { it.scoresRolledHand && it.hasScore(ScoreCategory.CHANCE, MAX_CHANCE) })
         award(Achievement.SIX_APPEAL, anyHuman { it.scoresRolledHand && it.hasScore(ScoreCategory.SIXES, MAX_SIXES) })
@@ -527,13 +536,6 @@ object AchievementEngine {
             Achievement.SPOTLESS,
             fullStandardRules && state.gameMode.hasStandardCard &&
                 anyHuman { player -> player.allScores.none { it == 0 } && player.upperSectionBonus > 0 },
-        )
-        award(
-            Achievement.CHANCE_ENCOUNTER,
-            anyHuman { player ->
-                val chance = player.scoresIn(ScoreCategory.CHANCE)
-                chance.size == state.gameMode.scoresPerCategory && chance.all { it >= CHANCE_ENCOUNTER_MIN }
-            },
         )
         // The best is off the Leaderboard, so a game that isn't on it has nothing to compare with.
         award(
