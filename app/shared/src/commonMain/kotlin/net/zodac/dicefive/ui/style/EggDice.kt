@@ -30,7 +30,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
-import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.ambientMotion
 import net.zodac.dicefive.ui.game.DICE_TOSS_MILLIS
 import net.zodac.dicefive.ui.theme.GoldAccent
 
@@ -137,9 +137,9 @@ class EggDiceStyle(
         val dieIndex = LocalDieIndex.current
         val tilt = eggTilt(dieIndex, LocalDieTumbleMillis.current)
         val seed = naturalPatternSeed(value)
-        // The golden egg's sparkle: its size, read only while drawing. Still under reduced motion, and a plain
-        // egg never starts the clock.
-        val sparkleScale: State<Float> = if (sparkle && !LocalReduceMotion.current) {
+        // The golden egg's sparkle: its size, read only while drawing. Ambient, so still below the High animation
+        // level, and a plain egg never starts the clock.
+        val sparkleScale: State<Float> = if (sparkle && ambientMotion) {
             rememberInfiniteTransition(label = "goldenEggSparkle").animateFloat( // i18n: not translated - an animation label, not shown
                 initialValue = SPARKLE_MIN_SCALE,
                 targetValue = 1f,
