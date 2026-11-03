@@ -319,6 +319,11 @@ class GameEngineTest {
         assertEquals(setOf(3), scoreNow(rolled(3, 3, 3, 3, 3), ScoreCategory.FIVE_OF_A_KIND).players.single().fiveOfAKindNumbers)
         // Its upper box, with the 5x box still open: no 5x scored, and no chip.
         assertEquals(emptySet(), scoreNow(rolled(3, 3, 3, 3, 3), ScoreCategory.THREES).players.single().fiveOfAKindNumbers)
+        // Nor in Chance, with the 5x box open or scratched (a zero is no 5x, so no joker either).
+        assertEquals(emptySet(), scoreNow(rolled(6, 6, 6, 6, 6), ScoreCategory.CHANCE).players.single().fiveOfAKindNumbers)
+        val scratched = scoreNow(rolled(6, 6, 6, 6, 6, scored = mapOf(ScoreCategory.FIVE_OF_A_KIND to 0)), ScoreCategory.CHANCE)
+        assertEquals(emptySet(), scratched.players.single().fiveOfAKindNumbers)
+        assertEquals(0, scratched.players.single().fiveOfAKindBonusCount)
         // With 50 already in the 5x box, another 5x anywhere is a bonus chip.
         val chip = scoreNow(rolled(4, 4, 4, 4, 4, scored = mapOf(ScoreCategory.FIVE_OF_A_KIND to 50)), ScoreCategory.FOURS)
         assertEquals(1, chip.players.single().fiveOfAKindBonusCount)
