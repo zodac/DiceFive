@@ -53,8 +53,8 @@ class ScreenReaderSemanticsTest : UiTest() {
         fiveOfAKindCount = 4,
         soloGames = 2,
         modes = listOf(
-            ModeStatistics(GameMode.STANDARD, gamesPlayed = 3, gamesWon = 2, gamesLost = 1, soloGames = 0, maxScore = 250),
-            ModeStatistics(GameMode.QUICKFIRE, gamesPlayed = 2, gamesWon = 0, gamesLost = 0, soloGames = 2, maxScore = 1_180),
+            ModeStatistics(GameMode.STANDARD, gamesPlayed = 3, gamesWon = 2, gamesLost = 1, soloGames = 0, maxScore = 250, totalScore = 600),
+            ModeStatistics(GameMode.QUICKFIRE, gamesPlayed = 2, gamesWon = 0, gamesLost = 0, soloGames = 2, maxScore = 1_180, totalScore = 1_400),
         ),
     )
 
@@ -86,7 +86,7 @@ class ScreenReaderSemanticsTest : UiTest() {
     }
 
     @Test
-    fun `a stats card is collapsed to name and best score - its header opening Overview and By mode - each a stop or two in words`() = uiTest {
+    fun `a stats card is collapsed to name and best score - its header opening Standard and By mode - each a stop or two in words`() = uiTest {
         var deleted = 0
         showcase.show { DiceFiveTheme { PlayerStatsCard(player = player, onDelete = { deleted++ }) } }
 
@@ -107,15 +107,18 @@ class ScreenReaderSemanticsTest : UiTest() {
         assertEquals("Expanded", config[SemanticsProperties.StateDescription])
         assertEquals("Hide details", config[SemanticsActions.OnClick].label)
 
-        // Overview: the numbers and the won/lost/solo split, then the rest.
+        // Standard: the numbers and the won/lost/solo split, then the rest.
         compose.onNodeWithContentDescription("Played 5, won 3, lost 2. 2 solo games played. Win rate 60%. Average score 200.").assertExists()
         val details = compose.onNodeWithContentDescription("Win streak 1", substring = true).fetchSemanticsNode()
             .config[SemanticsProperties.ContentDescription].single()
         assertTrue(details.startsWith("Win streak 1, best win streak 2. 4 5x scored. Total points scored: 1,001. First played "), details)
 
-        // By mode: a stop per mode, the win rate left out with nothing but solo games; the headings and bar are silent.
+        // By mode: every mode's split as one stop, a stop per mode (the win rate left out with nothing but solo games),
+        // and every mode's points as one; the headings are silent.
         compose.onNodeWithText("By mode").performClick()
         compose.waitForIdle()
+        compose.onNodeWithContentDescription("Played 5, won 2, lost 1. 2 solo games played.").assertExists()
+        compose.onNodeWithContentDescription("Total points scored: 2,000.").assertExists()
         compose.onNodeWithContentDescription("Standard. Best score 250. 3 games played. Win rate 67%. 0 solo games played.").assertExists()
         compose.onNodeWithContentDescription("Quickfire. Best score 1,180. 2 games played. 2 solo games played.").assertExists()
         compose.onAllNodesWithText("Mode").assertCountEquals(0)

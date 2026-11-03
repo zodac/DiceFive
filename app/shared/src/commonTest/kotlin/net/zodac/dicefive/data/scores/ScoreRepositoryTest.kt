@@ -86,7 +86,7 @@ class ScoreRepositoryTest {
         modes.record("Bob", 300, gameMode = GameMode.TRICOLOUR)
         modes.record("Carol", 220, gameMode = GameMode.TRICOLOUR)
         modes.record("Dave", 400, gameMode = GameMode.TRICOLOUR, playedUnmodified = false)
-        // The same for a mode off the Combined board, whose every game is off it: its card lists only the unmodified ones.
+        // The same for a mode off the Leaderboard's achievements: its board lists only the unmodified games.
         modes.record("Erin", 120, gameMode = GameMode.QUICKFIRE)
         modes.record("Finn", 180, gameMode = GameMode.QUICKFIRE, playedUnmodified = false)
         assertEquals(listOf("Erin"), modes.pageForMode(GameMode.QUICKFIRE, pageIndex = 0).map { it.playerName })
@@ -95,8 +95,6 @@ class ScoreRepositoryTest {
         assertEquals(2, modes.totalCountForMode(GameMode.TRICOLOUR))
         assertEquals(listOf("Alice"), modes.pageForMode(GameMode.STANDARD, pageIndex = 0).map { it.playerName })
         assertEquals(0, modes.totalCountForMode(GameMode.STUD))
-        // The combined board still has them all, each saying which mode it was.
-        assertEquals(listOf(GameMode.TRICOLOUR, GameMode.TRICOLOUR, GameMode.STANDARD), modes.page(0).map { it.gameMode })
     }
 
     @Test
@@ -109,14 +107,43 @@ class ScoreRepositoryTest {
         val alice = repository.playerStatistics().single()
         assertEquals(
             listOf(
-                ModeStatistics(GameMode.STANDARD, gamesPlayed = 1, gamesWon = 0, gamesLost = 0, soloGames = 1, maxScore = 100),
-                ModeStatistics(GameMode.TRICOLOUR, gamesPlayed = 3, gamesWon = 1, gamesLost = 1, soloGames = 1, maxScore = 180),
+                ModeStatistics(GameMode.STANDARD, gamesPlayed = 1, gamesWon = 0, gamesLost = 0, soloGames = 1, maxScore = 100, totalScore = 100),
+                ModeStatistics(GameMode.TRICOLOUR, gamesPlayed = 3, gamesWon = 1, gamesLost = 1, soloGames = 1, maxScore = 180, totalScore = 390),
             ),
             alice.modes,
         )
-        assertEquals(alice.gamesPlayed, alice.modes.sumOf { it.gamesPlayed })
         // Solo games aren't in a win rate; with nothing but solo games there's none.
         assertEquals(listOf(null, 50), alice.modes.map { it.winRatePercent })
+    }
+
+    @Test
+    fun `the ledger counts the scores on Standard's board only`() = runTest {
+        val repository = ScoreRepository(InMemoryScoreDao())
+        repository.record("Alice", 10, gameMode = GameMode.STANDARD)
+        repository.record("Bob", 42, gameMode = GameMode.TRICOLOUR)
+        repository.record("Carol", 30, gameMode = GameMode.STANDARD, playedUnmodified = false)
+        assertEquals(setOf(10), repository.leaderboardTotals().distinctScores)
+        assertEquals(setOf(42), repository.distinctScores(GameMode.TRICOLOUR))
+    }
+
+    @Test
+    fun `Statistics - a card's own numbers and win streaks are the player's Standard games - and a player with none has no card`() = runTest {
+        val repository = ScoreRepository(InMemoryScoreDao())
+        repository.record("Alice", 120, won = true, gameMode = GameMode.STANDARD, timestampEpochMillis = 1_000L)
+        repository.record("Alice", 300, won = true, gameMode = GameMode.TRICOLOUR, timestampEpochMillis = 2_000L)
+        repository.record("Alice", 150, won = true, gameMode = GameMode.STANDARD, timestampEpochMillis = 3_000L)
+        repository.record("Alice", 90, won = false, gameMode = GameMode.TRICOLOUR, timestampEpochMillis = 4_000L)
+        // Bob has only played Stud.
+        repository.record("Bob", 900, won = null, gameMode = GameMode.STUD, timestampEpochMillis = 5_000L)
+        val alice = repository.playerStatistics().single()
+        assertEquals("Alice", alice.playerName)
+        assertEquals(listOf(2, 2, 0, 0), listOf(alice.gamesPlayed, alice.gamesWon, alice.gamesLost, alice.soloGames))
+        assertEquals(listOf(150, 270), listOf(alice.maxScore, alice.totalScore))
+        assertEquals(1_000L, alice.firstPlayedEpochMillis)
+        // Tricolour's loss, the latest game, doesn't break the Standard streak.
+        assertEquals(listOf(2, 2), listOf(alice.currentWinStreak, alice.bestWinStreak))
+        // Every mode's games are still in the card's By mode.
+        assertEquals(listOf(GameMode.STANDARD, GameMode.TRICOLOUR), alice.modes.map { it.gameMode })
     }
 
     @Test
@@ -257,13 +284,13 @@ class ScoreRepositoryTest {
         repository.record("Alice", 250, isPrimaryPlayer = true)
         assertEquals(400, repository.primaryPlayerTotalPoints())
 
-        // A game in a mode off the Leaderboard still counts in Statistics and career points.
+        // A game in a mode off the Leaderboard's achievements still counts in career points, and in its mode's Statistics row.
         val offBoard = ScoreRepository(InMemoryScoreDao())
         offBoard.record("Alice", 200, isPrimaryPlayer = true)
         offBoard.record("Alice", 120, isPrimaryPlayer = true, gameMode = GameMode.QUICKFIRE)
         assertEquals(1, offBoard.totalCount())
         assertEquals(listOf(200), offBoard.page(0).map { it.score })
-        assertEquals(2, offBoard.playerStatistics().single().gamesPlayed)
+        assertEquals(listOf(1, 1), offBoard.playerStatistics().single().modes.map { it.gamesPlayed })
         assertEquals(320, offBoard.primaryPlayerTotalPoints())
 
         // A game with a modifier on counts nowhere: not the Leaderboard, Statistics, career points or the modes played.
@@ -273,7 +300,7 @@ class ScoreRepositoryTest {
         assertEquals(1, modified.totalCount())
         assertEquals(listOf(200), modified.page(0).map { it.score })
         assertEquals(200, modified.bestScoreForPlayer("Alice"))
-        assertEquals(setOf(200), modified.distinctScores())
+        assertEquals(setOf(200), modified.distinctScores(GameMode.STANDARD))
         val alice = modified.playerStatistics().single()
         assertEquals(1, alice.gamesPlayed)
         assertEquals(200, alice.maxScore)

@@ -67,13 +67,13 @@ private class GatedEmptyScoreDao : ScoreDao {
     override suspend fun count(): Int = gate.await().let { 0 }
     override suspend fun countForMode(gameModeId: String): Int = gate.await().let { 0 }
     override suspend fun bestScoreForPlayer(playerKey: String): Int? = gate.await().let { null }
-    override suspend fun distinctScores(): List<Int> = gate.await().let { emptyList() }
+    override suspend fun distinctScores(gameModeId: String): List<Int> = gate.await().let { emptyList() }
     override suspend fun primaryPlayerTotalPoints(): Int? = gate.await().let { null }
     override suspend fun primaryPlayerGameModeIds(): List<String> = gate.await().let { emptyList() }
     override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
     override suspend fun playerModeTotals(): List<PlayerModeTotals> = gate.await().let { emptyList() }
     override suspend fun latestPlayerNames(): List<PlayerLatestName> = emptyList()
-    override suspend fun playerOutcomes(): List<PlayerOutcome> = emptyList()
+    override suspend fun playerOutcomes(gameModeId: String): List<PlayerOutcome> = emptyList()
     override suspend fun clearDismissal(playerKey: String) = Unit
     override suspend fun clearAllScores() = Unit
     override suspend fun clearAllDismissals() = Unit

@@ -242,8 +242,9 @@ Locked dice (`Die.isUnlucky`) can't be held and don't score, in every mode.
 
 ### Off the Leaderboard
 
-`countsOnLeaderboard = false` records `ScoreEntry.onLeaderboard = false`. The Combined table, a personal best and the
-score bands skip those rows; a mode's own board, Statistics and career points don't. A game with any modifier on is on
+`countsOnLeaderboard = false` records `ScoreEntry.onLeaderboard = false`. A personal best and the in-game "not on the
+Leaderboard yet" pill skip those rows, and the score bands read Standard's alone; a mode's own board, Statistics and
+career points don't skip them. A game with any modifier on is on
 no card, no online board, and not in Statistics or career points, whatever its mode (`ScoreEntry.playedUnmodified`).
 
 - **Fakes.** The fake DAOs in `ScoreRepositoryTest` and `GameAchievementsWiringTest` mirror the real filters, so **a

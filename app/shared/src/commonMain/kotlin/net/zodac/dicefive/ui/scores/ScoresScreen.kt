@@ -41,11 +41,9 @@ import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.scores_board_empty
 import net.zodac.dicefive.resources.scores_board_label
-import net.zodac.dicefive.resources.scores_empty
 import net.zodac.dicefive.resources.scores_global
 import net.zodac.dicefive.resources.scores_global_cd
 import net.zodac.dicefive.resources.scores_title
-import net.zodac.dicefive.resources.scores_view_combined
 import net.zodac.dicefive.ui.common.DropdownChoiceField
 import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LocalLandscapePage
@@ -68,7 +66,7 @@ private val GLOBAL_BUTTON_CHROME_WIDTH = GLOBAL_ICON_SIZE + GLOBAL_ICON_GAP + 24
 private val LANDSCAPE_ROW_WIDTH = 640.dp
 
 /**
- * The Leaderboard: a drop-down at the top picks the board - Combined, or one game mode's - and the board's table is under
+ * The Leaderboard: a drop-down at the top picks a game mode's board (Standard's to start), and the board's table is under
  * it. Every board is the same [LeaderboardTable], so the top three are in gold, silver, and bronze on each. The pick is
  * remembered ([ScoresViewModel]).
  */
@@ -121,19 +119,14 @@ fun ScoresScreen(
         val boardName = boardName(choice)
         LeaderboardTable(
             board = board,
-            emptyText = when (choice) {
-                LeaderboardChoice.Combined -> stringResource(Res.string.scores_empty)
-                is LeaderboardChoice.Mode -> stringResource(Res.string.scores_board_empty, boardName)
-            },
-            // The mode only where rows of every mode share a table - on its own board it is the drop-down's.
-            showMode = choice == LeaderboardChoice.Combined,
+            emptyText = stringResource(Res.string.scores_board_empty, boardName),
             onPrevious = viewModel::previousPage,
             onNext = viewModel::nextPage,
             landscape = landscape,
             header = {
                 BoardTitle(
                     title = boardName,
-                    mode = (choice as? LeaderboardChoice.Mode)?.mode,
+                    mode = choice.mode,
                     services = services.takeIf { online },
                 )
             },
@@ -143,10 +136,7 @@ fun ScoresScreen(
 
 /** A board's name as the drop-down and its title say it. */
 @Composable
-private fun boardName(choice: LeaderboardChoice): String = when (choice) {
-    LeaderboardChoice.Combined -> stringResource(Res.string.scores_view_combined)
-    is LeaderboardChoice.Mode -> stringResource(choice.mode.displayName)
-}
+private fun boardName(choice: LeaderboardChoice): String = stringResource(choice.mode.displayName)
 
 /**
  * A board's title, a heading, with - for a [mode]'s board while signed in to a service ([services]) - its Global button.
@@ -222,11 +212,11 @@ private const val SCORES_WARM_UP_DELAY_MILLIS = 2000L
 // Frames each board gets: enough for the page's own fade-in (100ms) to finish, so it's really drawn.
 private const val SCORES_WARM_UP_FRAMES = 8
 
-/** The boards the warm-up draws: the table, and a mode's board (the same table, with its own title row). */
-private val WARM_UP_CHOICES = listOf(LeaderboardChoice.Combined, LeaderboardChoice.Mode(GameMode.STANDARD))
+/** The boards the warm-up draws: Standard's, which the page opens on, then another picked from the drop-down. */
+private val WARM_UP_CHOICES = listOf(LeaderboardChoice.Mode(GameMode.STANDARD), LeaderboardChoice.Mode(GameMode.TRICOLOUR))
 
 /**
- * Draws the Leaderboard - the Combined table, then a mode's board - once, out of sight, so opening it isn't
+ * Draws the Leaderboard - Standard's board, then another mode's - once, out of sight, so opening it isn't
  * the first time its code runs. That's most of the lag on a first open: a few rows take no time, but loading
  * and running the page's first-time code (the switch, the table, the lists, their scrollbars) lands on the
  * frame the page opens on. Placed on the menu under its opaque backdrop, in a 1dp clipped box, once the menu
@@ -256,7 +246,7 @@ fun ScoresWarmUp(width: Dp, modifier: Modifier = Modifier) {
     }
 }
 
-/** A board of a few made-up scores, on the Combined table and on two modes' boards. */
+/** A board of a few made-up scores, on two modes' boards. */
 private object WarmUpBoard : LeaderboardSource {
     private fun entry(id: Long, score: Int, mode: GameMode) = ScoreEntry(
         playerName = "Player $id", // i18n: not translated - made-up warm-up data, never shown

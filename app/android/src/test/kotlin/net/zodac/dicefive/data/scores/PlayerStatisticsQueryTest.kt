@@ -65,17 +65,22 @@ class PlayerStatisticsQueryTest {
         dao.dismissPlayer("Dismissed", at + 1)
     }
 
-    /** Statistics worked out by walking every game with no modifier on, most recent first, as they were before SQLite added them up. */
+    /**
+     * Statistics worked out by walking every game with no modifier on, most recent first, as they were before SQLite added
+     * them up: the card's own numbers and streaks from the player's Standard games, every mode's in its row, and no card
+     * for a player with no Standard game. The name is the latest game's spelling, in any mode.
+     */
     private suspend fun walkedStatistics(): List<PlayerStatistics> {
         val dismissed = dao.allDismissals().map { it.playerKey }.toSet()
         return dao.allScores().filter { it.playedUnmodified && it.playerKey !in dismissed }
             .sortedWith(compareBy<ScoreEntry> { it.playerKey }.thenByDescending { it.timestampEpochMillis })
-            .groupBy { it.playerKey }.values.map { games ->
+            .groupBy { it.playerKey }.values.mapNotNull { games ->
+                val standard = games.filter { it.gameModeId == GameMode.STANDARD.id }.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
                 var running = 0
                 var best = 0
                 var current = 0
                 var locked = false
-                for (won in games.mapNotNull { it.won }) {
+                for (won in standard.mapNotNull { it.won }) {
                     if (won) {
                         running++
                         best = maxOf(best, running)
@@ -87,16 +92,16 @@ class PlayerStatisticsQueryTest {
                 }
                 PlayerStatistics(
                     playerName = games.first().playerName,
-                    firstPlayedEpochMillis = games.minOf { it.timestampEpochMillis },
-                    gamesPlayed = games.size,
-                    gamesWon = games.count { it.won == true },
-                    gamesLost = games.count { it.won == false },
+                    firstPlayedEpochMillis = standard.minOf { it.timestampEpochMillis },
+                    gamesPlayed = standard.size,
+                    gamesWon = standard.count { it.won == true },
+                    gamesLost = standard.count { it.won == false },
                     currentWinStreak = current,
                     bestWinStreak = best,
-                    maxScore = games.maxOf { it.score },
-                    totalScore = games.sumOf { it.score },
-                    fiveOfAKindCount = games.sumOf { it.fiveOfAKindCount },
-                    soloGames = games.count { it.won == null },
+                    maxScore = standard.maxOf { it.score },
+                    totalScore = standard.sumOf { it.score },
+                    fiveOfAKindCount = standard.sumOf { it.fiveOfAKindCount },
+                    soloGames = standard.count { it.won == null },
                     modes = GameMode.entries.mapNotNull { mode ->
                         games.filter { it.gameModeId == mode.id }.takeIf { it.isNotEmpty() }?.let { inMode ->
                             ModeStatistics(
@@ -106,6 +111,7 @@ class PlayerStatisticsQueryTest {
                                 gamesLost = inMode.count { it.won == false },
                                 soloGames = inMode.count { it.won == null },
                                 maxScore = inMode.maxOf { it.score },
+                                totalScore = inMode.sumOf { it.score },
                             )
                         }
                     },
@@ -122,7 +128,8 @@ class PlayerStatisticsQueryTest {
         assertEquals(listOf("bob", "priya", "you", "zoë", "ángel"), expected.map { it.playerName.lowercase() })
         assertTrue(expected.any { it.currentWinStreak > 0 } && expected.any { it.bestWinStreak > it.currentWinStreak && it.bestWinStreak > 1 })
         assertTrue(expected.all { it.soloGames > 0 && it.gamesLost > 0 })
-        assertTrue(expected.all { player -> player.modes.sumOf { it.gamesPlayed } < player.gamesPlayed })
+        // Every mode's games are in By mode, which has more than the card's Standard ones.
+        assertTrue(expected.all { player -> player.modes.sumOf { it.gamesPlayed } > player.gamesPlayed })
         assertEquals(expected, ScoreRepository(dao).playerStatistics())
     }
 

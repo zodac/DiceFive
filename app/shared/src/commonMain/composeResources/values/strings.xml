@@ -1266,11 +1266,9 @@
 
     <!-- Leaderboard (ui/scores/*) -->
     <string name="scores_title">Leaderboard</string>
-    <!-- The board's drop-down, at the top: Combined (every mode in one table), then a board for each game mode. -->
-    <string name="scores_view_combined">Combined</string>
+    <!-- The board's drop-down, at the top: a board for each game mode. -->
     <string name="scores_board_label">Leaderboard</string>
     <string name="scores_board_empty">No scores in %1$s yet</string>
-    <string name="scores_empty">No scores yet - play a game!</string>
     <string name="scores_global">Global</string>
     <string name="scores_global_cd">Global leaderboard for %1$s on %2$s</string>
     <!-- Column headings of the table ("#", "5x" and the score). -->
@@ -1326,21 +1324,20 @@
     </plurals>
     <string name="stats_first_played">First played</string>
     <string name="stats_best">Best</string>
-    <!-- A score with its unit, as the card's best score and Overview's average show it: %1$s is the number, thousands-separated ("1,287pts"). The same short form as rules_points_short. -->
+    <!-- A score with its unit, as the card's best score and the Standard tab's average show it: %1$s is the number, thousands-separated ("1,287pts"). The same short form as rules_points_short. -->
     <string name="stats_points">%1$spts</string>
     <string name="stats_average">Average</string>
     <string name="stats_solo">Solo</string>
-    <!-- The switch on an opened card: the player's overall stats, or a table of them by game mode. -->
-    <string name="stats_overview">Overview</string>
+    <!-- The switch on an opened card ("Standard" is the mode's own name, mode_standard): the player's Standard stats, or a table of them by game mode. -->
     <string name="stats_by_mode">By mode</string>
-    <!-- Labels under the three big numbers on Overview. -->
+    <!-- Labels under the three big numbers on the Standard tab. -->
     <string name="stats_games">Games</string>
     <string name="stats_win_rate">Win rate</string>
     <!-- A win rate: %1$d is a whole percentage of the games against someone that were won. -->
     <string name="stats_win_rate_value">%1$d%</string>
     <!-- Shown for a win rate when every game was solo, and for a win streak before a first win: there is none. -->
     <string name="stats_no_win_rate">-</string>
-    <!-- The key under the won/lost/solo bar on Overview: one each, chosen by its count (%1$d). -->
+    <!-- The key under a won/lost/solo bar (the Standard tab's, and By mode's for every mode): one each, chosen by its count (%1$d). -->
     <plurals name="stats_record_won">
         <item quantity="one">%1$d won</item>
         <item quantity="other">%1$d won</item>
@@ -1353,7 +1350,7 @@
         <item quantity="one">%1$d solo</item>
         <item quantity="other">%1$d solo</item>
     </plurals>
-    <!-- Overview's detail lines: a label, then its value. -->
+    <!-- The Standard tab's detail lines (and By mode's total points): a label, then its value. -->
     <string name="stats_win_streak">Win streak</string>
     <!-- %1$d is the current win streak, %2$d the longest. -->
     <string name="stats_win_streak_value">%1$d (best %2$d)</string>

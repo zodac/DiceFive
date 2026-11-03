@@ -31,9 +31,9 @@ class ScoresStatisticsTextTest : UiTest() {
     fun `the Leaderboard and Statistics are titled and say when they're empty - and the table has its column headings`() = uiTest {
         showScores(emptyList())
         compose.onNodeWithText("Leaderboard").assertExists()
-        compose.onNodeWithText("No scores yet - play a game!").assertExists()
+        compose.onNodeWithText("No scores in Standard yet").assertExists()
         // The drop-down, on the board it opens on: one control, named and valued.
-        compose.onNodeWithContentDescription("Leaderboard, Combined").assertExists()
+        compose.onNodeWithContentDescription("Leaderboard, Standard").assertExists()
 
         showScores(listOf(rowOf(1, 300, GameMode.STANDARD)))
         listOf("#", "Player", "5x", "Score").forEach { compose.onAllNodesWithText(it).assertCountEquals(1) }

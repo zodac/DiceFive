@@ -52,18 +52,18 @@ class StatisticsDefaultExpansionTest : UiTest() {
     @Test
     fun `every card opens when they all fit on screen`() = uiTest(TestScreen(400, 3000)) {
         showPlayers(3)
-        compose.onAllNodesWithText("Overview").assertCountEquals(3)
+        compose.onAllNodesWithText("Standard").assertCountEquals(3)
     }
 
     @Test
     fun `only the first card opens when they don't all fit - and opening another leaves it open`() = uiTest {
         showPlayers(4)
-        compose.onAllNodesWithText("Overview").assertCountEquals(1)
+        compose.onAllNodesWithText("Standard").assertCountEquals(1)
 
         compose.onNodeWithContentDescription("Player1. Best score 100.").assertExists()
         compose.onNodeWithContentDescription("Player2. Best score 200.").performClick()
         compose.waitForIdle()
-        compose.onAllNodesWithText("Overview").assertCountEquals(2)
+        compose.onAllNodesWithText("Standard").assertCountEquals(2)
     }
 
     @Test
@@ -72,11 +72,11 @@ class StatisticsDefaultExpansionTest : UiTest() {
         val builtAhead = compose.onAllNodesWithTag(BUILT_AHEAD_TAG, useUnmergedTree = true).fetchSemanticsNodes()
         assertTrue(builtAhead.isNotEmpty())
         assertTrue(builtAhead.all { it.size.height == 0 })
-        compose.onAllNodesWithText("Overview").assertCountEquals(1)
+        compose.onAllNodesWithText("Standard").assertCountEquals(1)
 
         compose.onNodeWithContentDescription("Player2. Best score 200.").performClick()
         compose.waitForIdle()
-        compose.onAllNodesWithText("Overview").assertCountEquals(2)
+        compose.onAllNodesWithText("Standard").assertCountEquals(2)
         compose.onAllNodesWithTag(BUILT_AHEAD_TAG, useUnmergedTree = true).assertCountEquals(builtAhead.size - 1)
     }
 
@@ -91,7 +91,7 @@ class StatisticsDefaultExpansionTest : UiTest() {
     @Test
     fun `in landscape the top card of each column opens`() = uiTest(TestScreen(891, 411)) {
         showPlayers(5)
-        compose.onAllNodesWithText("Overview").assertCountEquals(2)
+        compose.onAllNodesWithText("Standard").assertCountEquals(2)
     }
 
     @Test
@@ -160,7 +160,7 @@ class StatisticsDefaultExpansionTest : UiTest() {
         assertEquals("Expanded", state("Player4", 400))
         assertEquals("Collapsed", state("Player1", 100))
         assertEquals("Collapsed", state("Player2", 200))
-        compose.onAllNodesWithText("Overview").assertCountEquals(1)
+        compose.onAllNodesWithText("Standard").assertCountEquals(1)
 
         // And back again: Player1 leads, so it opens, and Player4 closes.
         compose.onNodeWithContentDescription("Sort players").performClick()
@@ -168,12 +168,12 @@ class StatisticsDefaultExpansionTest : UiTest() {
         compose.waitForIdle()
         assertEquals("Expanded", state("Player1", 100))
         assertEquals("Collapsed", state("Player4", 400))
-        compose.onAllNodesWithText("Overview").assertCountEquals(1)
+        compose.onAllNodesWithText("Standard").assertCountEquals(1)
     }
 
     @Test
     fun `a lone player's card is open even where it doesn't fit`() = uiTest {
         showPlayers(1)
-        compose.onAllNodesWithText("Overview").assertCountEquals(1)
+        compose.onAllNodesWithText("Standard").assertCountEquals(1)
     }
 }

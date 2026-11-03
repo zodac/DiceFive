@@ -293,7 +293,7 @@ class GameAchievementsWiringTest {
         assertEquals(thirdWind.game.value!!.players.single().totalScore, row.score)
         assertEquals(0, repository.totalCount(), "the Leaderboard shows no row for it")
         assertEquals(null, repository.bestScoreForPlayer(row.playerName))
-        assertEquals(emptySet(), repository.distinctScores())
+        assertEquals(emptySet(), repository.distinctScores(GameMode.THIRD_WIND))
     }
 
     // ---- What a roll or a score earns, as it happens ----------------------------------------------

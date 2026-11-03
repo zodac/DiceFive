@@ -67,6 +67,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -78,6 +79,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import net.zodac.dicefive.data.scores.ModeStatistics
 import net.zodac.dicefive.data.scores.PlayerStatistics
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_cancel
 import net.zodac.dicefive.resources.stats_average
@@ -96,7 +98,6 @@ import net.zodac.dicefive.resources.stats_games
 import net.zodac.dicefive.resources.stats_hide_action
 import net.zodac.dicefive.resources.stats_mode
 import net.zodac.dicefive.resources.stats_no_win_rate
-import net.zodac.dicefive.resources.stats_overview
 import net.zodac.dicefive.resources.stats_points
 import net.zodac.dicefive.resources.stats_record_lost
 import net.zodac.dicefive.resources.stats_record_solo
@@ -134,6 +135,7 @@ import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.PageCover
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SegmentedChoiceRow
+import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.joinSentences
 import net.zodac.dicefive.ui.common.pluralStringResource
@@ -392,7 +394,7 @@ fun PlayerStatsCard(player: PlayerStatistics, onDelete: () -> Unit, initiallyExp
 
 /**
  * One player's card, open or closed as [expanded] says. Closed it is just their name and best score (gold, in points), with a dropdown arrow
- * after the score; tapping that header opens the rest, under an Overview / By mode switch. The delete button at the
+ * after the score; tapping that header opens the rest, under a Standard / By mode switch. The delete button at the
  * header's end, open or closed, is a control of its own.
  */
 @Composable
@@ -403,7 +405,7 @@ private fun PlayerStatsCardContent(
     onDelete: () -> Unit,
     openAhead: OpenAhead? = null,
 ) {
-    var view by rememberSaveable(player.playerName) { mutableStateOf(StatsView.OVERVIEW) }
+    var view by rememberSaveable(player.playerName) { mutableStateOf(StatsView.STANDARD) }
     // Whether the open content is built, shown or not: from the card's first opening, or its turn with [openAhead],
     // whichever comes first. Closed, it's kept, taking no room and silent, so opening only gives it its room.
     var built by remember { mutableStateOf(false) }
@@ -492,7 +494,7 @@ private fun PlayerStatsCardContent(
                             modifier = Modifier.fillMaxWidth(),
                         )
                         when (view) {
-                            StatsView.OVERVIEW -> Overview(player)
+                            StatsView.STANDARD -> StandardStats(player)
                             StatsView.BY_MODE -> ByMode(player)
                         }
                     }
@@ -531,17 +533,17 @@ internal const val BUILT_AHEAD_TAG = "statsBuiltAhead"
 
 /** The two halves of an opened card, picked by its switch. */
 private enum class StatsView(val label: StringResource) {
-    OVERVIEW(Res.string.stats_overview),
+    STANDARD(GameMode.STANDARD.displayName),
     BY_MODE(Res.string.stats_by_mode),
 }
 
 /**
- * The player's overall stats: games, win rate and average large; the won/lost/solo split as a bar with its key; then
+ * The player's Standard games: games, win rate and average large; the won/lost/solo split as a bar with its key; then
  * the win streak, 5x scored, total points and when they first played. Two stops for TalkBack: the numbers with the split, then the
  * rest.
  */
 @Composable
-private fun Overview(player: PlayerStatistics) {
+private fun StandardStats(player: PlayerStatistics) {
     val numbers = buildList {
         add(stringResource(Res.string.stats_spoken_record, player.gamesPlayed, player.gamesWon, player.gamesLost))
         add(pluralStringResource(Res.plurals.stats_spoken_solo, player.soloGames, player.soloGames))
@@ -567,27 +569,7 @@ private fun Overview(player: PlayerStatistics) {
             Headline(value = AnnotatedString(winRateText(player.winRatePercent)), label = stringResource(Res.string.stats_win_rate))
             Headline(value = pointsText(player.averageScore), label = stringResource(Res.string.stats_average))
         }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            ShareBar(
-                listOf(
-                    player.gamesWon to MaterialTheme.colorScheme.tertiary,
-                    player.gamesLost to MaterialTheme.colorScheme.error,
-                    player.soloGames to MaterialTheme.colorScheme.outline,
-                ),
-            )
-            // Only the outcomes there are, spread along the bar's width.
-            KeyRow {
-                if (player.gamesWon > 0) {
-                    KeyItem(MaterialTheme.colorScheme.tertiary, pluralStringResource(Res.plurals.stats_record_won, player.gamesWon, player.gamesWon))
-                }
-                if (player.gamesLost > 0) {
-                    KeyItem(MaterialTheme.colorScheme.error, pluralStringResource(Res.plurals.stats_record_lost, player.gamesLost, player.gamesLost))
-                }
-                if (player.soloGames > 0) {
-                    KeyItem(MaterialTheme.colorScheme.outline, pluralStringResource(Res.plurals.stats_record_solo, player.soloGames, player.soloGames))
-                }
-            }
-        }
+        OutcomeSplit(won = player.gamesWon, lost = player.gamesLost, solo = player.soloGames)
     }
 
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -611,10 +593,10 @@ private fun Overview(player: PlayerStatistics) {
 }
 
 /**
- * A table of the player's games in each mode they've played: games, win rate, solo games and best score, each name in
- * its mode's colour. Under it, a bar of every mode's share of the games in the same colours. Above
- * [STACKED_FONT_SCALE] a name takes its own line, its numbers under the headings on the next. TalkBack reads each row
- * as one stop, in full, so the headings and the bar are silent.
+ * Every mode's games together as a won/lost/solo bar with its key, then a table of the player's games in each mode
+ * they've played: games, win rate, solo games and best score, each name in its mode's colour. Under it, the points
+ * scored in every mode together. Above [STACKED_FONT_SCALE] a name takes its own line, its numbers under the headings on
+ * the next. TalkBack reads the bar as one stop, each row as one, and the total as one, in full; the headings are silent.
  */
 @Composable
 private fun ByMode(player: PlayerStatistics) {
@@ -625,19 +607,75 @@ private fun ByMode(player: PlayerStatistics) {
         stringResource(Res.string.stats_solo),
         stringResource(Res.string.stats_best),
     )
+    // Every mode's games together, won/lost/solo, as the Standard tab shows its own - and said as it says them.
+    val won = player.modes.sumOf { it.gamesWon }
+    val lost = player.modes.sumOf { it.gamesLost }
+    val solo = player.modes.sumOf { it.soloGames }
+    val recordSpoken = joinSentences(
+        listOf(
+            stringResource(Res.string.stats_spoken_record, player.modes.sumOf { it.gamesPlayed }, won, lost),
+            pluralStringResource(Res.plurals.stats_spoken_solo, solo, solo),
+        ),
+    )
+    Box(modifier = Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = recordSpoken }) {
+        OutcomeSplit(won = won, lost = lost, solo = solo)
+    }
+    val numbers = player.modes.map { modeNumbers(it) }
+    // Stacked, each number column's share of the row is its widest text, heading or number, measured.
+    val measurer = rememberTextMeasurer()
+    val headingStyle = MaterialTheme.typography.labelMedium
+    val numberStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+    val weights = remember(headings, numbers, headingStyle, numberStyle, LocalDensity.current) {
+        headings.indices.map { column ->
+            maxOf(
+                measurer.measure(headings[column], headingStyle, maxLines = 1).size.width,
+                numbers.maxOfOrNull { measurer.measure(it[column], numberStyle, maxLines = 1).size.width } ?: 0,
+            ).coerceAtLeast(1).toFloat()
+        }
+    }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(modifier = Modifier.fillMaxWidth().clearAndSetSemantics {}, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (!stacked) TableCell(stringResource(Res.string.stats_mode), heading = true, modifier = Modifier.weight(1f))
-            headings.forEach { NumberCell(it, stacked, heading = true) }
+            headings.forEachIndexed { column, heading -> NumberCell(heading, stacked, weights[column], heading = true) }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        player.modes.forEach { mode -> ModeRow(mode, stacked) }
+        player.modes.forEachIndexed { index, mode -> ModeRow(mode, numbers[index], stacked, weights) }
     }
-    ShareBar(player.modes.map { it.gamesPlayed to it.gameMode.color })
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    // Every mode's points together, spoken as the Standard tab says its own.
+    val totalPoints = player.modes.sumOf { it.totalScore }.grouped()
+    val totalSpoken = stringResource(Res.string.stats_spoken_total_points, totalPoints)
+    Box(modifier = Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = totalSpoken }) {
+        DetailLine(label = stringResource(Res.string.stats_total_points), value = totalPoints)
+    }
 }
 
+/** A won/lost/solo split as a bar, with its key: only the outcomes there are, spread along the bar's width. */
 @Composable
-private fun ModeRow(mode: ModeStatistics, stacked: Boolean) {
+private fun OutcomeSplit(won: Int, lost: Int, solo: Int) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        ShareBar(
+            listOf(
+                won to MaterialTheme.colorScheme.tertiary,
+                lost to MaterialTheme.colorScheme.error,
+                solo to MaterialTheme.colorScheme.outline,
+            ),
+        )
+        KeyRow {
+            if (won > 0) KeyItem(MaterialTheme.colorScheme.tertiary, pluralStringResource(Res.plurals.stats_record_won, won, won))
+            if (lost > 0) KeyItem(MaterialTheme.colorScheme.error, pluralStringResource(Res.plurals.stats_record_lost, lost, lost))
+            if (solo > 0) KeyItem(MaterialTheme.colorScheme.outline, pluralStringResource(Res.plurals.stats_record_solo, solo, solo))
+        }
+    }
+}
+
+/** A mode's row of numbers, as shown: games, win rate, solo games and best score. */
+@Composable
+private fun modeNumbers(mode: ModeStatistics): List<String> =
+    listOf(mode.gamesPlayed.grouped(), winRateText(mode.winRatePercent), mode.soloGames.grouped(), mode.maxScore.grouped())
+
+@Composable
+private fun ModeRow(mode: ModeStatistics, numbers: List<String>, stacked: Boolean, weights: List<Float>) {
     val name = stringResource(mode.gameMode.displayName)
     val spoken = joinSentences(
         buildList {
@@ -647,9 +685,10 @@ private fun ModeRow(mode: ModeStatistics, stacked: Boolean) {
             add(pluralStringResource(Res.plurals.stats_spoken_solo, mode.soloGames, mode.soloGames))
         },
     )
-    val numbers = listOf(mode.gamesPlayed.grouped(), winRateText(mode.winRatePercent), mode.soloGames.grouped(), mode.maxScore.grouped())
+    // On one line, stepped down to fit beside the numbers rather than wrapped ("7 Dice Stud" at a large font); wrapped
+    // only when even the smallest readable size doesn't fit.
     val nameText = @Composable { modifier: Modifier ->
-        Text(
+        ShrinkThenWrapText(
             text = name,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
@@ -662,25 +701,28 @@ private fun ModeRow(mode: ModeStatistics, stacked: Boolean) {
         Column(modifier = semantics) {
             nameText(Modifier)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                numbers.forEach { NumberCell(it, stacked = true) }
+                numbers.forEachIndexed { column, number -> NumberCell(number, stacked = true, weights[column]) }
             }
         }
     } else {
         Row(modifier = semantics, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             nameText(Modifier.weight(1f))
-            numbers.forEach { NumberCell(it, stacked = false) }
+            numbers.forEachIndexed { column, number -> NumberCell(number, stacked = false, weights[column]) }
         }
     }
 }
 
-/** A number column's cell: an even share of the row when stacked, else at least [NUMBER_COLUMN_MIN_WIDTH] after the name. */
+/**
+ * A number column's cell: when stacked, a share of the row by [weight] (the column's widest text, so a heading such as
+ * "Games" keeps to one line); else at least [NUMBER_COLUMN_MIN_WIDTH] after the name.
+ */
 @Composable
-private fun RowScope.NumberCell(text: String, stacked: Boolean, heading: Boolean = false) {
+private fun RowScope.NumberCell(text: String, stacked: Boolean, weight: Float, heading: Boolean = false) {
     TableCell(
         text = text,
         heading = heading,
         numeric = true,
-        modifier = if (stacked) Modifier.weight(1f) else Modifier.widthIn(min = NUMBER_COLUMN_MIN_WIDTH),
+        modifier = if (stacked) Modifier.weight(weight) else Modifier.widthIn(min = NUMBER_COLUMN_MIN_WIDTH),
     )
 }
 
@@ -803,7 +845,7 @@ private val SHARE_BAR_HEIGHT = 10.dp
 private val KEY_SWATCH_SIZE = 10.dp
 private val NUMBER_COLUMN_MIN_WIDTH = 44.dp
 
-/** The font scale above which the header puts the best score under the name, Overview's details their label over
+/** The font scale above which the header puts the best score under the name, the Standard tab's details their label over
  * their value, and By mode each name over its numbers. */
 private const val STACKED_FONT_SCALE = 1.3f
 

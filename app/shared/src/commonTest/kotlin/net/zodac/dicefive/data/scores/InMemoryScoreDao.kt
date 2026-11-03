@@ -46,7 +46,7 @@ class InMemoryScoreDao(initial: List<ScoreEntry> = emptyList()) : ScoreDao {
     override suspend fun bestScoreForPlayer(playerKey: String): Int? =
         leaderboard.filter { it.playerKey == playerKey }.maxOfOrNull { it.score }
 
-    override suspend fun distinctScores(): List<Int> = leaderboard.map { it.score }.distinct()
+    override suspend fun distinctScores(gameModeId: String): List<Int> = leaderboard.filter { it.gameModeId == gameModeId }.map { it.score }.distinct()
 
     override suspend fun primaryPlayerTotalPoints(): Int? =
         unmodified.filter { it.isPrimaryPlayer }.takeIf { it.isNotEmpty() }?.sumOf { it.score }
@@ -78,10 +78,10 @@ class InMemoryScoreDao(initial: List<ScoreEntry> = emptyList()) : ScoreDao {
             PlayerLatestName(playerKey, games.last { it.timestampEpochMillis == games.maxOf { game -> game.timestampEpochMillis } }.playerName)
         }
 
-    override suspend fun playerOutcomes(): List<PlayerOutcome> =
-        statistics
+    override suspend fun playerOutcomes(gameModeId: String): List<PlayerOutcome> =
+        statistics.filter { it.gameModeId == gameModeId }
             .sortedWith(compareBy<ScoreEntry> { it.playerKey }.thenByDescending { it.timestampEpochMillis })
-            .mapNotNull { entry -> entry.won?.let { PlayerOutcome(entry.playerKey, it) } }
+            .mapNotNull { entry -> entry.won?.let { PlayerOutcome(entry.playerKey, it, entry.timestampEpochMillis) } }
 
     override suspend fun clearDismissal(playerKey: String) {
         dismissed -= playerKey

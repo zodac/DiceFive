@@ -79,7 +79,7 @@ Each of these fixed a reported stutter. New work must keep them.
         frames, nearest the pick first, with unbuilt runs as one `PlaceholderRun` `Canvas`. A `LazyLayoutCacheWindow` built
         nothing ahead on a device.
     - `StylesWarmUp` pre-draws on the menu's idle frames (`UI_SCREENS.md`).
-- **The Leaderboard and Statistics.** Neither page's frames grow with the scores behind them: the Combined table reads
+- **The Leaderboard and Statistics.** Neither page's frames grow with the scores behind them: every board reads
     50 rows a page, Statistics is a `LazyColumn` (only the cards on screen are built), and every Leaderboard board is
     one `LeaderboardTable`, read when first picked. What grew was elsewhere:
     - The old Game Mode view built a screenful of cards first, then one a frame (`ScreenfulFirstColumn`). Built all at
@@ -145,8 +145,8 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
     stacks add 0.15-0.4 a frame and ~2 to the tap. No score line recomposes on shake or toss frames.
 - **Leaderboard and Statistics at scale** (2026-10-27, warm, compose and layout only; in-memory Room on Robolectric's
     SQLite, 4 to 400 players and 40 to 10,000 games, ~25,000 rows):
-    - Opening either page is 10-30 at every size. Scrolling either, or a mode card, is under 1 a frame. The next Combined
-        page is 13-23.
+    - Opening either page is 10-30 at every size. Scrolling either, or a mode card, is under 1 a frame. The next page of
+        a board was 13-23 (measured on the whole-Leaderboard board, before 1.5.0).
     - The switch to Game Mode: 40-100 in one frame with every card built at once, flat with the scores. Now 11-36, then
         4-15 for each frame that builds one more card.
     - Statistics' read: 7 at 30 players, 24 at 150, 35-42 at 400 with two queries a player. Now 2.7, 8 and 22.

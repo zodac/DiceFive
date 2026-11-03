@@ -86,7 +86,7 @@ class ScoreQueryPlanTest {
     )
 
     @Test
-    fun `a Combined Leaderboard page is read in order from an index`() = assertIndexed("pagedScores") { pagedScores(limit = 50, offset = 50) }
+    fun `a page of every on-board score is read in order from an index`() = assertIndexed("pagedScores") { pagedScores(limit = 50, offset = 50) }
 
     @Test
     fun `a mode's Leaderboard page is read in order from an index`() =

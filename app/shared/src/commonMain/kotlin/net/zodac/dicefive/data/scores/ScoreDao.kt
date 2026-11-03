@@ -92,9 +92,9 @@ interface ScoreDao {
     @Query("SELECT MAX(score) FROM scores WHERE playerKey = :playerKey AND onLeaderboard = 1")
     suspend fun bestScoreForPlayer(playerKey: String): Int?
 
-    /** Every score that has ever been recorded on the Leaderboard, once each - what the score-collection achievements count. */
-    @Query("SELECT DISTINCT score FROM scores WHERE onLeaderboard = 1")
-    suspend fun distinctScores(): List<Int>
+    /** Every score recorded on [gameModeId]'s board, once each - what the score-collection achievements count (Standard's). */
+    @Query("SELECT DISTINCT score FROM scores WHERE onLeaderboard = 1 AND gameModeId = :gameModeId")
+    suspend fun distinctScores(gameModeId: String): List<Int>
 
     /**
      * Every leaderboard-derived figure the achievements are measured against, read in one transaction so the three agree
@@ -103,7 +103,7 @@ interface ScoreDao {
      */
     @Transaction
     suspend fun leaderboardTotals(): LeaderboardTotals = LeaderboardTotals(
-        distinctScores = distinctScores().toSet(),
+        distinctScores = distinctScores(GameMode.STANDARD.id).toSet(),
         totalPoints = primaryPlayerTotalPoints() ?: 0,
         modesPlayed = primaryPlayerGameModeIds().mapNotNull(GameMode::fromId).toSet(),
     )
@@ -144,7 +144,9 @@ interface ScoreDao {
     @Transaction
     suspend fun playerRecords(): List<PlayerRecord> {
         val names = latestPlayerNames().associate { it.playerKey to it.playerName }
-        val outcomes = playerOutcomes().groupBy({ it.playerKey }, { it.won })
+        // Each player's newest first: what the win streaks walk.
+        val outcomes = playerOutcomes(GameMode.STANDARD.id).groupBy { it.playerKey }
+            .mapValues { (_, games) -> games.sortedByDescending { it.timestampEpochMillis }.map { it.won } }
         return playerModeTotals().groupBy { it.playerKey }.map { (playerKey, modes) ->
             PlayerRecord(playerName = names.getValue(playerKey), modes = modes, outcomesMostRecentFirst = outcomes[playerKey].orEmpty())
         }
@@ -186,17 +188,18 @@ interface ScoreDao {
     suspend fun latestPlayerNames(): List<PlayerLatestName>
 
     /**
-     * Whether each Statistics player won each game with someone to beat - see [playerRecords]. In key order, each player's
-     * most recent first: what the win streaks walk.
+     * Whether each Statistics player won each game of [gameModeId] with someone to beat, and when - see [playerRecords],
+     * which puts each player's newest first for the win streaks (Standard's). Unordered: read from the per-mode totals'
+     * index alone, which holds the mode, outcome, and time, a sort here would be SQLite's over the whole result.
      */
     @Query(
         """
-        SELECT playerKey, won FROM scores
-        WHERE won IS NOT NULL AND playedUnmodified = 1 AND playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
-        ORDER BY playerKey ASC, timestampEpochMillis DESC
+        SELECT playerKey, won, timestampEpochMillis FROM scores
+        WHERE won IS NOT NULL AND playedUnmodified = 1 AND gameModeId = :gameModeId
+            AND playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
         """,
     )
-    suspend fun playerOutcomes(): List<PlayerOutcome>
+    suspend fun playerOutcomes(gameModeId: String): List<PlayerOutcome>
 
     /** Hides [playerName] from the Statistics screen, as of [atEpochMillis] - see [DismissedPlayerStats]. */
     suspend fun dismissPlayer(playerName: String, atEpochMillis: Long) = putDismissals(listOf(DismissedPlayerStats(playerName, atEpochMillis)))

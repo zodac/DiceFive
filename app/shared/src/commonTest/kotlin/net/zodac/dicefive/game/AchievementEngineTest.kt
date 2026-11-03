@@ -607,8 +607,8 @@ class AchievementEngineTest {
         assertTrue(Achievement.TALLY in unlocked(finishedGame(player(total = 42)), context(allButOne)))
         // The leaderboard read happens before the insert, so the engine has to add this game's own score itself.
         assertTrue(Achievement.TALLY in unlocked(finishedGame(player(total = 50)), context((5..49).toSet())))
-        // Only a game that goes on the Leaderboard: one in a mode off it, or with a modifier, is never shown there.
-        assertTrue(Achievement.TALLY in unlocked(finishedGame(player(total = 42, gameMode = GameMode.TRICOLOUR)), context(allButOne)))
+        // Only a Standard game on its board: one in another mode, or with a modifier, doesn't count.
+        assertFalse(Achievement.TALLY in unlocked(finishedGame(player(total = 42, gameMode = GameMode.TRICOLOUR)), context(allButOne)))
         assertFalse(Achievement.TALLY in unlocked(finishedGame(player(total = 42, gameMode = GameMode.HIT_LIST)), context(allButOne)))
         assertFalse(Achievement.TALLY in unlocked(finishedGame(player(total = 42, gameMode = GameMode.QUICKFIRE)), context(allButOne)))
         assertFalse(Achievement.TALLY in unlocked(finishedGame(player(total = 42)).copy(turnTimer = TurnTimer.SECONDS_30), context(allButOne)))

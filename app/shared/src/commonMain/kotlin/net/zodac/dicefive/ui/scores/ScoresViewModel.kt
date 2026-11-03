@@ -19,32 +19,36 @@ import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.model.GameMode
 
-/** The game modes that can have a board on the Leaderboard - every one, including those that stay off the Combined table. */
+/** The game modes that have a board on the Leaderboard - every one. */
 val LEADERBOARD_MODES: List<GameMode> = GameMode.entries.toList()
 
 /**
- * A board the Leaderboard can show, picked from the drop-down at the top of its screen: [Combined], every mode's scores in
- * one ranked table, or one [Mode]'s own. Every board is shown the same way (`LeaderboardTable`), so a board added here
- * needs only a source for its pages.
+ * A board the Leaderboard can show, picked from the drop-down at the top of its screen: one [Mode]'s own. Every board is
+ * shown the same way (`LeaderboardTable`), so a board added here needs only a source for its pages.
  */
 sealed interface LeaderboardChoice {
-    /** What the choice is stored as (the `leaderboard_choice` preference): [Combined]'s own word, or the mode's id. */
+    /** What the choice is stored as (the `leaderboard_choice` preference): the mode's id. */
     val stored: String
 
-    data object Combined : LeaderboardChoice {
-        override val stored = "combined"
-    }
+    /** The mode whose board this is. */
+    val mode: GameMode
 
-    data class Mode(val mode: GameMode) : LeaderboardChoice {
+    data class Mode(override val mode: GameMode) : LeaderboardChoice {
         override val stored: String get() = mode.id
     }
 
     companion object {
-        /** Every board, in the drop-down's order: Combined first, then a board for each mode. */
-        val all: List<LeaderboardChoice> = listOf(Combined) + LEADERBOARD_MODES.map(::Mode)
+        /** Standard's board: where the Leaderboard opens until another is picked. */
+        val STANDARD: LeaderboardChoice = Mode(GameMode.STANDARD)
 
-        /** The board [stored] names; Combined where nothing was picked yet or the mode is no longer known. */
-        fun parse(stored: String?): LeaderboardChoice = GameMode.fromId(stored ?: return Combined)?.let(::Mode) ?: Combined
+        /** Every board, in the drop-down's order: a board for each mode. */
+        val all: List<LeaderboardChoice> = LEADERBOARD_MODES.map(::Mode)
+
+        /**
+         * The board [stored] names; Standard's where nothing was picked yet, the mode is no longer known, or it is
+         * `combined`, the whole-Leaderboard board earlier versions had.
+         */
+        fun parse(stored: String?): LeaderboardChoice = stored?.let(GameMode::fromId)?.let(::Mode) ?: STANDARD
     }
 }
 
@@ -64,7 +68,7 @@ data class LeaderboardPage(
 
 data class ScoresUiState(
     /** The board on view - the one picked, once its first page has been read. */
-    val choice: LeaderboardChoice = LeaderboardChoice.Combined,
+    val choice: LeaderboardChoice = LeaderboardChoice.STANDARD,
     /** Every board read so far, by choice. A board is read the first time it is picked, and kept. */
     val boards: Map<LeaderboardChoice, LeaderboardPage> = emptyMap(),
     /** Whether the board on view has been read yet - until then an empty board means "not known
@@ -81,7 +85,7 @@ data class ScoresUiState(
  */
 class ScoresViewModel(
     private val source: LeaderboardSource,
-    savedChoice: StateFlow<LeaderboardChoice?> = MutableStateFlow(LeaderboardChoice.Combined),
+    savedChoice: StateFlow<LeaderboardChoice?> = MutableStateFlow(LeaderboardChoice.STANDARD),
     private val saveChoice: suspend (LeaderboardChoice) -> Unit = {},
 ) : ViewModel() {
 
@@ -133,10 +137,8 @@ class ScoresViewModel(
         }
     }
 
-    private suspend fun read(choice: LeaderboardChoice, pageIndex: Int): LeaderboardPage = when (choice) {
-        LeaderboardChoice.Combined -> LeaderboardPage(source.page(pageIndex), pageIndex, source.totalCount())
-        is LeaderboardChoice.Mode -> LeaderboardPage(source.pageForMode(choice.mode, pageIndex), pageIndex, source.totalCountForMode(choice.mode))
-    }
+    private suspend fun read(choice: LeaderboardChoice, pageIndex: Int): LeaderboardPage =
+        LeaderboardPage(source.pageForMode(choice.mode, pageIndex), pageIndex, source.totalCountForMode(choice.mode))
 
     companion object {
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {

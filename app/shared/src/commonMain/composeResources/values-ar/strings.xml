@@ -1081,10 +1081,8 @@
     <string name="styles_selected_cd">محدد</string>
     <string name="common_ok">حسنًا</string>
     <string name="scores_title">لوحة المتصدرين</string>
-    <string name="scores_view_combined">الكل معًا</string>
     <string name="scores_board_label">لوحة المتصدرين</string>
     <string name="scores_board_empty">لا توجد نتائج في %1$s بعد</string>
-    <string name="scores_empty">لا توجد نتائج بعد، العب لعبة!</string>
     <string name="scores_global">عالمية</string>
     <string name="scores_global_cd">لوحة المتصدرين العالمية لوضع %1$s على %2$s</string>
     <string name="scores_header_player">اللاعب</string>
@@ -1137,7 +1135,6 @@
     <string name="stats_points">%1$s\u00A0نقطة</string>
     <string name="stats_average">المتوسط</string>
     <string name="stats_solo">فردي</string>
-    <string name="stats_overview">نظرة عامة</string>
     <string name="stats_by_mode">حسب النمط</string>
     <string name="stats_games">الألعاب</string>
     <string name="stats_win_rate">نسبة الفوز</string>

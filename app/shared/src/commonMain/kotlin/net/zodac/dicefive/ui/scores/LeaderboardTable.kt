@@ -70,7 +70,7 @@ private const val PODIUM_RANKS = 3
  * row's text (itself already coloured with the same accent) stays comfortably readable over it. */
 private const val PODIUM_BACKGROUND_ALPHA = 0.16f
 
-/** Extra room under the Combined card when its last row is a podium one - see [LeaderboardTable]. */
+/** Extra room under a board's card when its last row is a podium one - see [LeaderboardTable]. */
 private val PODIUM_END_EXTRA_PADDING = 4.dp
 
 /** A small gap above the 2nd and 3rd podium rows, outside their own coloured fill, so gold doesn't
@@ -106,7 +106,7 @@ private val LANDSCAPE_TABLE_WIDTH = 640.dp
 /**
  * One leaderboard as a card: [header] (the board's title, a heading, and whatever sits on its row), the column
  * headings, then the page's rows ranked by the tie-break house rule, with 1st-3rd called out in gold, silver, and
- * bronze. A long press on a row shows its date, and its mode when [showMode] (a board of one mode needn't say it).
+ * bronze. A long press on a row shows its date.
  * A board with no scores shows [emptyText] instead of the card.
  *
  * Every board uses this, so every board looks and behaves alike: the card is as tall as its rows, growing with them until
@@ -118,7 +118,6 @@ private val LANDSCAPE_TABLE_WIDTH = 640.dp
 fun ColumnScope.LeaderboardTable(
     board: LeaderboardPage,
     emptyText: String,
-    showMode: Boolean,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     landscape: Boolean,
@@ -157,7 +156,6 @@ fun ColumnScope.LeaderboardTable(
                             isTrueTie = rankedEntry.isTrueTie,
                             entry = rankedEntry.entry,
                             striped = index % 2 == 1,
-                            showMode = showMode,
                         )
                     }
                 }
@@ -281,20 +279,17 @@ private fun ScoreRow(
     isTrueTie: Boolean,
     entry: ScoreEntry,
     striped: Boolean,
-    showMode: Boolean,
 ) {
     val onPodium = rank <= PODIUM_RANKS
     val accent = podiumAccent(rank)
     val columns = scoreColumns()
-    val modeName = if (showMode) entry.gameMode?.let { stringResource(it.displayName) } ?: entry.gameModeId else null
     val formatTimestamp = timestampFormatter()
     // A perfect game in whichever mode allows the most ([GameMode.HIGHEST_POSSIBLE_SCORE]), grouped, is the longest a
     // score can ever be.
     val scoreDisplayWidth = GameMode.HIGHEST_POSSIBLE_SCORE.grouped().length
 
-    // The mode only where rows of every mode share a table - on its own card it's the card's title.
     // Built on a long press only: see OnDemandTooltip.
-    OnDemandTooltip(message = { scoreRowDetail(formatTimestamp(entry.timestampEpochMillis), modeName) }) {
+    OnDemandTooltip(message = { formatTimestamp(entry.timestampEpochMillis) }) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -362,10 +357,6 @@ private fun ScoreRow(
         }
     }
 }
-
-/** When the entry was played ([timestamp]), and - with [modeName] - in which mode, on a line of its own. */
-private fun scoreRowDetail(timestamp: String, modeName: String?): String =
-    if (modeName != null) "$timestamp\n$modeName" else timestamp
 
 @Composable
 internal fun PaginationControls(

@@ -49,7 +49,7 @@ private class LeaderboardServices : GameServices by NoGameServices {
 
 /**
  * The Leaderboard's drop-down: the board it opens on, what each board shows, and what a screen reader hears for the
- * field and a row (the mode and date a long press shows). How the boards look is for a render; this pins the structure.
+ * field and a row (the date a long press shows). How the boards look is for a render; this pins the structure.
  */
 class ScoresScreenTest : UiTest() {
 
@@ -58,7 +58,7 @@ class ScoresScreenTest : UiTest() {
     private fun show(
         rows: List<ScoreEntry>,
         services: GameServices = NoGameServices,
-        saved: StateFlow<LeaderboardChoice?> = MutableStateFlow(LeaderboardChoice.Combined),
+        saved: StateFlow<LeaderboardChoice?> = MutableStateFlow(LeaderboardChoice.STANDARD),
         onPick: (LeaderboardChoice) -> Unit = {},
     ) {
         val viewModel = ScoresViewModel(ScoreRepository(InMemoryScoreDao(rows)), saved) { onPick(it) }
@@ -85,41 +85,42 @@ class ScoresScreenTest : UiTest() {
     }
 
     @Test
-    fun opensOnTheCombinedTableWithTheDropDownAtTheTopAndARowSpeaksItsModeAndDateWhichALongPressShows() = uiTest {
+    fun opensOnStandardsBoardWithTheDropDownAtTheTopAndARowSpeaksItsDateAloneWhichALongPressShows() = uiTest {
         show(someRows)
-        field("Combined").assertExists()
+        field("Standard").assertExists()
         compose.onNodeWithText("Player1").assertExists()
-        // The mode names only exist as boards of their own.
-        compose.onAllNodesWithText("Tricolour").assertCountEquals(0)
+        compose.onNodeWithText("Player3").assertExists()
+        // Tricolour's player is on Tricolour's board, not this one.
+        compose.onAllNodesWithText("Player2").assertCountEquals(0)
 
-        val detail = compose.onNodeWithText("Player2").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)
-        assertTrue(detail!!.endsWith(", Tricolour"), detail.orEmpty())
+        val detail = compose.onNodeWithText("Player1").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)
+        assertTrue(GameMode.entries.none { detail!!.contains(modeName(it)) }, detail.orEmpty())
 
-        // A long press on a row arms its tooltip: the first row of the combined table, its date and mode.
+        // A long press on a row arms its tooltip: its date, and no mode - "Standard" is still only the board's title.
         compose.onNodeWithText("Player1").performTouchInput { longClick() }
         compose.waitForIdle()
-        compose.onAllNodesWithText("Standard", substring = true).assertCountEquals(1)
+        compose.onAllNodesWithText("Standard").assertCountEquals(1)
     }
 
     @Test
-    fun theDropDownIsOneControlWithItsValueAndStateAndItsMenuListsCombinedThenEveryModeWithTheBoardOnViewSelected() = uiTest {
+    fun theDropDownIsOneControlWithItsValueAndStateAndItsMenuListsEveryModeWithTheBoardOnViewSelected() = uiTest {
         show(someRows)
-        val config = field("Combined").fetchSemanticsNode().config
+        val config = field("Standard").fetchSemanticsNode().config
         assertEquals(Role.DropdownList, config.getOrNull(SemanticsProperties.Role))
         assertEquals("Collapsed", config.getOrNull(SemanticsProperties.StateDescription))
 
-        field("Combined").performClick()
+        field("Standard").performClick()
         compose.waitForIdle()
-        assertEquals("Expanded", field("Combined").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription))
-        // Combined, then each mode, each one of a set the size of the menu, the one on view selected.
-        val names = listOf("Combined") + GameMode.entries.map(::modeName)
+        assertEquals("Expanded", field("Standard").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription))
+        // Each mode, each one of a set the size of the menu, Standard (on view) first and selected.
+        val names = GameMode.entries.map(::modeName)
         names.forEachIndexed { index, name ->
             val item = compose.onNodeWithContentDescription(name).fetchSemanticsNode().config
             assertEquals(Role.RadioButton, item.getOrNull(SemanticsProperties.Role), name)
             assertEquals(index == 0, item.getOrNull(SemanticsProperties.Selected), name)
             assertEquals(index, item.getOrNull(SemanticsProperties.CollectionItemInfo)!!.rowIndex, name)
         }
-        assertEquals("Selected", compose.onNodeWithContentDescription("Combined").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription))
+        assertEquals("Selected", compose.onNodeWithContentDescription("Standard").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription))
     }
 
     @Test
@@ -136,7 +137,7 @@ class ScoresScreenTest : UiTest() {
         val detail = compose.onNodeWithText("Player2").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)
         assertTrue(GameMode.entries.none { detail!!.contains(modeName(it)) }, detail.orEmpty())
 
-        // Quickfire never counts on the combined table, yet has its board.
+        // Quickfire, off the Leaderboard's achievements, has its board too.
         compose.pick(modeName(GameMode.QUICKFIRE))
         compose.onNodeWithText("Player4").assertExists()
         // A mode with no score says so.
@@ -154,7 +155,7 @@ class ScoresScreenTest : UiTest() {
     }
 
     @Test
-    fun aModesBoardPagesLikeTheCombinedTableWithItsControlsUnderTheCard() = uiTest {
+    fun aBoardPagesWithItsControlsUnderTheCard() = uiTest {
         show((1..SCORES_PAGE_SIZE + 5).map { rowOf(it.toLong(), it, GameMode.STANDARD) }, saved = MutableStateFlow(LeaderboardChoice.Mode(GameMode.STANDARD)))
         compose.onNodeWithText("Page 1 of 2").assertExists()
         compose.onNodeWithText("Next").performClick()
@@ -174,14 +175,11 @@ class ScoresScreenTest : UiTest() {
         show(someRows, services, saved = standard)
         val button = compose.onNode(hasContentDescription("Global leaderboard for Standard on Google Play Games"))
         assertEquals(Role.Button, button.fetchSemanticsNode().config.getOrNull(SemanticsProperties.Role))
-        // Only this board's own button, and none on Combined, which has no board on the service.
+        // Only this board's own button.
         compose.onAllNodes(hasContentDescription("Global leaderboard for Tricolour", substring = true)).assertCountEquals(0)
         assertEquals(headerTop, compose.onAllNodesWithText("Player")[0].fetchSemanticsNode().boundsInRoot.top)
 
         button.performClick()
         assertEquals(listOf<String?>("standard"), services.opened)
-
-        show(someRows, services)
-        compose.onAllNodes(hasContentDescription("Global leaderboard", substring = true)).assertCountEquals(0)
     }
 }

@@ -980,10 +980,8 @@
     <string name="styles_selected_cd">Seleccionado</string>
     <string name="common_ok">Aceptar</string>
     <string name="scores_title">Clasificación</string>
-    <string name="scores_view_combined">Combinada</string>
     <string name="scores_board_label">Clasificación</string>
     <string name="scores_board_empty">Aún no hay puntuaciones en %1$s</string>
-    <string name="scores_empty">Aún no hay puntuaciones: ¡juega una partida!</string>
     <string name="scores_global">Global</string>
     <string name="scores_global_cd">Clasificación global de %1$s en %2$s</string>
     <string name="scores_header_player">Jugador</string>
@@ -1028,7 +1026,6 @@
     <string name="stats_points">%1$s\u00A0pts</string>
     <string name="stats_average">Media</string>
     <string name="stats_solo">Solitario</string>
-    <string name="stats_overview">Resumen</string>
     <string name="stats_by_mode">Por modo</string>
     <string name="stats_games">Partidas</string>
     <string name="stats_win_rate">Victorias</string>

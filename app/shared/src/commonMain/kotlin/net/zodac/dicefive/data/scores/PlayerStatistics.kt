@@ -3,9 +3,9 @@ package net.zodac.dicefive.data.scores
 import net.zodac.dicefive.model.GameMode
 
 /**
- * One player's aggregate stats across every game recorded for them - the Statistics screen's row
- * shape. "Player" here means a distinct `playerName`, not a stable identity: renaming a player
- * starts a new row, the same way it starts a new leaderboard entry.
+ * One player's stats - the Statistics screen's card. Its own numbers are the player's Standard games; [modes] has every
+ * mode's, Standard's included. "Player" here means a distinct `playerName`, not a stable identity: renaming a player
+ * starts a new card, the same way it starts a new leaderboard entry.
  */
 data class PlayerStatistics(
     val playerName: String,
@@ -16,13 +16,13 @@ data class PlayerStatistics(
     val currentWinStreak: Int,
     val bestWinStreak: Int,
     val maxScore: Int,
-    /** Every point scored across every recorded game, solo or multiplayer. */
+    /** Every point scored in the player's Standard games, solo or multiplayer. */
     val totalScore: Int,
-    /** How many 5x this player has scored, summed over every recorded game. */
+    /** How many 5x this player has scored in their Standard games. */
     val fiveOfAKindCount: Int,
     /** Games with nobody to beat - the ones recorded with a null outcome, so counted in [gamesPlayed] only. */
     val soloGames: Int,
-    /** The same player's games split by mode, in [GameMode.entries] order; a mode never played is absent. */
+    /** The player's games in each mode, Standard's included, in [GameMode.entries] order; a mode never played is absent. */
     val modes: List<ModeStatistics> = emptyList(),
 ) {
 
@@ -44,6 +44,8 @@ data class ModeStatistics(
     val gamesLost: Int,
     val soloGames: Int,
     val maxScore: Int,
+    /** Every point scored in the mode's games. */
+    val totalScore: Int = 0,
 ) {
 
     /** See [winRatePercent]. */
@@ -81,8 +83,8 @@ data class PlayerModeTotals(
 /** The spelling of a player's latest game, by [ScoreEntry.playerKey] - [ScoreDao.latestPlayerNames]'s row. */
 data class PlayerLatestName(val playerKey: String, val playerName: String)
 
-/** Whether the player [playerKey] names won one game with someone to beat - [ScoreDao.playerOutcomes]'s row. */
-data class PlayerOutcome(val playerKey: String, val won: Boolean)
+/** Whether the player [playerKey] names won one game with someone to beat, and when - [ScoreDao.playerOutcomes]'s row. */
+data class PlayerOutcome(val playerKey: String, val won: Boolean, val timestampEpochMillis: Long)
 
 /**
  * Everything the Statistics screen needs about one player, as [ScoreDao.playerRecords] reads it: the spelling of their

@@ -88,7 +88,7 @@ data class GameStartContext(
  * has actually been recorded rather than by a stored counter: the score bands, and career points.
  *
  * The two fields are deliberately scoped differently - see [AchievementEngine]'s class doc:
- * [distinctScores] is every human's score, device-wide, but [totalPoints] is player 1's alone.
+ * [distinctScores] is every human's Standard score, device-wide, but [totalPoints] is player 1's alone, in any mode.
  */
 data class LeaderboardTotals(
     val distinctScores: Set<Int> = emptySet(),
@@ -102,8 +102,8 @@ data class LeaderboardTotals(
      * (player 1 alone) feeds [totalPoints] - passed separately, not derived from one list, because
      * conflating them is exactly the bug this split guards against (see git history: career points
      * used to count every human at the table, not just the one whose achievement it is). [gameMode]
-     * joins [modesPlayed], as player 1 is always recorded. The scores join [distinctScores] only [onLeaderboard] - a
-     * game in a mode off the board, or with a modifier, is recorded but never shown there. A game with a modifier on
+     * joins [modesPlayed], as player 1 is always recorded. The scores join [distinctScores] only from a Standard game
+     * [onLeaderboard] - one with a modifier is recorded but never shown there. A game with a modifier on
      * ([playedUnmodified] false) adds nothing at all: no achievement counts it.
      */
     fun plusGame(allHumanScores: List<Int>, primaryPlayerScore: Int, gameMode: GameMode, onLeaderboard: Boolean, playedUnmodified: Boolean) =
@@ -111,7 +111,7 @@ data class LeaderboardTotals(
             this
         } else {
             LeaderboardTotals(
-                distinctScores = if (onLeaderboard) distinctScores + allHumanScores else distinctScores,
+                distinctScores = if (onLeaderboard && gameMode == GameMode.STANDARD) distinctScores + allHumanScores else distinctScores,
                 totalPoints = totalPoints + primaryPlayerScore,
                 modesPlayed = modesPlayed + gameMode,
             )

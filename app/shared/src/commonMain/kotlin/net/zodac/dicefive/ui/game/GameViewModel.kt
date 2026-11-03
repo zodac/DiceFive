@@ -439,7 +439,7 @@ class GameViewModel(
         // Nothing is recorded during a game, so one read serves it. The tutorial keeps nothing, so marks nothing.
         _leaderboardScores.value = null
         if (tutorial == null) {
-            viewModelScope.launch { _leaderboardScores.value = orNullOnFailure { scoreRepository.distinctScores() } }
+            viewModelScope.launch { _leaderboardScores.value = orNullOnFailure { scoreRepository.distinctScores(state.gameMode) } }
         }
         // The box an undo would take back is the one the last score went in.
         tracker.startGame(resumedUndo, resumedLastCommitted = resumedUndoSnapshot?.let { state.players.getOrNull(it.currentPlayerIndex)?.lastScoredCategory })
