@@ -9,4 +9,6 @@ modes=Twists on the classic rules
 d20=Twists on the classic rules
 styles=Unlock dozens of styles
 game-over=Beat friends or the computer
+leaderboard=Chase a high score in every mode
+statistics=Track your stats in every mode
 achievements=Earn achievements as you play

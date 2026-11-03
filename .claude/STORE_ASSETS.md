@@ -9,9 +9,9 @@ the `store-assets` skill. The rest of the Play submission is in `PUBLISHING.md`.
 |---------------------------------------------------------------------|------------------------------------------------------------------|
 | `icon-512.png`                                                      | 512x512, 32-bit PNG, ≤1MB                                        |
 | `feature-graphic-1024x500.png`                                      | 1024x500, JPEG or 24-bit PNG (no alpha)                          |
-| `phone/phone-1-game.png` ... `phone-6-achievements.png`             | 1440x2560                                                        |
-| `tablet-10/tablet-10-1-game.png` ... `tablet-10-6-achievements.png` | 2560x1440 (landscape)                                            |
-| `DiceFive-<version>-Promo-1080p60.mp4`                              | ~25s, 1920x1080, 60fps, H.264; the app's sounds over music (AAC) |
+| `phone/phone-1-game.png` ... `phone-8-achievements.png`             | 1440x2560                                                        |
+| `tablet-10/tablet-10-1-game.png` ... `tablet-10-8-achievements.png` | 2560x1440 (landscape)                                            |
+| `DiceFive-<version>-Promo-1080p60.mp4`                              | ~35s, 1920x1080, 60fps, H.264; the app's sounds over music (AAC) |
 | `video-description.txt`                                             | not uploaded: the YouTube description, with its credits          |
 | `feature-graphic.gif`                                               | not uploaded: the README's title, the feature graphic moving     |
 | `contact-sheet.png`                                                 | not uploaded: every still, for review                            |
@@ -23,14 +23,15 @@ the `store-assets` skill. The rest of the Play submission is in `PUBLISHING.md`.
 **Why this many.** Play accepts 2-8 screenshots per device. A listing is considered for featuring only with **4+ at
 1080px or more**, and most people see only the first two or three.
 
-- **Phone, 6**: game, Tricolour at a dressed table, D20 with the green faceted cup (under the same caption
-    as Tricolour), the Styles dice, results, and achievements.
-- **10-inch, 6**: the same six, with the Dice and Dice Cup galleries open side by side on the styles shot, in
+- **Phone, 8** (Play's most): game, Tricolour at a dressed table, D20 with the green faceted cup (under the same
+    caption as Tricolour), the Styles dice, results, the Leaderboard on Standard's board, Statistics on its Combined page,
+    and achievements.
+- **10-inch, 8**: the same eight, with the Dice and Dice Cup galleries open side by side on the styles shot, in
     landscape (`w1280dp-h800dp-land-xhdpi`), where the game screen lays its board out wide.
 - **7-inch: none**, by the maintainer's choice.
 - **The phone is 9:16** (`w412dp-h732dp`), about the game screen's own height: a taller phone leaves empty space
     under the dice. The video uses the same phone.
-- **One ~25s video**, per Play's advice.
+- **One video**, ~35s: Play advises keeping it short. Its scenes follow the screenshots, with a caption each.
 - **Captions** are part of the screenshot: a one-line headline on brand navy above the screen, at exactly 9:16 for the
     phone and 16:9 for the tablet.
 
@@ -41,7 +42,7 @@ video.
 
 - **Captions**: `scripts/store-assets/captions.txt`, keyed by screen name (shared by the stills and the video). Rerun
     with `--no-render`. The banned-words rule applies, and each caption must stay true of the app.
-- **Screens and order**: `SHOTS` (the same six, in the same order, on phone and tablet) and `screenshots()` in
+- **Screens and order**: `SHOTS` (the same eight, in the same order, on phone and tablet) and `screenshots()` in
     `app/android/src/test/kotlin/net/zodac/dicefive/store/StoreScreensGeneratorTest.kt`. A new screen needs a caption.
 - **Staged games**: `Scenes` in the same file.
     - Each is a real game, played by the CPU up to the moment shown. A seed search finds one that fits, and only the
@@ -50,6 +51,8 @@ video.
       Greek frame); the game screenshots use `Scenes.PIXEL_TABLE` (Pixel frame), and the video's game scene the default
       frame - three frames across the listing. The D20 scenes use `Scenes.D20_TABLE` (the green faceted cup). Every
         style these name must be unlocked by the seed, or the app silently draws the default.
+- **The Leaderboard and Statistics** open on Standard's board and on Statistics' Combined page (`StoreState.showPages`),
+    whatever the history left picked; their numbers are the seeded history's.
 - **The video**: `promo video frames` (a `FrameRecorder` per scene, with `hold(ms)` and `tap(node)`). The script lays
     frames on captions, joins them with fades, and ends on `StoreArtGeneratorTest`'s `video end card`, recorded as
     frames with the dice swaying so googly eyes, glitch and RGB move.

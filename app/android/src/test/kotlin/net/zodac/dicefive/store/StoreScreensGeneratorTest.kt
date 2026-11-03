@@ -46,9 +46,11 @@ class StoreScreensGeneratorTest {
         const val D20 = "d20"
         const val STYLES = "styles"
         const val GAME_OVER = "game-over"
+        const val LEADERBOARD = "leaderboard"
+        const val STATISTICS = "statistics"
         const val ACHIEVEMENTS = "achievements"
-        /** The same screens on both devices, numbered alike (the order is [screenshots]'). */
-        val SHOTS = setOf(GAME, MODES, D20, STYLES, GAME_OVER, ACHIEVEMENTS)
+        /** The same screens on both devices, numbered alike (the order is [screenshots]'): eight, Play's most. */
+        val SHOTS = setOf(GAME, MODES, D20, STYLES, GAME_OVER, LEADERBOARD, STATISTICS, ACHIEVEMENTS)
 
         /** The Styles categories opened as galleries for the styles shot - side by side in landscape. */
         val PHONE_GALLERIES = listOf("Dice")
@@ -88,8 +90,8 @@ class StoreScreensGeneratorTest {
 
     /**
      * Play takes 2 to 8 screenshots per device type, and only considers a listing for featuring with at least 4 at
-     * 1080px or more; most people see only the first two or three. So: a few strong ones, not all eight - the same 6
-     * on the phone and the 10-inch tablet. Names are listing order, and the script captions each.
+     * 1080px or more; most people see only the first two or three, so the strongest come first. The same 8 on the phone
+     * and the 10-inch tablet. Names are listing order, and the script captions each.
      */
     private fun screenshots(device: String, shots: Set<String>, galleries: List<String>) {
         val dir = File(StoreAssets.outDir, device).apply { deleteRecursively(); mkdirs() }
@@ -143,6 +145,18 @@ class StoreScreensGeneratorTest {
             compose.mainClock.autoAdvance = true
             back()
             menu()
+        }
+
+        if (LEADERBOARD in shots) {
+            openPage("Leaderboard")
+            shoot(LEADERBOARD)
+            back()
+        }
+
+        if (STATISTICS in shots) {
+            openPage("Statistics")
+            shoot(STATISTICS)
+            back()
         }
 
         if (ACHIEVEMENTS in shots) {
@@ -254,10 +268,26 @@ class StoreScreensGeneratorTest {
         back()
         menu()
 
+        // Standard's Leaderboard.
+        openPage("Leaderboard")
+        FrameRecorder(compose, File(root, "6-leaderboard")).apply {
+            hold(2_400)
+            finish()
+        }
+        back()
+
+        // Statistics' Combined page: every mode's games, and the table of each mode.
+        openPage("Statistics")
+        FrameRecorder(compose, File(root, "7-statistics")).apply {
+            hold(2_400)
+            finish()
+        }
+        back()
+
         // An achievement unlocking.
         openFromMenu("Achievements")
         settle()
-        FrameRecorder(compose, File(root, "6-achievements")).apply {
+        FrameRecorder(compose, File(root, "8-achievements")).apply {
             hold(500)
             // Not the 5x again - the first scene unlocked that one for real.
             AchievementEvents.emit(AchievementEvent.Unlocked(Achievement.SHARPSHOOTER))
@@ -310,6 +340,17 @@ class StoreScreensGeneratorTest {
         menu()
         compose.onNode(hasText(name)).performClick()
         compose.waitForIdle()
+    }
+
+    /**
+     * Opens the Leaderboard or Statistics from the menu on the page the listing shows - Standard's board, Statistics'
+     * Combined page ([StoreState.showPages]) - once its content is up.
+     */
+    private fun openPage(name: String) {
+        StoreState.showPages(container)
+        openFromMenu(name)
+        compose.waitUntil(10_000) { exists(hasContentDescription("$name, ", substring = true)) }
+        settle()
     }
 
     private fun back() {

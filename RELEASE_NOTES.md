@@ -2,9 +2,9 @@
 - Both Leaderboard and Statistics pages also have a 'combined' view including all game modes
 - Consistently using thousand separators in scores
 - Added a highlight on the game screen for a user's score if it's new for the leaderboard
-- Some updates to the following achievements: `Full Houses`, `Well Rolled`, `How Do You Do, Fellow CPUs?`
+- The drifting dice in the animated background use less battery
 - `Natural 5x` and `Wasted Fortune` can no longer be earned in 7 Dice Stud
 - `Exact Change` and `Chance Encounter` now unlock as soon as they're earned, rather than at the end of the game
 - `Tally` achievement (and related 'Collection' achievements) only count scores from Standard games
 - `Full Houses` now unlocks correctly on Google Play Games
-- The drifting dice in the animated background use less battery
+- Some updates to the following achievements: `Full Houses` (lists all 30 combinations), `Well Rolled` (50k target, up from 10k), `How Do You Do, Fellow CPUs?` (win condition, instead of avoiding loss)
