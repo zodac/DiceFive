@@ -580,9 +580,8 @@ object AchievementEngine {
         )
         award(
             Achievement.HOW_DO_YOU_DO_FELLOW_CPUS,
-            players.size == FULL_TABLE_SIZE && aiPlayers.size == FULL_TABLE_SIZE - 1 &&
-                aiPlayers.all { it.difficulty == Difficulty.HARD } &&
-                primaryPlayerRank.rank < TieBreak.rank(players).maxOf { it.rank },
+            humanWon && players.size == FULL_TABLE_SIZE && aiPlayers.size == FULL_TABLE_SIZE - 1 &&
+                aiPlayers.all { it.difficulty == Difficulty.HARD },
         )
 
         // Misfortune that only a finished score can settle.

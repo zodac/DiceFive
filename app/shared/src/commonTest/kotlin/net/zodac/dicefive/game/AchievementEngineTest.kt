@@ -191,7 +191,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `three Hard AI opponents and not finishing last are needed for How Do You Do Fellow CPUs`() {
+    fun `winning against three Hard AI opponents is needed for How Do You Do Fellow CPUs`() {
         fun table(difficulty: Difficulty) = finishedGame(
             player(total = 300),
             player(name = "Bot 1", type = PlayerType.AI, total = 100, difficulty = difficulty),
@@ -207,7 +207,7 @@ class AchievementEngineTest {
         assertTrue(Achievement.HOW_DO_YOU_DO_FELLOW_CPUS in hard.newlyUnlocked)
         assertTrue(Achievement.FULL_TABLE in hard.newlyUnlocked)
 
-        // Not winning is fine, so long as somebody scored less - but last place (or tied for it) is not.
+        // Beating the Hard CPUs is needed: coming second or third, however far from last, is not enough.
         fun placed(humanTotal: Int) = evaluate(
             finishedGame(
                 player(total = humanTotal),
@@ -216,8 +216,9 @@ class AchievementEngineTest {
                 player(name = "Bot 3", type = PlayerType.AI, total = 300, difficulty = Difficulty.HARD),
             ),
         )
-        assertTrue(Achievement.HOW_DO_YOU_DO_FELLOW_CPUS in placed(150).newlyUnlocked)
-        assertFalse(Achievement.LAST_HUMAN_STANDING in placed(150).newlyUnlocked)
+        assertFalse(Achievement.HOW_DO_YOU_DO_FELLOW_CPUS in placed(250).newlyUnlocked)
+        assertFalse(Achievement.HOW_DO_YOU_DO_FELLOW_CPUS in placed(150).newlyUnlocked)
+        assertTrue(Achievement.HOW_DO_YOU_DO_FELLOW_CPUS in placed(400).newlyUnlocked)
         assertFalse(Achievement.HOW_DO_YOU_DO_FELLOW_CPUS in placed(50).newlyUnlocked)
         assertFalse(Achievement.HOW_DO_YOU_DO_FELLOW_CPUS in placed(100).newlyUnlocked)
     }
