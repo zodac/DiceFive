@@ -26,7 +26,8 @@ import net.zodac.dicefive.model.ProgressStyle
  * Mirrors this device's achievements with the online service, both ways, by comparing the whole of each rather than
  * queueing changes: whatever failed last time is simply sent again next time ([reconcile]).
  *
- * - **Here to there**: every unlock the service lacks, and how far along each climbing total is.
+ * - **Here to there**: every unlock the service lacks, and how far along each climbing total is - all of them on a
+ *   launch's first sync, then each only as it changes.
  * - **There to here**: every unlock the service has and this device lacks is recorded quietly (no banner), as of now -
  *   a reinstall gets its achievements back.
  *
@@ -179,7 +180,7 @@ class OnlineSync(
                 state.isUnlocked(achievement) -> if (achievement.id !in remote) services.unlock(achievement.id)
                 achievement.progressStyle == ProgressStyle.CUMULATIVE -> {
                     val progress = AchievementEngine.progressOf(achievement, state.counters, totals)
-                    if (progress > 0) services.setProgress(achievement.id, progress)
+                    if (progress > 0) sendProgress(account.accountKey, achievement, progress)
                 }
             }
         }
@@ -196,6 +197,19 @@ class OnlineSync(
     }
 
     private suspend fun unlockReachedTargets() = store.unlockReachedTargets(leaderboardTotals(), now())
+
+    /**
+     * The progress each account's service has been handed since the app started, by achievement: a sync sends only what
+     * has changed since, so going to the background and back doesn't send every climbing total again. Not kept on disk,
+     * so each launch's first sync sends them all once, whatever the service lost meanwhile.
+     */
+    private val progressSent = mutableMapOf<String, MutableMap<Achievement, Int>>()
+
+    private suspend fun sendProgress(accountKey: String, achievement: Achievement, progress: Int) {
+        val sent = progressSent.getOrPut(accountKey) { mutableMapOf() }
+        if (sent[achievement] == progress) return
+        if (services.setProgress(achievement.id, progress)) sent[achievement] = progress
+    }
 
     /**
      * Writes this device's progress, merged with [remoteSave] (the save as read, if any), unless the two already match.

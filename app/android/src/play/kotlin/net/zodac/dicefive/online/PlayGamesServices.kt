@@ -223,13 +223,14 @@ class PlayGamesServices private constructor(private val application: Application
     }
 
     /** [steps] is the achievement's own progress, in Play's steps for an incremental one; a standard one has none. */
-    override suspend fun setProgress(achievementId: String, steps: Int) {
-        val activity = signedInActivity() ?: return
-        val achievement = achievementsById[achievementId] ?: return
-        val playId = playAchievementIds[achievement] ?: return
-        val type = achievement.playType as? PlayAchievementType.Incremental ?: return
+    override suspend fun setProgress(achievementId: String, steps: Int): Boolean {
+        val activity = signedInActivity() ?: return false
+        val achievement = achievementsById[achievementId] ?: return true
+        val playId = playAchievementIds[achievement] ?: return true
+        val type = achievement.playType as? PlayAchievementType.Incremental ?: return true
         val playSteps = (steps / type.perStep).coerceAtMost(type.steps)
         if (playSteps > 0) PlayGames.getAchievementsClient(activity).setSteps(playId, playSteps)
+        return true
     }
 
     /** The attached Activity, while signed in: nothing is sent or asked for otherwise. */

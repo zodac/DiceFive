@@ -30,8 +30,11 @@ interface GameServices {
 
     suspend fun unlock(achievementId: String)
 
-    /** Forward-only and idempotent: [steps] lower than the service already holds changes nothing. */
-    suspend fun setProgress(achievementId: String, steps: Int)
+    /**
+     * Forward-only and idempotent: [steps] lower than the service already holds changes nothing. True once the service
+     * has it to keep (offline too), or there's nothing of it to send; false if it couldn't be handed over.
+     */
+    suspend fun setProgress(achievementId: String, steps: Int): Boolean
 
     /**
      * Posts [score] to the leaderboard for [leaderboardKey] ([net.zodac.dicefive.model.GameMode.onlineLeaderboardKey]).

@@ -27,14 +27,21 @@ private class SyncServices(account: String?, var remote: Set<String>? = emptySet
     override val state: StateFlow<GameServicesState> = mutableState
     val unlocked = mutableListOf<String>()
     val progress = mutableMapOf<String, Int>()
+    /** Every progress the service was handed, in order; while [takesProgress] is false it can't be handed any. */
+    val progressSends = mutableListOf<Pair<String, Int>>()
+    var takesProgress = true
     var asked = 0
     override suspend fun unlockedAchievementIds(): Set<String>? = remote.also { asked++ }
     override suspend fun unlock(achievementId: String) {
         unlocked += achievementId
     }
-    override suspend fun setProgress(achievementId: String, steps: Int) {
-        progress[achievementId] = steps
-    }
+    override suspend fun setProgress(achievementId: String, steps: Int): Boolean =
+        takesProgress.also {
+            if (it) {
+                progress[achievementId] = steps
+                progressSends += achievementId to steps
+            }
+        }
     /** Every score the service took, by leaderboard key; while [takesScores] is false it takes none. */
     val posted = mutableListOf<Pair<String, Long>>()
     var takesScores = true
@@ -160,6 +167,42 @@ class OnlineSyncTest {
         assertEquals(1_234, services.progress[Achievement.PROFESSIONAL_ROLLER.id])
         assertFalse(Achievement.UNTOUCHABLE.id in services.progress)
         assertFalse(Achievement.WELL_ROLLED.id in services.progress)
+    }
+
+    @Test
+    fun `a climbing total is sent again only once it has changed - or when it couldn't be handed over - or on the next launch`() = runTest {
+        val services = SyncServices("ann")
+        val settings = OnlineSettingsRepository(InMemoryPreferences())
+        val store = InMemoryAchievementStore(state(counters = mapOf(AchievementCounter.GAMES_PLAYED to 7)))
+        val sync = sync(services, store, settings)
+        sync.reconcile()
+        val first = services.progressSends.toList()
+        assertTrue((Achievement.GETTING_COMFORTABLE.id to 7) in first)
+
+        // Back from the background with nothing new: nothing sent.
+        sync.reconcile()
+        assertEquals(first, services.progressSends)
+
+        // A game played: only the totals that moved.
+        store.record(emptyMap(), mapOf(AchievementCounter.GAMES_PLAYED to 8))
+        sync.reconcile()
+        val moved = services.progressSends.drop(first.size)
+        assertTrue((Achievement.GETTING_COMFORTABLE.id to 8) in moved)
+        assertTrue(moved.all { (_, steps) -> steps == 8 }, "only the games-played totals moved: $moved")
+
+        // One the service couldn't be handed is tried again next time.
+        store.record(emptyMap(), mapOf(AchievementCounter.GAMES_PLAYED to 9))
+        services.takesProgress = false
+        sync.reconcile()
+        services.takesProgress = true
+        val beforeRetry = services.progressSends.size
+        sync.reconcile()
+        assertTrue((Achievement.GETTING_COMFORTABLE.id to 9) in services.progressSends.drop(beforeRetry))
+
+        // The next launch sends them all once more.
+        val sentThisLaunch = services.progressSends.size
+        sync(services, store, settings).reconcile()
+        assertEquals(first.map { it.first }.toSet(), services.progressSends.drop(sentThisLaunch).map { it.first }.toSet())
     }
 
     @Test

@@ -18,7 +18,7 @@ object NoGameServices : GameServices {
 
     override suspend fun unlock(achievementId: String) = Unit
 
-    override suspend fun setProgress(achievementId: String, steps: Int) = Unit
+    override suspend fun setProgress(achievementId: String, steps: Int): Boolean = false
 
     override suspend fun submitScore(leaderboardKey: String, score: Long): Boolean = false
 

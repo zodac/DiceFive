@@ -76,7 +76,9 @@ app/android/src/play/.../online/  PlayGamesServices, PlayGamesIds, PlayGamesAchi
 
 ## Achievements
 
-- **Local → Play** in every reconcile, including unlocks from before linking. Progress uses forward-only steps.
+- **Local → Play** in every reconcile, including unlocks from before linking. Progress uses forward-only steps, each
+    sent on a launch's first sync and after that only when it changes (`OnlineSync.sendProgress`, kept in memory per
+    account).
 - **Play → local** on sign-in: Play's unlocks unlock quietly here (with their styles), restoring a reinstall.
 - **Our unlock banner shows alongside Play's pop-up** while signed in: Play's at the top, ours at the bottom, so they
     don't overlap. TalkBack announces both. Ours can be held and long-pressed to open the achievement. Progress nudges
