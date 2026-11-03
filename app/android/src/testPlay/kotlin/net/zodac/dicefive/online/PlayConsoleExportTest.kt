@@ -81,8 +81,8 @@ class PlayConsoleExportTest {
         }
         assertEquals(PlayAchievementType.Incremental(steps = 10_000, perStep = 10), Achievement.PROFESSIONAL_ROLLER.playType)
         assertEquals(PlayAchievementType.Standard, Achievement.UNTOUCHABLE.playType)
-        // Full Houses grew to 30 hands after Play published its 2 steps, which can't change: Play only gets the unlock.
-        assertEquals(PlayAchievementType.Incremental(steps = 2, perStep = 15, unlockOnly = true), Achievement.FULL_HOUSES.playType)
+        // Full Houses was published on Play as standard, which can't change: Play only gets the unlock.
+        assertEquals(PlayAchievementType.Standard, Achievement.FULL_HOUSES.playType)
     }
 
     @Test
