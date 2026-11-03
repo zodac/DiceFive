@@ -38,7 +38,7 @@ private class ListScoreDao(private val rows: List<ScoreEntry>) : ScoreDao {
     var pageDelays: Map<Int, Long> = emptyMap()
 
     private fun ordered(modeId: String?) =
-        rows.filter { if (modeId == null) it.onLeaderboard else it.playedUnmodified && it.gameModeId == modeId }.sortedByDescending { it.score }
+        rows.filter { it.playedUnmodified && (modeId == null || it.gameModeId == modeId) }.sortedByDescending { it.score }
 
     override suspend fun insert(entry: ScoreEntry) = Unit
     override suspend fun rawPagedScores(query: RoomRawQuery): List<ScoreEntry> = error("Only the real DAO runs the SQL")
@@ -57,7 +57,7 @@ private class ListScoreDao(private val rows: List<ScoreEntry>) : ScoreDao {
     override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
     override suspend fun playerModeTotals(): List<PlayerModeTotals> = emptyList()
     override suspend fun latestPlayerNames(): List<PlayerLatestName> = emptyList()
-    override suspend fun playerOutcomes(gameModeId: String): List<PlayerOutcome> = emptyList()
+    override suspend fun playerOutcomes(): List<PlayerOutcome> = emptyList()
     override suspend fun clearDismissal(playerKey: String) = Unit
     override suspend fun clearAllScores() = Unit
     override suspend fun clearAllDismissals() = Unit
@@ -131,6 +131,17 @@ class ScoresViewModelTest {
     }
 
     @Test
+    fun `Combined ranks every mode's games with no modifier on in one table`() = runTest(testDispatcher) {
+        val rows = listOf(entry(1, 200, GameMode.STANDARD), entry(2, 900, GameMode.STUD), entry(3, 300, GameMode.STANDARD).copy(playedUnmodified = false))
+        val viewModel = ScoresViewModel(ScoreRepository(ListScoreDao(rows)))
+        advanceUntilIdle()
+        viewModel.selectChoice(LeaderboardChoice.Combined)
+        advanceUntilIdle()
+        assertEquals(listOf(900, 200), viewModel.board(LeaderboardChoice.Combined).entries.map { it.score })
+        assertEquals(2, viewModel.board(LeaderboardChoice.Combined).totalCount)
+    }
+
+    @Test
     fun `every mode has its own board, and a game with modifiers on is on none`() = runTest(testDispatcher) {
         val quickfire = entry(1, 90, GameMode.QUICKFIRE)
         val modifiers = entry(2, 300, GameMode.STANDARD).copy(playedUnmodified = false)
@@ -168,12 +179,12 @@ class ScoresViewModelTest {
     }
 
     @Test
-    fun `a stored board names itself by its mode's id - and nothing stored, a mode no longer known, or the old combined board is Standard's`() {
+    fun `a stored board names itself by its mode's id or combined - and nothing stored or a mode no longer known is Standard's`() {
         for (choice in LeaderboardChoice.all) assertEquals(choice, LeaderboardChoice.parse(choice.stored))
-        assertEquals(LEADERBOARD_MODES.map(::mode), LeaderboardChoice.all)
+        assertEquals(LEADERBOARD_MODES.map(::mode) + LeaderboardChoice.Combined, LeaderboardChoice.all)
         assertEquals(standard, LeaderboardChoice.parse(null))
         assertEquals(standard, LeaderboardChoice.parse("retired_mode"))
-        assertEquals(standard, LeaderboardChoice.parse("combined"))
+        assertEquals(LeaderboardChoice.Combined, LeaderboardChoice.parse("combined"))
         assertEquals(GameMode.TRICOLOUR.id, mode(GameMode.TRICOLOUR).stored)
     }
 

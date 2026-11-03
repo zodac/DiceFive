@@ -1080,6 +1080,7 @@
     <string name="styles_show_unlock_action">عرض كيفية فتح %1$s</string>
     <string name="styles_selected_cd">محدد</string>
     <string name="common_ok">حسنًا</string>
+    <string name="common_combined">الكل معًا</string>
     <string name="scores_title">لوحة المتصدرين</string>
     <string name="scores_board_label">لوحة المتصدرين</string>
     <string name="scores_board_empty">لا توجد نتائج في %1$s بعد</string>
@@ -1101,6 +1102,8 @@
     <string name="stats_sort_descending">محدد، تنازلي</string>
     <string name="stats_sort_reverse_action">عكس الترتيب</string>
     <string name="stats_empty">لا إحصائيات بعد، العب لعبة!</string>
+    <string name="stats_page_label">الإحصائيات</string>
+    <string name="stats_page_empty">لا توجد إحصائيات في %1$s بعد</string>
     <string name="stats_delete_title">حذف الإحصائيات؟</string>
     <string name="stats_delete_message">هل تريد حذف إحصائيات %1$s؟ لن تتأثر نتائجه في لوحة المتصدرين.</string>
     <string name="stats_delete_confirm">حذف</string>
@@ -1135,7 +1138,6 @@
     <string name="stats_points">%1$s\u00A0نقطة</string>
     <string name="stats_average">المتوسط</string>
     <string name="stats_solo">فردي</string>
-    <string name="stats_by_mode">حسب النمط</string>
     <string name="stats_games">الألعاب</string>
     <string name="stats_win_rate">نسبة الفوز</string>
     <string name="stats_win_rate_value">%1$d٪</string>

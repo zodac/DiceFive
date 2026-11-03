@@ -15,7 +15,7 @@ import net.zodac.dicefive.model.GameMode
 /**
  * The Leaderboard's row order as an `ORDER BY` body: score, then [TieBreak.leaderboardOrder]'s criteria, each in the
  * direction the live ranking uses. Shared by every query that pages the Leaderboard - see [ScoreDao.pagedScores]. The
- * `scores` indices `index_scores_leaderboard_order` and `index_scores_mode_order` hold rows in this order, so a page is
+ * `scores` indices `index_scores_unmodified_order` and `index_scores_mode_order` hold rows in this order, so a page is
  * read straight from one; `ScoreQueryPlanTest` fails if the two drift apart.
  */
 internal val LEADERBOARD_ORDER: String = (
@@ -59,16 +59,16 @@ interface ScoreDao {
      * [TieBreak.leaderboardOrder], as [TieBreak.leaderboardComparator] is, and
      * `AndroidAppContainerTest` checks the column mapping against it. `ScoresScreen` uses the comparator to decide
      * which adjacent rows are a true tie (an equal `=` rank) versus one this ordering has already broken.
+     *
+     * The Combined board's page: every game with no modifier on, in any mode.
      */
     suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> = rawPagedScores(
-        pageQuery("onLeaderboard = 1", limit, offset),
+        pageQuery("playedUnmodified = 1", limit, offset),
     )
 
     /**
-     * [pagedScores] for one game mode's own Leaderboard card - the same ordering, [gameModeId] rows only, and only
-     * games played under the mode's own rules ([ScoreEntry.playedUnmodified]), as its online leaderboard takes. For a
-     * mode on the Combined table that's the same rows as [ScoreEntry.onLeaderboard]; for one that never counts there,
-     * its card is the only place its scores are listed.
+     * [pagedScores] for one game mode's own Leaderboard board - the same ordering, [gameModeId] rows only, and only
+     * games played under the mode's own rules ([ScoreEntry.playedUnmodified]), as its online leaderboard takes.
      */
     suspend fun pagedScoresForMode(gameModeId: String, limit: Int, offset: Int): List<ScoreEntry> = rawPagedScores(
         pageQuery("playedUnmodified = 1 AND gameModeId = ?", limit, offset, gameModeId),
@@ -78,8 +78,8 @@ interface ScoreDao {
     @RawQuery
     suspend fun rawPagedScores(query: RoomRawQuery): List<ScoreEntry>
 
-    /** How many rows the Leaderboard shows - see [ScoreEntry.onLeaderboard]. */
-    @Query("SELECT COUNT(*) FROM scores WHERE onLeaderboard = 1")
+    /** How many rows the Combined board lists: every game with no modifier on, in any mode - see [pagedScores]. */
+    @Query("SELECT COUNT(*) FROM scores WHERE playedUnmodified = 1")
     suspend fun count(): Int
 
     /** How many rows one game mode's Leaderboard card lists - see [pagedScoresForMode]. */
@@ -93,7 +93,7 @@ interface ScoreDao {
     suspend fun bestScoreForPlayer(playerKey: String): Int?
 
     /** Every score recorded on [gameModeId]'s board, once each - what the score-collection achievements count (Standard's). */
-    @Query("SELECT DISTINCT score FROM scores WHERE onLeaderboard = 1 AND gameModeId = :gameModeId")
+    @Query("SELECT DISTINCT score FROM scores WHERE gameModeId = :gameModeId AND playedUnmodified = 1")
     suspend fun distinctScores(gameModeId: String): List<Int>
 
     /**
@@ -145,21 +145,24 @@ interface ScoreDao {
     suspend fun playerRecords(): List<PlayerRecord> {
         val names = latestPlayerNames().associate { it.playerKey to it.playerName }
         // Each player's newest first: what the win streaks walk.
-        val outcomes = playerOutcomes(GameMode.STANDARD.id).groupBy { it.playerKey }
-            .mapValues { (_, games) -> games.sortedByDescending { it.timestampEpochMillis }.map { it.won } }
+        val outcomes = playerOutcomes().groupBy { it.playerKey }.mapValues { (_, games) -> games.sortedByDescending { it.timestampEpochMillis } }
         return playerModeTotals().groupBy { it.playerKey }.map { (playerKey, modes) ->
             PlayerRecord(playerName = names.getValue(playerKey), modes = modes, outcomesMostRecentFirst = outcomes[playerKey].orEmpty())
         }
     }
 
-    /** Each Statistics player's games in each mode, added up - see [playerRecords]. In key order, then mode id order. */
+    /**
+     * Each Statistics player's games in each mode, added up - see [playerRecords]. In key order, then mode id order. Each
+     * Statistics read marks `playedUnmodified` with a unary `+`, so the Combined board's index, which it leads, is never
+     * chosen for one: grouped or read by player from that, the rows would need sorting.
+     */
     @Query(
         """
         SELECT playerKey, gameModeId, COUNT(*) AS gamesPlayed, SUM(won IS 1) AS gamesWon, SUM(won IS 0) AS gamesLost,
             SUM(won IS NULL) AS soloGames, MAX(score) AS maxScore, SUM(score) AS totalScore,
             SUM(fiveOfAKindCount) AS fiveOfAKindCount, MIN(timestampEpochMillis) AS firstPlayedEpochMillis
         FROM scores
-        WHERE playedUnmodified = 1 AND playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
+        WHERE +playedUnmodified = 1 AND playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
         GROUP BY playerKey, gameModeId
         ORDER BY playerKey ASC, gameModeId ASC
         """,
@@ -168,7 +171,8 @@ interface ScoreDao {
 
     /**
      * The name each Statistics player recorded their latest game under - the spelling Statistics shows - see
-     * [playerRecords]. Of games played in the same millisecond, the one recorded last.
+     * [playerRecords]. Of games played in the same millisecond, the one recorded last. The unary `+` keeps the Combined
+     * board's index, led by `playedUnmodified`, from being chosen: grouped by player from that, the rows would need sorting.
      */
     @Query(
         """
@@ -180,7 +184,7 @@ interface ScoreDao {
         ) AS playerName
         FROM (
             SELECT playerKey, MAX(timestampEpochMillis) AS playedAt FROM scores
-            WHERE playedUnmodified = 1 AND playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
+            WHERE +playedUnmodified = 1 AND playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
             GROUP BY playerKey
         ) AS latest
         """,
@@ -188,18 +192,18 @@ interface ScoreDao {
     suspend fun latestPlayerNames(): List<PlayerLatestName>
 
     /**
-     * Whether each Statistics player won each game of [gameModeId] with someone to beat, and when - see [playerRecords],
-     * which puts each player's newest first for the win streaks (Standard's). Unordered: read from the per-mode totals'
-     * index alone, which holds the mode, outcome, and time, a sort here would be SQLite's over the whole result.
+     * Whether each Statistics player won each game with someone to beat, in which mode, and when - see [playerRecords],
+     * which puts each player's newest first for the win streaks, every mode's and each mode's. Unordered: read from the
+     * per-mode totals' index alone, which holds the mode, outcome, and time, a sort here would be SQLite's over the whole
+     * result.
      */
     @Query(
         """
-        SELECT playerKey, won, timestampEpochMillis FROM scores
-        WHERE won IS NOT NULL AND playedUnmodified = 1 AND gameModeId = :gameModeId
-            AND playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
+        SELECT playerKey, gameModeId, won, timestampEpochMillis FROM scores
+        WHERE won IS NOT NULL AND +playedUnmodified = 1 AND playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
         """,
     )
-    suspend fun playerOutcomes(gameModeId: String): List<PlayerOutcome>
+    suspend fun playerOutcomes(): List<PlayerOutcome>
 
     /** Hides [playerName] from the Statistics screen, as of [atEpochMillis] - see [DismissedPlayerStats]. */
     suspend fun dismissPlayer(playerName: String, atEpochMillis: Long) = putDismissals(listOf(DismissedPlayerStats(playerName, atEpochMillis)))

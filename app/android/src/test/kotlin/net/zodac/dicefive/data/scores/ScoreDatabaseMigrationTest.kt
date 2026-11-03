@@ -141,4 +141,28 @@ class ScoreDatabaseMigrationTest {
             SQLiteDatabase.deleteDatabase(file)
         }
     }
+
+    @Test
+    fun `version 3 opens as version 4 - every score kept - and the Combined board lists every mode's games with no modifier on`() = runTest {
+        createAt(3) {
+            for ((score, mode, unmodified) in listOf(Triple(150, GameMode.STANDARD, true), Triple(900, GameMode.STUD, true), Triple(400, GameMode.STANDARD, false))) {
+                execSQL(
+                    "INSERT INTO scores (uuid, playerName, score, timestampEpochMillis, won, isPrimaryPlayer, fiveOfAKindCount, zeroedCategoryCount, " +
+                        "upperSectionTotal, chanceScore, threeOfAKindScore, fourOfAKindScore, gameModeId, playedUnmodified, playerKey, onLeaderboard) " +
+                        "VALUES (?, 'Ann', ?, ?, NULL, 1, 0, 0, 0, 0, 0, 0, ?, ?, 'ann', ?)",
+                    arrayOf<Any>(Uuid.random().toByteArray(), score, score.toLong(), mode.id, if (unmodified) 1 else 0, if (unmodified && mode == GameMode.STANDARD) 1 else 0),
+                )
+            }
+        }
+        val database = Room.databaseBuilder<AppDatabase>(context, file.absolutePath).buildAppDatabase()
+        try {
+            val dao = database.scoreDao()
+            assertEquals(3, dao.allScores().size)
+            assertEquals(listOf(900, 150), dao.pagedScores(limit = 50, offset = 0).map { it.score })
+            assertEquals(2, dao.count())
+        } finally {
+            database.close()
+            SQLiteDatabase.deleteDatabase(file)
+        }
+    }
 }

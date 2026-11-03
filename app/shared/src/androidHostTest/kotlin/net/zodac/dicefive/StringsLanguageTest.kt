@@ -51,7 +51,7 @@ class StringsLanguageTest : UiTest() {
     private fun statsCard(name: String) =
         compose.onNode(hasContentDescription(name, substring = true) and SemanticsMatcher.keyIsDefined(SemanticsProperties.StateDescription))
 
-    /** What the stats card says, opened on its Overview: every stop's words, in order. */
+    /** What the stats card says, opened: every stop's words, in order. */
     private fun openedCard(player: PlayerStatistics): String {
         showcase.show { DiceFiveTheme { PlayerStatsCard(player = player, onDelete = {}) } }
         statsCard(player.playerName).performSemanticsAction(SemanticsActions.OnClick)

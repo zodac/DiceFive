@@ -61,6 +61,7 @@ import net.zodac.dicefive.ui.common.timestampFormatter
 import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.theme.Bronze
 import net.zodac.dicefive.ui.theme.Silver
+import net.zodac.dicefive.ui.theme.color
 
 
 /** Ranks worth calling out on the leaderboard, whichever page they happen to fall on. */
@@ -106,7 +107,8 @@ private val LANDSCAPE_TABLE_WIDTH = 640.dp
 /**
  * One leaderboard as a card: [header] (the board's title, a heading, and whatever sits on its row), the column
  * headings, then the page's rows ranked by the tie-break house rule, with 1st-3rd called out in gold, silver, and
- * bronze. A long press on a row shows its date.
+ * bronze. A long press on a row shows its date. On [combined], where rows of every mode share the table, each name is in
+ * its mode's colour and the long press adds the mode.
  * A board with no scores shows [emptyText] instead of the card.
  *
  * Every board uses this, so every board looks and behaves alike: the card is as tall as its rows, growing with them until
@@ -118,6 +120,7 @@ private val LANDSCAPE_TABLE_WIDTH = 640.dp
 fun ColumnScope.LeaderboardTable(
     board: LeaderboardPage,
     emptyText: String,
+    combined: Boolean,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     landscape: Boolean,
@@ -156,6 +159,7 @@ fun ColumnScope.LeaderboardTable(
                             isTrueTie = rankedEntry.isTrueTie,
                             entry = rankedEntry.entry,
                             striped = index % 2 == 1,
+                            combined = combined,
                         )
                     }
                 }
@@ -279,6 +283,7 @@ private fun ScoreRow(
     isTrueTie: Boolean,
     entry: ScoreEntry,
     striped: Boolean,
+    combined: Boolean,
 ) {
     val onPodium = rank <= PODIUM_RANKS
     val accent = podiumAccent(rank)
@@ -288,8 +293,12 @@ private fun ScoreRow(
     // score can ever be.
     val scoreDisplayWidth = GameMode.HIGHEST_POSSIBLE_SCORE.grouped().length
 
+    // On Combined, the row's mode: its name's colour, and a line of the long press (on a mode's board, its title says it).
+    val mode = if (combined) entry.gameMode else null
+    val modeName = if (combined) mode?.let { stringResource(it.displayName) } ?: entry.gameModeId else null
+
     // Built on a long press only: see OnDemandTooltip.
-    OnDemandTooltip(message = { formatTimestamp(entry.timestampEpochMillis) }) {
+    OnDemandTooltip(message = { formatTimestamp(entry.timestampEpochMillis).let { if (modeName != null) "$it\n$modeName" else it } }) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -326,6 +335,7 @@ private fun ScoreRow(
                 text = entry.playerName,
                 modifier = Modifier.weight(columns.player),
                 style = MaterialTheme.typography.bodyMedium,
+                color = mode?.color ?: Color.Unspecified,
                 // A second line before an ellipsis: at a large font a name that no longer fits one line
                 // wraps rather than losing its end. Names that fit one line look as they always did.
                 maxLines = 2,

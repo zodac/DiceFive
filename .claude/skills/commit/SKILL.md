@@ -37,7 +37,7 @@ commit**, and tell the user so they can rename it before it spreads.
 | `[Sandbox]`      | The sandbox and its emulator tooling (`ai-sandbox-configuration/`)      |
 | `[Settings]`     | The Settings screen and the preferences behind it                       |
 | `[Stability]`    | Crash fixes and hardening across the app - bad input, I/O, threads      |
-| `[Statistics]`   | The Statistics screen - per-player cards, Standard and By mode          |
+| `[Statistics]`   | The Statistics screen - per-player cards, a page per mode and Combined  |
 | `[Styles]`       | The Styles screen and the table art - dice, cups, mats, backgrounds     |
 | `[UI]`           | App-wide layout and navigation - main menu, shared chrome, dialogs      |
 

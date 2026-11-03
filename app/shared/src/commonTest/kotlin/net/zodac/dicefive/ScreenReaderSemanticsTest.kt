@@ -86,7 +86,7 @@ class ScreenReaderSemanticsTest : UiTest() {
     }
 
     @Test
-    fun `a stats card is collapsed to name and best score - its header opening Standard and By mode - each a stop or two in words`() = uiTest {
+    fun `a stats card is collapsed to name and best score - its header opening its numbers and on Combined each mode's - each a stop or two in words`() = uiTest {
         var deleted = 0
         showcase.show { DiceFiveTheme { PlayerStatsCard(player = player, onDelete = { deleted++ }) } }
 
@@ -107,18 +107,18 @@ class ScreenReaderSemanticsTest : UiTest() {
         assertEquals("Expanded", config[SemanticsProperties.StateDescription])
         assertEquals("Hide details", config[SemanticsActions.OnClick].label)
 
-        // Standard: the numbers and the won/lost/solo split, then the rest.
+        // The page's numbers and the won/lost/solo split, then the rest.
         compose.onNodeWithContentDescription("Played 5, won 3, lost 2. 2 solo games played. Win rate 60%. Average score 200.").assertExists()
         val details = compose.onNodeWithContentDescription("Win streak 1", substring = true).fetchSemanticsNode()
             .config[SemanticsProperties.ContentDescription].single()
         assertTrue(details.startsWith("Win streak 1, best win streak 2. 4 5x scored. Total points scored: 1,001. First played "), details)
 
-        // By mode: every mode's split as one stop, a stop per mode (the win rate left out with nothing but solo games),
-        // and every mode's points as one; the headings are silent.
-        compose.onNodeWithText("By mode").performClick()
+        // A mode's page has no table of modes: no mode's row to hear.
+        compose.onAllNodes(hasContentDescription("Standard. Best score", substring = true)).assertCountEquals(0)
+
+        // On Combined, the card adds a stop per mode (the win rate left out with nothing but solo games); the headings are silent.
+        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player, onDelete = { deleted++ }, initiallyExpanded = true, showModes = true) } }
         compose.waitForIdle()
-        compose.onNodeWithContentDescription("Played 5, won 2, lost 1. 2 solo games played.").assertExists()
-        compose.onNodeWithContentDescription("Total points scored: 2,000.").assertExists()
         compose.onNodeWithContentDescription("Standard. Best score 250. 3 games played. Win rate 67%. 0 solo games played.").assertExists()
         compose.onNodeWithContentDescription("Quickfire. Best score 1,180. 2 games played. 2 solo games played.").assertExists()
         compose.onAllNodesWithText("Mode").assertCountEquals(0)

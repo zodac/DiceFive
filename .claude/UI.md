@@ -464,7 +464,8 @@ Examples:
 ## Mode colours
 
 **Every game mode has one expected colour**, turned into a `Color` only in `GameMode.color` (`ui/theme/Color.kt`).
-Anything that marks a mode by colour uses it; today that's only the Statistics card's By mode table and its share bar.
+Anything that marks a mode by colour uses it: the Statistics Combined page's mode table, and each name on the
+Leaderboard's Combined board.
 
 | Mode        | Colour                   |
 |-------------|--------------------------|

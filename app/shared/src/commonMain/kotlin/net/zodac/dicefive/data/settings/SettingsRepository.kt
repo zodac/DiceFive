@@ -370,10 +370,21 @@ class SettingsRepository(
 
     suspend fun setUnlockedOnlyStyles(unlockedOnly: Boolean) = set(UNLOCKED_ONLY_STYLES_KEY, unlockedOnly)
 
-    /** The Statistics screen's sort as stored (`StatisticsSortOrder.stored`), or null until one is picked. */
-    val statisticsSort: Flow<String?> = read { prefs -> prefs[STATISTICS_SORT_KEY] }
+    /**
+     * Each Statistics page's sort as stored (`StatisticsSortOrder.stored`), by the page's stored id
+     * (`StatisticsPage.stored`: a game mode's id, or `combined`); a page with none picked yet is absent.
+     */
+    val statisticsSorts: Flow<Map<String, String>> = read { prefs ->
+        STATISTICS_PAGE_IDS.mapNotNull { page -> prefs[statisticsSortKey(page)]?.let { page to it } }.toMap()
+    }
 
-    suspend fun setStatisticsSort(sort: String) = set(STATISTICS_SORT_KEY, sort)
+    /** Sets the sort of the Statistics page stored as [page]. */
+    suspend fun setStatisticsSort(page: String, sort: String) = set(statisticsSortKey(page), sort)
+
+    /** The Statistics page as stored (`StatisticsPage.stored`), or null until one is picked. */
+    val statisticsChoice: Flow<String?> = read { prefs -> prefs[STATISTICS_CHOICE_KEY] }
+
+    suspend fun setStatisticsChoice(page: String) = set(STATISTICS_CHOICE_KEY, page)
 
     /** The Leaderboard's board as stored (`LeaderboardChoice.stored`: `combined` or a game mode's id), or null until one is picked. */
     val leaderboardChoice: Flow<String?> = read { prefs -> prefs[LEADERBOARD_CHOICE_KEY] }
@@ -381,6 +392,9 @@ class SettingsRepository(
     suspend fun setLeaderboardChoice(choice: String) = set(LEADERBOARD_CHOICE_KEY, choice)
 
     private companion object {
+        /** The stored id of a page or board holding every mode's games (`LeaderboardChoice`, `StatisticsPage`). */
+        const val COMBINED_PAGE_ID = "combined"
+
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
         val SOUND_ENABLED_KEY = booleanPreferencesKey("sound_enabled")
         val VIBRATION_ENABLED_KEY = booleanPreferencesKey("vibration_enabled")
@@ -405,7 +419,16 @@ class SettingsRepository(
         val DICE_MAT_ID_KEY = stringPreferencesKey("dice_mat_id")
         val SCORE_FRAME_ID_KEY = stringPreferencesKey("score_frame_id")
         val STYLES_PAGE_FIT_KEY = stringPreferencesKey("styles_page_fit")
+        /** The Combined Statistics page's sort - the only page there was until 1.5.0, when it held every mode's games. */
         val STATISTICS_SORT_KEY = stringPreferencesKey("statistics_sort")
+        val STATISTICS_CHOICE_KEY = stringPreferencesKey("statistics_choice")
+
+        /** Every Statistics page's stored id: each game mode's, then `combined`. */
+        val STATISTICS_PAGE_IDS: List<String> = GameMode.entries.map { it.id } + COMBINED_PAGE_ID
+
+        /** The sort of the Statistics page stored as [page]: `statistics_sort_<mode id>`, or [STATISTICS_SORT_KEY] for Combined. */
+        fun statisticsSortKey(page: String): Preferences.Key<String> =
+            if (page == COMBINED_PAGE_ID) STATISTICS_SORT_KEY else stringPreferencesKey("statistics_sort_$page")
         val LOCKED_ONLY_ACHIEVEMENTS_KEY = booleanPreferencesKey("locked_only_achievements")
         val UNLOCKED_ONLY_STYLES_KEY = booleanPreferencesKey("unlocked_only_styles")
         val LEADERBOARD_CHOICE_KEY = stringPreferencesKey("leaderboard_choice")
@@ -426,7 +449,9 @@ class SettingsRepository(
          * [UNLOCKED_ONLY_STYLES_KEY]) a way of browsing.
          */
         private val SYNCED: List<SyncedKey<*>> = buildList {
-            (STYLE_KEYS + listOf(TURN_TIMER_KEY, TURN_TIMER_LENGTH_KEY, GAME_MODE_KEY, STATISTICS_SORT_KEY, LEADERBOARD_CHOICE_KEY)).mapTo(this) { SyncedKey.Text(it) }
+            (STYLE_KEYS + listOf(TURN_TIMER_KEY, TURN_TIMER_LENGTH_KEY, GAME_MODE_KEY, LEADERBOARD_CHOICE_KEY, STATISTICS_CHOICE_KEY))
+                .mapTo(this) { SyncedKey.Text(it) }
+            STATISTICS_PAGE_IDS.mapTo(this) { SyncedKey.Text(statisticsSortKey(it)) }
             for (slot in 1..PLAYER_SLOTS) {
                 listOf(playerNameKey(slot), playerTypeKey(slot), playerColourKey(slot), playerDifficultyKey(slot)).mapTo(this) { SyncedKey.Text(it) }
             }

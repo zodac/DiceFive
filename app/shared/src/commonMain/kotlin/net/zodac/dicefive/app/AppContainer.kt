@@ -36,6 +36,7 @@ import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.purchases.PurchasesRepository
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.ui.scores.LeaderboardChoice
+import net.zodac.dicefive.ui.statistics.StatisticsPage
 import net.zodac.dicefive.ui.statistics.StatisticsSortOrder
 
 /**
@@ -103,9 +104,14 @@ class AppContainer(
         }
     }
 
-    /** The Statistics screen's sort, loaded with the container so the screen opens already in order - null until then. */
-    val statisticsSort: StateFlow<StatisticsSortOrder?> =
-        settingsRepository.statisticsSort.map { StatisticsSortOrder.parse(it) }.stateIn(scope, SharingStarted.Eagerly, null)
+    /** Each Statistics page's sort, loaded with the container so the screen opens already in order - null until then. */
+    val statisticsSorts: StateFlow<Map<StatisticsPage, StatisticsSortOrder>?> = settingsRepository.statisticsSorts
+        .map { stored -> StatisticsPage.all.associateWith { StatisticsSortOrder.parse(stored[it.stored]) } }
+        .stateIn(scope, SharingStarted.Eagerly, null)
+
+    /** The Statistics page, loaded as [leaderboardChoice] is. */
+    val statisticsChoice: StateFlow<StatisticsPage?> =
+        settingsRepository.statisticsChoice.map { StatisticsPage.parse(it) }.stateIn(scope, SharingStarted.Eagerly, null)
 
     /** The Achievements page's Locked only switch, loaded with the container so the page opens already filtered - null until then. */
     val lockedOnlyAchievements: StateFlow<Boolean?> = settingsRepository.lockedOnlyAchievements.stateIn(scope, SharingStarted.Eagerly, null)

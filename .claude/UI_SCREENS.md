@@ -291,12 +291,13 @@ time.
 
 ## The Leaderboard's boards
 
-A `DropdownChoiceField` (`ui/common`) at the top, always shown: a board for each game mode (`LeaderboardChoice.all`),
-Standard's first, with a divider after it, the one on view ticked. The board picked is under it, and is remembered (the
-`leaderboard_choice` preference, in the cloud save) through screen changes and restarts; a stored mode that no longer
-exists, or `combined` (the whole-Leaderboard board before 1.5.0), opens Standard's.
+A `DropdownChoiceField` (`ui/common`) at the top, always shown: a board for each game mode, then Combined
+(`LeaderboardChoice.all`), with a divider after Standard and before Combined, the one on view ticked. Statistics has the
+same drop-down for its pages (`DESIGN.md`, "Leaderboard and Statistics"). The board picked is under it, and is remembered
+(the `leaderboard_choice` preference, in the cloud save) through screen changes and restarts; a stored mode that no longer
+exists opens Standard's.
 
-- **One table for every board** (`LeaderboardTable`, `ui/scores`). Every mode's board looks and behaves alike, so a
+- **One table for every board** (`LeaderboardTable`, `ui/scores`). Every board looks and behaves alike, so a
     board added later is a new `LeaderboardChoice` and a source for its pages, nothing more:
     - A card titled with the board's name (a heading, Sora bold), the column headings, then the ranked rows. 1st-3rd are
         in gold, silver, and bronze on every board, with the same gap between podium rows and the same extra room when
@@ -304,21 +305,23 @@ exists, or `combined` (the whole-Leaderboard board before 1.5.0), opens Standard
     - The card is as tall as its rows, growing until it has the page, then the list scrolls inside it. Its page controls
         are under it, in a row whose height is reserved so a one-page board ends where a two-page one does. In landscape
         they share the drop-down's row (`LeaderboardPagination`) over a 640dp table.
-    - A long press on a row shows its date (the board's title says the mode). That is the row's `stateDescription`.
-    - A board with no scores shows a card saying so instead: "No scores in `<mode>` yet". Every mode is listed, scored or
-        not.
+    - A long press on a row shows its date (a mode's board's title says the mode). That is the row's `stateDescription`.
+    - **Combined** holds every mode's games: each player's name is in its mode's colour (`UI.md`, "Mode colours"), the
+        podium rows keep their gold, silver, and bronze, and a long press adds the mode under the date.
+    - A board with no scores shows a card saying so instead: "No scores in `<board>` yet". Every board is listed, scored
+        or not.
 - A board is read the first time it is picked and kept. The switch waits, with the board on view still up, until the new
     one is read, then gives way in one frame (no empty page).
-- A mode's board lists only games played with no modifier on (`playedUnmodified`), as online boards do.
+- Every board lists only games played with no modifier on (`playedUnmodified`), as online boards do.
 - **Global** (signed in to a service): a text button with a globe on a mode's title row, opening that mode's board on the
     service (`GlobalLeaderboardButton`). It takes **no height**: the title sets the row's, and the button is centred on
     it, spilling into the card's padding, so the card doesn't move on signing in. Where the title and the label won't
     share the line (large fonts, narrow phones) it's the globe alone, never a wrapped title. TalkBack hears "Global
-    leaderboard for `<mode>` on `<service>`", a button.
+    leaderboard for `<mode>` on `<service>`", a button. Combined has none: it has no board on the service.
 - **TalkBack.** The field is one drop-down ("Leaderboard, Standard"), with state Collapsed or Expanded. Each menu row is
     a radio button, the picked one "Selected", with its place in the set. Board titles are headings.
 - Rows use `OnDemandTooltip`, because a `TooltipBox` per row cost real first-frame time.
-- **`ScoresWarmUp`.** 2s after the menu settles, it draws Standard's board, then Tricolour's, once from a made-up board
+- **`ScoresWarmUp`.** 2s after the menu settles, it draws Standard's board, then Combined, once from a made-up board
     (`ScoresViewModel(WarmUpBoard)`, no database), the same way as `StylesWarmUp` (`ScoresWarmUpTest`). The lag was
     first-run code, not the number of entries.
 

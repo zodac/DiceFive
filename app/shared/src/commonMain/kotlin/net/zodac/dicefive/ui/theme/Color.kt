@@ -249,7 +249,7 @@ val PlayerColour.color: Color
 
 /**
  * Each [GameMode]'s own colour: the one place a mode is turned into a [Color], so anything marking a mode (the
- * Statistics card's By mode table and its share bar, for now) shows the same one. Standard, the main mode, takes the
+ * Statistics Combined page's mode table, and each name on the Leaderboard's Combined board) shows the same one. Standard, the main mode, takes the
  * brand gold ([Primary]); the rest are light tones that read on the dark page, clear of each other, of the gold and of
  * red (`error`, a loss). A new mode needs one (the `when` won't compile without it): keep it that way.
  */

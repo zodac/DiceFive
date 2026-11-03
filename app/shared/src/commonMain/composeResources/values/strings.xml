@@ -631,6 +631,7 @@
     <string name="game_tab_view_action">View scorecard</string>
     <!-- Said on the tab of the player whose turn it is, before their place ("Current turn, 2nd place"). -->
     <string name="game_tab_current_turn_spoken">Current turn</string>
+    <!-- Said on a player's tab, and shown on a long press of the pill behind their score, while their total isn't on the game mode's own Leaderboard board yet. -->
     <string name="game_tab_new_leaderboard_score">New Leaderboard score</string>
     <!-- Lines of the totals tooltip: the upper section, its bonus, the lower section, and Hit List's targets. -->
     <string name="game_totals_upper">Upper</string>
@@ -1263,6 +1264,8 @@
     <!-- The check badge on the style in use. -->
     <string name="styles_selected_cd">Selected</string>
     <string name="common_ok">OK</string>
+    <!-- The Leaderboard's and Statistics' entry for every game mode's games together, last in their drop-downs. -->
+    <string name="common_combined">Combined</string>
 
     <!-- Leaderboard (ui/scores/*) -->
     <string name="scores_title">Leaderboard</string>
@@ -1294,6 +1297,9 @@
     <!-- TalkBack's name for tapping the sort option already in use. -->
     <string name="stats_sort_reverse_action">Reverse order</string>
     <string name="stats_empty">No stats yet - play a game!</string>
+    <!-- The page's drop-down, at the top: a page for each game mode, then every mode's games together (common_combined). -->
+    <string name="stats_page_label">Statistics</string>
+    <string name="stats_page_empty">No stats in %1$s yet</string>
     <string name="stats_delete_title">Delete stats?</string>
     <!-- %1$s is the player's name. -->
     <string name="stats_delete_message">Would you like to delete %1$s's stats? Their leaderboard scores will not be affected.</string>
@@ -1324,20 +1330,18 @@
     </plurals>
     <string name="stats_first_played">First played</string>
     <string name="stats_best">Best</string>
-    <!-- A score with its unit, as the card's best score and the Standard tab's average show it: %1$s is the number, thousands-separated ("1,287pts"). The same short form as rules_points_short. -->
+    <!-- A score with its unit, as the card's best score and its average show it: %1$s is the number, thousands-separated ("1,287pts"). The same short form as rules_points_short. -->
     <string name="stats_points">%1$spts</string>
     <string name="stats_average">Average</string>
     <string name="stats_solo">Solo</string>
-    <!-- The switch on an opened card ("Standard" is the mode's own name, mode_standard): the player's Standard stats, or a table of them by game mode. -->
-    <string name="stats_by_mode">By mode</string>
-    <!-- Labels under the three big numbers on the Standard tab. -->
+    <!-- Labels under the three big numbers on an opened card. -->
     <string name="stats_games">Games</string>
     <string name="stats_win_rate">Win rate</string>
     <!-- A win rate: %1$d is a whole percentage of the games against someone that were won. -->
     <string name="stats_win_rate_value">%1$d%</string>
     <!-- Shown for a win rate when every game was solo, and for a win streak before a first win: there is none. -->
     <string name="stats_no_win_rate">-</string>
-    <!-- The key under a won/lost/solo bar (the Standard tab's, and By mode's for every mode): one each, chosen by its count (%1$d). -->
+    <!-- The key under an opened card's won/lost/solo bar: one each, chosen by its count (%1$d). -->
     <plurals name="stats_record_won">
         <item quantity="one">%1$d won</item>
         <item quantity="other">%1$d won</item>
@@ -1350,19 +1354,19 @@
         <item quantity="one">%1$d solo</item>
         <item quantity="other">%1$d solo</item>
     </plurals>
-    <!-- The Standard tab's detail lines (and By mode's total points): a label, then its value. -->
+    <!-- An opened card's detail lines: a label, then its value. -->
     <string name="stats_win_streak">Win streak</string>
     <!-- %1$d is the current win streak, %2$d the longest. -->
     <string name="stats_win_streak_value">%1$d (best %2$d)</string>
     <string name="stats_fives_scored">5x scored</string>
     <string name="stats_total_points">Total points</string>
-    <!-- The By mode table's column headings; the rows under Win are win rates, under Best each mode's best score. -->
+    <!-- The Combined page's mode table's column headings; the rows under Win are win rates, under Best each mode's best score. -->
     <string name="stats_mode">Mode</string>
     <string name="stats_win">Win</string>
     <!-- Spoken, after stats_spoken_record: %1$d is a whole percentage. -->
     <string name="stats_spoken_win_rate">Win rate %1$d%.</string>
     <string name="stats_spoken_average">Average score %1$s.</string>
-    <!-- A By mode row read aloud, after stats_spoken_best with the mode's name: chosen by the games in it (%1$d). -->
+    <!-- A mode table row read aloud, after stats_spoken_best with the mode's name: chosen by the games in it (%1$d). -->
     <plurals name="stats_spoken_games">
         <item quantity="one">%1$d game played.</item>
         <item quantity="other">%1$d games played.</item>

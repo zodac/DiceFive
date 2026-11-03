@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.ComposeUiTest
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.longClick
@@ -103,7 +104,7 @@ class ScoresScreenTest : UiTest() {
     }
 
     @Test
-    fun theDropDownIsOneControlWithItsValueAndStateAndItsMenuListsEveryModeWithTheBoardOnViewSelected() = uiTest {
+    fun theDropDownIsOneControlWithItsValueAndStateAndItsMenuListsEveryModeThenCombinedWithTheBoardOnViewSelected() = uiTest {
         show(someRows)
         val config = field("Standard").fetchSemanticsNode().config
         assertEquals(Role.DropdownList, config.getOrNull(SemanticsProperties.Role))
@@ -112,8 +113,8 @@ class ScoresScreenTest : UiTest() {
         field("Standard").performClick()
         compose.waitForIdle()
         assertEquals("Expanded", field("Standard").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription))
-        // Each mode, each one of a set the size of the menu, Standard (on view) first and selected.
-        val names = GameMode.entries.map(::modeName)
+        // Each mode then Combined, each one of a set the size of the menu, Standard (on view) first and selected.
+        val names = GameMode.entries.map(::modeName) + "Combined"
         names.forEachIndexed { index, name ->
             val item = compose.onNodeWithContentDescription(name).fetchSemanticsNode().config
             assertEquals(Role.RadioButton, item.getOrNull(SemanticsProperties.Role), name)
@@ -144,6 +145,29 @@ class ScoresScreenTest : UiTest() {
         compose.pick(modeName(GameMode.STUD))
         compose.onNodeWithText("No scores in ${modeName(GameMode.STUD)} yet").assertExists()
         compose.onAllNodesWithText("Player").assertCountEquals(0)
+    }
+
+    @Test
+    fun combinedRanksEveryModesGamesAndARowThereSpeaksItsDateAndMode() = uiTest {
+        show(someRows + rowOf(4, 900, GameMode.STUD), saved = MutableStateFlow(LeaderboardChoice.Combined))
+        field("Combined").assertExists()
+        // Every mode's rows, Stud's 900 first.
+        listOf("Player1", "Player2", "Player3", "Player4").forEach { compose.onNodeWithText(it).assertExists() }
+        val detail = compose.onNodeWithText("Player4").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)
+        assertTrue(detail!!.endsWith(", ${modeName(GameMode.STUD)}"), detail)
+    }
+
+    @Test
+    fun aBoardPickedStartsAtItsTopWhereverTheLastBoardsTopRowIsOnIt() = uiTest {
+        // Standard's best (Player100) is 16th on Combined, under 15 Stud scores, with Standard's 14 others after it: a
+        // board that scrolls, and a row near enough for the list to keep its place by.
+        val stud = (1..15).map { rowOf(it.toLong(), 1_000 + it, GameMode.STUD) }
+        val standard = (100..114).map { rowOf(it.toLong(), 400 - it, GameMode.STANDARD) }
+        show(stud + standard)
+        compose.onNodeWithText("Player100").assertIsDisplayed()
+        compose.pick("Combined")
+        // Combined's best, at its top.
+        compose.onNodeWithText("Player15").assertIsDisplayed()
     }
 
     @Test

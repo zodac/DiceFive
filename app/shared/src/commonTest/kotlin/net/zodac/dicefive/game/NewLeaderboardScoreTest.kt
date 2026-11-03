@@ -7,6 +7,7 @@ import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.oneScoreEach
 
 class NewLeaderboardScoreTest {
@@ -24,11 +25,14 @@ class NewLeaderboardScoreTest {
     }
 
     @Test
-    fun `nothing is marked before the Leaderboard is read - once the game is over - or for a game that stays off it`() {
+    fun `nothing is marked before the board is read - once the game is over - or with a modifier on - and any mode is marked`() {
         val state = game(player(PlayerType.HUMAN, 30))
         assertEquals(emptySet(), newLeaderboardScoreSeats(state, null))
         assertEquals(emptySet(), newLeaderboardScoreSeats(state.copy(isGameOver = true), emptySet()))
-        assertEquals(emptySet(), newLeaderboardScoreSeats(state.copy(gameMode = GameMode.THIRD_WIND), emptySet()))
+        assertEquals(emptySet(), newLeaderboardScoreSeats(state.copy(turnTimer = TurnTimer.SECONDS_30), emptySet()))
         assertEquals(setOf(0), newLeaderboardScoreSeats(state, emptySet()))
+        // Every mode has its own board: a Third Wind game is marked against Third Wind's scores.
+        assertEquals(setOf(0), newLeaderboardScoreSeats(state.copy(gameMode = GameMode.THIRD_WIND), emptySet()))
+        assertEquals(emptySet(), newLeaderboardScoreSeats(state.copy(gameMode = GameMode.THIRD_WIND), setOf(30)))
     }
 }

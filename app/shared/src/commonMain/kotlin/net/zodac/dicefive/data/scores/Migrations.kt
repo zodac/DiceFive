@@ -8,7 +8,7 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.playerNameKey
 
 /** Every migration, oldest first - what [buildAppDatabase] opens an older database with. */
-internal val MIGRATIONS: Array<Migration> = arrayOf(Migration1To2, Migration2To3)
+internal val MIGRATIONS: Array<Migration> = arrayOf(Migration1To2, Migration2To3, Migration3To4)
 
 /**
  * Version 2 rebuilds `scores`, as SQLite can't change a table's key or a column's type in place:
@@ -140,6 +140,22 @@ internal object Migration2To3 : Migration(2, 3) {
         connection.execSQL(
             "CREATE INDEX IF NOT EXISTS `index_scores_player_history` ON `scores` " +
                 "(`playerKey` ASC, `timestampEpochMillis` DESC, `won` ASC, `playedUnmodified` ASC)",
+        )
+    }
+}
+
+/**
+ * Version 4 orders the Combined board over every game with no modifier on, in any mode, where it held only the
+ * Leaderboard's modes ([ScoreEntry.onLeaderboard]): its index is led by [ScoreEntry.playedUnmodified] instead. No row
+ * changes.
+ */
+internal object Migration3To4 : Migration(3, 4) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("DROP INDEX IF EXISTS `index_scores_leaderboard_order`")
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_scores_unmodified_order` ON `scores` (`playedUnmodified` ASC, `score` DESC, " +
+                "`fiveOfAKindCount` ASC, `zeroedCategoryCount` DESC, `upperSectionTotal` ASC, `chanceScore` ASC, `threeOfAKindScore` ASC, " +
+                "`fourOfAKindScore` ASC)",
         )
     }
 }

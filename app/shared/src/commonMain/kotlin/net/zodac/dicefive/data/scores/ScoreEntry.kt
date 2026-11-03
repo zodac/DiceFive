@@ -22,11 +22,12 @@ import net.zodac.dicefive.model.playerNameKey
 @Entity(
     tableName = "scores",
     indices = [
-        // The Combined table's order: LEADERBOARD_ORDER under its filter, so a page is read in order, never sorted.
+        // The Combined board's order: LEADERBOARD_ORDER under its filter (every game with no modifier on), so a page is
+        // read in order, never sorted.
         Index(
-            name = "index_scores_leaderboard_order",
+            name = "index_scores_unmodified_order",
             value = [
-                "onLeaderboard", "score", "fiveOfAKindCount", "zeroedCategoryCount", "upperSectionTotal", "chanceScore", "threeOfAKindScore",
+                "playedUnmodified", "score", "fiveOfAKindCount", "zeroedCategoryCount", "upperSectionTotal", "chanceScore", "threeOfAKindScore",
                 "fourOfAKindScore",
             ],
             orders = [ASC, DESC, ASC, DESC, ASC, ASC, ASC, ASC],
@@ -96,13 +97,14 @@ data class ScoreEntry(
     val chanceScore: Int,
     val threeOfAKindScore: Int,
     val fourOfAKindScore: Int,
-    /** The [GameMode.id] this game was played in, for the Leaderboard's per-mode cards and the mode its long-press names. */
+    /** The [GameMode.id] this game was played in: its Leaderboard board, its colour and long-press line on Combined, and its Statistics page. */
     val gameModeId: String = GameMode.STANDARD.id,
     /**
      * Whether the game ran under its mode's own rules, with no modifier (not even the turn timer) -
-     * [net.zodac.dicefive.model.GameState.hasModifiers] false. [onLeaderboard] can't say so for a mode that is always off the Combined
-     * board (it's false whether or not a modifier was on), and an online leaderboard compares like with like, so
-     * this is what decides whether the row may be submitted to one, and whether its mode's Leaderboard card lists it.
+     * [net.zodac.dicefive.model.GameState.hasModifiers] false. [onLeaderboard] can't say so for a mode whose games never
+     * count there (it's false whether or not a modifier was on), and an online leaderboard compares like with like, so
+     * this is what decides whether the row may be submitted to one, and whether the Leaderboard's boards (its mode's
+     * and Combined) list it.
      * Only these rows count anywhere a player sees: Statistics, career points and the modes played leave the rest out too,
      * as a game with a modifier on counts for no achievement. The rest are kept, for the cloud save.
      */
@@ -118,10 +120,10 @@ data class ScoreEntry(
         internal set
 
     /**
-     * Whether this row is on the Combined Leaderboard: its mode counts there ([GameMode.countsOnLeaderboard]) and it was
-     * [playedUnmodified], as [net.zodac.dicefive.model.GameState.countsOnLeaderboard] decides for a game. An unmodified row
-     * that isn't (a mode off the board) is still a game played - Statistics and career points count it - but the
-     * Leaderboard, a personal best and the score-collection achievements leave it out. Derived as [playerKey] is, so it can't disagree with the columns it
+     * Whether this row counts on the Leaderboard for a personal best: its mode counts there ([GameMode.countsOnLeaderboard])
+     * and it was [playedUnmodified], as [net.zodac.dicefive.model.GameState.countsOnLeaderboard] decides for a game. An
+     * unmodified row that doesn't (a mode off the board) is still listed on its mode's board and Combined, and counted by
+     * Statistics and career points; a personal best leaves it out. Derived as [playerKey] is, so it can't disagree with the columns it
      * comes from; a mode this build doesn't know is off the board. Settable only for Room to read it back.
      */
     var onLeaderboard: Boolean = GameMode.fromId(gameModeId)?.countsOnLeaderboard == true && playedUnmodified

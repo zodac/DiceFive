@@ -48,15 +48,21 @@ class SettingsRepositoryCloudTest {
     }
 
     @Test
-    fun `the Statistics sort travels in the save - so a restored or imported one keeps its order`() = runTest {
-        repository.setStatisticsSort("highest_score:desc")
+    fun `each Statistics page's sort and the page picked travel in the save - so a restored or imported one keeps them`() = runTest {
+        repository.setStatisticsSort("combined", "highest_score:desc")
+        repository.setStatisticsSort("stud", "name:asc")
+        repository.setStatisticsChoice("stud")
         val save = repository.cloudSettings()
+        // Combined's is the sort every mode's games had before 1.5.0: it keeps its key.
         assertEquals(Stamped<SettingValue?>(SettingValue.Text("highest_score:desc"), 100L), save["statistics_sort"])
+        assertEquals(Stamped<SettingValue?>(SettingValue.Text("name:asc"), 100L), save["statistics_sort_stud"])
+        assertEquals(Stamped<SettingValue?>(SettingValue.Text("stud"), 100L), save["statistics_choice"])
 
         val other = SettingsRepository(InMemoryPreferences(), now = { clock })
-        assertEquals(null, other.statisticsSort.first())
+        assertEquals(emptyMap(), other.statisticsSorts.first())
         other.mergeCloud(save)
-        assertEquals("highest_score:desc", other.statisticsSort.first())
+        assertEquals(mapOf("stud" to "name:asc", "combined" to "highest_score:desc"), other.statisticsSorts.first())
+        assertEquals("stud", other.statisticsChoice.first())
     }
 
     @Test

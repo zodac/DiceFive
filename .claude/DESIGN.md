@@ -238,7 +238,7 @@ will map to Play Games.
     - **Every read made while the app is in use comes from an index**, never a scan or a sort of the table. Statistics
         (`playerRecords`) adds up every game, so reads a whole index, but never the table; the cloud save (`allScores`) reads
         every row by design. `ScoreQueryPlanTest` checks each read's query plan against the real SQLite. The indices:
-        - `index_scores_leaderboard_order` and `index_scores_mode_order` hold every on-board score and each mode's board in
+        - `index_scores_unmodified_order` and `index_scores_mode_order` hold the Combined board and each mode's board in
             `LEADERBOARD_ORDER`, with the same ASC/DESC per column, so a page is read in order. Room's annotation can't be built
             from `TieBreak.leaderboardOrder`, so a change to the tie-break order must change both (`ScoreQueryPlanTest` fails
             until it does).
@@ -357,50 +357,56 @@ can't is a page saying so, with the stack trace to report. The app never just cl
 
 ## Leaderboard and Statistics
 
-- **Leaderboard** (`ScoresScreen`). A drop-down (`LeaderboardChoice`) picks one game mode's board, Standard's to
-    start. The pick is the `leaderboard_choice` preference (the mode's id), restored on every open and carried in the
-    cloud save and the GitHub app's export; `combined`, the whole-Leaderboard board before 1.5.0, opens Standard's. Details
-    are in `UI_SCREENS.md`.
+Both pages pick what they show from a drop-down at the top: a page for each game mode, Standard's first and the one
+they open on, then **Combined**, every mode's games together, last (a divider after Standard and before Combined).
+
+- **Leaderboard** (`ScoresScreen`). The drop-down (`LeaderboardChoice`) picks a board. The pick is the
+    `leaderboard_choice` preference (the mode's id, or `combined`), restored on every open and carried in the cloud save
+    and the GitHub app's export; a mode no longer known opens Standard's. Details are in `UI_SCREENS.md`.
     - **Every board is the same `LeaderboardTable`**: score-descending, 50 a page, 1st-3rd in gold/silver/bronze, "="
         only for a true tie, paged on its own.
-    - A **mode's board** has only games with no modifier on (`playedUnmodified`), the same ones its online leaderboard
-        takes.
-    - Rows show rank, name, 5x count and score. A long press shows the date, which is also the
+    - Every board has only games with no modifier on (`playedUnmodified`). A **mode's board** has its mode's, the same
+        ones its online leaderboard takes. **Combined** has every mode's (Stud's and Third Wind's run far above
+        Standard's), each name in its mode's colour (`UI.md`, "Mode colours").
+    - Rows show rank, name, 5x count and score. A long press shows the date, and on Combined the mode; that is also the
         row's spoken state.
 - **Statistics** (`StatisticsScreen`). One card per distinct human *name*; a rename starts a new player.
-    - Closed, a card is the name and best score ("1,287pts", the unit at 0.75 of the number's size). Its header opens it
-        onto a Standard / By mode switch. Its best score, and the sort, are the player's Standard games.
-    - **Standard games only** make a card: a player with none (only Stud, say) has no card, though their games are
-        recorded.
+    - **Pages** (`StatisticsPage`). The drop-down picks one; the pick is the `statistics_choice` preference (as the
+        Leaderboard's). A mode's page has that mode's games alone: its own numbers, win streaks, best score and first game
+        (`PlayerStatistics.forMode`), and a player with no game in it has no card there. Combined has every mode's games
+        together, and every player.
+    - Closed, a card is the name and the page's best score ("1,287pts", the unit at 0.75 of the number's size). Its
+        header opens it.
+    - **Open**: games, win rate and average (in points), then a won/lost/solo bar with its key, then the current and
+        best win streak, 5x scored, total points and first played (date and time), all of the page's games. On Combined,
+        a table follows: a row per mode played, in mode order (games, win rate, solo games and best score, the name in the
+        mode's colour). Its total points are the player's (by name); Professional Roller's are seat 1's.
     - **Open by default** when every card fits on screen opened (the list is laid out with every card open under the page cover, which
         builds only the cards on screen, and they fit if it has nothing to scroll; more than 12
         players skip the measure and don't fit). Otherwise all start closed but the top card of each column (the first
-        one in portrait, the first two in landscape), which always open. Opening a card never closes another.
+        one in portrait, the first two in landscape), which always open. Opening a card never closes another. A new page
+        deals them out afresh.
     - **A closed card's open content is built ahead** while the page is still, one card on screen a frame, and kept
         built, unseen, silent and taking no room (`OpenAhead`, `BENCHMARKS.md`); opening only gives it its room.
-    - **Sort** (`StatisticsSort`): a button at the app bar's end opens a menu of Name, First played, Highest score,
-        Highest average and Most games. The one in use is marked with an arrow, up for ascending and down for descending;
-        picking it reverses it, picking another starts it in its own direction (A to Z and oldest first for Name and First
-        played, highest first for the rest). Ties go by name. A new order deals the cards out afresh: the top card of each
-        column opens, the rest as at the start. The choice is the `statistics_sort` preference (`<id>:asc` or `<id>:desc`,
-        `StatisticsSortOrder`), loaded with the app container and carried in the cloud save and the GitHub app's export.
-    - **Standard** (the tab, named by `mode_standard`): the player's Standard games. Games, win rate and average (in
-        points), then a won/lost/solo bar with its key, then the current and best win streak (Standard's games alone), 5x
-        scored, total points and first played (date and time).
-    - **By mode**: every mode's games together as a won/lost/solo bar with its key; then a row per mode played, in mode
-        order: games, win rate, solo games and best score, the name in the mode's colour (`UI.md`, "Mode colours"); then
-        total points across every mode. That total is the player's (by name); Professional Roller's is seat 1's.
-    - Above 1.3x font, the header's score goes under the name, the Standard tab's details put the label over the value, and
-        each By mode name takes its own line over its numbers.
+    - **Sort** (`StatisticsSort`), **each page its own**: a button at the app bar's end opens a menu of Name, First
+        played, Highest score, Highest average and Most games, each by the page's numbers. The one in use is marked with
+        an arrow, up for ascending and down for descending; picking it reverses it, picking another starts it in its own
+        direction (A to Z and oldest first for Name and First played, highest first for the rest). Ties go by name. A new
+        order deals the cards out afresh: the top card of each column opens, the rest as at the start. Each page's sort is
+        a preference (`<id>:asc` or `<id>:desc`, `StatisticsSortOrder`): `statistics_sort_<mode id>` for a mode's page,
+        and `statistics_sort` for Combined's (the one sort there was before 1.5.0, when every card held every mode).
+        They're loaded with the app container and carried in the cloud save and the GitHub app's export.
+    - Above 1.3x font, the header's score goes under the name, the details put the label over the value, and each mode
+        table's name takes its own line over its numbers. A mode's name, or a heading, shrinks to stay on one line; each
+        stacked column's share of the row is its widest text.
     - **Win rate** is won / (won + lost), a whole percentage rounded half up. Solo games aren't in it; with only solo
         games it's shown as "-" and not spoken.
-    - TalkBack: the header is one stop (name, best score, its state and action). The Standard tab is two stops. By
-        mode's bar is one ("Played 91, won 27, lost 19. 45 solo games."), its total one, and each By mode
-        row is one, in full sentences. The headings and bars are silent.
+    - TalkBack: the drop-down is one ("Statistics, Standard"). A card's header is one stop (name, best score, its state
+        and action), its numbers two, and each mode table row one, in full sentences. The headings and bars are silent.
     - Every recorded game with no modifier on counts (`playedUnmodified`, in both Statistics indices). A solo game's
         outcome is null: it isn't a win or a loss, and it doesn't break a streak.
     - Each card has a delete button (top end, open or closed) that dismisses it after a confirmation; the scores stay.
-        Playing again under that name brings it back.
+        Playing again under that name brings it back. It goes from every page.
 - Settings' "Reset leaderboard" deletes every score, and with them the Statistics.
 
 ## Achievements

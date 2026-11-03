@@ -22,12 +22,15 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.LoadedDice
+import net.zodac.dicefive.data.scores.InMemoryScoreDao
+import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
+import net.zodac.dicefive.rowOf
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GameViewModelTest {
@@ -80,6 +83,16 @@ class GameViewModelTest {
             toggleHold(dieIndex)
             toggleHold(dieIndex)
         }
+    }
+
+    @Test
+    fun `a game marks new scores against its own mode's board`() = runTest(testDispatcher) {
+        val dao = InMemoryScoreDao(listOf(rowOf(1, 150, GameMode.STANDARD), rowOf(2, 900, GameMode.STUD)))
+        val viewModel = gameViewModel(scoreRepository = ScoreRepository(dao), aiDispatcher = testDispatcher)
+        viewModel.setupForm.setGameMode(GameMode.STUD)
+        viewModel.startGame()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(setOf(900), viewModel.leaderboardScores.value)
     }
 
     @Test

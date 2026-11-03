@@ -291,9 +291,9 @@ class GameAchievementsWiringTest {
         val repository = ScoreRepository(thirdWindDao)
         assertFalse(row.onLeaderboard)
         assertEquals(thirdWind.game.value!!.players.single().totalScore, row.score)
-        assertEquals(0, repository.totalCount(), "the Leaderboard shows no row for it")
+        assertEquals(1, repository.totalCount(), "Combined lists every mode's games")
         assertEquals(null, repository.bestScoreForPlayer(row.playerName))
-        assertEquals(emptySet(), repository.distinctScores(GameMode.THIRD_WIND))
+        assertEquals(emptySet(), repository.distinctScores(GameMode.STANDARD), "the ledger counts Standard's scores alone")
     }
 
     // ---- What a roll or a score earns, as it happens ----------------------------------------------

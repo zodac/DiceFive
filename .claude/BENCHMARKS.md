@@ -146,7 +146,7 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
 - **Leaderboard and Statistics at scale** (2026-10-27, warm, compose and layout only; in-memory Room on Robolectric's
     SQLite, 4 to 400 players and 40 to 10,000 games, ~25,000 rows):
     - Opening either page is 10-30 at every size. Scrolling either, or a mode card, is under 1 a frame. The next page of
-        a board was 13-23 (measured on the whole-Leaderboard board, before 1.5.0).
+        a board was 13-23 (measured on Combined when it held Standard's and Tricolour's games, before 1.5.0).
     - The switch to Game Mode: 40-100 in one frame with every card built at once, flat with the scores. Now 11-36, then
         4-15 for each frame that builds one more card.
     - Statistics' read: 7 at 30 players, 24 at 150, 35-42 at 400 with two queries a player. Now 2.7, 8 and 22.

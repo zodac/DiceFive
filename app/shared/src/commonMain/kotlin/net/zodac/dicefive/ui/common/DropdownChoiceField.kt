@@ -56,8 +56,8 @@ private val OPTION_MIN_HEIGHT = 48.dp
  * that lists them all, the picked one marked. It is for a choice too long for a [SegmentedChoiceRow].
  *
  * [optionText] is an option's visible and spoken name. [label] names the field for a screen reader ("Leaderboard,
- * Standard, collapsed"). A divider is drawn under the first option when [dividerAfterFirst] is set, for an "all" entry
- * that stands apart from the rest.
+ * Standard, collapsed"). A divider is drawn under the first option when [dividerAfterFirst] is set, and over the last
+ * when [dividerBeforeLast] is: for an entry that stands apart from the rest (the default, or an "all" entry).
  *
  * TalkBack: the field is one drop-down with its value and whether it is expanded; each option is one radio button,
  * "Selected" on the picked one, in a set of known size.
@@ -71,6 +71,7 @@ fun <T> DropdownChoiceField(
     optionText: @Composable (T) -> String,
     modifier: Modifier = Modifier,
     dividerAfterFirst: Boolean = false,
+    dividerBeforeLast: Boolean = false,
 ) {
     var open by remember { mutableStateOf(false) }
     var fieldWidth by remember { mutableStateOf(0.dp) }
@@ -159,7 +160,7 @@ fun <T> DropdownChoiceField(
                             }
                         },
                 )
-                if (dividerAfterFirst && index == 0) HorizontalDivider()
+                if ((dividerAfterFirst && index == 0) || (dividerBeforeLast && index == options.lastIndex - 1)) HorizontalDivider()
             }
         }
     }

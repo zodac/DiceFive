@@ -19,36 +19,38 @@ import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.model.GameMode
 
-/** The game modes that have a board on the Leaderboard - every one. */
+/** The game modes that have a board of their own on the Leaderboard - every one. */
 val LEADERBOARD_MODES: List<GameMode> = GameMode.entries.toList()
 
 /**
- * A board the Leaderboard can show, picked from the drop-down at the top of its screen: one [Mode]'s own. Every board is
- * shown the same way (`LeaderboardTable`), so a board added here needs only a source for its pages.
+ * A board the Leaderboard can show, picked from the drop-down at the top of its screen: one [Mode]'s own, or [Combined],
+ * every mode's games in one ranked table. Every board is shown the same way (`LeaderboardTable`), so a board added here
+ * needs only a source for its pages.
  */
 sealed interface LeaderboardChoice {
-    /** What the choice is stored as (the `leaderboard_choice` preference): the mode's id. */
+    /** What the choice is stored as (the `leaderboard_choice` preference): the mode's id, or `combined`. */
     val stored: String
 
-    /** The mode whose board this is. */
-    val mode: GameMode
-
-    data class Mode(override val mode: GameMode) : LeaderboardChoice {
+    data class Mode(val mode: GameMode) : LeaderboardChoice {
         override val stored: String get() = mode.id
+    }
+
+    data object Combined : LeaderboardChoice {
+        override val stored = "combined"
     }
 
     companion object {
         /** Standard's board: where the Leaderboard opens until another is picked. */
         val STANDARD: LeaderboardChoice = Mode(GameMode.STANDARD)
 
-        /** Every board, in the drop-down's order: a board for each mode. */
-        val all: List<LeaderboardChoice> = LEADERBOARD_MODES.map(::Mode)
+        /** Every board, in the drop-down's order: a board for each mode, then Combined. */
+        val all: List<LeaderboardChoice> = LEADERBOARD_MODES.map(::Mode) + Combined
 
-        /**
-         * The board [stored] names; Standard's where nothing was picked yet, the mode is no longer known, or it is
-         * `combined`, the whole-Leaderboard board earlier versions had.
-         */
-        fun parse(stored: String?): LeaderboardChoice = stored?.let(GameMode::fromId)?.let(::Mode) ?: STANDARD
+        /** The board [stored] names; Standard's where nothing was picked yet or the mode is no longer known. */
+        fun parse(stored: String?): LeaderboardChoice = when (stored) {
+            Combined.stored -> Combined
+            else -> stored?.let(GameMode::fromId)?.let(::Mode) ?: STANDARD
+        }
     }
 }
 
@@ -137,8 +139,10 @@ class ScoresViewModel(
         }
     }
 
-    private suspend fun read(choice: LeaderboardChoice, pageIndex: Int): LeaderboardPage =
-        LeaderboardPage(source.pageForMode(choice.mode, pageIndex), pageIndex, source.totalCountForMode(choice.mode))
+    private suspend fun read(choice: LeaderboardChoice, pageIndex: Int): LeaderboardPage = when (choice) {
+        is LeaderboardChoice.Mode -> LeaderboardPage(source.pageForMode(choice.mode, pageIndex), pageIndex, source.totalCountForMode(choice.mode))
+        LeaderboardChoice.Combined -> LeaderboardPage(source.page(pageIndex), pageIndex, source.totalCount())
+    }
 
     companion object {
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {

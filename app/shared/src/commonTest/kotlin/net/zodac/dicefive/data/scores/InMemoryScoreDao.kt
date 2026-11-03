@@ -20,8 +20,8 @@ class InMemoryScoreDao(initial: List<ScoreEntry> = emptyList()) : ScoreDao {
         entries += entry
     }
 
-    // As the real queries do, only Leaderboard rows (ScoreEntry.onLeaderboard) are paged, counted,
-    // best or collected; career points and Statistics count every row with no modifier on.
+    // As the real queries do, only Leaderboard rows (ScoreEntry.onLeaderboard) are best or collected; the Combined
+    // board, career points and Statistics count every row with no modifier on.
     private val leaderboard get() = entries.filter { it.onLeaderboard }
     private val unmodified get() = entries.filter { it.playedUnmodified }
 
@@ -31,7 +31,7 @@ class InMemoryScoreDao(initial: List<ScoreEntry> = emptyList()) : ScoreDao {
     override suspend fun rawPagedScores(query: RoomRawQuery): List<ScoreEntry> = error("Only the real DAO runs the SQL")
 
     override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> =
-        leaderboard.sortedByDescending { it.score }.drop(offset).take(limit)
+        unmodified.sortedByDescending { it.score }.drop(offset).take(limit)
 
     private fun forMode(gameModeId: String) =
         entries.filter { it.playedUnmodified && it.gameModeId == gameModeId }
@@ -39,14 +39,14 @@ class InMemoryScoreDao(initial: List<ScoreEntry> = emptyList()) : ScoreDao {
     override suspend fun pagedScoresForMode(gameModeId: String, limit: Int, offset: Int): List<ScoreEntry> =
         forMode(gameModeId).sortedByDescending { it.score }.drop(offset).take(limit)
 
-    override suspend fun count(): Int = leaderboard.size
+    override suspend fun count(): Int = unmodified.size
 
     override suspend fun countForMode(gameModeId: String): Int = forMode(gameModeId).size
 
     override suspend fun bestScoreForPlayer(playerKey: String): Int? =
         leaderboard.filter { it.playerKey == playerKey }.maxOfOrNull { it.score }
 
-    override suspend fun distinctScores(gameModeId: String): List<Int> = leaderboard.filter { it.gameModeId == gameModeId }.map { it.score }.distinct()
+    override suspend fun distinctScores(gameModeId: String): List<Int> = unmodified.filter { it.gameModeId == gameModeId }.map { it.score }.distinct()
 
     override suspend fun primaryPlayerTotalPoints(): Int? =
         unmodified.filter { it.isPrimaryPlayer }.takeIf { it.isNotEmpty() }?.sumOf { it.score }
@@ -78,10 +78,10 @@ class InMemoryScoreDao(initial: List<ScoreEntry> = emptyList()) : ScoreDao {
             PlayerLatestName(playerKey, games.last { it.timestampEpochMillis == games.maxOf { game -> game.timestampEpochMillis } }.playerName)
         }
 
-    override suspend fun playerOutcomes(gameModeId: String): List<PlayerOutcome> =
-        statistics.filter { it.gameModeId == gameModeId }
+    override suspend fun playerOutcomes(): List<PlayerOutcome> =
+        statistics
             .sortedWith(compareBy<ScoreEntry> { it.playerKey }.thenByDescending { it.timestampEpochMillis })
-            .mapNotNull { entry -> entry.won?.let { PlayerOutcome(entry.playerKey, it, entry.timestampEpochMillis) } }
+            .mapNotNull { entry -> entry.won?.let { PlayerOutcome(entry.playerKey, entry.gameModeId, it, entry.timestampEpochMillis) } }
 
     override suspend fun clearDismissal(playerKey: String) {
         dismissed -= playerKey

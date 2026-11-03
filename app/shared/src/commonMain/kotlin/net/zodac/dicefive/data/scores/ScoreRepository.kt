@@ -24,7 +24,7 @@ data class PlayerResult(
 /** The scores part of the cloud save: every row, and when each dismissed Statistics card was dismissed, by name. */
 data class CloudScores(val rows: List<ScoreEntry> = emptyList(), val dismissedAt: Map<String, Long> = emptyMap())
 
-/** What the Leaderboard screen reads: the Combined table and each game mode's card, a page at a time. */
+/** What the Leaderboard screen reads: the Combined board and each game mode's board, a page at a time. */
 interface LeaderboardSource {
     suspend fun page(pageIndex: Int, pageSize: Int = SCORES_PAGE_SIZE): List<ScoreEntry>
 
@@ -77,10 +77,8 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
     override suspend fun totalCount(): Int = scoreDao.count()
 
     /**
-     * One page of [gameMode]'s own Leaderboard card, in the same order as [page]: its games played with no modifier
-     * on ([ScoreDao.pagedScoresForMode]). A mode that doesn't count on the Combined board
-     * ([GameMode.countsOnLeaderboard]) is listed only here; its scores stay off [page], [totalCount] and everything
-     * measured against the board (a personal best, the score achievements).
+     * One page of [gameMode]'s own Leaderboard board, in the same order as [page]: its games played with no modifier
+     * on ([ScoreDao.pagedScoresForMode]). [page] has every mode's.
      */
     override suspend fun pageForMode(gameMode: GameMode, pageIndex: Int, pageSize: Int): List<ScoreEntry> =
         scoreDao.pagedScoresForMode(gameMode.id, limit = pageSize, offset = pageIndex * pageSize)
@@ -150,28 +148,29 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
 
     /**
      * Per-player aggregate stats for the Statistics screen - see [PlayerStatistics]. SQLite adds up each player's games
-     * per mode ([ScoreDao.playerRecords]). The card's own numbers and win streaks are the player's Standard games; each
-     * mode's games are in [PlayerStatistics.modes]. A player with no Standard game has no card. Players come in
-     * [ScoreEntry.playerKey] order; names differing only by case are one player, shown by the spelling of their latest game.
+     * per mode ([ScoreDao.playerRecords]); here they are added across modes, and the win streaks walked, every mode's
+     * games together and each mode's alone. Players come in [ScoreEntry.playerKey] order; names differing only by case
+     * are one player, shown by the spelling of their latest game.
      */
-    suspend fun playerStatistics(): List<PlayerStatistics> = scoreDao.playerRecords().mapNotNull { record ->
-        val standard = record.modes.firstOrNull { it.gameModeId == GameMode.STANDARD.id } ?: return@mapNotNull null
-        val streaks = winStreaks(record.outcomesMostRecentFirst)
+    suspend fun playerStatistics(): List<PlayerStatistics> = scoreDao.playerRecords().map { record ->
+        val modes = record.modes
+        val streaks = winStreaks(record.outcomesMostRecentFirst.map { it.won })
         PlayerStatistics(
             playerName = record.playerName,
-            firstPlayedEpochMillis = standard.firstPlayedEpochMillis,
-            gamesPlayed = standard.gamesPlayed,
-            gamesWon = standard.gamesWon,
-            gamesLost = standard.gamesLost,
+            firstPlayedEpochMillis = modes.minOf { it.firstPlayedEpochMillis },
+            gamesPlayed = modes.sumOf { it.gamesPlayed },
+            gamesWon = modes.sumOf { it.gamesWon },
+            gamesLost = modes.sumOf { it.gamesLost },
             currentWinStreak = streaks.current,
             bestWinStreak = streaks.best,
-            maxScore = standard.maxScore,
-            totalScore = standard.totalScore,
-            fiveOfAKindCount = standard.fiveOfAKindCount,
-            soloGames = standard.soloGames,
-            // In mode order; a mode this build doesn't know has no row.
+            maxScore = modes.maxOf { it.maxScore },
+            totalScore = modes.sumOf { it.totalScore },
+            fiveOfAKindCount = modes.sumOf { it.fiveOfAKindCount },
+            soloGames = modes.sumOf { it.soloGames },
+            // In mode order; a mode this build doesn't know still counts above, but has no row of its own.
             modes = GameMode.entries.mapNotNull { mode ->
-                record.modes.firstOrNull { it.gameModeId == mode.id }?.let { inMode ->
+                modes.firstOrNull { it.gameModeId == mode.id }?.let { inMode ->
+                    val modeStreaks = winStreaks(record.outcomesMostRecentFirst.filter { it.gameModeId == mode.id }.map { it.won })
                     ModeStatistics(
                         gameMode = mode,
                         gamesPlayed = inMode.gamesPlayed,
@@ -180,6 +179,10 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
                         soloGames = inMode.soloGames,
                         maxScore = inMode.maxScore,
                         totalScore = inMode.totalScore,
+                        fiveOfAKindCount = inMode.fiveOfAKindCount,
+                        firstPlayedEpochMillis = inMode.firstPlayedEpochMillis,
+                        currentWinStreak = modeStreaks.current,
+                        bestWinStreak = modeStreaks.best,
                     )
                 }
             },

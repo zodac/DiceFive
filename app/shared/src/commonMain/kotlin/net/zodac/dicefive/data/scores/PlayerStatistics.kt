@@ -3,9 +3,9 @@ package net.zodac.dicefive.data.scores
 import net.zodac.dicefive.model.GameMode
 
 /**
- * One player's stats - the Statistics screen's card. Its own numbers are the player's Standard games; [modes] has every
- * mode's, Standard's included. "Player" here means a distinct `playerName`, not a stable identity: renaming a player
- * starts a new card, the same way it starts a new leaderboard entry.
+ * One player's stats - the Statistics screen's card. Its own numbers are every mode's games together (the Combined page);
+ * [modes] has each mode's, which a mode's page shows ([forMode]). "Player" here means a distinct `playerName`, not a
+ * stable identity: renaming a player starts a new card, the same way it starts a new leaderboard entry.
  */
 data class PlayerStatistics(
     val playerName: String,
@@ -16,26 +16,44 @@ data class PlayerStatistics(
     val currentWinStreak: Int,
     val bestWinStreak: Int,
     val maxScore: Int,
-    /** Every point scored in the player's Standard games, solo or multiplayer. */
+    /** Every point scored, solo or multiplayer. */
     val totalScore: Int,
-    /** How many 5x this player has scored in their Standard games. */
+    /** How many 5x this player has scored. */
     val fiveOfAKindCount: Int,
     /** Games with nobody to beat - the ones recorded with a null outcome, so counted in [gamesPlayed] only. */
     val soloGames: Int,
-    /** The player's games in each mode, Standard's included, in [GameMode.entries] order; a mode never played is absent. */
+    /** The player's games in each mode, in [GameMode.entries] order; a mode never played is absent. */
     val modes: List<ModeStatistics> = emptyList(),
 ) {
 
     /** [totalScore] over [gamesPlayed], rounded half up to a whole number; 0 for a player with no games. */
     val averageScore: Int
-        get() = if (gamesPlayed == 0) 0 else ((totalScore.toLong() * 2 + gamesPlayed) / (gamesPlayed * 2L)).toInt()
+        get() = averageOf(totalScore, gamesPlayed)
 
     /** See [winRatePercent]. */
     val winRatePercent: Int?
         get() = winRatePercent(gamesWon, gamesLost)
+
+    /** The card on [mode]'s page: that mode's games alone, its own numbers - or null if the player has none in it. */
+    fun forMode(mode: GameMode): PlayerStatistics? = modes.firstOrNull { it.gameMode == mode }?.let { inMode ->
+        PlayerStatistics(
+            playerName = playerName,
+            firstPlayedEpochMillis = inMode.firstPlayedEpochMillis,
+            gamesPlayed = inMode.gamesPlayed,
+            gamesWon = inMode.gamesWon,
+            gamesLost = inMode.gamesLost,
+            currentWinStreak = inMode.currentWinStreak,
+            bestWinStreak = inMode.bestWinStreak,
+            maxScore = inMode.maxScore,
+            totalScore = inMode.totalScore,
+            fiveOfAKindCount = inMode.fiveOfAKindCount,
+            soloGames = inMode.soloGames,
+            modes = listOf(inMode),
+        )
+    }
 }
 
-/** One player's games in one [gameMode]: the Statistics card's By mode row. */
+/** One player's games in one [gameMode]: that mode's Statistics page, and its row in the Combined page's table. */
 data class ModeStatistics(
     val gameMode: GameMode,
     /** Every game in the mode, solo ones included. */
@@ -46,12 +64,21 @@ data class ModeStatistics(
     val maxScore: Int,
     /** Every point scored in the mode's games. */
     val totalScore: Int = 0,
+    val fiveOfAKindCount: Int = 0,
+    /** When the player's first game in the mode was played. */
+    val firstPlayedEpochMillis: Long = 0L,
+    /** The win streaks of the mode's games alone. */
+    val currentWinStreak: Int = 0,
+    val bestWinStreak: Int = 0,
 ) {
 
     /** See [winRatePercent]. */
     val winRatePercent: Int?
         get() = winRatePercent(gamesWon, gamesLost)
 }
+
+/** [total] over [games], rounded half up to a whole number; 0 for no games. */
+private fun averageOf(total: Int, games: Int): Int = if (games == 0) 0 else ((total.toLong() * 2 + games) / (games * 2L)).toInt()
 
 /**
  * The share of the games with someone to beat that were won, as a whole percentage rounded half up. Solo games aren't
@@ -83,8 +110,8 @@ data class PlayerModeTotals(
 /** The spelling of a player's latest game, by [ScoreEntry.playerKey] - [ScoreDao.latestPlayerNames]'s row. */
 data class PlayerLatestName(val playerKey: String, val playerName: String)
 
-/** Whether the player [playerKey] names won one game with someone to beat, and when - [ScoreDao.playerOutcomes]'s row. */
-data class PlayerOutcome(val playerKey: String, val won: Boolean, val timestampEpochMillis: Long)
+/** Whether the player [playerKey] names won one game of [gameModeId] with someone to beat, and when - [ScoreDao.playerOutcomes]'s row. */
+data class PlayerOutcome(val playerKey: String, val gameModeId: String, val won: Boolean, val timestampEpochMillis: Long)
 
 /**
  * Everything the Statistics screen needs about one player, as [ScoreDao.playerRecords] reads it: the spelling of their
@@ -94,5 +121,6 @@ data class PlayerOutcome(val playerKey: String, val won: Boolean, val timestampE
 data class PlayerRecord(
     val playerName: String,
     val modes: List<PlayerModeTotals>,
-    val outcomesMostRecentFirst: List<Boolean>,
+    /** Each game with someone to beat, in any mode, most recent first. */
+    val outcomesMostRecentFirst: List<PlayerOutcome>,
 )

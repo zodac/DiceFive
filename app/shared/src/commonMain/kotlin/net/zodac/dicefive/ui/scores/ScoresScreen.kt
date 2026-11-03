@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +40,7 @@ import net.zodac.dicefive.online.GameServices
 import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_combined
 import net.zodac.dicefive.resources.scores_board_empty
 import net.zodac.dicefive.resources.scores_board_label
 import net.zodac.dicefive.resources.scores_global
@@ -66,7 +68,7 @@ private val GLOBAL_BUTTON_CHROME_WIDTH = GLOBAL_ICON_SIZE + GLOBAL_ICON_GAP + 24
 private val LANDSCAPE_ROW_WIDTH = 640.dp
 
 /**
- * The Leaderboard: a drop-down at the top picks a game mode's board (Standard's to start), and the board's table is under
+ * The Leaderboard: a drop-down at the top picks a game mode's board (Standard's to start) or Combined, and the board's table is under
  * it. Every board is the same [LeaderboardTable], so the top three are in gold, silver, and bronze on each. The pick is
  * remembered ([ScoresViewModel]).
  */
@@ -95,6 +97,7 @@ fun ScoresScreen(
                 optionText = { boardName(it) },
                 modifier = pickerModifier,
                 dividerAfterFirst = true,
+                dividerBeforeLast = true,
             )
         }
         if (landscape) {
@@ -117,26 +120,35 @@ fun ScoresScreen(
         // A mode's board opens that mode's board on the service while signed in to one.
         val online = services.state.collectAsStateWithLifecycle().value is GameServicesState.SignedIn && services.canShowLeaderboardUi
         val boardName = boardName(choice)
-        LeaderboardTable(
-            board = board,
-            emptyText = stringResource(Res.string.scores_board_empty, boardName),
-            onPrevious = viewModel::previousPage,
-            onNext = viewModel::nextPage,
-            landscape = landscape,
-            header = {
-                BoardTitle(
-                    title = boardName,
-                    mode = choice.mode,
-                    services = services.takeIf { online },
-                )
-            },
-        )
+        // Each board its own list, so a new one starts at its top: a list kept across boards holds its place by row, and
+        // would scroll a board to wherever the last one's top row is (Standard's best is far down Combined).
+        key(choice) {
+            LeaderboardTable(
+                board = board,
+                emptyText = stringResource(Res.string.scores_board_empty, boardName),
+                // Rows of every mode share Combined's table: each name in its mode's colour, and its mode in the long press.
+                combined = choice == LeaderboardChoice.Combined,
+                onPrevious = viewModel::previousPage,
+                onNext = viewModel::nextPage,
+                landscape = landscape,
+                header = {
+                    BoardTitle(
+                        title = boardName,
+                        mode = (choice as? LeaderboardChoice.Mode)?.mode,
+                        services = services.takeIf { online },
+                    )
+                },
+            )
+        }
     }
 }
 
 /** A board's name as the drop-down and its title say it. */
 @Composable
-private fun boardName(choice: LeaderboardChoice): String = stringResource(choice.mode.displayName)
+private fun boardName(choice: LeaderboardChoice): String = when (choice) {
+    is LeaderboardChoice.Mode -> stringResource(choice.mode.displayName)
+    LeaderboardChoice.Combined -> stringResource(Res.string.common_combined)
+}
 
 /**
  * A board's title, a heading, with - for a [mode]'s board while signed in to a service ([services]) - its Global button.
@@ -212,11 +224,11 @@ private const val SCORES_WARM_UP_DELAY_MILLIS = 2000L
 // Frames each board gets: enough for the page's own fade-in (100ms) to finish, so it's really drawn.
 private const val SCORES_WARM_UP_FRAMES = 8
 
-/** The boards the warm-up draws: Standard's, which the page opens on, then another picked from the drop-down. */
-private val WARM_UP_CHOICES = listOf(LeaderboardChoice.Mode(GameMode.STANDARD), LeaderboardChoice.Mode(GameMode.TRICOLOUR))
+/** The boards the warm-up draws: Standard's, which the page opens on, then Combined, whose rows are each coloured by mode. */
+private val WARM_UP_CHOICES = listOf(LeaderboardChoice.Mode(GameMode.STANDARD), LeaderboardChoice.Combined)
 
 /**
- * Draws the Leaderboard - Standard's board, then another mode's - once, out of sight, so opening it isn't
+ * Draws the Leaderboard - Standard's board, then Combined - once, out of sight, so opening it isn't
  * the first time its code runs. That's most of the lag on a first open: a few rows take no time, but loading
  * and running the page's first-time code (the switch, the table, the lists, their scrollbars) lands on the
  * frame the page opens on. Placed on the menu under its opaque backdrop, in a 1dp clipped box, once the menu
@@ -272,9 +284,9 @@ private object WarmUpBoard : LeaderboardSource {
         else -> emptyList()
     }
 
-    override suspend fun page(pageIndex: Int, pageSize: Int): List<ScoreEntry> = if (pageIndex == 0) standard else emptyList()
+    override suspend fun page(pageIndex: Int, pageSize: Int): List<ScoreEntry> = if (pageIndex == 0) standard + tricolour else emptyList()
 
-    override suspend fun totalCount(): Int = standard.size
+    override suspend fun totalCount(): Int = standard.size + tricolour.size
 
     override suspend fun pageForMode(gameMode: GameMode, pageIndex: Int, pageSize: Int): List<ScoreEntry> =
         if (pageIndex == 0) forMode(gameMode) else emptyList()

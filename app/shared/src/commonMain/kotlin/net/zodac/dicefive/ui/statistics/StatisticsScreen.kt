@@ -79,12 +79,11 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import net.zodac.dicefive.data.scores.ModeStatistics
 import net.zodac.dicefive.data.scores.PlayerStatistics
-import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_cancel
+import net.zodac.dicefive.resources.common_combined
 import net.zodac.dicefive.resources.stats_average
 import net.zodac.dicefive.resources.stats_best
-import net.zodac.dicefive.resources.stats_by_mode
 import net.zodac.dicefive.resources.stats_collapsed_spoken
 import net.zodac.dicefive.resources.stats_delete_action
 import net.zodac.dicefive.resources.stats_delete_confirm
@@ -98,6 +97,8 @@ import net.zodac.dicefive.resources.stats_games
 import net.zodac.dicefive.resources.stats_hide_action
 import net.zodac.dicefive.resources.stats_mode
 import net.zodac.dicefive.resources.stats_no_win_rate
+import net.zodac.dicefive.resources.stats_page_empty
+import net.zodac.dicefive.resources.stats_page_label
 import net.zodac.dicefive.resources.stats_points
 import net.zodac.dicefive.resources.stats_record_lost
 import net.zodac.dicefive.resources.stats_record_solo
@@ -127,6 +128,7 @@ import net.zodac.dicefive.resources.stats_win_streak
 import net.zodac.dicefive.resources.stats_win_streak_value
 import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
 import net.zodac.dicefive.ui.common.DiceFiveDialog
+import net.zodac.dicefive.ui.common.DropdownChoiceField
 import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.LocalLandscapePage
@@ -134,7 +136,6 @@ import net.zodac.dicefive.ui.common.LocalPageCover
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.PageCover
 import net.zodac.dicefive.ui.common.ScreenScaffold
-import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.joinSentences
@@ -144,7 +145,6 @@ import net.zodac.dicefive.ui.common.textScale
 import net.zodac.dicefive.ui.common.timestamp
 import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.theme.color
-import org.jetbrains.compose.resources.StringResource
 
 /** Player cards to a row in landscape. */
 private const val LANDSCAPE_COLUMNS = 2
@@ -164,8 +164,11 @@ fun StatisticsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pendingDeleteName by rememberSaveable { mutableStateOf<String?>(null) }
-    val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
-    val players = remember(state.players, sortOrder) { sortOrder?.order(state.players).orEmpty() }
+    val sortOrders by viewModel.sortOrders.collectAsStateWithLifecycle()
+    val page by viewModel.page.collectAsStateWithLifecycle()
+    // The page's own sort; null until both are loaded.
+    val sortOrder = page?.let { sortOrders?.get(it) }
+    val players = remember(state.players, page, sortOrder) { page?.let { sortOrder?.order(it.cards(state.players)) }.orEmpty() }
 
     ScreenScaffold(
         title = stringResource(Res.string.stats_title),
@@ -175,27 +178,32 @@ fun StatisticsScreen(
         // At the bar's end, level with the cards' end edge in landscape.
         actions = {
             val order = sortOrder
-            if (state.isLoaded && state.players.isNotEmpty() && order != null) {
+            val onPage = page
+            if (state.isLoaded && players.isNotEmpty() && order != null && onPage != null) {
                 Box(modifier = Modifier.padding(end = if (LocalLandscapePage.current) BACK_ARROW_OUTSET else 0.dp)) {
-                    SortMenu(sortOrder = order, onPick = { viewModel.setSortOrder(order.pick(it)) })
+                    SortMenu(sortOrder = order, onPick = { viewModel.setSortOrder(onPage, order.pick(it)) })
                 }
             }
         },
     ) {
         // Nothing but the title bar until the stats are read, so "No stats yet" never flashes up
         // before the player cards - and the page cover kept up over it meanwhile.
-        if (!state.isLoaded || sortOrder == null) return@ScreenScaffold HoldPageCover()
-        if (state.players.isEmpty()) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = stringResource(Res.string.stats_empty),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(24.dp),
-                )
-            }
-        } else {
+        val onPage = page
+        if (!state.isLoaded || sortOrder == null || onPage == null) return@ScreenScaffold HoldPageCover()
+        if (state.players.isEmpty()) return@ScreenScaffold EmptyCard(stringResource(Res.string.stats_empty))
+        DropdownChoiceField(
+            options = StatisticsPage.all,
+            selected = onPage,
+            onSelect = viewModel::selectPage,
+            label = stringResource(Res.string.stats_page_label),
+            optionText = { pageName(it) },
+            modifier = Modifier.fillMaxWidth(),
+            dividerAfterFirst = true,
+            dividerBeforeLast = true,
+        )
+        if (players.isEmpty()) {
+            EmptyCard(stringResource(Res.string.stats_page_empty, pageName(onPage)))
+        } else key(onPage) {
             val listState = rememberLazyListState()
             val pageCover = LocalPageCover.current
             val openAhead = remember(listState, pageCover) { OpenAhead(listState, pageCover) }
@@ -206,7 +214,7 @@ fun StatisticsScreen(
             // The names of the open cards. Dealt afresh whenever the order changes (or the columns do, or they're found not
             // to fit): every card until the fit is known and if they all fit, else the top card of each column - the first
             // row's. Toggled from there.
-            val openNames = remember(sortOrder?.stored, columns, allFit == false) {
+            val openNames = remember(sortOrder.stored, columns, allFit == false) {
                 val dealt = if (allFit != false) players else players.take(columns)
                 mutableStateListOf<String>().apply { addAll(dealt.map { it.playerName }) }
             }
@@ -239,6 +247,7 @@ fun StatisticsScreen(
                                         if (open) openNames.add(player.playerName) else openNames.remove(player.playerName)
                                     },
                                     onDelete = { pendingDeleteName = player.playerName },
+                                    showModes = onPage == StatisticsPage.Combined,
                                     openAhead = openAhead,
                                 )
                             }
@@ -265,6 +274,27 @@ fun StatisticsScreen(
             )
         }
     }
+}
+
+/** A card saying [text] in place of the cards: no stats at all, or none on the page. */
+@Composable
+private fun EmptyCard(text: String) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(24.dp),
+        )
+    }
+}
+
+/** A page's name as the drop-down says it: its mode's, or Combined. */
+@Composable
+private fun pageName(page: StatisticsPage): String = when (page) {
+    is StatisticsPage.Mode -> stringResource(page.mode.displayName)
+    StatisticsPage.Combined -> stringResource(Res.string.common_combined)
 }
 
 /**
@@ -387,15 +417,16 @@ private class OpenAhead(private val listState: LazyListState, private val pageCo
 
 /** [PlayerStatsCardContent] that keeps its own open state, starting as [initiallyExpanded] says. */
 @Composable
-fun PlayerStatsCard(player: PlayerStatistics, onDelete: () -> Unit, initiallyExpanded: Boolean = false) {
+fun PlayerStatsCard(player: PlayerStatistics, onDelete: () -> Unit, initiallyExpanded: Boolean = false, showModes: Boolean = false) {
     var expanded by rememberSaveable(player.playerName) { mutableStateOf(initiallyExpanded) }
-    PlayerStatsCardContent(player, expanded = expanded, onExpandedChange = { expanded = it }, onDelete = onDelete)
+    PlayerStatsCardContent(player, expanded = expanded, onExpandedChange = { expanded = it }, onDelete = onDelete, showModes = showModes)
 }
 
 /**
- * One player's card, open or closed as [expanded] says. Closed it is just their name and best score (gold, in points), with a dropdown arrow
- * after the score; tapping that header opens the rest, under a Standard / By mode switch. The delete button at the
- * header's end, open or closed, is a control of its own.
+ * One player's card on a page, open or closed as [expanded] says. Closed it is just their name and best score (gold, in
+ * points), with a dropdown arrow after the score; tapping that header opens the rest: the page's numbers, and with
+ * [showModes] (the Combined page) a table of each mode's. The delete button at the header's end, open or closed, is a
+ * control of its own.
  */
 @Composable
 private fun PlayerStatsCardContent(
@@ -403,9 +434,9 @@ private fun PlayerStatsCardContent(
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     onDelete: () -> Unit,
+    showModes: Boolean,
     openAhead: OpenAhead? = null,
 ) {
-    var view by rememberSaveable(player.playerName) { mutableStateOf(StatsView.STANDARD) }
     // Whether the open content is built, shown or not: from the card's first opening, or its turn with [openAhead],
     // whichever comes first. Closed, it's kept, taking no room and silent, so opening only gives it its room.
     var built by remember { mutableStateOf(false) }
@@ -486,16 +517,10 @@ private fun PlayerStatsCardContent(
                             .padding(start = CARD_PADDING, end = CARD_PADDING, bottom = CARD_PADDING),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        SegmentedChoiceRow(
-                            options = StatsView.entries,
-                            selected = view,
-                            onSelect = { view = it },
-                            label = { stringResource(it.label) },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        when (view) {
-                            StatsView.STANDARD -> StandardStats(player)
-                            StatsView.BY_MODE -> ByMode(player)
+                        RecordStats(player)
+                        if (showModes) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            ModeTable(player)
                         }
                     }
                 }
@@ -531,19 +556,13 @@ private fun Modifier.builtAhead(): Modifier = this
 
 internal const val BUILT_AHEAD_TAG = "statsBuiltAhead"
 
-/** The two halves of an opened card, picked by its switch. */
-private enum class StatsView(val label: StringResource) {
-    STANDARD(GameMode.STANDARD.displayName),
-    BY_MODE(Res.string.stats_by_mode),
-}
-
 /**
- * The player's Standard games: games, win rate and average large; the won/lost/solo split as a bar with its key; then
- * the win streak, 5x scored, total points and when they first played. Two stops for TalkBack: the numbers with the split, then the
- * rest.
+ * The player's games on the page: games, win rate and average large; the won/lost/solo split as a bar with its key; then
+ * the win streak, 5x scored, total points and when they first played. Two stops for TalkBack: the numbers with the split,
+ * then the rest.
  */
 @Composable
-private fun StandardStats(player: PlayerStatistics) {
+private fun RecordStats(player: PlayerStatistics) {
     val numbers = buildList {
         add(stringResource(Res.string.stats_spoken_record, player.gamesPlayed, player.gamesWon, player.gamesLost))
         add(pluralStringResource(Res.plurals.stats_spoken_solo, player.soloGames, player.soloGames))
@@ -593,13 +612,12 @@ private fun StandardStats(player: PlayerStatistics) {
 }
 
 /**
- * Every mode's games together as a won/lost/solo bar with its key, then a table of the player's games in each mode
- * they've played: games, win rate, solo games and best score, each name in its mode's colour. Under it, the points
- * scored in every mode together. Above [STACKED_FONT_SCALE] a name takes its own line, its numbers under the headings on
- * the next. TalkBack reads the bar as one stop, each row as one, and the total as one, in full; the headings are silent.
+ * A table of the player's games in each mode they've played: games, win rate, solo games and best score, each name in
+ * its mode's colour. Above [STACKED_FONT_SCALE] a name takes its own line, its numbers under the headings on the next.
+ * TalkBack reads each row as one stop, in full; the headings are silent.
  */
 @Composable
-private fun ByMode(player: PlayerStatistics) {
+private fun ModeTable(player: PlayerStatistics) {
     val stacked = LocalDensity.current.textScale > STACKED_FONT_SCALE
     val headings = listOf(
         stringResource(Res.string.stats_games),
@@ -607,19 +625,6 @@ private fun ByMode(player: PlayerStatistics) {
         stringResource(Res.string.stats_solo),
         stringResource(Res.string.stats_best),
     )
-    // Every mode's games together, won/lost/solo, as the Standard tab shows its own - and said as it says them.
-    val won = player.modes.sumOf { it.gamesWon }
-    val lost = player.modes.sumOf { it.gamesLost }
-    val solo = player.modes.sumOf { it.soloGames }
-    val recordSpoken = joinSentences(
-        listOf(
-            stringResource(Res.string.stats_spoken_record, player.modes.sumOf { it.gamesPlayed }, won, lost),
-            pluralStringResource(Res.plurals.stats_spoken_solo, solo, solo),
-        ),
-    )
-    Box(modifier = Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = recordSpoken }) {
-        OutcomeSplit(won = won, lost = lost, solo = solo)
-    }
     val numbers = player.modes.map { modeNumbers(it) }
     // Stacked, each number column's share of the row is its widest text, heading or number, measured.
     val measurer = rememberTextMeasurer()
@@ -640,13 +645,6 @@ private fun ByMode(player: PlayerStatistics) {
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         player.modes.forEachIndexed { index, mode -> ModeRow(mode, numbers[index], stacked, weights) }
-    }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-    // Every mode's points together, spoken as the Standard tab says its own.
-    val totalPoints = player.modes.sumOf { it.totalScore }.grouped()
-    val totalSpoken = stringResource(Res.string.stats_spoken_total_points, totalPoints)
-    Box(modifier = Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = totalSpoken }) {
-        DetailLine(label = stringResource(Res.string.stats_total_points), value = totalPoints)
     }
 }
 
@@ -845,8 +843,8 @@ private val SHARE_BAR_HEIGHT = 10.dp
 private val KEY_SWATCH_SIZE = 10.dp
 private val NUMBER_COLUMN_MIN_WIDTH = 44.dp
 
-/** The font scale above which the header puts the best score under the name, the Standard tab's details their label over
- * their value, and By mode each name over its numbers. */
+/** The font scale above which the header puts the best score under the name, the details their label over their value,
+ * and the mode table each name over its numbers. */
 private const val STACKED_FONT_SCALE = 1.3f
 
 /** The size of a score's unit ([pointsText]) against its number. */

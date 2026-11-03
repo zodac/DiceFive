@@ -20,6 +20,7 @@ import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
 
 data class StatisticsUiState(
+    /** Every player's stats, every mode's ([PlayerStatistics]); a page shows its own of them ([StatisticsPage.cards]). */
     val players: List<PlayerStatistics> = emptyList(),
     /** Whether [players] has been read yet - until then an empty list means "not known yet", not
      * "no stats", and the screen shows neither the cards nor its empty message. */
@@ -29,16 +30,30 @@ data class StatisticsUiState(
 class StatisticsViewModel(
     private val scoreRepository: ScoreRepository,
     private val settingsRepository: SettingsRepository,
-    /** The app's own copy of the sort ([AppContainer.statisticsSort]); without one, it's read from [settingsRepository]. */
-    sortOrder: StateFlow<StatisticsSortOrder?>? = null,
+    /** The app's own copy of each page's sort ([AppContainer.statisticsSorts]); without one, it's read from [settingsRepository]. */
+    sortOrders: StateFlow<Map<StatisticsPage, StatisticsSortOrder>?>? = null,
+    /** The app's own copy of the page ([AppContainer.statisticsChoice]); without one, it's read from [settingsRepository]. */
+    page: StateFlow<StatisticsPage?>? = null,
 ) : ViewModel() {
 
-    /** How the cards are ordered - null until it has loaded, when the screen shows nothing. */
-    val sortOrder: StateFlow<StatisticsSortOrder?> = sortOrder
-        ?: settingsRepository.statisticsSort.map { StatisticsSortOrder.parse(it) }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    /** How each page's cards are ordered - null until loaded, when the screen shows nothing. */
+    val sortOrders: StateFlow<Map<StatisticsPage, StatisticsSortOrder>?> = sortOrders
+        ?: settingsRepository.statisticsSorts
+            .map { stored -> StatisticsPage.all.associateWith { StatisticsSortOrder.parse(stored[it.stored]) } }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    fun setSortOrder(order: StatisticsSortOrder) {
-        viewModelScope.launch { settingsRepository.setStatisticsSort(order.stored) }
+    /** The page on view - null until loaded. */
+    val page: StateFlow<StatisticsPage?> = page
+        ?: settingsRepository.statisticsChoice.map { StatisticsPage.parse(it) }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /** Sets [page]'s own sort, kept for that page alone. */
+    fun setSortOrder(page: StatisticsPage, order: StatisticsSortOrder) {
+        viewModelScope.launch { settingsRepository.setStatisticsSort(page.stored, order.stored) }
+    }
+
+    /** Moves to [page], and keeps it for the next visit. */
+    fun selectPage(page: StatisticsPage) {
+        viewModelScope.launch { settingsRepository.setStatisticsChoice(page.stored) }
     }
 
     private val _uiState = MutableStateFlow(StatisticsUiState())
@@ -66,7 +81,9 @@ class StatisticsViewModel(
 
     companion object {
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
-            initializer { StatisticsViewModel(container.scoreRepository, container.settingsRepository, container.statisticsSort) }
+            initializer {
+                StatisticsViewModel(container.scoreRepository, container.settingsRepository, container.statisticsSorts, container.statisticsChoice)
+            }
         }
     }
 }
