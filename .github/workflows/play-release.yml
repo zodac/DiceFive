@@ -1,0 +1,130 @@
+name: Play release
+
+# Uploads a GitHub release's App Bundle to Google Play, on demand only (Actions tab, or
+# `gh workflow run play-release.yml -f tag=android-v1.4.1 -f track=alpha`). Nothing is built here: the bundle is the
+# one android-release.yml built, signed with the upload key, and attached to the release (DiceFive-<version>.aab), with
+# the bundle's R8 mapping (DiceFive-<version>-play-mapping.txt), uploaded too for Play's crash reports.
+#
+# The tag is typed, not picked: a choice input's options are fixed in this file. Left blank, it's the newest android-v
+# release. A versionCode Play has had once is never accepted again, so a tag can go to Play only once.
+#
+# The release's "What's new" (en-GB, Play's 500 characters) is the GitHub release's URL, then as many of its bullets as
+# fit whole, then "..." for the rest (scripts/play-release-notes.sh).
+#
+# The commit sends the edit for review with Play's default (changesInReviewBehavior unset), which "send[s] all the
+# changes for publishing" - whether that includes store listing changes saved in Play Console isn't confirmed yet. Play Games Services' achievements and leaderboards are published from
+# Play Console, not here: the API has no call for it.
+#
+# Signs in with the PLAY_SERVICE_ACCOUNT_JSON secret: a Google Cloud service account's JSON key, the account invited
+# in Play Console (Users and permissions) with release rights to the app.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "GitHub release tag (android-vX.Y.Z); blank for the newest"
+        required: false
+        default: ""
+        type: string
+      track:
+        description: "Play track (alpha is closed testing, beta open testing)"
+        required: true
+        default: internal
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: play-release
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # For scripts/play-release-notes.sh: main's, whichever release is being uploaded.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check the Play credentials
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [[ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]]; then
+            echo "::error::The PLAY_SERVICE_ACCOUNT_JSON secret isn't set"
+            exit 1
+          fi
+
+      - name: Download the release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          tag="$(printf '%s' "$TAG" | tr -d '[:space:]')"
+          if [[ -z "$tag" ]]; then
+            tag="$(gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --exclude-pre-releases --limit 100 \
+              --json tagName --jq '[.[].tagName | select(startswith("android-v"))][0] // ""')"
+            if [[ -z "$tag" ]]; then
+              echo "::error::No android-v release found"
+              exit 1
+            fi
+          fi
+          if [[ ! "$tag" =~ ^android-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::'$tag' isn't an Android release tag (android-vX.Y.Z)"
+            exit 1
+          fi
+          version="${tag#android-v}"
+          dir="$RUNNER_TEMP/release"
+          mkdir -p "$dir"
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --dir "$dir" --pattern "DiceFive-$version*"
+          bundle="$dir/DiceFive-$version.aab"
+          mapping="$dir/DiceFive-$version-play-mapping.txt"
+          if [[ ! -f "$bundle" ]]; then
+            echo "::error::Release $tag has no DiceFive-$version.aab"
+            exit 1
+          fi
+          if [[ ! -f "$mapping" ]]; then
+            echo "::warning::Release $tag has no play mapping file: Play's crash reports will stay obfuscated"
+            mapping=""
+          fi
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json body --jq .body > "$RUNNER_TEMP/release-body.md"
+          url="$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url --jq .url)"
+          {
+            echo "tag=$tag"
+            echo "version=$version"
+            echo "bundle=$bundle"
+            echo "mapping=$mapping"
+            echo "url=$url"
+          } >> "$GITHUB_OUTPUT"
+          echo "Uploading $tag ($url)"
+
+      # The upload action reads whatsnew-<language> files from a directory.
+      - name: Write the release notes
+        id: notes
+        env:
+          URL: ${{ steps.release.outputs.url }}
+        run: |
+          dir="$RUNNER_TEMP/whatsnew"
+          mkdir -p "$dir"
+          ./scripts/play-release-notes.sh "$URL" < "$RUNNER_TEMP/release-body.md" > "$dir/whatsnew-en-GB"
+          cat "$dir/whatsnew-en-GB"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: net.zodac.dicefive
+          releaseFiles: ${{ steps.release.outputs.bundle }}
+          mappingFile: ${{ steps.release.outputs.mapping }}
+          releaseName: ${{ steps.release.outputs.version }}
+          track: ${{ inputs.track }}
+          status: completed
+          whatsNewDirectory: ${{ steps.notes.outputs.dir }}

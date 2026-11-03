@@ -616,7 +616,7 @@ Two apps from one source, one per way the app reaches players: product flavours 
 
 | | `play` | `github` |
 | --- | --- | --- |
-| Ships as | The App Bundle, uploaded to Google Play by hand | The APK on each GitHub release |
+| Ships as | The App Bundle, uploaded to Google Play on demand (`play-release.yml`) | The APK on each GitHub release |
 | `applicationId` | `net.zodac.dicefive` | `net.zodac.dicefive.github` |
 | Google Play Games | Yes (`PLAY_GAMES.md`): the SDK, its manifest entries, Sidekick | None: no SDK, no manifest entries, `NoGameServices` |
 | Progress files | None, signed in or not | Export and Import, in Settings |
@@ -680,6 +680,17 @@ Two apps from one source, one per way the app reaches players: product flavours 
     - then a commit that bumps the patch and empties `RELEASE_NOTES.md` (`[Release] Bump Android version to X
         [skip ci]`). A `VERSION` set by hand on `main` during the run is left as it is (`[Release] Clear the release notes
         after X [skip ci]`).
+- **To Google Play, on demand**, `.github/workflows/play-release.yml` (run by hand: a release tag, blank for the newest,
+    and a track) uploads a GitHub release's `.aab` and its play mapping to that track as a completed release. Nothing is
+    built.
+    - **What's new** (en-GB): the GitHub release's URL, then as many of its bullets as fit whole in Play's 500
+        characters, without their commit links, then "..." for the rest (`scripts/play-release-notes.sh`, tested by
+        `scripts/tests/play-release-notes-test.sh`).
+    - The commit sends the edit for review with Play's default, which "send[s] all the changes for publishing". Whether
+        that includes listing changes saved in Play Console isn't confirmed yet. Play Games achievements and boards are
+        published in Play Console: the API can't.
+    - Signs in with the `PLAY_SERVICE_ACCOUNT_JSON` secret, a service account invited in Play Console with release
+        rights. Play never takes a `versionCode` twice, so each release goes to Play once.
 - **Beside it, not part of it**, `readme-assets.yml` renders the README's feature graphic and screenshots from the
     same push and replaces the files on the `readme-assets` release (`STORE_ASSETS.md`, "The README's images").
 - **Release description.** `RELEASE_NOTES.md` (the maintainer's), then "## Changes since X" from
