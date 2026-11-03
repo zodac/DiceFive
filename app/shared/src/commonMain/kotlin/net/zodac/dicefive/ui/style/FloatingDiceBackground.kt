@@ -1,14 +1,15 @@
 package net.zodac.dicefive.ui.style
 
-import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import net.zodac.dicefive.ui.common.DriftState
 import net.zodac.dicefive.ui.common.ambientMotion
+import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.drawDiceWatermark
 import net.zodac.dicefive.ui.common.isShowing
 import net.zodac.dicefive.ui.game.REGULAR_BOARD_HEIGHT
@@ -42,10 +43,8 @@ object FloatingDiceBackground : TableBackground {
         // Still, where they are, below the High animation level - as the menu's own backdrop dice are. (This
         // is also how a Styles tile that isn't on screen is held still.)
         if (!ambientMotion) return
-        LaunchedEffect(Unit) {
-            // The infinite-animation frame, as the menu's backdrop uses, so a UI test doesn't wait for it to end.
-            while (true) withInfiniteAnimationFrameNanos { now -> drift.onFrame(now) }
-        }
+        val lifecycle = LocalLifecycleOwner.current.lifecycle
+        LaunchedEffect(lifecycle) { drift.run(sleep = lifecycle::delayWhileResumed) }
     }
 
     override fun DrawScope.drawScoreAreaDecoration() {

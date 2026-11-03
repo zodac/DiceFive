@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import net.zodac.dicefive.ui.style.drawPips
 
 /**
@@ -66,11 +67,8 @@ fun BrandBackdrop(
     val drift = if (driftingDice && showDice) shared ?: remember { DriftState() } else null
     // Still, where they are, below the High animation level - a watermark rather than a drift.
     if (drift != null && ambientMotion) {
-        LaunchedEffect(drift) {
-            // The infinite-animation frame, not a plain one: it never ends, and this is what tells a
-            // UI test not to wait for it to (a plain frame loop would keep the menu from ever idling).
-            while (true) withInfiniteAnimationFrameNanos { now -> drift.onFrame(now) }
-        }
+        val lifecycle = LocalLifecycleOwner.current.lifecycle
+        LaunchedEffect(drift, lifecycle) { drift.run(sleep = lifecycle::delayWhileResumed) }
     }
 
     Box(
@@ -115,6 +113,12 @@ internal class DriftState {
 
     private companion object {
         const val MIN_DRIFT_FRAME_NANOS = 30_000_000L
+
+        /**
+         * How long [run] sleeps after the dice move before asking for another frame: short enough to catch a 60Hz
+         * screen's refresh after next with time to spare, long enough that a faster screen's in between go unasked.
+         */
+        const val DRIFT_SLEEP_MILLIS = 25L
     }
 
     var dice = newDrift()
@@ -141,22 +145,41 @@ internal class DriftState {
     }
 
     /**
-     * Moves the dice on to the frame at [now]. Two backdrops can be on screen at once mid-transition,
-     * each running this every frame; only the first to reach a given frame moves them.
+     * Moves the dice on, frame by frame, until cancelled. After each move it sleeps until the next is nearly due rather
+     * than waking for every refresh it would only skip ([onFrame]): about 30 wake-ups a second, not 120 on a 120Hz
+     * screen. A frame then arriving too soon (a 144Hz screen's) is waited past without sleeping again.
+     *
+     * The infinite-animation frame, not a plain one: it never ends, and this is what tells a UI test not to wait for it
+     * to (a plain frame loop would keep the menu from ever idling). [sleep] is the screen's `delayWhileResumed`, as
+     * every wait is; [awaitFrame] is for tests.
      */
-    fun onFrame(now: Long) {
+    suspend fun run(
+        sleep: suspend (Long) -> Unit,
+        awaitFrame: suspend ((Long) -> Boolean) -> Boolean = { withInfiniteAnimationFrameNanos(it) },
+    ) {
+        while (true) {
+            if (awaitFrame(::onFrame)) sleep(DRIFT_SLEEP_MILLIS)
+        }
+    }
+
+    /**
+     * Moves the dice on to the frame at [now], returning whether they moved. Two backdrops can be on screen at once
+     * mid-transition, each running this every frame; only the first to reach a given frame moves them.
+     */
+    fun onFrame(now: Long): Boolean {
         val last = lastFrameNanos
-        if (last == now) return
+        if (last == now) return false
         // The drift is slow, so about 30 redraws a second look the same as 60 or 120 and cost half or less: a
         // frame arriving sooner than that is left for the next, and the dice then move on by the whole time
         // since the last one they did move on for, so their speed is unchanged.
-        if (last != null && now - last < MIN_DRIFT_FRAME_NANOS) return
+        if (last != null && now - last < MIN_DRIFT_FRAME_NANOS) return false
         // A stalled frame (or the app coming back from the background) moves them on by
         // no more than a tenth of a second, never jumping them across the screen.
         val seconds = last?.let { ((now - it) / 1e9f).coerceIn(0f, MAX_DRIFT_STEP_SECONDS) * timeScale } ?: 0f
         lastFrameNanos = now
         dice.advance(seconds, size.width, size.height)
         frame.longValue = now
+        return true
     }
 
     private fun newDrift() = DiceDrift(WATERMARK_DICE.map { it.toDrifting() })

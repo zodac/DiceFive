@@ -170,9 +170,9 @@ Profile).
     moves. Untried, and unmeasured on its own.
 - **Dice switching mode** rebuilds each die's nodes twice a roll. Drawing the pick-up with the resting composable and
     switching to `Moving` once off the mat would hide the first rebuild in the shake.
-- **Always-on animations' battery cost.** The menu drift is capped at ~30fps. Starry, steam, cauldron and the tile glow
-    run at the display rate at High. Measure on a real 120Hz phone (Macrobenchmark `PowerMetric`, or Android Studio's
-    Power Profiler) before capping.
+- **Always-on animations' battery cost.** The menu drift is capped at ~30fps and sleeps between its frames. Starry,
+    steam, cauldron, and the tile glow run at the display rate at High. Measure on a real 120Hz phone (Macrobenchmark
+    `PowerMetric`, or Android Studio's Power Profiler) before capping.
 - **Baseline Profile benchmarks on a phone.**
     - Measure the generated profile's before and after
         (`./gradlew :app:baselineprofile:connectedBenchmarkReleaseAndroidTest`).
