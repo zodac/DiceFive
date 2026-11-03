@@ -33,44 +33,52 @@ body='A summary paragraph, which is not a bullet.
 - [[602e819c]](https://github.com/zodac/DiceFive/commit/602e819c) Arrows glide'
 
 check "the link, then every bullet in order, without commit links, when all fit" "${url}
+
 • A maintainer bullet
 • Easter Eggs count
 • Well Rolled takes 50,000 dice
 • Arrows glide" "$("${script}" "${url}" <<< "${body}")"
 
-# The full text is 61 + 21 + 19 + 31 + 14 = 146 characters, and 4 newlines: 150.
+# The full text is 61 + 21 + 19 + 31 + 14 = 146 characters, and 5 newlines (the blank line included): 151.
 check "exactly at the limit, every bullet fits" "${url}
+
 • A maintainer bullet
 • Easter Eggs count
 • Well Rolled takes 50,000 dice
-• Arrows glide" "$(PLAY_NOTES_LIMIT=150 "${script}" "${url}" <<< "${body}")"
+• Arrows glide" "$(PLAY_NOTES_LIMIT=151 "${script}" "${url}" <<< "${body}")"
 
 # One short: the last bullet doesn't fit, so it becomes "..." - which still fits where it was.
 check "a last bullet that doesn't fit becomes ..." "${url}
+
 • A maintainer bullet
 • Easter Eggs count
 • Well Rolled takes 50,000 dice
-..." "$(PLAY_NOTES_LIMIT=149 "${script}" "${url}" <<< "${body}")"
+..." "$(PLAY_NOTES_LIMIT=150 "${script}" "${url}" <<< "${body}")"
 
-# 61 + 21 + 19 and 2 newlines = 103 for two bullets, and 4 more for the "..." line: a bullet is kept only with room for that after it.
+# 61 + 21 + 19 and 3 newlines = 104 for two bullets, and 4 more for the "..." line: a bullet is kept only with room for that after it.
 check "a bullet is dropped rather than leave no room for ..." "${url}
+
 • A maintainer bullet
 • Easter Eggs count
-..." "$(PLAY_NOTES_LIMIT=107 "${script}" "${url}" <<< "${body}")"
+..." "$(PLAY_NOTES_LIMIT=108 "${script}" "${url}" <<< "${body}")"
 check "one character short of that, the second bullet goes too" "${url}
+
 • A maintainer bullet
-..." "$(PLAY_NOTES_LIMIT=106 "${script}" "${url}" <<< "${body}")"
+..." "$(PLAY_NOTES_LIMIT=107 "${script}" "${url}" <<< "${body}")"
 
 check "a later shorter bullet isn't pulled forward past one that didn't fit" "${url}
+
 ..." "$(PLAY_NOTES_LIMIT=70 "${script}" "${url}" <<< "- A bullet far too long to fit in what is left
 - Short")"
 
 check "no bullets, just the link" "${url}" "$("${script}" "${url}" <<< "Only prose here.")"
 
 check "characters are counted, not bytes" "${url}
-• ééé" "$(PLAY_NOTES_LIMIT=67 "${script}" "${url}" <<< "- ééé")"
+
+• ééé" "$(PLAY_NOTES_LIMIT=68 "${script}" "${url}" <<< "- ééé")"
 
 check "CRLF line endings are read like LF" "${url}
+
 • One
 • Two" "$("${script}" "${url}" <<< $'- One\r\n- Two\r')"
 

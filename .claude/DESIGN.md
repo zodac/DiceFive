@@ -703,7 +703,7 @@ Two apps from one source, one per way the app reaches players: product flavours 
     built.
     - **`publish`** (boolean, default on) decides whether the update is sent for review. Off, it is only prepared: the
         upload lands in Play Console with `changesNotSentForReview`, to be sent from Publishing overview.
-    - **What's new** (en-GB): the GitHub release's URL, then as many of its bullets as fit whole in Play's 500
+    - **What's new** (en-GB): the GitHub release's URL, a blank line, then as many of its bullets as fit whole in Play's 500
         characters, without their commit links, then "..." for the rest (`scripts/play-release-notes.sh`, tested by
         `scripts/tests/play-release-notes-test.sh`).
     - The commit sends the edit for review with Play's default, which "send[s] all the changes for publishing". Whether

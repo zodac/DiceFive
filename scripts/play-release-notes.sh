@@ -2,13 +2,14 @@
 # Prints a Google Play release's "What's new" text from a GitHub release's description (on stdin):
 #
 #     https://github.com/zodac/DiceFive/releases/tag/android-v1.4.1
+#
 #     • Showing the unlocked/total count for the Easter Eggs category
 #     • Well Rolled takes 50,000 dice
 #     ...
 #
-# The first line is the GitHub release's URL, then every "- " bullet of the description, in order, without its
-# commit link ("[[1f5dd9f2]](https://...) "), as many whole bullets as fit in Play's limit (500 characters per
-# language). A bullet is never cut: the first that doesn't fit, and every bullet after it, become one "..." line,
+# The first line is the GitHub release's URL, then a blank line, then every "- " bullet of the description, in order,
+# without its commit link ("[[1f5dd9f2]](https://...) "), as many whole bullets as fit in Play's limit (500 characters
+# per language). A bullet is never cut: the first that doesn't fit, and every bullet after it, become one "..." line,
 # which is always left room for. Fails if the URL alone doesn't fit.
 #
 # Used by .github/workflows/play-release.yml. PLAY_NOTES_LIMIT overrides the limit (for tests).
@@ -46,14 +47,17 @@ done
 notes="${url}"
 count="${#bullets[@]}"
 for ((i = 0; i < count; i++)); do
-    candidate="${notes}"$'\n'"${bullets[i]}"
+    # A blank line separates the URL from the first bullet (or from the "..." line, when no bullet fits).
+    separator=$'\n'
+    (( i == 0 )) && separator=$'\n\n'
+    candidate="${notes}${separator}${bullets[i]}"
     # Room for the "..." line too, while bullets are left after this one.
     needed="${#candidate}"
     if (( i < count - 1 )); then
         needed=$((needed + 1 + ${#more}))
     fi
     if (( needed > limit )); then
-        notes+=$'\n'"${more}"
+        notes+="${separator}${more}"
         break
     fi
     notes="${candidate}"
