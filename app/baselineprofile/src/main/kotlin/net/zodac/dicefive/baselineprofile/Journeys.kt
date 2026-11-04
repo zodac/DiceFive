@@ -944,17 +944,31 @@ private fun MacrobenchmarkScope.hopToCategory(category: String) {
         val pinned = pinnedCategory()
         if (pinned == category) return
         val arrow = if (CATEGORIES.indexOf(pinned) < target) "Next category" else "Previous category"
-        tapUntil("$pinned's $arrow", { topmostDesc(arrow) }) { pinnedCategory() != pinned }
+        tapUntil("$pinned's $arrow", { topmostDesc(arrow) }) { readPinnedCategory().let { it != null && it != pinned } }
     }
     error("Baseline Profile journey: the Achievements arrows never reached $category (on screen: ${screenText()})")
 }
 
-/** The category whose header is pinned at the top of the Achievements list: the topmost header on screen. */
+/** The category whose header is pinned at the top of the Achievements list, waiting for a [readPinnedCategory] that finds one. */
 private fun MacrobenchmarkScope.pinnedCategory(): String {
-    await(CATEGORY_HEADER, "a category's header")
-    return device.findObjects(CATEGORY_HEADER).minByOrNull { it.visibleBounds.top }?.contentDescription?.substringBefore(", ")
-        ?: error("Baseline Profile journey: no category's header on the Achievements page")
+    val deadline = System.currentTimeMillis() + TIMEOUT_MS
+    while (System.currentTimeMillis() < deadline) {
+        try {
+            readPinnedCategory()?.let { return it }
+        } catch (_: StaleObjectException) {
+            // Re-composed while it was read - read it again.
+        }
+        Thread.sleep(POLL_MS)
+    }
+    error("Baseline Profile journey: no category's header on the Achievements page (on screen: ${screenText()})")
 }
+
+/**
+ * The topmost header on screen, or null if a look finds none. A list being re-composed can show none for a moment, with
+ * the header back on the next look, so a null says only "not yet".
+ */
+private fun MacrobenchmarkScope.readPinnedCategory(): String? =
+    device.findObjects(CATEGORY_HEADER).minByOrNull { it.visibleBounds.top }?.contentDescription?.substringBefore(", ")
 
 /** The topmost match for the description [description]: on the Achievements page, the pinned header's arrow. */
 private fun MacrobenchmarkScope.topmostDesc(description: String): UiObject2 {

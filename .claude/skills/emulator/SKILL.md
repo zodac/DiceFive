@@ -40,11 +40,17 @@ emulator.sh screenshot <scratchpad>/screen.png
 
 ```sh
 emulator.sh start
+adb shell settings put system font_scale 1.0   # the emulator's settings outlast a session; CI's is 1.0
 adb uninstall net.zodac.dicefive 2>/dev/null   # a debug build's higher versionCode makes the benchmark install a no-op
 ./gradlew :app:android:generatePlayReleaseBaselineProfile -Pandroid.testInstrumentationRunnerArguments.journeyLaps=1
 emulator.sh stop
 ```
 
+- A font scale left at 200% fails the journey for no fault of its own: the mode picker overflows, and `chooseMode` never
+    sees `Standard`. Compare the failure's screen with CI's before fixing anything.
+- Just after a boot on starved cores, the uninstall can fail with `DELETE_FAILED_INTERNAL_ERROR`, which the `2>/dev/null`
+    above doesn't hide: try it again, or the first lap won't start like a fresh install.
+- Two busy loops on two cores (below) can take a 3-lap run past 55 minutes. Start with fewer laps.
 - `journeyLaps=1` takes ~5 min. `journeyLaps=10` (CI's soak of a changed journey) takes ~45 min. The default is up to
     15 laps (~70 min). One lap doesn't prove a full run, because timing races can take several laps to show.
 - After the uninstall, the first lap starts like CI's fresh install: modes are locked, so it first plays a solo game to
