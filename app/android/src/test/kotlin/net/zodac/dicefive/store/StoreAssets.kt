@@ -30,10 +30,9 @@ import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
+import net.zodac.dicefive.model.ModePage
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerType
-import net.zodac.dicefive.ui.scores.LeaderboardChoice
-import net.zodac.dicefive.ui.statistics.StatisticsPage
 import org.junit.Assume.assumeTrue
 import org.junit.rules.TestRule
 import org.junit.runners.model.Statement
@@ -205,11 +204,11 @@ internal object StoreState {
     /** The pages the Leaderboard and Statistics open on in the listing: Standard's board, and Statistics' Combined page. */
     fun showPages(container: AppContainer) = runBlocking {
         val settings = container.settingsRepository
-        settings.setLeaderboardChoice(LeaderboardChoice.STANDARD.stored)
-        settings.setStatisticsChoice(StatisticsPage.Combined.stored)
+        settings.setLeaderboardChoice(ModePage.STANDARD.stored)
+        settings.setStatisticsChoice(ModePage.Combined.stored)
         withTimeout(10_000) {
-            container.leaderboardChoice.first { it == LeaderboardChoice.STANDARD }
-            container.statisticsChoice.first { it == StatisticsPage.Combined }
+            container.leaderboardChoice.first { it == ModePage.STANDARD }
+            container.statisticsChoice.first { it == ModePage.Combined }
         }
     }
 

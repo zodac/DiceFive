@@ -18,7 +18,7 @@ import kotlinx.coroutines.IO
  */
 @Database(
     entities = [ScoreEntry::class, DismissedPlayerStats::class],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @ConstructedBy(AppDatabaseConstructor::class)

@@ -165,4 +165,29 @@ class ScoreDatabaseMigrationTest {
             SQLiteDatabase.deleteDatabase(file)
         }
     }
+
+    @Test
+    fun `version 4 opens as version 5 - every score kept - and the win streaks still read`() = runTest {
+        createAt(4) {
+            for ((at, won) in listOf(1_000L to 1, 2_000L to 1, 3_000L to 0, 4_000L to 1)) {
+                execSQL(
+                    "INSERT INTO scores (uuid, playerName, score, timestampEpochMillis, won, isPrimaryPlayer, fiveOfAKindCount, zeroedCategoryCount, " +
+                        "upperSectionTotal, chanceScore, threeOfAKindScore, fourOfAKindScore, gameModeId, playedUnmodified, playerKey, onLeaderboard) " +
+                        "VALUES (?, 'Sam', 150, ?, ?, 1, 0, 0, 0, 0, 0, 0, ?, 1, 'sam', 1)",
+                    arrayOf<Any>(Uuid.random().toByteArray(), at, won, GameMode.STANDARD.id),
+                )
+            }
+        }
+        val database = Room.databaseBuilder<AppDatabase>(context, file.absolutePath).buildAppDatabase()
+        try {
+            val dao = database.scoreDao()
+            assertEquals(4, dao.allScores().size)
+            val sam = dao.playerRecords().single()
+            assertEquals(WinStreaks(current = 1, best = 2), sam.streaks)
+            assertEquals(mapOf(GameMode.STANDARD.id to WinStreaks(current = 1, best = 2)), sam.modeStreaks)
+        } finally {
+            database.close()
+            SQLiteDatabase.deleteDatabase(file)
+        }
+    }
 }

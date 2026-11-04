@@ -14,45 +14,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.AppContainer
+import net.zodac.dicefive.data.orNullOnFailure
 import net.zodac.dicefive.data.scores.LeaderboardSource
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
-import net.zodac.dicefive.model.GameMode
-
-/** The game modes that have a board of their own on the Leaderboard - every one. */
-val LEADERBOARD_MODES: List<GameMode> = GameMode.entries.toList()
-
-/**
- * A board the Leaderboard can show, picked from the drop-down at the top of its screen: one [Mode]'s own, or [Combined],
- * every mode's games in one ranked table. Every board is shown the same way (`LeaderboardTable`), so a board added here
- * needs only a source for its pages.
- */
-sealed interface LeaderboardChoice {
-    /** What the choice is stored as (the `leaderboard_choice` preference): the mode's id, or `combined`. */
-    val stored: String
-
-    data class Mode(val mode: GameMode) : LeaderboardChoice {
-        override val stored: String get() = mode.id
-    }
-
-    data object Combined : LeaderboardChoice {
-        override val stored = "combined"
-    }
-
-    companion object {
-        /** Standard's board: where the Leaderboard opens until another is picked. */
-        val STANDARD: LeaderboardChoice = Mode(GameMode.STANDARD)
-
-        /** Every board, in the drop-down's order: a board for each mode, then Combined. */
-        val all: List<LeaderboardChoice> = LEADERBOARD_MODES.map(::Mode) + Combined
-
-        /** The board [stored] names; Standard's where nothing was picked yet or the mode is no longer known. */
-        fun parse(stored: String?): LeaderboardChoice = when (stored) {
-            Combined.stored -> Combined
-            else -> stored?.let(GameMode::fromId)?.let(::Mode) ?: STANDARD
-        }
-    }
-}
+import net.zodac.dicefive.model.ModePage
 
 /** How many pages [totalCount] rows make up - at least one, so an empty board still has a "page 1". */
 private fun pageCount(totalCount: Int): Int = ((totalCount - 1) / SCORES_PAGE_SIZE + 1).coerceAtLeast(1)
@@ -70,9 +36,9 @@ data class LeaderboardPage(
 
 data class ScoresUiState(
     /** The board on view - the one picked, once its first page has been read. */
-    val choice: LeaderboardChoice = LeaderboardChoice.STANDARD,
+    val choice: ModePage = ModePage.STANDARD,
     /** Every board read so far, by choice. A board is read the first time it is picked, and kept. */
-    val boards: Map<LeaderboardChoice, LeaderboardPage> = emptyMap(),
+    val boards: Map<ModePage, LeaderboardPage> = emptyMap(),
     /** Whether the board on view has been read yet - until then an empty board means "not known
      * yet", not "no scores", and the screen shows neither the table nor its empty message. */
     val isLoaded: Boolean = false,
@@ -87,8 +53,8 @@ data class ScoresUiState(
  */
 class ScoresViewModel(
     private val source: LeaderboardSource,
-    savedChoice: StateFlow<LeaderboardChoice?> = MutableStateFlow(LeaderboardChoice.STANDARD),
-    private val saveChoice: suspend (LeaderboardChoice) -> Unit = {},
+    savedChoice: StateFlow<ModePage?> = MutableStateFlow(ModePage.STANDARD),
+    private val saveChoice: suspend (ModePage) -> Unit = {},
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ScoresUiState())
@@ -98,25 +64,39 @@ class ScoresViewModel(
      * Each board's page load under way. A new page's load cancels the one before, so a slow earlier page can't land over a
      * later one.
      */
-    private val loads = HashMap<LeaderboardChoice, Job>()
+    private val loads = HashMap<ModePage, Job>()
 
     /** The pick under way: a board not read yet is read before the screen moves to it. */
     private var selecting: Job? = null
 
     init {
-        selecting = viewModelScope.launch { open(savedChoice.filterNotNull().first(), persist = false) }
+        selecting = viewModelScope.launch { open(savedChoice.filterNotNull().first()) }
     }
 
-    /** Moves to [choice]'s board, so the board on view stays up until the new one is read and then gives way in one frame. */
-    fun selectChoice(choice: LeaderboardChoice) {
+    /**
+     * Moves to [choice]'s board, so the board on view stays up until the new one is read and then gives way in one frame.
+     * The pick is kept apart from that, so the screen doesn't wait on the write.
+     */
+    fun selectChoice(choice: ModePage) {
+        viewModelScope.launch { saveChoice(choice) }
         selecting?.cancel()
-        selecting = viewModelScope.launch { open(choice, persist = true) }
+        selecting = viewModelScope.launch { open(choice) }
     }
 
-    private suspend fun open(choice: LeaderboardChoice, persist: Boolean) {
-        if (persist) saveChoice(choice)
-        val board = _uiState.value.boards[choice] ?: read(choice, 0)
-        _uiState.update { it.copy(choice = choice, boards = if (choice in it.boards) it.boards else it.boards + (choice to board), isLoaded = true) }
+    /**
+     * Shows [choice]'s board. One that can't be read leaves the board on view as it is, or, with none on view yet, opens
+     * empty, so the screen isn't left waiting, rather than taking the app down.
+     */
+    private suspend fun open(choice: ModePage) {
+        val board = _uiState.value.boards[choice] ?: orNullOnFailure { read(choice, 0) }
+        _uiState.update { state ->
+            when {
+                choice in state.boards -> state.copy(choice = choice, isLoaded = true)
+                board != null -> state.copy(choice = choice, boards = state.boards + (choice to board), isLoaded = true)
+                state.isLoaded -> state
+                else -> state.copy(choice = choice, boards = state.boards + (choice to LeaderboardPage()), isLoaded = true)
+            }
+        }
     }
 
     fun nextPage() {
@@ -131,17 +111,18 @@ class ScoresViewModel(
         if (board.hasPreviousPage) loadPage(state.choice, board.pageIndex - 1)
     }
 
-    private fun loadPage(choice: LeaderboardChoice, pageIndex: Int) {
+    private fun loadPage(choice: ModePage, pageIndex: Int) {
         loads[choice]?.cancel()
         loads[choice] = viewModelScope.launch {
-            val board = read(choice, pageIndex)
+            // One that can't be read stays on the page on view.
+            val board = orNullOnFailure { read(choice, pageIndex) } ?: return@launch
             _uiState.update { it.copy(boards = it.boards + (choice to board)) }
         }
     }
 
-    private suspend fun read(choice: LeaderboardChoice, pageIndex: Int): LeaderboardPage = when (choice) {
-        is LeaderboardChoice.Mode -> LeaderboardPage(source.pageForMode(choice.mode, pageIndex), pageIndex, source.totalCountForMode(choice.mode))
-        LeaderboardChoice.Combined -> LeaderboardPage(source.page(pageIndex), pageIndex, source.totalCount())
+    private suspend fun read(choice: ModePage, pageIndex: Int): LeaderboardPage = when (choice) {
+        is ModePage.Mode -> LeaderboardPage(source.pageForMode(choice.mode, pageIndex), pageIndex, source.totalCountForMode(choice.mode))
+        ModePage.Combined -> LeaderboardPage(source.page(pageIndex), pageIndex, source.totalCount())
     }
 
     companion object {

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -36,22 +35,23 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.data.scores.LeaderboardSource
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.model.ModePage
 import net.zodac.dicefive.online.GameServices
 import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.resources.Res
-import net.zodac.dicefive.resources.common_combined
 import net.zodac.dicefive.resources.scores_board_empty
 import net.zodac.dicefive.resources.scores_board_label
 import net.zodac.dicefive.resources.scores_global
 import net.zodac.dicefive.resources.scores_global_cd
 import net.zodac.dicefive.resources.scores_title
-import net.zodac.dicefive.ui.common.DropdownChoiceField
 import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LocalLandscapePage
+import net.zodac.dicefive.ui.common.ModePagePicker
 import net.zodac.dicefive.ui.common.OffscreenWarmUp
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.modePageName
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.icons.Symbols
 
@@ -63,9 +63,6 @@ private val GLOBAL_ICON_GAP = 6.dp
 
 /** A labelled Global button's width besides its label: the icon, the gap, and a text button's 12dp either side. */
 private val GLOBAL_BUTTON_CHROME_WIDTH = GLOBAL_ICON_SIZE + GLOBAL_ICON_GAP + 24.dp
-
-/** Widest the table, and the row over it, are in landscape. */
-private val LANDSCAPE_ROW_WIDTH = 640.dp
 
 /**
  * The Leaderboard: a drop-down at the top picks a game mode's board (Standard's to start) or Combined, and the board's table is under
@@ -89,22 +86,18 @@ fun ScoresScreen(
         val landscape = LocalLandscapePage.current
         val choice = state.choice
         val picker = @Composable { pickerModifier: Modifier ->
-            DropdownChoiceField(
-                options = LeaderboardChoice.all,
+            ModePagePicker(
                 selected = choice,
                 onSelect = viewModel::selectChoice,
                 label = stringResource(Res.string.scores_board_label),
-                optionText = { boardName(it) },
                 modifier = pickerModifier,
-                dividerAfterFirst = true,
-                dividerBeforeLast = true,
             )
         }
         if (landscape) {
             // In landscape the drop-down shares a row with the page controls, so the table has the height under them.
             // The table, as one, keeps to a readable width.
             Row(
-                modifier = Modifier.widthIn(max = LANDSCAPE_ROW_WIDTH).fillMaxWidth(),
+                modifier = Modifier.widthIn(max = LANDSCAPE_TABLE_WIDTH).fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -119,7 +112,7 @@ fun ScoresScreen(
         val services = LocalGameServices.current
         // A mode's board opens that mode's board on the service while signed in to one.
         val online = services.state.collectAsStateWithLifecycle().value is GameServicesState.SignedIn && services.canShowLeaderboardUi
-        val boardName = boardName(choice)
+        val boardName = modePageName(choice)
         // Each board its own list, so a new one starts at its top: a list kept across boards holds its place by row, and
         // would scroll a board to wherever the last one's top row is (Standard's best is far down Combined).
         key(choice) {
@@ -127,14 +120,14 @@ fun ScoresScreen(
                 board = board,
                 emptyText = stringResource(Res.string.scores_board_empty, boardName),
                 // Rows of every mode share Combined's table: each name in its mode's colour, and its mode in the long press.
-                combined = choice == LeaderboardChoice.Combined,
+                combined = choice == ModePage.Combined,
                 onPrevious = viewModel::previousPage,
                 onNext = viewModel::nextPage,
                 landscape = landscape,
                 header = {
                     BoardTitle(
                         title = boardName,
-                        mode = (choice as? LeaderboardChoice.Mode)?.mode,
+                        mode = (choice as? ModePage.Mode)?.mode,
                         services = services.takeIf { online },
                     )
                 },
@@ -143,20 +136,23 @@ fun ScoresScreen(
     }
 }
 
-/** A board's name as the drop-down and its title say it. */
-@Composable
-private fun boardName(choice: LeaderboardChoice): String = when (choice) {
-    is LeaderboardChoice.Mode -> stringResource(choice.mode.displayName)
-    LeaderboardChoice.Combined -> stringResource(Res.string.common_combined)
-}
-
 /**
  * A board's title, a heading, with - for a [mode]'s board while signed in to a service ([services]) - its Global button.
- * The button's label goes before the title does: where both won't fit on the line, it's the icon alone.
+ * The button's label goes before the title does: where both won't fit on the line, it's the icon alone. With no button
+ * there is nothing to measure.
  */
 @Composable
 private fun BoardTitle(title: String, mode: GameMode?, services: GameServices?) {
     val titleStyle = MaterialTheme.typography.titleMedium.copy(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold)
+    val titleText = @Composable { titleModifier: Modifier ->
+        Text(
+            text = title,
+            style = titleStyle,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = titleModifier.padding(horizontal = TITLE_HORIZONTAL_PADDING, vertical = 4.dp).semantics { heading() },
+        )
+    }
+    if (mode == null || services == null) return titleText(Modifier.fillMaxWidth())
     BoxWithConstraints {
         val measurer = rememberTextMeasurer()
         val label = stringResource(Res.string.scores_global)
@@ -167,13 +163,8 @@ private fun BoardTitle(title: String, mode: GameMode?, services: GameServices?) 
             titleWidth + buttonWidth <= maxWidth
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = title,
-                style = titleStyle,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.weight(1f).padding(horizontal = TITLE_HORIZONTAL_PADDING, vertical = 4.dp).semantics { heading() },
-            )
-            if (mode != null && services != null) GlobalLeaderboardButton(mode, services, label.takeIf { fitsLabel })
+            titleText(Modifier.weight(1f))
+            GlobalLeaderboardButton(mode, services, label.takeIf { fitsLabel })
         }
     }
 }
@@ -225,12 +216,12 @@ private const val SCORES_WARM_UP_DELAY_MILLIS = 2000L
 private const val SCORES_WARM_UP_FRAMES = 8
 
 /** The boards the warm-up draws: Standard's, which the page opens on, then Combined, whose rows are each coloured by mode. */
-private val WARM_UP_CHOICES = listOf(LeaderboardChoice.Mode(GameMode.STANDARD), LeaderboardChoice.Combined)
+private val WARM_UP_CHOICES = listOf(ModePage.Mode(GameMode.STANDARD), ModePage.Combined)
 
 /**
  * Draws the Leaderboard - Standard's board, then Combined - once, out of sight, so opening it isn't
  * the first time its code runs. That's most of the lag on a first open: a few rows take no time, but loading
- * and running the page's first-time code (the switch, the table, the lists, their scrollbars) lands on the
+ * and running the page's first-time code (the drop-down, the table, the lists, their scrollbars) lands on the
  * frame the page opens on. Placed on the menu under its opaque backdrop, in a 1dp clipped box, once the menu
  * has settled - the same idea as the Styles page's warm-up. It reads nothing from the database: the page is
  * drawn from a made-up board, through a view model that reads a fixed board instead.
@@ -241,7 +232,7 @@ fun ScoresWarmUp(width: Dp, modifier: Modifier = Modifier) {
     val viewModel = remember { ScoresViewModel(WarmUpBoard) }
     // As big as the page would be, so it lays out as it would there.
     val height = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
-    OffscreenWarmUp<LeaderboardChoice>(
+    OffscreenWarmUp<ModePage>(
         key = Unit,
         delayMillis = SCORES_WARM_UP_DELAY_MILLIS,
         pageSize = DpSize(width, height),

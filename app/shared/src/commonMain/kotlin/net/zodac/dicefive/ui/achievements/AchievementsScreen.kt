@@ -143,6 +143,7 @@ import net.zodac.dicefive.ui.common.FittedCountText
 import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.LocalLandscapePage
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.VerticalScrollbar
@@ -356,6 +357,8 @@ fun AchievementsScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val superuserModeActive by viewModel.superuserModeActive.collectAsStateWithLifecycle()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    // The list's own scrolls jump rather than glide: Compose's animations only follow the system's setting, not the app's Off.
+    val reduceMotion = LocalReduceMotion.current
 
     val platform = LocalPlatformServices.current
     LaunchedEffect(viewModel) {
@@ -449,7 +452,7 @@ fun AchievementsScreen(
                 // top instead of centred.
                 snapshotFlow { listState.layoutInfo.viewportSize.height }.first { it > 0 }
                 val centeredOffset = listState.centeredScrollOffset(estimatedRowHeightPx)
-                if (request.animate) {
+                if (request.animate && !reduceMotion) {
                     listState.animateScrollToItem(flatIndex, centeredOffset)
                 } else {
                     listState.scrollToItem(flatIndex, centeredOffset)
@@ -618,10 +621,10 @@ fun AchievementsScreen(
                                 // The full category, not the "locked only" filtered rows.
                                 counts = fullGroups.first { it.category == group.category }.items.let { all -> all.count { it.unlockedAt != null } to all.size },
                                 onPrevious = headerIndices.getOrNull(groupIndex - 1)?.let { target ->
-                                    { scope.launch { listState.smoothScrollToItem(target) } }
+                                    { scope.launch { if (reduceMotion) listState.scrollToItem(target) else listState.smoothScrollToItem(target) } }
                                 },
                                 onNext = headerIndices.getOrNull(groupIndex + 1)?.let { target ->
-                                    { scope.launch { listState.smoothScrollToItem(target) } }
+                                    { scope.launch { if (reduceMotion) listState.scrollToItem(target) else listState.smoothScrollToItem(target) } }
                                 },
                             )
                         }

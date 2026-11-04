@@ -27,12 +27,12 @@ import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.model.ModePage
 import net.zodac.dicefive.online.GameServices
 import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.online.NoGameServices
 import net.zodac.dicefive.online.OnlineAccount
-import net.zodac.dicefive.ui.scores.LeaderboardChoice
 import net.zodac.dicefive.ui.scores.ScoresScreen
 import net.zodac.dicefive.ui.scores.ScoresViewModel
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
@@ -59,8 +59,8 @@ class ScoresScreenTest : UiTest() {
     private fun show(
         rows: List<ScoreEntry>,
         services: GameServices = NoGameServices,
-        saved: StateFlow<LeaderboardChoice?> = MutableStateFlow(LeaderboardChoice.STANDARD),
-        onPick: (LeaderboardChoice) -> Unit = {},
+        saved: StateFlow<ModePage?> = MutableStateFlow(ModePage.STANDARD),
+        onPick: (ModePage) -> Unit = {},
     ) {
         val viewModel = ScoresViewModel(ScoreRepository(InMemoryScoreDao(rows)), saved) { onPick(it) }
         showcase.show {
@@ -126,11 +126,11 @@ class ScoresScreenTest : UiTest() {
 
     @Test
     fun pickingAModeShowsOnlyItsBoardUnderItsTitleAndARowThereSpeaksItsDateAlone() = uiTest {
-        val picked = mutableListOf<LeaderboardChoice>()
+        val picked = mutableListOf<ModePage>()
         show(someRows + rowOf(4, 90, GameMode.QUICKFIRE), onPick = { picked += it })
         compose.pick("Tricolour")
         field("Tricolour").assertExists()
-        assertEquals(listOf<LeaderboardChoice>(LeaderboardChoice.Mode(GameMode.TRICOLOUR)), picked)
+        assertEquals(listOf<ModePage>(ModePage.Mode(GameMode.TRICOLOUR)), picked)
         // Its board's title is a heading; the other modes' players aren't on it.
         compose.onNode(hasText("Tricolour") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)).assertExists()
         compose.onNodeWithText("Player2").assertExists()
@@ -149,7 +149,7 @@ class ScoresScreenTest : UiTest() {
 
     @Test
     fun combinedRanksEveryModesGamesAndARowThereSpeaksItsDateAndMode() = uiTest {
-        show(someRows + rowOf(4, 900, GameMode.STUD), saved = MutableStateFlow(LeaderboardChoice.Combined))
+        show(someRows + rowOf(4, 900, GameMode.STUD), saved = MutableStateFlow(ModePage.Combined))
         field("Combined").assertExists()
         // Every mode's rows, Stud's 900 first.
         listOf("Player1", "Player2", "Player3", "Player4").forEach { compose.onNodeWithText(it).assertExists() }
@@ -172,7 +172,7 @@ class ScoresScreenTest : UiTest() {
 
     @Test
     fun theBoardSavedIsTheOneItOpensOnOnceItHasLoaded() = uiTest {
-        show(someRows, saved = MutableStateFlow(LeaderboardChoice.Mode(GameMode.TRICOLOUR)))
+        show(someRows, saved = MutableStateFlow(ModePage.Mode(GameMode.TRICOLOUR)))
         field("Tricolour").assertExists()
         compose.onNodeWithText("Player2").assertExists()
         compose.onAllNodesWithText("Player1").assertCountEquals(0)
@@ -180,7 +180,7 @@ class ScoresScreenTest : UiTest() {
 
     @Test
     fun aBoardPagesWithItsControlsUnderTheCard() = uiTest {
-        show((1..SCORES_PAGE_SIZE + 5).map { rowOf(it.toLong(), it, GameMode.STANDARD) }, saved = MutableStateFlow(LeaderboardChoice.Mode(GameMode.STANDARD)))
+        show((1..SCORES_PAGE_SIZE + 5).map { rowOf(it.toLong(), it, GameMode.STANDARD) }, saved = MutableStateFlow(ModePage.Mode(GameMode.STANDARD)))
         compose.onNodeWithText("Page 1 of 2").assertExists()
         compose.onNodeWithText("Next").performClick()
         compose.waitForIdle()
@@ -189,7 +189,7 @@ class ScoresScreenTest : UiTest() {
 
     @Test
     fun signedInAModesBoardOpensItsGlobalLeaderboardWithoutMovingAnythingOnIt() = uiTest {
-        val standard = MutableStateFlow<LeaderboardChoice?>(LeaderboardChoice.Mode(GameMode.STANDARD))
+        val standard = MutableStateFlow<ModePage?>(ModePage.Mode(GameMode.STANDARD))
         // Signed out (or with no service): no button, and where the table's headings sit.
         show(someRows, saved = standard)
         compose.onAllNodes(hasContentDescription("Global leaderboard", substring = true)).assertCountEquals(0)

@@ -33,6 +33,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.rules.RulesScreen
 import net.zodac.dicefive.ui.rules.resetRulesPageMemory
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
@@ -52,11 +53,27 @@ class RulesScreenAccessibilityTest : UiTest() {
     private val showcase = Showcase { compose }
 
     /** A fresh Rules screen - each call starts again on the first page of the first group. */
-    private fun showRules() = showcase.show {
+    private fun showRules(reduceMotion: Boolean = false) = showcase.show {
         resetRulesPageMemory()
-        CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {
+        CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices, LocalReduceMotion provides reduceMotion) {
             DiceFiveTheme { RulesScreen(onBack = {}) }
         }
+    }
+
+    @Test
+    fun underReducedMotionATabChevronMovesTheRowAtOnce() = uiTest {
+        showRules(reduceMotion = true)
+        compose.waitForIdle()
+        openGroup("Modifiers")
+        fun overviewLeft() = compose.onNodeWithText("Overview").fetchSemanticsNode().boundsInRoot.left
+        val start = overviewLeft()
+        compose.mainClock.autoAdvance = false
+        compose.onNode(hasAnyChild(isTab and hasText("Overview"))).performTouchInput { click(centerRight - Offset(24.dp.toPx(), 0f)) }
+        compose.mainClock.advanceTimeBy(48)
+        val moved = overviewLeft()
+        compose.mainClock.advanceTimeBy(2000)
+        assertTrue(moved < start, "the row stayed where it was")
+        assertEquals(overviewLeft(), moved, "the row was still moving after the tap's frames")
     }
 
     /** Each tab row (the tab's nearest collection - not the pager below them, which is one of its own) and its tabs, in order. */

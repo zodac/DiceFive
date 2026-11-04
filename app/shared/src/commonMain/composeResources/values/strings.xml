@@ -1302,7 +1302,7 @@
     <string name="stats_page_empty">No stats in %1$s yet</string>
     <string name="stats_delete_title">Delete stats?</string>
     <!-- %1$s is the player's name. -->
-    <string name="stats_delete_message">Would you like to delete %1$s's stats? Their leaderboard scores will not be affected.</string>
+    <string name="stats_delete_message">Would you like to delete %1$s's stats in every game mode? Their leaderboard scores will not be affected.</string>
     <string name="stats_delete_confirm">Delete</string>
     <!-- TalkBack's name for a long press on a player's card. -->
     <string name="stats_delete_action">Delete %1$s's stats</string>

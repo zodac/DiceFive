@@ -1004,7 +1004,7 @@
     <string name="stats_page_label">Estadísticas</string>
     <string name="stats_page_empty">Aún no hay estadísticas en %1$s</string>
     <string name="stats_delete_title">¿Borrar estadísticas?</string>
-    <string name="stats_delete_message">¿Quieres borrar las estadísticas de %1$s? Sus puntuaciones de la clasificación no se verán afectadas.</string>
+    <string name="stats_delete_message">¿Quieres borrar las estadísticas de %1$s en todos los modos de juego? Sus puntuaciones de la clasificación no se verán afectadas.</string>
     <string name="stats_delete_confirm">Borrar</string>
     <string name="stats_delete_action">Borrar las estadísticas de %1$s</string>
     <string name="stats_show_action">Mostrar detalles</string>

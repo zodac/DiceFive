@@ -3,7 +3,7 @@
 // CommonCodeIsPlatformNeutralTest keeps Android and JDK APIs out of commonMain, so another target can be added back.
 // See .claude/MULTIPLATFORM.md.
 plugins {
-    // The Android and JVM targets, SDK levels, Java version, and the strict compiler and lint rules: build-logic's
+    // The Android target, SDK levels, Java version, and the strict compiler and lint rules: build-logic's
     // KotlinMultiplatformConventionPlugin. (AGP 9 won't combine Kotlin Multiplatform with com.android.application,
     // which is why the APK is built by the separate :app:android module.)
     id("dicefive.kotlin.multiplatform")
@@ -94,7 +94,7 @@ room {
 }
 
 dependencies {
-    // Room's compiler runs once per target, generating each one's AppDatabaseConstructor.
+    // Room's compiler, generating the target's AppDatabaseConstructor.
     add("kspAndroid", libs.androidx.room.compiler)
 }
 

@@ -222,7 +222,7 @@ Everything is in app-private storage. **Every stored id is permanent once releas
 will map to Play Games.
 
 - **Scores.**
-    - Room, `dicefive.db`, `AppDatabase` version 2, with each version's schema exported to `app/shared/schemas/`.
+    - Room, `dicefive.db`, `AppDatabase`, with each version's schema exported to `app/shared/schemas/`.
     - Tables:
         - `scores` (`ScoreEntry`): name, score, time, `won` (null for a solo game), `isPrimaryPlayer`, the tie-break stats,
             `gameModeId`, `playedUnmodified`, `onLeaderboard`, `playerKey` and a random `uuid`. Every column but `won` is NOT
@@ -263,7 +263,7 @@ will map to Play Games.
     `ResilientDataStore`: a write that fails (a full disk) is skipped and a read that fails is empty, never thrown into
     the coroutine that asked. A failed read is retried three times, after 1s, 3s and 5s, and a retry that reads the file
     gives it to the collector; after the third, it stops.
-    - `settings`. Every key but the Animations level and the Styles page fit is synced
+    - `settings`. Every key but the Animations level, the Orientation, the Styles page fit, and the two list filters is synced
         (`SettingsRepository.SYNCED_KEYS`) and stamped `synced_at:<key>` when it changes.
     - `achievements`: unlock times and counters, plus the cloud save's counter shares (this file's own share id and the
         others' counts) and the streak's stamp. "Reset achievements" clears only this file.
@@ -302,7 +302,8 @@ can't is a page saying so, with the stack trace to report. The app never just cl
     - a saved, cloud or progress-file game that can't be read or played (`GameStateJson.checkPlayable`) is "nothing to
         continue";
     - a failed cloud sync costs that sync (`DiceFiveApp`), and a progress file that won't open is reported on its card;
-    - Hard's perfect-play table that can't be read leaves Hard estimating (`AppContainer`).
+    - Hard's perfect-play table that can't be read leaves Hard estimating (`AppContainer`);
+    - Leaderboard or Statistics data that can't be read leaves what's on view, or opens empty with nothing on view yet.
 - **The scores database won't open** (a migration missing or failing): `AppContainer` opens it as it's built and keeps
     the stack trace in `databaseFailure`. `DiceFiveApp` then shows `DatabaseFailurePage` in place of every page: what
     happened, that nothing was deleted, to update, and the trace. The process stays up.
@@ -360,7 +361,7 @@ can't is a page saying so, with the stack trace to report. The app never just cl
 Both pages pick what they show from a drop-down at the top: a page for each game mode, Standard's first and the one
 they open on, then **Combined**, every mode's games together, last (a divider after Standard and before Combined).
 
-- **Leaderboard** (`ScoresScreen`). The drop-down (`LeaderboardChoice`) picks a board. The pick is the
+- **Leaderboard** (`ScoresScreen`). The drop-down (`ModePage`) picks a board. The pick is the
     `leaderboard_choice` preference (the mode's id, or `combined`), restored on every open and carried in the cloud save
     and the GitHub app's export; a mode no longer known opens Standard's. Details are in `UI_SCREENS.md`.
     - **Every board is the same `LeaderboardTable`**: score-descending, 50 a page, 1st-3rd in gold/silver/bronze, "="
@@ -371,7 +372,7 @@ they open on, then **Combined**, every mode's games together, last (a divider af
     - Rows show rank, name, 5x count and score. A long press shows the date, and on Combined the mode; that is also the
         row's spoken state.
 - **Statistics** (`StatisticsScreen`). One card per distinct human *name*; a rename starts a new player.
-    - **Pages** (`StatisticsPage`). The drop-down picks one; the pick is the `statistics_choice` preference (as the
+    - **Pages** (`ModePage`). The drop-down picks one; the pick is the `statistics_choice` preference (as the
         Leaderboard's). A mode's page has that mode's games alone: its own numbers, win streaks, best score and first game
         (`PlayerStatistics.forMode`), and a player with no game in it has no card there. Combined has every mode's games
         together, and every player.
@@ -406,7 +407,7 @@ they open on, then **Combined**, every mode's games together, last (a divider af
     - Every recorded game with no modifier on counts (`playedUnmodified`, in both Statistics indices). A solo game's
         outcome is null: it isn't a win or a loss, and it doesn't break a streak.
     - Each card has a delete button (top end, open or closed) that dismisses it after a confirmation; the scores stay.
-        Playing again under that name brings it back. It goes from every page.
+        Playing again under that name brings it back. It goes from every page, as the confirmation says.
 - Settings' "Reset leaderboard" deletes every score, and with them the Statistics.
 
 ## Achievements

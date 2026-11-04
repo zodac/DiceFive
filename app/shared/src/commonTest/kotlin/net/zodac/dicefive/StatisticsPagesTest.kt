@@ -15,13 +15,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.scores.InMemoryScoreDao
+import net.zodac.dicefive.data.scores.PlayerModeTotals
+import net.zodac.dicefive.data.scores.PlayerRecord
+import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.GameMode
-import net.zodac.dicefive.ui.statistics.StatisticsPage
+import net.zodac.dicefive.model.ModePage
 import net.zodac.dicefive.ui.statistics.StatisticsScreen
 import net.zodac.dicefive.ui.statistics.StatisticsSort
 import net.zodac.dicefive.ui.statistics.StatisticsSortOrder
+import net.zodac.dicefive.ui.statistics.StatisticsUiState
 import net.zodac.dicefive.ui.statistics.StatisticsViewModel
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
@@ -32,11 +36,11 @@ class StatisticsPagesTest : UiTest() {
 
     @Test
     fun `a stored page names itself by its mode's id or combined - and nothing stored or a mode no longer known is Standard's`() {
-        for (page in StatisticsPage.all) assertEquals(page, StatisticsPage.parse(page.stored))
-        assertEquals(GameMode.entries.map { StatisticsPage.Mode(it) } + StatisticsPage.Combined, StatisticsPage.all)
-        assertEquals(StatisticsPage.STANDARD, StatisticsPage.parse(null))
-        assertEquals(StatisticsPage.STANDARD, StatisticsPage.parse("retired_mode"))
-        assertEquals("combined", StatisticsPage.Combined.stored)
+        for (page in ModePage.all) assertEquals(page, ModePage.parse(page.stored))
+        assertEquals(GameMode.entries.map { ModePage.Mode(it) } + ModePage.Combined, ModePage.all)
+        assertEquals(ModePage.STANDARD, ModePage.parse(null))
+        assertEquals(ModePage.STANDARD, ModePage.parse("retired_mode"))
+        assertEquals("combined", ModePage.Combined.stored)
     }
 
     @Test
@@ -75,16 +79,55 @@ class StatisticsPagesTest : UiTest() {
         compose.onAllNodesWithText("No stats", substring = true).assertCountEquals(0)
     }
 
+    /** Sam's record, or a failed read while [failing]. */
+    private class FlakyScoreDao : ScoreDao by InMemoryScoreDao() {
+        var failing = true
+
+        override suspend fun playerRecords(): List<PlayerRecord> {
+            check(!failing) { "The database can't be read" }
+            return listOf(PlayerRecord("Sam", listOf(PlayerModeTotals("sam", GameMode.STANDARD.id, 1, 0, 0, 1, 100, 100, 0, 0L))))
+        }
+    }
+
+    @Test
+    fun `stats that can't be read open empty rather than taking the app down - and later keep the cards on view`() = uiTest {
+        val dao = FlakyScoreDao()
+        val viewModel = StatisticsViewModel(ScoreRepository(dao), SettingsRepository(InMemoryPreferences()))
+        compose.waitForIdle()
+        assertEquals(StatisticsUiState(players = emptyList(), isLoaded = true), viewModel.uiState.value)
+
+        dao.failing = false
+        viewModel.dismissPlayer("Ada")
+        compose.waitForIdle()
+        assertEquals(listOf("Sam"), viewModel.uiState.value.players.map { it.playerName })
+
+        dao.failing = true
+        viewModel.dismissPlayer("Ada")
+        compose.waitForIdle()
+        assertEquals(listOf("Sam"), viewModel.uiState.value.players.map { it.playerName })
+    }
+
+    @Test
+    fun `deleting a player's stats says it is for every game mode`() = uiTest(TestScreen(400, 3000)) {
+        val dao = FlakyScoreDao().apply { failing = false }
+        val viewModel = StatisticsViewModel(ScoreRepository(dao), SettingsRepository(InMemoryPreferences()))
+        showcase.show { DiceFiveTheme { StatisticsScreen(viewModel = viewModel, onBack = {}) } }
+        compose.waitForIdle()
+        compose.onNodeWithContentDescription("Delete Sam's stats").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Would you like to delete Sam's stats in every game mode? Their leaderboard scores will not be affected.").assertExists()
+    }
+
     @Test
     fun `each page keeps its own sort`() = uiTest {
         val settings = SettingsRepository(InMemoryPreferences())
         val viewModel = StatisticsViewModel(ScoreRepository(InMemoryScoreDao()), settings)
         val byScore = StatisticsSortOrder(StatisticsSort.HIGHEST_SCORE)
-        viewModel.setSortOrder(StatisticsPage.Mode(GameMode.STUD), byScore)
+        viewModel.setSortOrder(ModePage.Mode(GameMode.STUD), byScore)
         compose.waitForIdle()
-        val sorts = MutableStateFlow(viewModel.sortOrders.first { it?.get(StatisticsPage.Mode(GameMode.STUD)) == byScore })
-        assertEquals(StatisticsSortOrder(), sorts.value!!.getValue(StatisticsPage.STANDARD))
-        assertEquals(StatisticsSortOrder(), sorts.value!!.getValue(StatisticsPage.Combined))
+        val sorts = MutableStateFlow(viewModel.sortOrders.first { it?.get(ModePage.Mode(GameMode.STUD)) == byScore })
+        assertEquals(StatisticsSortOrder(), sorts.value!!.getValue(ModePage.STANDARD))
+        assertEquals(StatisticsSortOrder(), sorts.value!!.getValue(ModePage.Combined))
         assertEquals(mapOf("stud" to byScore.stored), settings.statisticsSorts.first())
     }
 }

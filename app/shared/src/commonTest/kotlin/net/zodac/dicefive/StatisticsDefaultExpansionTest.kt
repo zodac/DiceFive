@@ -36,7 +36,7 @@ class StatisticsDefaultExpansionTest : UiTest() {
     private val showcase = Showcase { compose }
 
     private fun showPlayers(count: Int) {
-        val records = (1..count).map { PlayerRecord("Player$it", listOf(totals("player$it", maxScore = 100 * it)), emptyList()) }
+        val records = (1..count).map { PlayerRecord("Player$it", listOf(totals("player$it", maxScore = 100 * it))) }
         val dao = object : ScoreDao by InMemoryScoreDao(emptyList()) {
             override suspend fun playerRecords() = records
         }

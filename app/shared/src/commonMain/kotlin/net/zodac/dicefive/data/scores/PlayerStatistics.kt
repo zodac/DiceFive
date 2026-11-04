@@ -115,12 +115,44 @@ data class PlayerOutcome(val playerKey: String, val gameModeId: String, val won:
 
 /**
  * Everything the Statistics screen needs about one player, as [ScoreDao.playerRecords] reads it: the spelling of their
- * latest game, their games added up per mode, and the outcome of each game with someone to beat, most recent first - the
- * win streaks depend on game order, which a `GROUP BY` can't see.
+ * latest game, their games added up per mode, and their win streaks - which depend on game order, which a `GROUP BY`
+ * can't see.
  */
 data class PlayerRecord(
     val playerName: String,
     val modes: List<PlayerModeTotals>,
-    /** Each game with someone to beat, in any mode, most recent first. */
-    val outcomesMostRecentFirst: List<PlayerOutcome>,
+    /** The win streaks of every mode's games together. */
+    val streaks: WinStreaks = WinStreaks(),
+    /** The win streaks of each mode's games alone, by [ScoreEntry.gameModeId]; a mode with no game to beat anyone in is absent. */
+    val modeStreaks: Map<String, WinStreaks> = emptyMap(),
 )
+
+/** A player's win streak as it stands, and their longest. */
+data class WinStreaks(val current: Int = 0, val best: Int = 0)
+
+/**
+ * Walks [outcomesMostRecentFirst] once to find both streaks. A solo game (recorded with a
+ * null outcome - nobody to beat) neither extends nor breaks a run, the same rule the
+ * device-wide WIN_STREAK achievement counter already follows, so it isn't in the list; a loss ends one.
+ *
+ * The *current* streak is only "locked in" by the first loss encountered - after that, later
+ * (i.e. older) wins are still counted toward [WinStreaks.best] but can no longer be part of
+ * the current one.
+ */
+internal fun winStreaks(outcomesMostRecentFirst: List<Boolean>): WinStreaks {
+    var running = 0
+    var best = 0
+    var current = 0
+    var currentLocked = false
+    for (won in outcomesMostRecentFirst) {
+        if (won) {
+            running++
+            if (running > best) best = running
+            if (!currentLocked) current = running
+        } else {
+            running = 0
+            currentLocked = true
+        }
+    }
+    return WinStreaks(current = current, best = best)
+}

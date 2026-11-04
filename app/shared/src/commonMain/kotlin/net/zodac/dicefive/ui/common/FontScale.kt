@@ -1,6 +1,6 @@
-// Compose's desktop target declares Density's font-scale members (fontScale, TextUnit.toDp, Dp.toSp) on
-// FontScalingLinear, which is @RestrictTo(LIBRARY_GROUP), so lint flags every call made through the public Density
-// there. Shared code reaches them only through this file.
+// A desktop target, should one be added back (MULTIPLATFORM.md), has Compose declare Density's font-scale members
+// (fontScale, TextUnit.toDp, Dp.toSp) on FontScalingLinear, which is @RestrictTo(LIBRARY_GROUP), so lint flags every call
+// made through the public Density there. Shared code reaches them only through this file, so that needs no other change.
 @file:Suppress("RestrictedApi")
 
 package net.zodac.dicefive.ui.common

@@ -51,6 +51,7 @@ import net.zodac.dicefive.resources.scores_header_player
 import net.zodac.dicefive.resources.scores_header_score
 import net.zodac.dicefive.resources.scores_next
 import net.zodac.dicefive.resources.scores_previous
+import net.zodac.dicefive.ui.common.EmptyStateCard
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.OnDemandTooltip
 import net.zodac.dicefive.ui.common.grouped
@@ -102,7 +103,7 @@ private fun scoreColumns(): ScoreColumns = if (LocalDensity.current.textScale > 
 
 
 /** Widest a board's table, and the row over it, are in landscape. */
-private val LANDSCAPE_TABLE_WIDTH = 640.dp
+internal val LANDSCAPE_TABLE_WIDTH = 640.dp
 
 /**
  * One leaderboard as a card: [header] (the board's title, a heading, and whatever sits on its row), the column
@@ -127,7 +128,7 @@ fun ColumnScope.LeaderboardTable(
     header: @Composable ColumnScope.() -> Unit,
 ) {
     if (board.entries.isEmpty()) {
-        EmptyBoardCard(emptyText)
+        EmptyStateCard(emptyText)
         return
     }
     // Ranks/`=` ties reflect the same house-rule ordering ScoreDao.pagedScores
@@ -188,19 +189,6 @@ fun LeaderboardPagination(board: LeaderboardPage, onPrevious: () -> Unit, onNext
             hasNext = board.hasNextPage,
             onPrevious = onPrevious,
             onNext = onNext,
-        )
-    }
-}
-
-@Composable
-private fun EmptyBoardCard(text: String) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(24.dp),
         )
     }
 }

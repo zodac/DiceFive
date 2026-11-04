@@ -32,7 +32,7 @@ import net.zodac.dicefive.model.playerNameKey
             ],
             orders = [ASC, DESC, ASC, DESC, ASC, ASC, ASC, ASC],
         ),
-        // Each mode's card: the same order under its own filter.
+        // Each mode's board: the same order under its own filter.
         Index(
             name = "index_scores_mode_order",
             value = [
@@ -54,8 +54,8 @@ import net.zodac.dicefive.model.playerNameKey
         // Statistics: a player's games newest first - their latest name.
         Index(
             name = "index_scores_player_history",
-            value = ["playerKey", "timestampEpochMillis", "won", "playedUnmodified"],
-            orders = [ASC, DESC, ASC, ASC],
+            value = ["playerKey", "timestampEpochMillis", "playedUnmodified"],
+            orders = [ASC, DESC, ASC],
         ),
     ],
 )

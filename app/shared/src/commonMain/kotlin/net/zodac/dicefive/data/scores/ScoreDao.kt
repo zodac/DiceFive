@@ -82,7 +82,7 @@ interface ScoreDao {
     @Query("SELECT COUNT(*) FROM scores WHERE playedUnmodified = 1")
     suspend fun count(): Int
 
-    /** How many rows one game mode's Leaderboard card lists - see [pagedScoresForMode]. */
+    /** How many rows one game mode's Leaderboard board lists - see [pagedScoresForMode]. */
     @Query("SELECT COUNT(*) FROM scores WHERE playedUnmodified = 1 AND gameModeId = :gameModeId")
     suspend fun countForMode(gameModeId: String): Int
 
@@ -139,7 +139,8 @@ interface ScoreDao {
      * [ScoreEntry.playerKey] ("bob" and "Bob" are one player, as the New Game screen compares them), in key order -
      * excluding anyone dismissed from the Statistics screen (see [DismissedPlayerStats]). Every game with no modifier on
      * counts ([ScoreEntry.playedUnmodified]), on the Leaderboard or not (see [ScoreEntry.onLeaderboard]). SQLite adds up each player's games per mode; only the
-     * outcomes, which the win streaks need in order, come back a game at a time. Three reads, however many players.
+     * outcomes, which the win streaks need in order, come back a game at a time. Three reads, however many players. The
+     * streaks are walked here because a transaction runs off the main thread, where a long history costs no frame.
      */
     @Transaction
     suspend fun playerRecords(): List<PlayerRecord> {
@@ -147,7 +148,13 @@ interface ScoreDao {
         // Each player's newest first: what the win streaks walk.
         val outcomes = playerOutcomes().groupBy { it.playerKey }.mapValues { (_, games) -> games.sortedByDescending { it.timestampEpochMillis } }
         return playerModeTotals().groupBy { it.playerKey }.map { (playerKey, modes) ->
-            PlayerRecord(playerName = names.getValue(playerKey), modes = modes, outcomesMostRecentFirst = outcomes[playerKey].orEmpty())
+            val games = outcomes[playerKey].orEmpty()
+            PlayerRecord(
+                playerName = names.getValue(playerKey),
+                modes = modes,
+                streaks = winStreaks(games.map { it.won }),
+                modeStreaks = games.groupBy({ it.gameModeId }, { it.won }).mapValues { (_, won) -> winStreaks(won) },
+            )
         }
     }
 

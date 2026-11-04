@@ -292,14 +292,14 @@ time.
 
 ## The Leaderboard's boards
 
-A `DropdownChoiceField` (`ui/common`) at the top, always shown: a board for each game mode, then Combined
-(`LeaderboardChoice.all`), with a divider after Standard and before Combined, the one on view ticked. Statistics has the
+A `ModePagePicker` (`ui/common`) at the top, always shown: a board for each game mode, then Combined
+(`ModePage.all`), with a divider after Standard and before Combined, the one on view ticked. Statistics has the
 same drop-down for its pages (`DESIGN.md`, "Leaderboard and Statistics"). The board picked is under it, and is remembered
 (the `leaderboard_choice` preference, in the cloud save) through screen changes and restarts; a stored mode that no longer
 exists opens Standard's.
 
 - **One table for every board** (`LeaderboardTable`, `ui/scores`). Every board looks and behaves alike, so a
-    board added later is a new `LeaderboardChoice` and a source for its pages, nothing more:
+    board added later is a new `ModePage` and a source for its pages, nothing more:
     - A card titled with the board's name (a heading, Sora bold), the column headings, then the ranked rows. 1st-3rd are
         in gold, silver, and bronze on every board, with the same gap between podium rows and the same extra room when
         the card ends on one.

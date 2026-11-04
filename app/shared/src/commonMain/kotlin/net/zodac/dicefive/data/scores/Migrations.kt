@@ -8,7 +8,7 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.playerNameKey
 
 /** Every migration, oldest first - what [buildAppDatabase] opens an older database with. */
-internal val MIGRATIONS: Array<Migration> = arrayOf(Migration1To2, Migration2To3, Migration3To4)
+internal val MIGRATIONS: Array<Migration> = arrayOf(Migration1To2, Migration2To3, Migration3To4, Migration4To5)
 
 /**
  * Version 2 rebuilds `scores`, as SQLite can't change a table's key or a column's type in place:
@@ -156,6 +156,20 @@ internal object Migration3To4 : Migration(3, 4) {
             "CREATE INDEX IF NOT EXISTS `index_scores_unmodified_order` ON `scores` (`playedUnmodified` ASC, `score` DESC, " +
                 "`fiveOfAKindCount` ASC, `zeroedCategoryCount` DESC, `upperSectionTotal` ASC, `chanceScore` ASC, `threeOfAKindScore` ASC, " +
                 "`fourOfAKindScore` ASC)",
+        )
+    }
+}
+
+/**
+ * Version 5 drops `won` from the player history index: the win streaks' outcomes are read from the per-mode totals' index,
+ * so nothing reads it from this one. No row changes.
+ */
+internal object Migration4To5 : Migration(4, 5) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("DROP INDEX IF EXISTS `index_scores_player_history`")
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_scores_player_history` ON `scores` " +
+                "(`playerKey` ASC, `timestampEpochMillis` DESC, `playedUnmodified` ASC)",
         )
     }
 }

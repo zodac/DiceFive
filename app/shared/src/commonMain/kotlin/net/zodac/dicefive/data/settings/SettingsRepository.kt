@@ -19,6 +19,7 @@ import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
+import net.zodac.dicefive.model.ModePage
 import net.zodac.dicefive.model.PlayerColour
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
@@ -33,7 +34,7 @@ import net.zodac.dicefive.model.TurnTimer
  *   modifier;
  * - the Styles picks (as ids) and the Styles page's fitted size;
  * - the Achievements page's Locked only switch and the Styles page's Unlocked only switch;
- * - the Statistics screen's sort;
+ * - the Statistics screen's page (Combined or a game mode) and each page's sort;
  * - the Leaderboard's board (Combined or a game mode);
  * - sound, vibration, the Animations level and whether leaving a game in progress asks first;
  * - whether a game has ever been finished here, which unlocks the New Game form's game modes and modifiers.
@@ -372,7 +373,7 @@ class SettingsRepository(
 
     /**
      * Each Statistics page's sort as stored (`StatisticsSortOrder.stored`), by the page's stored id
-     * (`StatisticsPage.stored`: a game mode's id, or `combined`); a page with none picked yet is absent.
+     * (`ModePage.stored`: a game mode's id, or `combined`); a page with none picked yet is absent.
      */
     val statisticsSorts: Flow<Map<String, String>> = read { prefs ->
         STATISTICS_PAGE_IDS.mapNotNull { page -> prefs[statisticsSortKey(page)]?.let { page to it } }.toMap()
@@ -381,20 +382,17 @@ class SettingsRepository(
     /** Sets the sort of the Statistics page stored as [page]. */
     suspend fun setStatisticsSort(page: String, sort: String) = set(statisticsSortKey(page), sort)
 
-    /** The Statistics page as stored (`StatisticsPage.stored`), or null until one is picked. */
+    /** The Statistics page as stored (`ModePage.stored`), or null until one is picked. */
     val statisticsChoice: Flow<String?> = read { prefs -> prefs[STATISTICS_CHOICE_KEY] }
 
     suspend fun setStatisticsChoice(page: String) = set(STATISTICS_CHOICE_KEY, page)
 
-    /** The Leaderboard's board as stored (`LeaderboardChoice.stored`: `combined` or a game mode's id), or null until one is picked. */
+    /** The Leaderboard's board as stored (`ModePage.stored`: `combined` or a game mode's id), or null until one is picked. */
     val leaderboardChoice: Flow<String?> = read { prefs -> prefs[LEADERBOARD_CHOICE_KEY] }
 
     suspend fun setLeaderboardChoice(choice: String) = set(LEADERBOARD_CHOICE_KEY, choice)
 
     private companion object {
-        /** The stored id of a page or board holding every mode's games (`LeaderboardChoice`, `StatisticsPage`). */
-        const val COMBINED_PAGE_ID = "combined"
-
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
         val SOUND_ENABLED_KEY = booleanPreferencesKey("sound_enabled")
         val VIBRATION_ENABLED_KEY = booleanPreferencesKey("vibration_enabled")
@@ -424,11 +422,11 @@ class SettingsRepository(
         val STATISTICS_CHOICE_KEY = stringPreferencesKey("statistics_choice")
 
         /** Every Statistics page's stored id: each game mode's, then `combined`. */
-        val STATISTICS_PAGE_IDS: List<String> = GameMode.entries.map { it.id } + COMBINED_PAGE_ID
+        val STATISTICS_PAGE_IDS: List<String> = ModePage.all.map { it.stored }
 
         /** The sort of the Statistics page stored as [page]: `statistics_sort_<mode id>`, or [STATISTICS_SORT_KEY] for Combined. */
         fun statisticsSortKey(page: String): Preferences.Key<String> =
-            if (page == COMBINED_PAGE_ID) STATISTICS_SORT_KEY else stringPreferencesKey("statistics_sort_$page")
+            if (page == ModePage.COMBINED_ID) STATISTICS_SORT_KEY else stringPreferencesKey("statistics_sort_$page")
         val LOCKED_ONLY_ACHIEVEMENTS_KEY = booleanPreferencesKey("locked_only_achievements")
         val UNLOCKED_ONLY_STYLES_KEY = booleanPreferencesKey("unlocked_only_styles")
         val LEADERBOARD_CHOICE_KEY = stringPreferencesKey("leaderboard_choice")

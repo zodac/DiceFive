@@ -248,7 +248,8 @@ fun GameScreen(
                     landscape = layout.landscape,
                     cupScale = layout.cupScale,
                     canUndo = canUndo,
-                    newScoreSeats = newLeaderboardScoreSeats(currentState, leaderboardScores),
+                    // Remembered, so a recomposition with the same game hands the tabs the same set, which lets them skip.
+                    newScoreSeats = remember(currentState, leaderboardScores) { newLeaderboardScoreSeats(currentState, leaderboardScores) },
                     superuserModeActive = superuserModeActive,
                     aiRolling = aiRolling,
                     tapRolling = tapRolling,

@@ -354,6 +354,8 @@ Examples:
 
 - no tile glow (a steady gold border), and a steady red timer;
 - no drift, twinkle, sparkle, neon pulse or glitch;
+- a button's own scroll of a list or tab row (the Achievements arrows, a banner's jump to its row, the Rules chevrons)
+    jumps there rather than gliding;
 - cup lids, doors and baskets snap open, and spills and lava simply appear;
 - the rabbit appears without a rise;
 - the dice aren't tossed: they stay put through the shake and snap to their results. The board cup stands while the

@@ -79,9 +79,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import net.zodac.dicefive.data.scores.ModeStatistics
 import net.zodac.dicefive.data.scores.PlayerStatistics
+import net.zodac.dicefive.model.ModePage
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_cancel
-import net.zodac.dicefive.resources.common_combined
 import net.zodac.dicefive.resources.stats_average
 import net.zodac.dicefive.resources.stats_best
 import net.zodac.dicefive.resources.stats_collapsed_spoken
@@ -128,7 +128,9 @@ import net.zodac.dicefive.resources.stats_win_streak
 import net.zodac.dicefive.resources.stats_win_streak_value
 import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
 import net.zodac.dicefive.ui.common.DiceFiveDialog
-import net.zodac.dicefive.ui.common.DropdownChoiceField
+import net.zodac.dicefive.ui.common.EmptyStateCard
+import net.zodac.dicefive.ui.common.ModePagePicker
+import net.zodac.dicefive.ui.common.modePageName
 import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.LocalLandscapePage
@@ -190,19 +192,15 @@ fun StatisticsScreen(
         // before the player cards - and the page cover kept up over it meanwhile.
         val onPage = page
         if (!state.isLoaded || sortOrder == null || onPage == null) return@ScreenScaffold HoldPageCover()
-        if (state.players.isEmpty()) return@ScreenScaffold EmptyCard(stringResource(Res.string.stats_empty))
-        DropdownChoiceField(
-            options = StatisticsPage.all,
+        if (state.players.isEmpty()) return@ScreenScaffold EmptyStateCard(stringResource(Res.string.stats_empty))
+        ModePagePicker(
             selected = onPage,
             onSelect = viewModel::selectPage,
             label = stringResource(Res.string.stats_page_label),
-            optionText = { pageName(it) },
             modifier = Modifier.fillMaxWidth(),
-            dividerAfterFirst = true,
-            dividerBeforeLast = true,
         )
         if (players.isEmpty()) {
-            EmptyCard(stringResource(Res.string.stats_page_empty, pageName(onPage)))
+            EmptyStateCard(stringResource(Res.string.stats_page_empty, modePageName(onPage)))
         } else key(onPage) {
             val listState = rememberLazyListState()
             val pageCover = LocalPageCover.current
@@ -247,7 +245,7 @@ fun StatisticsScreen(
                                         if (open) openNames.add(player.playerName) else openNames.remove(player.playerName)
                                     },
                                     onDelete = { pendingDeleteName = player.playerName },
-                                    showModes = onPage == StatisticsPage.Combined,
+                                    showModes = onPage == ModePage.Combined,
                                     openAhead = openAhead,
                                 )
                             }
@@ -274,27 +272,6 @@ fun StatisticsScreen(
             )
         }
     }
-}
-
-/** A card saying [text] in place of the cards: no stats at all, or none on the page. */
-@Composable
-private fun EmptyCard(text: String) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(24.dp),
-        )
-    }
-}
-
-/** A page's name as the drop-down says it: its mode's, or Combined. */
-@Composable
-private fun pageName(page: StatisticsPage): String = when (page) {
-    is StatisticsPage.Mode -> stringResource(page.mode.displayName)
-    StatisticsPage.Combined -> stringResource(Res.string.common_combined)
 }
 
 /**
@@ -626,25 +603,30 @@ private fun ModeTable(player: PlayerStatistics) {
         stringResource(Res.string.stats_best),
     )
     val numbers = player.modes.map { modeNumbers(it) }
-    // Stacked, each number column's share of the row is its widest text, heading or number, measured.
+    val weights = if (stacked) stackedColumnWeights(headings, numbers) else null
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().clearAndSetSemantics {}, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (!stacked) TableCell(stringResource(Res.string.stats_mode), heading = true, modifier = Modifier.weight(1f))
+            headings.forEachIndexed { column, heading -> NumberCell(heading, weights?.get(column), heading = true) }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        player.modes.forEachIndexed { index, mode -> ModeRow(mode, numbers[index], weights) }
+    }
+}
+
+/** Stacked, each number column's share of the row: its widest text, heading or number, measured. */
+@Composable
+private fun stackedColumnWeights(headings: List<String>, numbers: List<List<String>>): List<Float> {
     val measurer = rememberTextMeasurer()
     val headingStyle = MaterialTheme.typography.labelMedium
     val numberStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
-    val weights = remember(headings, numbers, headingStyle, numberStyle, LocalDensity.current) {
+    return remember(headings, numbers, headingStyle, numberStyle, LocalDensity.current) {
         headings.indices.map { column ->
             maxOf(
                 measurer.measure(headings[column], headingStyle, maxLines = 1).size.width,
                 numbers.maxOfOrNull { measurer.measure(it[column], numberStyle, maxLines = 1).size.width } ?: 0,
             ).coerceAtLeast(1).toFloat()
         }
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(modifier = Modifier.fillMaxWidth().clearAndSetSemantics {}, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (!stacked) TableCell(stringResource(Res.string.stats_mode), heading = true, modifier = Modifier.weight(1f))
-            headings.forEachIndexed { column, heading -> NumberCell(heading, stacked, weights[column], heading = true) }
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        player.modes.forEachIndexed { index, mode -> ModeRow(mode, numbers[index], stacked, weights) }
     }
 }
 
@@ -673,7 +655,7 @@ private fun modeNumbers(mode: ModeStatistics): List<String> =
     listOf(mode.gamesPlayed.grouped(), winRateText(mode.winRatePercent), mode.soloGames.grouped(), mode.maxScore.grouped())
 
 @Composable
-private fun ModeRow(mode: ModeStatistics, numbers: List<String>, stacked: Boolean, weights: List<Float>) {
+private fun ModeRow(mode: ModeStatistics, numbers: List<String>, stackedWeights: List<Float>?) {
     val name = stringResource(mode.gameMode.displayName)
     val spoken = joinSentences(
         buildList {
@@ -695,32 +677,32 @@ private fun ModeRow(mode: ModeStatistics, numbers: List<String>, stacked: Boolea
         )
     }
     val semantics = Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = spoken }
-    if (stacked) {
+    if (stackedWeights != null) {
         Column(modifier = semantics) {
             nameText(Modifier)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                numbers.forEachIndexed { column, number -> NumberCell(number, stacked = true, weights[column]) }
+                numbers.forEachIndexed { column, number -> NumberCell(number, stackedWeights[column]) }
             }
         }
     } else {
         Row(modifier = semantics, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             nameText(Modifier.weight(1f))
-            numbers.forEachIndexed { column, number -> NumberCell(number, stacked = false, weights[column]) }
+            numbers.forEach { number -> NumberCell(number, stackedWeight = null) }
         }
     }
 }
 
 /**
- * A number column's cell: when stacked, a share of the row by [weight] (the column's widest text, so a heading such as
- * "Games" keeps to one line); else at least [NUMBER_COLUMN_MIN_WIDTH] after the name.
+ * A number column's cell: when stacked, a share of the row by [stackedWeight] (the column's widest text, so a heading
+ * such as "Games" keeps to one line); else, with none, at least [NUMBER_COLUMN_MIN_WIDTH] after the name.
  */
 @Composable
-private fun RowScope.NumberCell(text: String, stacked: Boolean, weight: Float, heading: Boolean = false) {
+private fun RowScope.NumberCell(text: String, stackedWeight: Float?, heading: Boolean = false) {
     TableCell(
         text = text,
         heading = heading,
         numeric = true,
-        modifier = if (stacked) Modifier.weight(weight) else Modifier.widthIn(min = NUMBER_COLUMN_MIN_WIDTH),
+        modifier = if (stackedWeight != null) Modifier.weight(stackedWeight) else Modifier.widthIn(min = NUMBER_COLUMN_MIN_WIDTH),
     )
 }
 

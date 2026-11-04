@@ -32,12 +32,12 @@ import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.data.settings.savedStylesFlow
 import net.zodac.dicefive.game.StandardPerfectPlayTable
+import net.zodac.dicefive.model.ModePage
 import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.purchases.PurchasesRepository
 import net.zodac.dicefive.resources.Res
-import net.zodac.dicefive.ui.scores.LeaderboardChoice
-import net.zodac.dicefive.ui.statistics.StatisticsPage
 import net.zodac.dicefive.ui.statistics.StatisticsSortOrder
+import net.zodac.dicefive.ui.statistics.parseStatisticsSorts
 
 /**
  * The app's long-lived objects, built once per process by the platform's entry point and handed to
@@ -105,13 +105,13 @@ class AppContainer(
     }
 
     /** Each Statistics page's sort, loaded with the container so the screen opens already in order - null until then. */
-    val statisticsSorts: StateFlow<Map<StatisticsPage, StatisticsSortOrder>?> = settingsRepository.statisticsSorts
-        .map { stored -> StatisticsPage.all.associateWith { StatisticsSortOrder.parse(stored[it.stored]) } }
+    val statisticsSorts: StateFlow<Map<ModePage, StatisticsSortOrder>?> = settingsRepository.statisticsSorts
+        .map(::parseStatisticsSorts)
         .stateIn(scope, SharingStarted.Eagerly, null)
 
     /** The Statistics page, loaded as [leaderboardChoice] is. */
-    val statisticsChoice: StateFlow<StatisticsPage?> =
-        settingsRepository.statisticsChoice.map { StatisticsPage.parse(it) }.stateIn(scope, SharingStarted.Eagerly, null)
+    val statisticsChoice: StateFlow<ModePage?> =
+        settingsRepository.statisticsChoice.map { ModePage.parse(it) }.stateIn(scope, SharingStarted.Eagerly, null)
 
     /** The Achievements page's Locked only switch, loaded with the container so the page opens already filtered - null until then. */
     val lockedOnlyAchievements: StateFlow<Boolean?> = settingsRepository.lockedOnlyAchievements.stateIn(scope, SharingStarted.Eagerly, null)
@@ -120,8 +120,8 @@ class AppContainer(
     val unlockedOnlyStyles: StateFlow<Boolean?> = settingsRepository.unlockedOnlyStyles.stateIn(scope, SharingStarted.Eagerly, null)
 
     /** The Leaderboard's board, loaded with the container so the screen opens already on it - null until then. */
-    val leaderboardChoice: StateFlow<LeaderboardChoice?> =
-        settingsRepository.leaderboardChoice.map { LeaderboardChoice.parse(it) }.stateIn(scope, SharingStarted.Eagerly, null)
+    val leaderboardChoice: StateFlow<ModePage?> =
+        settingsRepository.leaderboardChoice.map { ModePage.parse(it) }.stateIn(scope, SharingStarted.Eagerly, null)
 
     /**
      * The dice every game rolls ([net.zodac.dicefive.ui.game.GameViewModel]'s random). Replaced only by the store-asset

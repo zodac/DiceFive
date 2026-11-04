@@ -22,6 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -218,6 +220,7 @@ private fun PlayerTab(
         }
     }
     val finalScore = score.grouped()
+    val shownScore = rememberRisingScore(score)
     val scoreText = @Composable { style: TextStyle ->
         val digits = @Composable { modifier: Modifier ->
             // On one line, stepped down to fit the tab when the total is too wide for it (four tabs, a four-digit total
@@ -239,7 +242,7 @@ private fun PlayerTab(
                     }
                 }
                 Text(
-                    text = risingScore(score).grouped(),
+                    text = shownScore.value.grouped(),
                     color = color,
                     style = base.copy(fontSize = fit.size),
                     textAlign = TextAlign.Center,
@@ -353,9 +356,12 @@ private fun Modifier.dashedBorder(width: Dp, color: Color, cornerRadius: Dp): Mo
  * solo player can roll and score again inside a second) skips that one to its end first, so each
  * rise starts from the total it was actually built on rather than from wherever the last one had
  * got to. A total that goes down (an undo) just snaps - there's nothing to celebrate.
+ *
+ * A state rather than a number, so the tab can hold the rise above anything that changes what the score is drawn in (the
+ * new-score pill, which usually comes or goes with the same score), and only what reads it recomposes each frame.
  */
 @Composable
-private fun risingScore(score: Int): Int {
+private fun rememberRisingScore(score: Int): State<Int> {
     val shown = remember { Animatable(score.toFloat()) }
     val reduceMotion = LocalReduceMotion.current
     // The last total this tab was told about - where an interrupted rise was heading.
@@ -375,7 +381,7 @@ private fun risingScore(score: Int): Int {
             animationSpec = tween(durationMillis = scoreRiseMillis(score - from), easing = LinearOutSlowInEasing),
         )
     }
-    return shown.value.roundToInt()
+    return remember(shown) { derivedStateOf { shown.value.roundToInt() } }
 }
 
 /** As the tab shows it: "1st", "2nd", "=3rd" - an "=" for a shared place, as the results screen marks one. */

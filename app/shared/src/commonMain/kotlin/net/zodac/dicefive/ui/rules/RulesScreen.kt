@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -1169,6 +1170,7 @@ private fun ScrollState.edgeStrength(forward: Boolean, over: Float): Float {
 @Composable
 private fun TabScrollChevron(scrollState: ScrollState, forward: Boolean, modifier: Modifier = Modifier) {
     val coroutineScope = rememberCoroutineScope()
+    val reduceMotion = LocalReduceMotion.current
     val shown by remember(scrollState, forward) {
         derivedStateOf { if (forward) scrollState.canScrollForward else scrollState.canScrollBackward }
     }
@@ -1178,7 +1180,8 @@ private fun TabScrollChevron(scrollState: ScrollState, forward: Boolean, modifie
     IconButton(
         onClick = {
             val distance = scrollState.viewportSize * TAB_CHEVRON_SCROLL_FRACTION
-            coroutineScope.launch { scrollState.animateScrollBy(if (forward) distance else -distance) }
+            val by = if (forward) distance else -distance
+            coroutineScope.launch { if (reduceMotion) scrollState.scrollBy(by) else scrollState.animateScrollBy(by) }
         },
         modifier = modifier
             .graphicsLayer { alpha = scrollState.edgeStrength(forward, over = TAB_EDGE_EASE.toPx()) }

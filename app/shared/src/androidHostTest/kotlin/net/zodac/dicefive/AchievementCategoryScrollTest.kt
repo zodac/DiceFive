@@ -14,33 +14,59 @@ import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.achievements.AchievementsScreen
 import net.zodac.dicefive.ui.achievements.resetAchievementsScrollMemory
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.robolectric.annotation.Config
 
 private const val THUMB_MARGIN_PX = 50
 
+private const val FRAMES_FOR_A_JUMP_MILLIS = 48L
+
 /** The achievements page's previous/next category arrows glide to the header rather than snapping. */
 @Config(qualifiers = "w411dp-h891dp-xxhdpi")
 class AchievementCategoryScrollTest : UiTest() {
 
-    @Test
-    fun `the next category arrow is still scrolling after a quarter of a second and has settled by a second`() = uiTest {
+    /** The page, opened and settled on its clock, with [reduceMotion] as the app's Off or the system would set it. */
+    private fun androidx.compose.ui.test.ComposeUiTest.showPage(reduceMotion: Boolean) {
         resetAchievementsScrollMemory()
         val viewModel = achievementsViewModel()
         mainClock.autoAdvance = false
         setContent {
-            CompositionLocalProvider(LocalAppContainer provides inMemoryAppContainer(), LocalPlatformServices provides SilentPlatformServices) {
+            CompositionLocalProvider(
+                LocalAppContainer provides inMemoryAppContainer(),
+                LocalPlatformServices provides SilentPlatformServices,
+                LocalReduceMotion provides reduceMotion,
+            ) {
                 DiceFiveTheme { AchievementsScreen(viewModel = viewModel, onBack = {}) }
             }
         }
         mainClock.advanceTimeBy(3000)
-        // The scrollbar thumb's top edge: the first gold pixel in the page's right-hand margin, where nothing else is gold-coloured.
-        fun thumbTop(): Int {
-            val bitmap = onRoot().captureToImage().asAndroidBitmap()
-            val pixels = IntArray(bitmap.width * bitmap.height).also { bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height) }
-            return (0 until bitmap.height).first { y -> (bitmap.width - THUMB_MARGIN_PX until bitmap.width).any { x -> pixels[y * bitmap.width + x].let { c -> (c shr 16) and 255 > 180 && (c shr 8) and 255 > 130 && c and 255 < 90 } } }
-        }
         onAllNodes(hasContentDescription("Next category")).fetchSemanticsNodes().let { check(it.isNotEmpty()) }
+    }
+
+    /** The scrollbar thumb's top edge: the first gold pixel in the page's right-hand margin, where nothing else is gold-coloured. */
+    private fun androidx.compose.ui.test.ComposeUiTest.thumbTop(): Int {
+        val bitmap = onRoot().captureToImage().asAndroidBitmap()
+        val pixels = IntArray(bitmap.width * bitmap.height).also { bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height) }
+        return (0 until bitmap.height).first { y -> (bitmap.width - THUMB_MARGIN_PX until bitmap.width).any { x -> pixels[y * bitmap.width + x].let { c -> (c shr 16) and 255 > 180 && (c shr 8) and 255 > 130 && c and 255 < 90 } } }
+    }
+
+    @Test
+    fun `under reduced motion the next category arrow jumps to the header rather than gliding`() = uiTest {
+        showPage(reduceMotion = true)
+        val start = thumbTop()
+        onAllNodes(hasContentDescription("Next category"))[0].performClick()
+        // Two frames: the tap's, and the jump's.
+        mainClock.advanceTimeBy(FRAMES_FOR_A_JUMP_MILLIS)
+        val jumped = thumbTop()
+        mainClock.advanceTimeBy(2000)
+        assertTrue(jumped > start, "the thumb stayed at $start")
+        assertEquals(thumbTop(), jumped, "the list was still moving after the tap's frames")
+    }
+
+    @Test
+    fun `the next category arrow is still scrolling after a quarter of a second and has settled by a second`() = uiTest {
+        showPage(reduceMotion = false)
         onAllNodes(hasContentDescription("Next category"))[0].performClick()
         val start = thumbTop()
         mainClock.advanceTimeBy(250)

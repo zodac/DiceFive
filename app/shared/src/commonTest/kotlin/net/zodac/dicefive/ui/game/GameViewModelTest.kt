@@ -9,6 +9,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,6 +24,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.LoadedDice
 import net.zodac.dicefive.data.scores.InMemoryScoreDao
+import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
@@ -93,6 +95,30 @@ class GameViewModelTest {
         viewModel.startGame()
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(setOf(900), viewModel.leaderboardScores.value)
+    }
+
+    @Test
+    fun `a game's read of the board can't land over the next game's`() = runTest(testDispatcher) {
+        val firstRead = CompletableDeferred<Unit>()
+        var reads = 0
+        val dao = object : ScoreDao by InMemoryScoreDao() {
+            override suspend fun distinctScores(gameModeId: String): List<Int> {
+                reads++
+                if (reads == 1) {
+                    firstRead.await()
+                    return listOf(111)
+                }
+                return listOf(222)
+            }
+        }
+        val viewModel = gameViewModel(scoreRepository = ScoreRepository(dao), aiDispatcher = testDispatcher)
+        viewModel.startGame()
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.startGame()
+        testDispatcher.scheduler.advanceUntilIdle()
+        firstRead.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(setOf(222), viewModel.leaderboardScores.value)
     }
 
     @Test
