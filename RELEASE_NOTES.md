@@ -1,5 +1,0 @@
-- The score increase animation on the game screen is no longer cancellled by the 'new leaderboard score' highlight
-- The Achievements and Rules page arrows now scroll without animating when animations are off
-- Working out win streaks no longer lags up the Statistics page in certain cases
-- Changing the mode/order on the Statistics page now takes effect straight away
-- Fixing the tap 'ripple' effect to stay inside rounded corners
