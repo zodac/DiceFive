@@ -60,6 +60,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -818,6 +819,8 @@ private fun AchievementRow(
         Card(
             modifier = modifier
                 .fillMaxWidth()
+                // The card's own clip is inside this modifier, so without one here the ripple would square off its corners.
+                .clip(CardDefaults.shape)
                 .then(
                     if (tipMessage != null) {
                         // A tooltip isn't announced, so a screen reader's one action is the dialog, which says the same and more.

@@ -56,6 +56,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.CollectionInfo
 import androidx.compose.ui.semantics.CollectionItemInfo
@@ -122,6 +123,8 @@ private fun PickerField(
                 contentDescription = title
                 stateDescription = state
             }
+            // The card's own clip is inside this modifier, so without one here the ripple would square off its corners.
+            .clip(CardDefaults.outlinedShape)
             .clickable(enabled = enabled, onClickLabel = stringResource(Res.string.common_picker_choose_action, title), onClick = onClick),
     ) {
         Row(
