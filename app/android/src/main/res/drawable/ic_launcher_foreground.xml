@@ -42,13 +42,13 @@
         android:pivotX="54"
         android:pivotY="91"
         android:scaleY="0.3">
-        <path android:pathData="M24,91 a30,30 0 1,0 60,0 a30,30 0 1,0 -60,0 z">
+        <path android:pathData="M30.4,91 a23.6,23.6 0 1,0 47.2,0 a23.6,23.6 0 1,0 -47.2,0 z">
             <aapt:attr name="android:fillColor">
                 <gradient
                     android:type="radial"
                     android:centerX="54"
                     android:centerY="91"
-                    android:gradientRadius="30">
+                    android:gradientRadius="23.6">
                     <item android:offset="0" android:color="#99000000" />
                     <item android:offset="0.6" android:color="#66000000" />
                     <item android:offset="1" android:color="#00000000" />
@@ -60,18 +60,18 @@
     <!-- Dice cup: a silhouette of the in-game "Classic" shaker (CasinoDiceCupStyle in
          RoundCups.kt) - straight sides, seen from the same raised angle, so its mouth and base are
          ellipses squashed to 0.38 of their width (CUP_VIEW_SQUASH), with its single band round the
-         body. Radius 17 about x=54, rim at y=45.5, base at y=87.5: a little stubbier than the real
-         cup (40 x 67 grid units) so it fits under the dice. Front arcs are cubics with controls 4/3
-         of the ellipse's half-height (6.46) down, as the game's own frontArc() draws them. Its
-         colours are shaded round the Classic cup's Gold (casino_gold in StyleCatalog.kt), the
-         default, so a new player's first cup is this one - change them together. -->
-    <path android:pathData="M37,45.5 L37,87.5 C37,96.11 71,96.11 71,87.5 L71,45.5 Z">
+         body. Radius 13.4 about x=54, rim at y=44.1, base at y=88.9: the real cup (radius 20, 67 grid
+         units from rim to base) scaled evenly by 0.67. Front arcs are cubics with controls 4/3 of the
+         ellipse's half-height (5.09) down, as the game's own frontArc() draws them. Its colours are
+         shaded round the Classic cup's Gold (casino_gold in StyleCatalog.kt), the default, so a new
+         player's first cup is this one - change them together. -->
+    <path android:pathData="M40.6,44.1 L40.6,88.9 C40.6,95.69 67.4,95.69 67.4,88.9 L67.4,44.1 Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="linear"
-                android:startX="37"
+                android:startX="40.6"
                 android:startY="60"
-                android:endX="71"
+                android:endX="67.4"
                 android:endY="60">
                 <item android:offset="0" android:color="#8F6A2C" />
                 <item android:offset="0.2" android:color="#C79A4B" />
@@ -86,19 +86,19 @@
          cup's sides (the same shape as the hole in ic_launcher_monochrome.xml), not a stroke, whose
          ends would stick out past them. -->
     <path
-        android:pathData="M37,77.6 C37,86.21 71,86.21 71,77.6 L71,79.4 C71,88.01 37,88.01 37,79.4 z"
+        android:pathData="M40.6,78.6 C40.6,85.39 67.4,85.39 67.4,78.6 L67.4,80.4 C67.4,87.19 40.6,87.19 40.6,80.4 z"
         android:fillColor="#0B1E3A" />
 
     <!-- The open mouth: dark depths inside a lighter gold rim. -->
     <path
-        android:pathData="M37,45.5 a17,6.46 0 1,0 34,0 a17,6.46 0 1,0 -34,0 z"
+        android:pathData="M40.6,44.1 a13.4,5.09 0 1,0 26.8,0 a13.4,5.09 0 1,0 -26.8,0 z"
         android:strokeWidth="1.8">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="radial"
                 android:centerX="54"
-                android:centerY="50"
-                android:gradientRadius="19">
+                android:centerY="47.65"
+                android:gradientRadius="15">
                 <item android:offset="0" android:color="#4A3620" />
                 <item android:offset="1" android:color="#17100A" />
             </gradient>
@@ -106,10 +106,10 @@
         <aapt:attr name="android:strokeColor">
             <gradient
                 android:type="linear"
-                android:startX="37"
-                android:startY="45"
-                android:endX="71"
-                android:endY="45">
+                android:startX="40.6"
+                android:startY="44"
+                android:endX="67.4"
+                android:endY="44">
                 <item android:offset="0" android:color="#C79A4B" />
                 <item android:offset="0.35" android:color="#FFEDBB" />
                 <item android:offset="1" android:color="#B98C3E" />
@@ -124,7 +124,7 @@
 
          A cube is projected as TossedCube (RollingDie.kt) draws one, through one eye 4 face widths from
          its front plane, and spun, then tilted 20 degrees so its front looks away from the cup's mouth
-         at (54,45.5). The front plane untilted is the die's old size (side 14, or 15 for the 4), and
+         from (54,45.5), inside it. The front plane untilted is the die's old size (side 14, or 15 for the 4), and
          each cube's outline is centred on its die's old centre. Spins and centres, in 2-4-5-3-6 order:
          -52 (23,67.5), 28 (30.5,25.9), -5 (56,20.5), 18 (77.6,29.9), and -77 (87,54.2). The side faces
          are the die's real neighbours, whose opposite faces add up to 7. They are shaded by how they

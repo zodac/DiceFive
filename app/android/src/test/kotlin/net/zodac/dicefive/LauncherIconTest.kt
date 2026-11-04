@@ -59,10 +59,24 @@ class LauncherIconTest {
     @Test
     fun `the cup's band ends on its sides, without sticking out past them`() {
         val foreground = render(R.drawable.ic_launcher_foreground)
-        // The cup's left side is at 37 inner units and the band's end at 78.5, inside the icon's 0.8 zoom about 54.
-        val justOutsideCup = ((54 + (36.5 - 54) * 0.8) * PIXELS_PER_UNIT).toInt()
-        val atBandHeight = ((54 + (78.5 - 54) * 0.8) * PIXELS_PER_UNIT).toInt()
+        // The cup's left side is at 40.6 inner units and the band's end at 79.5, inside the icon's 0.8 zoom about 54.
+        val justOutsideCup = ((54 + (40.1 - 54) * 0.8) * PIXELS_PER_UNIT).toInt()
+        val atBandHeight = ((54 + (79.5 - 54) * 0.8) * PIXELS_PER_UNIT).toInt()
         assertEquals(0, Color.alpha(foreground.getPixel(justOutsideCup, atBandHeight)))
+    }
+
+    @Test
+    fun `the cup has the proportions of the game's Classic cup`() {
+        val foreground = render(R.drawable.ic_launcher_foreground)
+        // From a point on the cup's body, its solid run each way stops at its edges, short of the dice beside it.
+        val middle = 54 * PIXELS_PER_UNIT
+        val solid = { x: Int, y: Int -> Color.alpha(foreground.getPixel(x, y)) == OPAQUE }
+        val width = generateSequence(middle) { it + 1 }.takeWhile { solid(it, middle) }.count() +
+            generateSequence(middle) { it - 1 }.takeWhile { solid(it, middle) }.count() - 1
+        val height = generateSequence(middle) { it + 1 }.takeWhile { solid(middle, it) }.count() +
+            generateSequence(middle) { it - 1 }.takeWhile { solid(middle, it) }.count() - 1
+        // The game's cup is 40 grid units wide, and 67 + 2 x 7.6 tall from the top of its mouth to the foot of its base.
+        assertEquals(40.0 / 82.2, width.toDouble() / height, 0.01)
     }
 
     @Test
