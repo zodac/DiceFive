@@ -1075,13 +1075,13 @@ private fun rewardList(achievement: Achievement): (@Composable () -> Unit)? {
 
 /**
  * The line naming the modes an achievement can be earned in, or null for one not deliberately limited to some (even if
- * some modes' rules rule it out). Null too once it's earned, for a hidden one (its modes would give it away), and in
- * the Game Modes category, whose descriptions name their mode.
+ * some modes' rules rule it out). Null too once it's earned, for a hidden one (its modes would give it away), and for
+ * one that belongs to a [mode][Achievement.mode], whose description names its modes.
  */
 @Composable
 private fun modeTooltipMessage(achievement: Achievement, unlocked: Boolean): String? {
     val modes = achievement.limitedModes
-    if (modes.isEmpty() || unlocked || achievement.visibility == AchievementVisibility.HIDDEN || achievement.category == AchievementCategory.GAME_MODES) {
+    if (modes.isEmpty() || unlocked || achievement.visibility == AchievementVisibility.HIDDEN || achievement.mode != null) {
         return null
     }
     // Each name kept on one line: "'7" at one line's end and "Dice Stud'" at the next's start reads as two things.

@@ -172,9 +172,9 @@ available. `StyleRegistryTest` keeps the counts within what can be earned.
 - **On the Achievements screen**, a row follows the same rule as Styles: a tap shows a short tooltip, a long press
     opens a dialog. The tooltip **stays until the row is tapped again**, like the game screen's totals tip. It holds,
     in this order, which modes can earn it, for an achievement deliberately kept out of some mode
-    (`Achievement.limitedModes`, from `mode` and `notEarnableIn`), the style reward line and, for a collection row, how
-    many are missing ("Modes with no game finished yet: 4 left"). The dialog says the same, with a collection row's list
-    under it. A row with none of them has no gesture.
+    (`Achievement.limitedModes`, unless it has a `mode`, whose description names its modes), the style reward line and,
+    for a collection row, how many are missing ("Modes with no game finished yet: 4 left"). The dialog says the same,
+    with a collection row's list under it. A row with none of them has no gesture.
     - The mode line always names the modes that can earn it, never those that can't: "Can only be earned in the
         'Standard' and 'Tricolour' modes", however long the list. It leaves out the modes it's kept out of and the ones
         whose rules rule it out (`impossibleIn`). Each mode's name stays on one line.

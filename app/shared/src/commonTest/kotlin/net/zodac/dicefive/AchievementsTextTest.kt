@@ -230,9 +230,10 @@ class AchievementsTextTest : UiTest() {
     fun `a row deliberately kept out of some modes names the rest in a tooltip that stays until tapped again - and in a dialog on a long press`() = uiTest {
         showAchievements(achievementsViewModel())
         fun clickLabelled(label: String) = SemanticsMatcher("clicks to $label") { it.config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label == label }
-        val solidRound = hasText("Solid Round") and clickLabelled("Show which modes can earn this")
-        compose.onNode(hasScrollAction()).performScrollToNode(solidRound)
-        val row = compose.onNode(solidRound)
+        // Encore is guarded in Third Wind and Stud, and D20, Hit List and Quickfire have no 5x box.
+        val encore = hasText("Encore") and clickLabelled("Show which modes can earn this")
+        compose.onNode(hasScrollAction()).performScrollToNode(encore)
+        val row = compose.onNode(encore)
         row.performClick()
         compose.waitForIdle()
         val modes = "Can only be earned in the 'Standard' and 'Tricolour' modes"
@@ -250,15 +251,11 @@ class AchievementsTextTest : UiTest() {
         compose.onNodeWithText("OK").performClick()
         compose.waitForIdle()
 
-        // One kept out of most modes names the few left: Encore is guarded in Third Wind and Stud, and D20, Hit List and
-        // Quickfire have no 5x box.
-        val encore = hasText("Encore") and clickLabelled("Show which modes can earn this")
-        compose.onNode(hasScrollAction()).performScrollToNode(encore)
-        compose.onNode(encore).performClick()
-        compose.waitForIdle()
-        compose.onNodeWithText(modes).assertExists()
-        compose.onNode(encore).performClick()
-        compose.waitForIdle()
+        // The score ladder names its modes in its descriptions, with nothing else to show: no action at all.
+        for (name in listOf("Solid Round", "Sharpshooter", "High Roller", "Dice Deity")) {
+            compose.onNode(hasScrollAction()).performScrollToNode(hasText(name))
+            assertEquals(false, SemanticsActions.OnClick in compose.onNode(hasText(name)).fetchSemanticsNode().config)
+        }
 
         // The Game Modes category names its modes in its descriptions: Nat 20's tip is only the style it unlocks.
         val nat20 = hasText("Nat 20") and clickLabelled("Show which style this unlocks")
