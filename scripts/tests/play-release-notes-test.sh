@@ -82,6 +82,15 @@ check "CRLF line endings are read like LF" "${url}
 • One
 • Two" "$("${script}" "${url}" <<< $'- One\r\n- Two\r')"
 
+# A command substitution strips trailing newlines, so the "x" keeps one visible. Play counts it towards the limit.
+check "the text ends without a newline" "${url}x" "$("${script}" "${url}" <<< "Only prose here."; printf 'x')"
+check "text exactly at the limit ends without a newline" "${url}
+
+• A maintainer bullet
+• Easter Eggs count
+• Well Rolled takes 50,000 dice
+• Arrows glidex" "$(PLAY_NOTES_LIMIT=151 "${script}" "${url}" <<< "${body}"; printf 'x')"
+
 check "a URL longer than the limit fails" "failed" "$(PLAY_NOTES_LIMIT=10 "${script}" "${url}" <<< "- x" 2>/dev/null || echo failed)"
 
 if (( failures > 0 )); then

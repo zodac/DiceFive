@@ -10,7 +10,8 @@
 # The first line is the GitHub release's URL, then a blank line, then every "- " bullet of the description, in order,
 # without its commit link ("[[1f5dd9f2]](https://...) "), as many whole bullets as fit in Play's limit (500 characters
 # per language). A bullet is never cut: the first that doesn't fit, and every bullet after it, become one "..." line,
-# which is always left room for. Fails if the URL alone doesn't fit.
+# which is always left room for. Fails if the URL alone doesn't fit. The text ends without a newline: Play counts one
+# towards the limit.
 #
 # Used by .github/workflows/play-release.yml. PLAY_NOTES_LIMIT overrides the limit (for tests).
 #
@@ -63,4 +64,4 @@ for ((i = 0; i < count; i++)); do
     notes="${candidate}"
 done
 
-printf '%s\n' "${notes}"
+printf '%s' "${notes}"
