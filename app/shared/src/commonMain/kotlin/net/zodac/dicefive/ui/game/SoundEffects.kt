@@ -2,13 +2,14 @@ package net.zodac.dicefive.ui.game
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.concurrent.Volatile
 import kotlinx.coroutines.Dispatchers
@@ -102,8 +103,9 @@ fun rememberSoundEffects(): SoundEffects = LocalSoundEffects.current ?: remember
 fun rememberAppSoundEffects(soundEnabled: Flow<Boolean>): SoundEffects {
     val soundEffects = rememberScopedSoundEffects()
     // Silent until the setting has been read.
-    val enabled by soundEnabled.collectAsState(initial = false)
-    soundEffects.enabled = enabled
+    // Read here, not in the effect: a read inside it wouldn't run it again when the setting changes.
+    val enabled = soundEnabled.collectAsStateWithLifecycle(initialValue = false).value
+    SideEffect { soundEffects.enabled = enabled }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(soundEffects) {
         lifecycle.delayWhileResumed(SOUND_LOAD_DELAY_MILLIS)

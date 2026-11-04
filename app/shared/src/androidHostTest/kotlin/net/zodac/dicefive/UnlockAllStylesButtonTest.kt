@@ -56,12 +56,13 @@ import org.robolectric.annotation.Config
 @Config(qualifiers = "w411dp-h891dp")
 class UnlockAllStylesButtonTest : UiTest() {
 
-    private class FakeStore(initial: StoreState) : Store {
+    private class FakeStore(initial: StoreState, private val sheetOpens: Boolean = true) : Store {
         override val state = MutableStateFlow(initial)
         var buys = 0
 
-        override fun buy() {
+        override fun buy(): Boolean {
             buys++
+            return sheetOpens
         }
     }
 
@@ -135,6 +136,26 @@ class UnlockAllStylesButtonTest : UiTest() {
         compose.onNode(hasText("Continue") and hasClickAction()).performClick()
         compose.onNode(isDialog()).assertDoesNotExist()
         assertEquals(1, store.buys)
+    }
+
+    @Test
+    fun `a sheet that can't open says so in a toast`() = uiTest {
+        val platform = ToastPlatform()
+        show(FakeStore(StoreState.ForSale(price = "£2.99"), sheetOpens = false), platform)
+        compose.onNode(button).performClick()
+        compose.onNode(hasText("Continue") and hasClickAction()).performClick()
+        compose.waitForIdle()
+        assertEquals(listOf("Couldn't open the store. Please try again later."), platform.toasts)
+    }
+
+    @Test
+    fun `a sheet that opens says nothing`() = uiTest {
+        val platform = ToastPlatform()
+        show(FakeStore(StoreState.ForSale(price = "£2.99")), platform)
+        compose.onNode(button).performClick()
+        compose.onNode(hasText("Continue") and hasClickAction()).performClick()
+        compose.waitForIdle()
+        assertEquals(emptyList(), platform.toasts)
     }
 
     @Test

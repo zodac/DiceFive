@@ -99,17 +99,17 @@ class SettingsRowsTest : UiTest() {
 
         // Its confirmation says what it will do - and can be cancelled.
         compose.onNodeWithText("Reset leaderboard").performScrollTo().performClick()
-        compose.onNodeWithText("Reset Leaderboard?").assertIsDisplayed()
+        compose.onNodeWithText("Reset leaderboard?").assertIsDisplayed()
         compose.onNodeWithText(
             "Every recorded score will be deleted, clearing the Leaderboard screen - and Statistics with it, since it's calculated from the same scores. " +
                 "This can't be undone. Achievements and settings are not affected, though any achievement progress measured against the leaderboard will start over.",
         ).assertIsDisplayed()
         compose.onNodeWithText("Reset").assertIsDisplayed()
         compose.onNodeWithText("Cancel").performClick()
-        compose.onNodeWithText("Reset Leaderboard?").assertDoesNotExist()
+        compose.onNodeWithText("Reset leaderboard?").assertDoesNotExist()
 
         achievements.performClick()
-        compose.onNodeWithText("Reset Achievements?").assertIsDisplayed()
+        compose.onNodeWithText("Reset achievements?").assertIsDisplayed()
         compose.onNodeWithText("Every achievement will be locked again and all progress towards them lost. This can't be undone. Your scores and settings are not affected.").assertIsDisplayed()
     }
 }

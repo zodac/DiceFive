@@ -17,7 +17,6 @@
     <string name="game_leave_tutorial_title">¿Salir del tutorial?</string>
     <string name="game_leave_tutorial_message">No se guarda: la próxima vez empezarás desde el principio.</string>
     <string name="game_leave_confirm">Salir</string>
-    <string name="game_leave_dismiss">Cancelar</string>
     <plurals name="game_cup_cd">
         <item quantity="one">Cubilete, queda %1$d tirada</item>
         <item quantity="other">Cubilete, quedan %1$d tiradas</item>
@@ -371,7 +370,8 @@
     <string name="common_back_cd">Atrás</string>
     <string name="common_cancel">Cancelar</string>
     <string name="common_done">Hecho</string>
-    <string name="common_tooltip_show_details_action">Mostrar detalles</string>
+    <string name="common_show_details">Mostrar detalles</string>
+    <string name="common_hide_details">Ocultar detalles</string>
     <string name="common_picker_choose_action">Elegir %1$s</string>
     <string name="common_dropdown_expanded">Desplegado</string>
     <string name="common_dropdown_collapsed">Plegado</string>
@@ -524,7 +524,6 @@
     <string name="gameover_main_menu">Menú principal</string>
     <string name="gameover_play_again">Jugar de nuevo</string>
     <string name="gameover_tutorial_done">¡Has terminado el tutorial! Empieza una partida propia cuando quieras.</string>
-    <string name="gameover_tutorial_close">Hecho</string>
     <string name="gameover_tutorial_new_game">Nueva partida</string>
     <string name="gameover_winner">Ganador</string>
     <string name="common_tied_rank">=%1$d</string>
@@ -683,7 +682,6 @@
     <string name="settings_reset_leaderboard">Restablecer clasificación</string>
     <string name="settings_reset_leaderboard_description">Borra todas las puntuaciones registradas</string>
     <string name="settings_reset_action">Restablecer</string>
-    <string name="settings_reset_confirm">Restablecer</string>
     <string name="settings_reset_achievements_title">¿Restablecer logros?</string>
     <string name="settings_reset_achievements_message">Todos los logros volverán a bloquearse y se perderá todo el progreso hacia ellos. No se puede deshacer. Tus puntuaciones y ajustes no se ven afectados.</string>
     <string name="settings_reset_leaderboard_title">¿Restablecer la clasificación?</string>
@@ -970,6 +968,7 @@
     <string name="styles_unlock_all_dialog_title">Desbloquear todos los estilos</string>
     <string name="styles_unlock_all_dialog_message">Desbloquea todos los estilos al instante, sin necesidad de conseguir logros. Incluye todos los dados, cubiletes, tapetes, fondos, marcos e incluso los colores secretos.\n\nTodos los estilos también se pueden conseguir gratis jugando, y esta aplicación nunca bloqueará nada tras una compra. Es solo un atajo opcional, ¡y una forma de apoyar a %1$s!</string>
     <string name="styles_unlock_all_continue">Continuar</string>
+    <string name="styles_unlock_all_failed">No se pudo abrir la tienda. Inténtalo de nuevo más tarde.</string>
     <string name="styles_gallery_row_action">Mostrar %1$s en una fila</string>
     <string name="styles_gallery_all_action">Mostrar todos: %1$s</string>
     <string name="styles_select_action">Seleccionar</string>
@@ -1007,8 +1006,6 @@
     <string name="stats_delete_message">¿Quieres borrar las estadísticas de %1$s en todos los modos de juego? Sus puntuaciones de la clasificación no se verán afectadas.</string>
     <string name="stats_delete_confirm">Borrar</string>
     <string name="stats_delete_action">Borrar las estadísticas de %1$s</string>
-    <string name="stats_show_action">Mostrar detalles</string>
-    <string name="stats_hide_action">Ocultar detalles</string>
     <string name="stats_expanded_spoken">Desplegado</string>
     <string name="stats_collapsed_spoken">Plegado</string>
     <string name="stats_spoken_best">%1$s. Mejor puntuación: %2$s.</string>
@@ -1261,7 +1258,5 @@
     <string name="common_crash_copy">Copiar detalles</string>
     <string name="common_crash_copied">Copiado</string>
     <string name="common_crash_report">Informar en GitHub</string>
-    <string name="common_crash_show_details">Mostrar detalles</string>
-    <string name="common_crash_hide_details">Ocultar detalles</string>
 
 </resources>

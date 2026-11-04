@@ -94,7 +94,7 @@ import net.zodac.dicefive.resources.stats_expanded_spoken
 import net.zodac.dicefive.resources.stats_first_played
 import net.zodac.dicefive.resources.stats_fives_scored
 import net.zodac.dicefive.resources.stats_games
-import net.zodac.dicefive.resources.stats_hide_action
+import net.zodac.dicefive.resources.common_hide_details
 import net.zodac.dicefive.resources.stats_mode
 import net.zodac.dicefive.resources.stats_no_win_rate
 import net.zodac.dicefive.resources.stats_page_empty
@@ -103,7 +103,7 @@ import net.zodac.dicefive.resources.stats_points
 import net.zodac.dicefive.resources.stats_record_lost
 import net.zodac.dicefive.resources.stats_record_solo
 import net.zodac.dicefive.resources.stats_record_won
-import net.zodac.dicefive.resources.stats_show_action
+import net.zodac.dicefive.resources.common_show_details
 import net.zodac.dicefive.resources.stats_solo
 import net.zodac.dicefive.resources.stats_sort_action
 import net.zodac.dicefive.resources.stats_sort_ascending
@@ -421,7 +421,7 @@ private fun PlayerStatsCardContent(
     if (!built && !expanded && openAhead != null) LaunchedEffect(openAhead) { openAhead.build { built = true } }
     val deleteLabel = stringResource(Res.string.stats_delete_action, player.playerName)
     val spoken = stringResource(Res.string.stats_spoken_best, player.playerName, player.maxScore.grouped())
-    val toggleLabel = stringResource(if (expanded) Res.string.stats_hide_action else Res.string.stats_show_action)
+    val toggleLabel = stringResource(if (expanded) Res.string.common_hide_details else Res.string.common_show_details)
     val stateText = stringResource(if (expanded) Res.string.stats_expanded_spoken else Res.string.stats_collapsed_spoken)
     val reduceMotion = LocalReduceMotion.current
     // The header's height, which a name on two lines makes taller: the delete button centres on it.

@@ -29,7 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.resources.Res
-import net.zodac.dicefive.resources.common_tooltip_show_details_action
+import net.zodac.dicefive.resources.common_show_details
 
 /** What [AppTooltip] shows on request - see [rememberAppTooltipState]; wraps Material's experimental state. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -149,7 +149,7 @@ fun tooltipMarkup(text: String): AnnotatedString {
 @Composable
 fun OnDemandTooltip(message: () -> String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     var armed by remember { mutableStateOf(false) }
-    val showDetailsLabel = stringResource(Res.string.common_tooltip_show_details_action)
+    val showDetailsLabel = stringResource(Res.string.common_show_details)
     // Spoken whether or not it's armed. Read lazily: the block runs when semantics are collected.
     val spoken = Modifier.semantics(mergeDescendants = true) { stateDescription = message().replace("\n", ", ") }
     if (armed) {

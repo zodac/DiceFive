@@ -110,7 +110,7 @@ internal const val CUP_POUR_LEAD_MILLIS = 64L
  * of sitting static. */
 private const val TURN_TIMER_FLASH_SECONDS = 5
 
-/** One full red-to-muted-to-red cycle of the flash, in milliseconds. */
+/** One way of the flash, red to muted or back, in milliseconds. A full flash is twice this: under three a second. */
 private const val TURN_TIMER_FLASH_PERIOD_MILLIS = 300
 
 private val GAME_PADDING = 16.dp

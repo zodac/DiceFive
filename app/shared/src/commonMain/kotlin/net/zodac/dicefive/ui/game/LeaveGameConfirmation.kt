@@ -7,7 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.game_leave_confirm
-import net.zodac.dicefive.resources.game_leave_dismiss
+import net.zodac.dicefive.resources.common_cancel
 import net.zodac.dicefive.resources.game_leave_message
 import net.zodac.dicefive.resources.game_leave_title
 import net.zodac.dicefive.resources.game_leave_tutorial_message
@@ -64,7 +64,7 @@ fun LeaveGameConfirmationDialog(confirmation: LeaveGameConfirmation) {
         message = stringResource(if (confirmation.leavingTutorial) Res.string.game_leave_tutorial_message else Res.string.game_leave_message),
         confirmLabel = stringResource(Res.string.game_leave_confirm),
         onConfirm = confirmation::confirm,
-        dismissLabel = stringResource(Res.string.game_leave_dismiss),
+        dismissLabel = stringResource(Res.string.common_cancel),
         onDismiss = confirmation::dismiss,
         onDismissRequest = confirmation::dismiss,
     )

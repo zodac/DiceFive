@@ -15,8 +15,11 @@ interface Store {
 
     val state: StateFlow<StoreState>
 
-    /** Opens the store's own purchase sheet, while [state] is [StoreState.ForSale] with a price; otherwise does nothing. */
-    fun buy()
+    /**
+     * Opens the store's own purchase sheet, while [state] is [StoreState.ForSale]; otherwise does nothing. False if the
+     * sheet should have opened but couldn't, which the player is told, as the store shows nothing itself.
+     */
+    fun buy(): Boolean
 }
 
 /** What the store says about [ProductKey.UNLOCK_ALL_STYLES] on the player's store account. */

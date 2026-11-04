@@ -237,8 +237,16 @@ are the patterns). Real TalkBack speech can't be checked here; the maintainer kn
 ### Known gaps (say so rather than claim coverage)
 
 - **Rules notation.** "3x"/"5x" are read as written. "pts" is spoken "points", and the example dice are read in full.
-- **System reduced motion** has not been seen on a device.
-- **Large fonts** have never been checked on a device. `ShrinkThenWrapTextTest` pins the sizes chosen.
+- **System reduced motion** has been seen on the emulator (2026-11-04, animator scale 0: the menu's dice stop and a roll
+    still works), not on a phone.
+- **Large fonts** have been checked on the emulator (2026-11-04, 360x800dp), not on a phone. `ShrinkThenWrapTextTest`
+    and `LargeFontFitTest` pin the sizes chosen. **Text that fits a large font is gated on `isLargeFont`, so 100% draws
+    exactly as if the fit weren't there, and it shrinks no further than its size at 100% (`sizeAtNormalFont`; a tab's
+    name alone goes a little under, `UI_BOARD.md`).** So: a tab's name and place, Play's two halves and Achievements'
+    headers (`WholeWordsText`), Styles tile names, and banner descriptions (`ShrinkToLinesText`). Rules' pages stop above
+    their pill at a large font. Still wrong:
+    - at 100%, left as it is: a name of wide letters wraps in a 4-player tab ("SamSamS/a");
+    - at 150%: the group tabs' chevron sits over "Modifiers" as it scrolls off.
     - What adapts:
         - other `maxLines = 1` sites allow two lines;
         - the Scores columns re-split above 1.15x;
@@ -246,8 +254,6 @@ are the patterns). Real TalkBack speech can't be checked here; the maintainer kn
     - Gaps: `ScoreGrid` numbers stay on one line by design, and 11sp `labelSmall` captions remain.
     - On a device, try 130% and 200% with: a 4-player game with 8-character names, the longest banners, Settings, New
         Game, the Leaderboard and Statistics.
-- **Timer flash rate** hasn't been checked against the three-flashes-per-second limit (`TURN_TIMER_FLASH_PERIOD_MILLIS`;
-    it's a colour fade).
 - **Contrast** (dark theme; WCAG 3:1 for graphics, 4.5:1 for text). Only these pairs have been computed:
     - Fine:
         - tile icon on teal: 8.5-12.7:1;
@@ -275,6 +281,8 @@ are the patterns). Real TalkBack speech can't be checked here; the maintainer kn
         the timer's last seconds.
     - Read the value in the draw phase (`graphicsLayer { }`, `drawBehind { }`).
 - **Anything new that loops while nothing is happening** must read `ambientMotion` (see "Reduced motion").
+- **Nothing flashes more than three times a second.** The turn timer's colour fade takes
+    `TURN_TIMER_FLASH_PERIOD_MILLIS` (300ms) each way, so it flashes about 1.7 times a second.
 
 ## Nothing runs in the background
 
@@ -410,8 +418,8 @@ Examples:
 ## Scrollbars
 
 - **Anything that can't show all its content shows a scrollbar**, only while there's more to see: `PageColumn` pages
-    in their right margin, `ScrollingColumn` (a column with its bar in the gutter beside it) for New Game's form, the
-    game screen at its edge, Achievements' list in the page margin, and the missing-numbers list in an achievement's
+    in their right margin, `ScrollingColumn` (a column with its bar in the gutter beside it) for New Game's form and
+    `DiceFiveDialog`'s content, the game screen at its edge, Achievements' list in the page margin, and the missing-numbers list in an achievement's
     details. The tiny score stacks in Third Wind's tiles are the exception: they fade at the edge instead.
 - **Every scrolling thing uses the app's own bars**, never a styled platform scrollbar.
     - Plain scrolling pages (Styles, each Rules page) and the About dialog put a `VerticalScrollbar` in the right margin. The Rules pages share

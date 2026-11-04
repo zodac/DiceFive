@@ -156,7 +156,7 @@ class ProgressFilesSettingsTest : UiTest() {
         val files = PickerFiles()
         show(FilesPlatform(files))
         compose.onNode(hasText("Import progress") and hasClickAction()).performClick()
-        compose.onNodeWithText("Import Progress?").assertExists()
+        compose.onNodeWithText("Import progress?").assertExists()
         val message = compose.onNodeWithText("Choose a file exported", substring = true).fetchSemanticsNode()
             .config[SemanticsProperties.Text].joinToString("") { it.text }
         assertEquals(
@@ -165,7 +165,7 @@ class ProgressFilesSettingsTest : UiTest() {
             message,
         )
         compose.onNodeWithText("Cancel").performClick()
-        compose.onNodeWithText("Import Progress?").assertDoesNotExist()
+        compose.onNodeWithText("Import progress?").assertDoesNotExist()
         compose.waitForIdle()
         assertEquals(0, files.opens)
     }

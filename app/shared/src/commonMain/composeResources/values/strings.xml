@@ -52,7 +52,6 @@
     <string name="game_leave_tutorial_title">Leave the tutorial?</string>
     <string name="game_leave_tutorial_message">It isn't saved: you'll start again from the beginning next time.</string>
     <string name="game_leave_confirm">Leave</string>
-    <string name="game_leave_dismiss">Cancel</string>
 
     <!-- Dice cup (ui/game/DiceCupPanel.kt) -->
     <!-- What TalkBack says for the cup, in place of the "x3" drawn beside it. -->
@@ -490,8 +489,9 @@
     <string name="common_back_cd">Back</string>
     <string name="common_cancel">Cancel</string>
     <string name="common_done">Done</string>
-    <!-- TalkBack's name for a long press on a row that has a tooltip: "Double-tap and hold to show details". -->
-    <string name="common_tooltip_show_details_action">Show details</string>
+    <!-- TalkBack's name for a long press on a row that has a tooltip ("Double-tap and hold to show details") and for tapping a Statistics card, and the crash page's button that opens and closes its details. -->
+    <string name="common_show_details">Show details</string>
+    <string name="common_hide_details">Hide details</string>
     <!-- TalkBack's name for tapping a picker field. %1$s is the picker's title ("Game Mode"). -->
     <string name="common_picker_choose_action">Choose %1$s</string>
     <!-- A drop-down's spoken state, and the option it has picked. -->
@@ -701,7 +701,6 @@
     <string name="gameover_main_menu">Main Menu</string>
     <string name="gameover_play_again">Play Again</string>
     <string name="gameover_tutorial_done">You've finished the tutorial! Start a game of your own whenever you're ready.</string>
-    <string name="gameover_tutorial_close">Done</string>
     <string name="gameover_tutorial_new_game">New Game</string>
     <!-- The winner's card: the trophy icon's name for TalkBack, and the label under their name. -->
     <string name="gameover_winner">Winner</string>
@@ -905,13 +904,11 @@
     <string name="settings_reset_achievements_description">Lock every achievement again</string>
     <string name="settings_reset_leaderboard">Reset leaderboard</string>
     <string name="settings_reset_leaderboard_description">Delete all recorded scores</string>
-    <!-- What a screen reader says a tap on either reset row does (it opens the "are you sure" dialog). -->
+    <!-- What a screen reader says a tap on either reset row does (it opens the "are you sure" dialog), and the red button of both those dialogs. -->
     <string name="settings_reset_action">Reset</string>
-    <!-- The red button of both "are you sure" dialogs. -->
-    <string name="settings_reset_confirm">Reset</string>
-    <string name="settings_reset_achievements_title">Reset Achievements?</string>
+    <string name="settings_reset_achievements_title">Reset achievements?</string>
     <string name="settings_reset_achievements_message">Every achievement will be locked again and all progress towards them lost. This can't be undone. Your scores and settings are not affected.</string>
-    <string name="settings_reset_leaderboard_title">Reset Leaderboard?</string>
+    <string name="settings_reset_leaderboard_title">Reset leaderboard?</string>
     <string name="settings_reset_leaderboard_message">Every recorded score will be deleted, clearing the Leaderboard screen - and Statistics with it, since it's calculated from the same scores. This can't be undone. Achievements and settings are not affected, though any achievement progress measured against the leaderboard will start over.</string>
     <string name="settings_reset_leaderboard_online_note">Scores already sent to %1$s stay there.</string>
     <!-- Progress files, in a build with no online game service (the GitHub APK): the player's own copy of their progress, to keep or carry to another device. -->
@@ -921,7 +918,7 @@
     <string name="settings_import_progress">Import progress</string>
     <!-- What a screen reader says a tap on the import row does (it opens the "are you sure" dialog). -->
     <string name="settings_import_progress_action">Import</string>
-    <string name="settings_import_progress_title">Import Progress?</string>
+    <string name="settings_import_progress_title">Import progress?</string>
     <!-- %1$s is the app's name. Importing merges: achievements and scores are added together; for each setting and the saved game, whichever was changed last wins. -->
     <string name="settings_import_progress_message">Choose a file exported from %1$s. Its achievements and scores are added to this device's, and where both have a setting or a saved game, the newer one is kept. This can't be undone.</string>
     <!-- The dialog's button that opens the system's file picker. -->
@@ -1250,6 +1247,8 @@
     <string name="styles_unlock_all_dialog_message">Unlock every style instantly, without needing to earn achievements. Includes all dice, dice cups, mats, backgrounds, frames, and even secret colours.\n\nAll styles can also be earned for free through gameplay, and this app will never lock anything behind a purchase. This is purely an optional shortcut and a way to support %1$s!</string>
     <!-- Goes on to the store's purchase sheet: nothing is bought yet. -->
     <string name="styles_unlock_all_continue">Continue</string>
+    <!-- A toast: the store's purchase sheet couldn't be opened after Continue, so nothing was bought. -->
+    <string name="styles_unlock_all_failed">Couldn't open the store. Please try again later.</string>
     <string name="styles_gallery_row_action">Show %1$s as a row</string>
     <string name="styles_gallery_all_action">Show all %1$s</string>
     <!-- TalkBack's name for tapping a style, or one of its colours. -->
@@ -1306,9 +1305,6 @@
     <string name="stats_delete_confirm">Delete</string>
     <!-- TalkBack's name for a long press on a player's card. -->
     <string name="stats_delete_action">Delete %1$s's stats</string>
-    <!-- TalkBack's name for tapping a player's card to open or close it. -->
-    <string name="stats_show_action">Show details</string>
-    <string name="stats_hide_action">Hide details</string>
     <string name="stats_expanded_spoken">Expanded</string>
     <string name="stats_collapsed_spoken">Collapsed</string>
     <!-- A player's card read aloud: sentences joined with common_sentences_join. Collapsed it is just this one. -->
@@ -1627,8 +1623,5 @@
     <string name="common_crash_copied">Copied</string>
     <!-- Opens a new issue on the app's GitHub page with the details filled in, for the player to post. GitHub is a brand name. -->
     <string name="common_crash_report">Report on GitHub</string>
-    <!-- Opens and closes the section under it holding the details below (and Copy details). -->
-    <string name="common_crash_show_details">Show details</string>
-    <string name="common_crash_hide_details">Hide details</string>
 
 </resources>

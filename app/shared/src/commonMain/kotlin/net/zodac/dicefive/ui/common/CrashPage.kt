@@ -42,10 +42,10 @@ import net.zodac.dicefive.resources.common_crash_advice
 import net.zodac.dicefive.resources.common_crash_body
 import net.zodac.dicefive.resources.common_crash_copied
 import net.zodac.dicefive.resources.common_crash_copy
-import net.zodac.dicefive.resources.common_crash_hide_details
+import net.zodac.dicefive.resources.common_hide_details
 import net.zodac.dicefive.resources.common_crash_report
 import net.zodac.dicefive.resources.common_crash_restart
-import net.zodac.dicefive.resources.common_crash_show_details
+import net.zodac.dicefive.resources.common_show_details
 import net.zodac.dicefive.resources.common_crash_title
 import net.zodac.dicefive.ui.icons.Symbols
 
@@ -91,7 +91,7 @@ fun CrashPage(details: String, onRestart: () -> Unit, onCopy: () -> Unit, onRepo
         },
     ) {
         TextButton(onClick = { expanded = !expanded }, contentPadding = ButtonDefaults.TextButtonWithIconContentPadding) {
-            Text(stringResource(if (expanded) Res.string.common_crash_hide_details else Res.string.common_crash_show_details))
+            Text(stringResource(if (expanded) Res.string.common_hide_details else Res.string.common_show_details))
             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
             // Turned up while the section is open: the words already say which way it goes, so it isn't spoken.
             Icon(

@@ -18,7 +18,6 @@
     <string name="game_leave_tutorial_title">مغادرة الدرس التعليمي؟</string>
     <string name="game_leave_tutorial_message">لا يُحفظ الدرس: ستبدأ من البداية في المرة القادمة.</string>
     <string name="game_leave_confirm">مغادرة</string>
-    <string name="game_leave_dismiss">إلغاء</string>
     <plurals name="game_cup_cd">
         <item quantity="zero">كأس النرد، %1$d رمية متبقية</item>
         <item quantity="one">كأس النرد، %1$d رمية متبقية</item>
@@ -428,7 +427,8 @@
     <string name="common_back_cd">رجوع</string>
     <string name="common_cancel">إلغاء</string>
     <string name="common_done">تم</string>
-    <string name="common_tooltip_show_details_action">عرض التفاصيل</string>
+    <string name="common_show_details">عرض التفاصيل</string>
+    <string name="common_hide_details">إخفاء التفاصيل</string>
     <string name="common_picker_choose_action">اختيار %1$s</string>
     <string name="common_dropdown_expanded">موسّع</string>
     <string name="common_dropdown_collapsed">مطوي</string>
@@ -609,7 +609,6 @@
     <string name="gameover_main_menu">القائمة الرئيسية</string>
     <string name="gameover_play_again">العب مرة أخرى</string>
     <string name="gameover_tutorial_done">أنهيت الدرس التعليمي! ابدأ لعبتك الخاصة متى شئت.</string>
-    <string name="gameover_tutorial_close">تم</string>
     <string name="gameover_tutorial_new_game">لعبة جديدة</string>
     <string name="gameover_winner">الفائز</string>
     <string name="common_tied_rank">=%1$d</string>
@@ -772,7 +771,6 @@
     <string name="settings_reset_leaderboard">إعادة ضبط لوحة المتصدرين</string>
     <string name="settings_reset_leaderboard_description">احذف كل النتائج المسجّلة</string>
     <string name="settings_reset_action">إعادة ضبط</string>
-    <string name="settings_reset_confirm">إعادة ضبط</string>
     <string name="settings_reset_achievements_title">إعادة ضبط الإنجازات؟</string>
     <string name="settings_reset_achievements_message">سيُقفل كل إنجاز من جديد ويضيع كل التقدّم نحوها. لا يمكن التراجع عن هذا. لن تتأثر نتائجك ولا إعداداتك.</string>
     <string name="settings_reset_leaderboard_title">إعادة ضبط لوحة المتصدرين؟</string>
@@ -1071,6 +1069,7 @@
     <string name="styles_unlock_all_dialog_title">فتح كل الأنماط</string>
     <string name="styles_unlock_all_dialog_message">افتح كل الأنماط فورًا، دون الحاجة إلى كسب الإنجازات. يشمل ذلك كل أنماط النرد وكؤوس النرد والحصائر والخلفيات والإطارات، وحتى الألوان السرية.\n\nيمكن أيضًا كسب كل الأنماط مجانًا من خلال اللعب، ولن يحجب هذا التطبيق أي شيء خلف عملية شراء أبدًا. هذا مجرد اختصار اختياري ووسيلة لدعم %1$s!</string>
     <string name="styles_unlock_all_continue">متابعة</string>
+    <string name="styles_unlock_all_failed">تعذّر فتح المتجر. يُرجى المحاولة مرة أخرى لاحقًا.</string>
     <string name="styles_gallery_row_action">عرض %1$s في صف</string>
     <string name="styles_gallery_all_action">عرض كل %1$s</string>
     <string name="styles_select_action">اختيار</string>
@@ -1108,8 +1107,6 @@
     <string name="stats_delete_message">هل تريد حذف إحصائيات %1$s في جميع أنماط اللعب؟ لن تتأثر نتائجه في لوحة المتصدرين.</string>
     <string name="stats_delete_confirm">حذف</string>
     <string name="stats_delete_action">حذف إحصائيات %1$s</string>
-    <string name="stats_show_action">عرض التفاصيل</string>
-    <string name="stats_hide_action">إخفاء التفاصيل</string>
     <string name="stats_expanded_spoken">موسّع</string>
     <string name="stats_collapsed_spoken">مطوي</string>
     <string name="stats_spoken_best">%1$s. أفضل نتيجة %2$s.</string>
@@ -1395,7 +1392,5 @@
     <string name="common_crash_copy">نسخ التفاصيل</string>
     <string name="common_crash_copied">تم النسخ</string>
     <string name="common_crash_report">الإبلاغ عبر GitHub</string>
-    <string name="common_crash_show_details">إظهار التفاصيل</string>
-    <string name="common_crash_hide_details">إخفاء التفاصيل</string>
 
 </resources>

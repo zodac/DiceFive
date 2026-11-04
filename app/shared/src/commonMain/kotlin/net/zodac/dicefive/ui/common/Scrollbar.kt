@@ -457,12 +457,18 @@ private val SCROLLING_COLUMN_GUTTER = 20.dp
 fun ScrollingColumn(
     modifier: Modifier = Modifier,
     verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     gutter: Dp = SCROLLING_COLUMN_GUTTER,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val scroll = rememberScrollState()
     Box(modifier = modifier) {
-        Column(modifier = Modifier.fillMaxWidth().verticalScroll(scroll), verticalArrangement = verticalArrangement, content = content)
+        Column(
+            modifier = Modifier.fillMaxWidth().verticalScroll(scroll),
+            verticalArrangement = verticalArrangement,
+            horizontalAlignment = horizontalAlignment,
+            content = content,
+        )
         // As tall as the column's viewport, not the room it was offered.
         Box(modifier = Modifier.matchParentSize(), contentAlignment = Alignment.TopEnd) {
             VerticalScrollbar(scroll, width = gutter, modifier = Modifier.offset(x = gutter))

@@ -664,7 +664,7 @@ Two apps from one source, one per way the app reaches players: product flavours 
     - Named `DiceFive-<yyyy-MM-dd>.dicefive` (the player's day). Tests: `ProgressFileCodecTest`, `ProgressTransferTest`,
         `ProgressFilesViewModelTest`, `ProgressFilesSettingsTest`.
 - **Settings card** (`ProgressFilesCard`): Export progress and Import progress, each a whole-row button (a compact
-    `SettingRow`, its label alone), where the online card would be. Import asks first ("Import Progress?"). Under the
+    `SettingRow`, its label alone), where the online card would be. Import asks first ("Import progress?"). Under the
     rows, while an import runs, its step and count over a bar, drawn by the same `StepProgress` as the online card's
     sync ("Opening the file", then the same four merge steps, `MergeStep`, named the same: `MergeStepTest` keeps the two
     flows in step), for at least 1s (`IMPORT_SHOWN_MILLIS`, shared out between the steps, so a quick import's bar still

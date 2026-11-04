@@ -11,6 +11,7 @@ What the player gets:
 - Once bought, every style and colour is usable, Easter eggs included. Achievement banners still pop; **styles
     banners stop** (there is nothing left to unlock).
 - A reinstall or a new phone gets it back automatically (no Restore button on Android).
+- If Play's sheet can't open after Continue, a toast says so (`styles_unlock_all_failed`), and nothing is bought.
 
 Researched October 2026 (Play Billing Library 9.1.0). Re-check the console paths when starting: Google renamed "in-app
 products" to "one-time products" in 2025 and moves menus often.

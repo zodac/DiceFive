@@ -52,7 +52,7 @@ import net.zodac.dicefive.resources.gameover_main_menu
 import net.zodac.dicefive.resources.gameover_play_again
 import net.zodac.dicefive.resources.gameover_review
 import net.zodac.dicefive.resources.gameover_title
-import net.zodac.dicefive.resources.gameover_tutorial_close
+import net.zodac.dicefive.resources.common_done
 import net.zodac.dicefive.resources.gameover_tutorial_done
 import net.zodac.dicefive.resources.gameover_tutorial_new_game
 import net.zodac.dicefive.resources.gameover_winner
@@ -203,7 +203,7 @@ fun GameOverScreen(
                                     onClick = onBackToMenu,
                                     modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                                 ) {
-                                    Text(text = stringResource(if (tutorialFinished) Res.string.gameover_tutorial_close else Res.string.gameover_main_menu), style = MaterialTheme.typography.titleMedium)
+                                    Text(text = stringResource(if (tutorialFinished) Res.string.common_done else Res.string.gameover_main_menu), style = MaterialTheme.typography.titleMedium)
                                 }
                                 Button(
                                     onClick = onPlayAgain,

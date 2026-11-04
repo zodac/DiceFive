@@ -1,12 +1,13 @@
 package net.zodac.dicefive.ui.game
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.platform.HapticEffect
 import net.zodac.dicefive.platform.HapticsPlayer
 import kotlinx.coroutines.flow.Flow
@@ -57,8 +58,9 @@ fun rememberDiceHaptics(): DiceHaptics = LocalDiceHaptics.current ?: rememberSco
 fun rememberAppHaptics(vibrationEnabled: Flow<Boolean>): DiceHaptics {
     val haptics = rememberScopedDiceHaptics()
     // Still until the setting has been read.
-    val enabled by vibrationEnabled.collectAsState(initial = false)
-    haptics.enabled = enabled
+    // Read here, not in the effect: a read inside it wouldn't run it again when the setting changes.
+    val enabled = vibrationEnabled.collectAsStateWithLifecycle(initialValue = false).value
+    SideEffect { haptics.enabled = enabled }
     return haptics
 }
 

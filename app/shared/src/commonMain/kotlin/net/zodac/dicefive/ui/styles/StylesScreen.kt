@@ -74,6 +74,7 @@ import net.zodac.dicefive.resources.styles_unlock_all
 import net.zodac.dicefive.resources.styles_unlock_all_continue
 import net.zodac.dicefive.resources.styles_unlock_all_dialog_message
 import net.zodac.dicefive.resources.styles_unlock_all_dialog_title
+import net.zodac.dicefive.resources.styles_unlock_all_failed
 import net.zodac.dicefive.resources.styles_unlock_all_spoken
 import net.zodac.dicefive.resources.styles_unlocked_count
 import net.zodac.dicefive.resources.styles_unlocked_count_short
@@ -160,6 +161,7 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
     val store = LocalStore.current
     val storeState by store.state.collectAsStateWithLifecycle()
     val allUnlocked by rememberUpdatedState(stringResource(Res.string.styles_all_unlocked))
+    val buyFailed = stringResource(Res.string.styles_unlock_all_failed)
     LaunchedEffect(store) {
         var before = store.state.value
         store.state.collect { state ->
@@ -175,7 +177,7 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
         onUnlockedOnlyChange = { tappedUnlockedOnly = it; viewModel.setUnlockedOnly(it) },
         onUnlockedCountTap = viewModel::onUnlockedCountTapped,
         storeState = storeState,
-        onBuy = store::buy,
+        onBuy = { if (!store.buy()) platform.showTransientMessage(buyFailed) },
         onBack = onBack,
         onSelect = { category -> { id -> viewModel.setStyleId(category, id) } },
         modifier = modifier,

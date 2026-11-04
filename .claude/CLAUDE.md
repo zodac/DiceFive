@@ -155,5 +155,5 @@ and limit; read a whole doc only when the change spans it.
 | `.claude/STORE_ASSETS.md` | Changing store screenshots, scenes, captions or the video, and the generator traps |
 | `.claude/PUBLISHING.md` | Play Store submission checklist, the app's licence and third-party licence scope |
 | `.claude/PLAY_GAMES.md` | Anything touching Google Play Games Services: sign-in, achievement mirror, leaderboards, cloud save, Sidekick |
-| `.claude/PURCHASES.md` | The planned "Unlock all styles" purchase: Play Billing, the entitlement, the Styles button, the maintainer's Play Console steps, in phases |
+| `.claude/PURCHASES.md` | The "Unlock all styles" purchase: Play Billing, the entitlement, the Styles button, the maintainer's Play Console steps, in phases |
 | `.claude/MULTIPLATFORM.md` | Module layout and platform seams, KMP gotchas |

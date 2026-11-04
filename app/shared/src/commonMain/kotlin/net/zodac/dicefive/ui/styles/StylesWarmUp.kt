@@ -43,12 +43,14 @@ internal data class PageFit(val key: PageFitKey, val scale: Float) {
     fun encode(): String = "${key.window.width}x${key.window.height}:${key.density}:${key.fontScale}=$scale"
 
     companion object {
-        fun decode(saved: String?): PageFit? = runCatching {
-            val (screen, scale) = saved!!.split("=")
-            val (window, density, fontScale) = screen.split(":")
-            val (width, height) = window.split("x")
-            PageFit(PageFitKey(IntSize(width.toInt(), height.toInt()), density.toFloat(), fontScale.toFloat()), scale.toFloat())
-        }.getOrNull()
+        fun decode(saved: String?): PageFit? = saved?.let {
+            runCatching {
+                val (screen, scale) = it.split("=")
+                val (window, density, fontScale) = screen.split(":")
+                val (width, height) = window.split("x")
+                PageFit(PageFitKey(IntSize(width.toInt(), height.toInt()), density.toFloat(), fontScale.toFloat()), scale.toFloat())
+            }.getOrNull()
+        }
     }
 }
 

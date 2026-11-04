@@ -68,7 +68,6 @@ import net.zodac.dicefive.resources.settings_reset_achievements_description
 import net.zodac.dicefive.resources.settings_reset_achievements_message
 import net.zodac.dicefive.resources.settings_reset_achievements_title
 import net.zodac.dicefive.resources.settings_reset_action
-import net.zodac.dicefive.resources.settings_reset_confirm
 import net.zodac.dicefive.resources.settings_reset_leaderboard
 import net.zodac.dicefive.resources.settings_reset_leaderboard_description
 import net.zodac.dicefive.resources.settings_reset_leaderboard_message
@@ -483,7 +482,7 @@ fun SettingsScreen(
             icon = Symbols.RestartAlt,
             title = stringResource(Res.string.settings_reset_achievements_title),
             message = stringResource(Res.string.settings_reset_achievements_message),
-            confirmLabel = stringResource(Res.string.settings_reset_confirm),
+            confirmLabel = stringResource(Res.string.settings_reset_action),
             onConfirm = {
                 viewModel.resetAchievements()
                 showResetAchievementsConfirmation = false
@@ -519,7 +518,7 @@ fun SettingsScreen(
             icon = Symbols.RestartAlt,
             title = stringResource(Res.string.settings_reset_leaderboard_title),
             message = if (signedIn) "$message ${stringResource(Res.string.settings_reset_leaderboard_online_note, gameServices.serviceName)}" else message,
-            confirmLabel = stringResource(Res.string.settings_reset_confirm),
+            confirmLabel = stringResource(Res.string.settings_reset_action),
             onConfirm = {
                 viewModel.resetLeaderboard()
                 showResetLeaderboardConfirmation = false

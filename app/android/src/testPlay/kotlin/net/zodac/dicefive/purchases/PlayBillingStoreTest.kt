@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import androidx.activity.ComponentActivity
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.Purchase
 import java.security.KeyPair
 import java.security.KeyPairGenerator
@@ -62,6 +63,15 @@ class PlayBillingStoreTest {
         assertTrue(permissions.contains("com.android.vending.BILLING"))
         assertFalse(permissions.contains("android.permission.INTERNET"))
         assertFalse(permissions.contains("android.permission.ACCESS_NETWORK_STATE"))
+    }
+
+    @Test
+    fun `opening the purchase sheet needs a word to the player unless it opened or the product is already owned`() {
+        assertTrue(PlayBillingStore.sheetAnswered(BillingClient.BillingResponseCode.OK))
+        assertTrue(PlayBillingStore.sheetAnswered(BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED))
+        assertFalse(PlayBillingStore.sheetAnswered(BillingClient.BillingResponseCode.SERVICE_UNAVAILABLE))
+        assertFalse(PlayBillingStore.sheetAnswered(BillingClient.BillingResponseCode.BILLING_UNAVAILABLE))
+        assertFalse(PlayBillingStore.sheetAnswered(BillingClient.BillingResponseCode.ERROR))
     }
 
     @Test

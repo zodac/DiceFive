@@ -1,11 +1,8 @@
 package net.zodac.dicefive.ui.common
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
@@ -134,7 +131,8 @@ fun DiceFiveDialog(
         },
         text = {
             // Scrolls rather than being cut off when it can't fit: a large font on a small phone. M3 doesn't scroll it.
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.verticalScroll(rememberScrollState())) {
+            // Its bar sits in the dialog's own side padding, so the text keeps its width either way.
+            ScrollingColumn(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodyMedium,

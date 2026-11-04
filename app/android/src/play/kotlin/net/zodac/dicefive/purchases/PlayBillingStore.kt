@@ -112,11 +112,11 @@ class PlayBillingStore private constructor(application: Application) : Store {
         )
     }
 
-    override fun buy() {
-        val activity = activity?.get() ?: return
-        val details = productDetails ?: return
-        val offer = details.oneTimePurchaseOfferDetails ?: return
-        if (mutableState.value !is StoreState.ForSale) return
+    override fun buy(): Boolean {
+        if (mutableState.value !is StoreState.ForSale) return true
+        val activity = activity?.get() ?: return false
+        val details = productDetails ?: return false
+        val offer = details.oneTimePurchaseOfferDetails ?: return false
         val product = BillingFlowParams.ProductDetailsParams.newBuilder()
             .setProductDetails(details)
             .apply { offer.offerToken?.let(::setOfferToken) }
@@ -128,6 +128,7 @@ class PlayBillingStore private constructor(application: Application) : Store {
             BillingResponseCode.ITEM_ALREADY_OWNED -> requestRefresh()
             else -> failed("launchBillingFlow", result)
         }
+        return sheetAnswered(result.responseCode)
     }
 
     /** A purchase made in Play's sheet, or a pending one completing, while the app is running. */
@@ -240,6 +241,9 @@ class PlayBillingStore private constructor(application: Application) : Store {
                 packageManager.queryIntentServices(intent, 0)
             }.isNotEmpty()
         }.getOrDefault(false)
+
+        /** Whether [responseCode] from opening the purchase sheet needs no word to the player: it opened, or the product is already owned. */
+        internal fun sheetAnswered(responseCode: Int): Boolean = responseCode == BillingResponseCode.OK || responseCode == BillingResponseCode.ITEM_ALREADY_OWNED
 
         /** [purchase] (null: none) of [ProductKey.UNLOCK_ALL_STYLES] as a [StoreState], offered at [price] if not paid for. */
         internal fun storeState(purchase: Purchase?, price: String?): StoreState = when (purchase?.purchaseState) {

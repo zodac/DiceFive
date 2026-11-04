@@ -8,5 +8,5 @@ object NoStore : Store {
 
     override val state: StateFlow<StoreState> = MutableStateFlow(StoreState.Unavailable)
 
-    override fun buy() = Unit
+    override fun buy() = true
 }

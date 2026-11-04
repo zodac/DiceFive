@@ -98,6 +98,6 @@ class PurchasesRepositoryTest {
     private class FakeStore(initial: StoreState) : Store {
         override val state = MutableStateFlow(initial)
 
-        override fun buy() = Unit
+        override fun buy() = true
     }
 }
