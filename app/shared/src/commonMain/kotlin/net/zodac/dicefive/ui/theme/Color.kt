@@ -66,14 +66,15 @@ val OnErrorContainer = Color(0xFFF9DEDC)
 // ui.style, which is the layer to swap out for alternate dice/cup/background art. These are
 // deliberately NOT colour roles - the board is a rendered object, not app chrome, and it looks
 // the same whichever theme the app is in.
+// The felt's colours are shared with the launcher icon's (ic_launcher_background.xml): change them together.
+val FeltNavyGlow = Color(0xFF2A5590)
 val FeltNavyTop = Color(0xFF1C3D66)
 val FeltNavyBottom = Color(0xFF0B1E3A)
-// A muted slate blue, not a saturated one: it was 0xFF3574C4..0xFF123765 until Tricolour's blue die
-// (TricolourBlueDiceTop/Bottom) turned up, and the two were nearly the same colour - a blue die sat
-// on the default mat like a hole in it. Still the table's navy family, just greyer and darker, so
-// every die colour (ivory, fire, red/yellow/blue) now stands off it.
-val TrayBlueTop = Color(0xFF3E5670)
-val TrayBlueBottom = Color(0xFF16222F)
+// Deeper than the launcher icon's mat is lit, and darker than Tricolour's blue die (TricolourBlueDiceTop/Bottom) at
+// its top: a brighter blue (0xFF3574C4..0xFF123765, once) sat under a blue die like a hole in the mat.
+val TrayBlueTop = Color(0xFF2A62A8)
+val TrayBlueBottom = Color(0xFF13315F)
+val TrayBlueRing = Color(0xFFE6C278)
 
 val TileTealTop = Color(0xFF234B47)
 val TileTealBottom = Color(0xFF122E2B)

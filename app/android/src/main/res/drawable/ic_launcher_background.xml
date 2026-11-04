@@ -7,7 +7,9 @@
 
     <!--
       The default table the cup stands on: navy felt, the blue mat with a gold ring, and the cup's
-      shadow on the mat. Only the middle 72 of the 108 units show and the cup hides the centre, so the
+      shadow on the mat. The felt and the mat's outer colours are the game's own (FeltNavyGlow,
+      FeltNavyTop, FeltNavyBottom, TrayBlueBottom, and TrayBlueRing in Color.kt; LauncherIconTest holds
+      them to it). Only the middle 72 of the 108 units show and the cup hides the centre, so the
       felt's light sits above the cup's rim, where it shows between the dice. The felt runs to every
       edge of the canvas, because launchers move this layer about in the outer ring. The ring's top
       edge passes under the lowest die (the 2) without touching it.
@@ -21,9 +23,9 @@
                 android:centerX="54"
                 android:centerY="32"
                 android:gradientRadius="56">
-                <item android:offset="0" android:color="#3A6FB5" />
-                <item android:offset="0.55" android:color="#1C3D6E" />
-                <item android:offset="1" android:color="#0F2A50" />
+                <item android:offset="0" android:color="#2A5590" />
+                <item android:offset="0.55" android:color="#1C3D66" />
+                <item android:offset="1" android:color="#0B1E3A" />
             </gradient>
         </aapt:attr>
     </path>
@@ -36,9 +38,9 @@
                 android:centerX="54"
                 android:centerY="86"
                 android:gradientRadius="40">
-                <item android:offset="0" android:color="#3F86D8" />
-                <item android:offset="0.65" android:color="#2660AA" />
-                <item android:offset="1" android:color="#1A4684" />
+                <item android:offset="0" android:color="#2F6EBB" />
+                <item android:offset="0.65" android:color="#1F4F8F" />
+                <item android:offset="1" android:color="#13315F" />
             </gradient>
         </aapt:attr>
     </path>

@@ -528,7 +528,8 @@ Each category is two lists in the same order:
         viewer. Its three rocks roll with the water's lagging tilt, and its fronds lean back against the bowl's tilt and
         swing with the slosh.
 - **The Classic family** comes first in every category and is free. Its first colour is the default: ivory dice, the
-    gold casino shaker (the launcher icon's cup), the blue mat, navy felt, a plain ring.
+    gold casino shaker (the launcher icon's cup), the blue mat with the icon's gold ring, the icon's lit navy felt, a
+    plain ring.
 - **Locks.** Every other family is locked behind an achievement count (`StyleUnlock.AchievementCount`) or a specific
     achievement (`SpecificAchievement`, `AnyAchievement`).
     - A colour can also be secret (`StyleVariant.secretAchievement`): not offered at all until earned.

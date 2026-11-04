@@ -226,9 +226,9 @@ private fun TableBackdrop() {
         val h = size.height
         drawRect(
             Brush.radialGradient(
-                0f to Color(0xFF3A6FB5),
-                0.55f to Color(0xFF1C3D6E),
-                1f to Color(0xFF0F2A50),
+                0f to Color(0xFF2A5590),
+                0.55f to Color(0xFF1C3D66),
+                1f to Color(0xFF0B1E3A),
                 center = Offset(w * 0.42f, h * 0.10f),
                 radius = w * 0.78f,
             ),
@@ -239,9 +239,9 @@ private fun TableBackdrop() {
         val mat = Size(radiusX * 2, radiusY * 2)
         drawOval(
             Brush.radialGradient(
-                0f to Color(0xFF3F86D8),
-                0.65f to Color(0xFF2660AA),
-                1f to Color(0xFF1A4684),
+                0f to Color(0xFF2F6EBB),
+                0.65f to Color(0xFF1F4F8F),
+                1f to Color(0xFF13315F),
                 center = Offset(w * 0.79f, h * 0.42f),
                 radius = maxOf(radiusX, radiusY) * 0.9f,
             ),

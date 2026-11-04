@@ -4,9 +4,13 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.AdaptiveIconDrawable
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.ContextCompat
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import net.zodac.dicefive.ui.theme.FeltNavyBottom
+import net.zodac.dicefive.ui.theme.FeltNavyGlow
+import net.zodac.dicefive.ui.theme.TrayBlueBottom
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -54,6 +58,21 @@ class LauncherIconTest {
             Color.red(pixel) > Color.blue(pixel)
         }
         assertTrue("Gold pixels: $gold", gold > 0)
+    }
+
+    @Test
+    fun `the felt and the mat's edge are the game's own colours`() {
+        val background = render(R.drawable.ic_launcher_background)
+        fun assertAt(expected: androidx.compose.ui.graphics.Color, x: Int, y: Int) {
+            val pixel = background.getPixel(x * PIXELS_PER_UNIT, y * PIXELS_PER_UNIT)
+            val wanted = expected.toArgb()
+            listOf(Color::red, Color::green, Color::blue).forEach { channel ->
+                assertEquals("($x, $y) is #${Integer.toHexString(pixel)}", channel(wanted).toDouble(), channel(pixel).toDouble(), COLOUR_TOLERANCE)
+            }
+        }
+        assertAt(FeltNavyGlow, FELT_LIGHT_X, FELT_LIGHT_Y) // The light's centre.
+        assertAt(FeltNavyBottom, 0, 0) // Beyond the light's reach.
+        assertAt(TrayBlueBottom, MAT_EDGE_X, MAT_EDGE_Y) // Beyond the mat's own gradient, clear of the cup's shadow.
     }
 
     @Test
@@ -117,5 +136,10 @@ class LauncherIconTest {
         const val CANVAS_UNITS = 108
         const val PIXELS_PER_UNIT = 10
         const val OPAQUE = 255
+        const val COLOUR_TOLERANCE = 4.0
+        const val FELT_LIGHT_X = 54
+        const val FELT_LIGHT_Y = 32
+        const val MAT_EDGE_X = 10
+        const val MAT_EDGE_Y = 93
     }
 }
