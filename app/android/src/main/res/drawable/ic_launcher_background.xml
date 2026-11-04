@@ -1,0 +1,73 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!--
+      The default table the cup stands on: navy felt, the blue mat with a gold ring, and the cup's
+      shadow on the mat. Only the middle 72 of the 108 units show and the cup hides the centre, so the
+      felt's light sits above the cup's rim, where it shows between the dice. The felt runs to every
+      edge of the canvas, because launchers move this layer about in the outer ring. The ring's top
+      edge passes under the lowest die (the 2) without touching it.
+    -->
+
+    <!-- The felt, lit from above the cup. -->
+    <path android:pathData="M0,0 H108 V108 H0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="54"
+                android:centerY="32"
+                android:gradientRadius="56">
+                <item android:offset="0" android:color="#3A6FB5" />
+                <item android:offset="0.55" android:color="#1C3D6E" />
+                <item android:offset="1" android:color="#0F2A50" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- The mat, seen from the same raised angle as the cup. -->
+    <path android:pathData="M2,93 a52,17 0 1,0 104,0 a52,17 0 1,0 -104,0 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="54"
+                android:centerY="86"
+                android:gradientRadius="40">
+                <item android:offset="0" android:color="#3F86D8" />
+                <item android:offset="0.65" android:color="#2660AA" />
+                <item android:offset="1" android:color="#1A4684" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- The mat's gold ring. -->
+    <path
+        android:pathData="M2,93 a52,17 0 1,0 104,0 a52,17 0 1,0 -104,0 z"
+        android:strokeColor="#E6C278"
+        android:strokeWidth="1" />
+
+    <!-- The mat darkening under the cup: a circle's soft falloff, squashed flat. The foreground adds
+         the cup's own contact shadow on top. -->
+    <group
+        android:pivotX="54"
+        android:pivotY="84"
+        android:scaleY="0.3">
+        <path android:pathData="M28,84 a26,26 0 1,0 52,0 a26,26 0 1,0 -52,0 z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="54"
+                    android:centerY="84"
+                    android:gradientRadius="26">
+                    <item android:offset="0" android:color="#AA000000" />
+                    <item android:offset="0.6" android:color="#77000000" />
+                    <item android:offset="1" android:color="#00000000" />
+                </gradient>
+            </aapt:attr>
+        </path>
+    </group>
+
+</vector>

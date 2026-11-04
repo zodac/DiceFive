@@ -526,6 +526,9 @@ Leaderboard's Combined board.
     - `ic_launcher_monochrome.xml` (the themed icon) is a flat silhouette: pips and band are even-odd cut-outs, and its
         geometry is copied from the foreground. Change the two together.
     - `ic_launcher.xml` is the only wrapper (`roundIcon` too).
+    - The icon's depth lives in its layers. `ic_launcher_background.xml` is the table (lit felt, the blue mat and its
+        gold ring), opaque to every edge of the canvas. The foreground's cup and dice are shaded by one light from the top
+        left, with each die's gradient and shadow worked back through its rotation. The flat themed icon has none of it.
 
 ## Verifying UI work
 

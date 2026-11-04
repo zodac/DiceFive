@@ -65,8 +65,14 @@
       "freesound-140147"
     ]
   },
+  "app/android/src/main/res/drawable/ic_launcher_background.xml": {
+    "description": "Launcher icon background layer: navy felt, the blue mat, and its gold ring",
+    "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01FqpTvMHx2Fya7M6gpTXGHJ",
+    "copyright": "Copyright 2026 zodac.net",
+    "license": "LicenseRef-DiceFive-AllRightsReserved"
+  },
   "app/android/src/main/res/drawable/ic_launcher_foreground.xml": {
-    "description": "Launcher icon artwork (cup and dice); reworked in 4e44b46 (session 01URv4Rg19E1Tk4yPwdUtKKK) and fac9caf",
+    "description": "Launcher icon artwork (cup and dice); reworked in 4e44b46 (session 01URv4Rg19E1Tk4yPwdUtKKK) and fac9caf; shaded in session 01FqpTvMHx2Fya7M6gpTXGHJ",
     "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01XHKZahXD9TiHU4GnGuV2FB (commit 67eae6c)",
     "copyright": "Copyright 2026 zodac.net",
     "license": "LicenseRef-DiceFive-AllRightsReserved"
@@ -78,7 +84,7 @@
     "license": "LicenseRef-DiceFive-AllRightsReserved"
   },
   "app/android/src/main/res/mipmap-anydpi/ic_launcher.xml": {
-    "description": "Adaptive launcher icon wrapper around ic_launcher_foreground and ic_launcher_monochrome",
+    "description": "Adaptive launcher icon wrapper around ic_launcher_background, ic_launcher_foreground, and ic_launcher_monochrome",
     "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01XHKZahXD9TiHU4GnGuV2FB (commit 67eae6c)",
     "copyright": "Copyright 2026 zodac.net",
     "license": "LicenseRef-DiceFive-AllRightsReserved"

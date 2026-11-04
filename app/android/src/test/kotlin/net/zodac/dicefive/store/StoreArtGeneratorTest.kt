@@ -65,7 +65,7 @@ class StoreArtGeneratorTest {
     val compose = createComposeRule()
 
     /**
-     * The adaptive icon - its background colour and foreground, nothing else - close to how a launcher shows it: the
+     * The adaptive icon - its background and foreground layers, nothing else - close to how a launcher shows it: the
      * middle of its 108dp canvas fills the square - 76dp, a little more than the 72dp a launcher shows, for a margin
      * inside Play's rounded corners (the outer ring is only there for launchers to move it about in). Drawing the
      * whole canvas instead leaves the artwork a third smaller than on the phone. Play masks the square
@@ -78,11 +78,12 @@ class StoreArtGeneratorTest {
         val size = ICON_PIXELS * SUPERSAMPLE
         val icon = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(icon)
-        canvas.drawColor(ContextCompat.getColor(context, R.color.ic_launcher_background))
-        val foreground = checkNotNull(ContextCompat.getDrawable(context, R.drawable.ic_launcher_foreground))
         val bleed = size * (ADAPTIVE_CANVAS_DP - VISIBLE_DP) / VISIBLE_DP / 2
-        foreground.setBounds(-bleed, -bleed, size + bleed, size + bleed)
-        foreground.draw(canvas)
+        listOf(R.drawable.ic_launcher_background, R.drawable.ic_launcher_foreground).forEach { layer ->
+            val drawable = checkNotNull(ContextCompat.getDrawable(context, layer))
+            drawable.setBounds(-bleed, -bleed, size + bleed, size + bleed)
+            drawable.draw(canvas)
+        }
         StoreAssets.save(icon, File(StoreAssets.outDir, "icon.png"))
     }
 
