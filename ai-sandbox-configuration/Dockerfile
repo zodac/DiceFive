@@ -242,6 +242,9 @@ RUN set -eux; \
 # /var/lib/apt is NOT a cache mount here: it holds apt's manual/auto marks, which
 # must start from the base's own for the list to be right.
 #
+# Nothing else installs five of these, and bin/emulator.sh's emulator links against them: libnss3, libnspr4, libxkbfile1,
+# libice6, and libsm6 (checked 2026-11-04). Removing this stage breaks the emulator unless they're installed another way.
+#
 # The project declares no Playwright; a session that wants a headless browser (e.g.
 # to screenshot an HTML preview) runs `npx playwright@<this version> install
 # chromium` itself. The browser BINARY stays out of the image (it lands in the
