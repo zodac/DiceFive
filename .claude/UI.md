@@ -330,7 +330,8 @@ in Settings, between the switches and the resets.
 - The cap skips whole refreshes: a 60 cap gives 45 on 90Hz. So a capped level also asks the window for the lowest
     refresh rate of at least 60Hz (`preferRefreshRateFor`, `RefreshRateTest`). Never below 60Hz, so touch stays
     responsive.
-- Only the player's level caps frames.
+- Only the player's level caps frames. The one exception, agreed by the maintainer: the menu's drift skips a 120Hz
+    screen's every other refresh, never going under 60 (`UI_SCREENS.md`).
 - **The 60fps floor holds for High and Medium**; 30fps happens only when the player picks Low or Off.
 
 **Two sources, one switch.** `LocalReduceMotion` (provided once in `DiceFiveApp`, beside `LocalAnimationLevel`) is

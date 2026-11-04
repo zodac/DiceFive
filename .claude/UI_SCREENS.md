@@ -340,8 +340,9 @@ none.
     - the lean is capped (~25 degrees upright) so dice don't bunch low;
     - a returning die picks whichever of a dozen candidate paths stays furthest from the others over 12s;
     - "gone" uses each die's current extent, which keeps three to five showing.
-- It redraws at most ~30 times a second (`DriftState.onFrame`) without changing speed, and `DriftState.run` sleeps
-    25ms after each move, so a fast screen's refreshes in between don't wake the app (`DriftFrameRateTest`).
+- It skips a 120Hz screen's every other refresh (60 redraws a second; `DriftState.onFrame`) without changing speed,
+    and never redraws under 60 where the screen can: 90Hz stays at 90. `DriftState.run` sleeps 7ms after each move, so
+    the refresh it would skip doesn't wake the app (`DriftFrameRateTest`).
 
 **`AppLogo` is live Compose art**, drawn in the player's own dice and cup picks (`MenuViewModel.logoStyles`). It's not
 a copy of the launcher icon.

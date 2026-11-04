@@ -112,13 +112,18 @@ fun BrandBackdrop(
 internal class DriftState {
 
     private companion object {
-        const val MIN_DRIFT_FRAME_NANOS = 30_000_000L
+        /**
+         * The least time between two moves of the dice: over a 120Hz screen's refresh, so it redraws them on every other
+         * one (60 a second), and under a 90Hz screen's, as every other one of those would be 45 a second.
+         */
+        const val MIN_DRIFT_FRAME_NANOS = 10_000_000L
 
         /**
-         * How long [run] sleeps after the dice move before asking for another frame: short enough to catch a 60Hz
-         * screen's refresh after next with time to spare, long enough that a faster screen's in between go unasked.
+         * How long [run] sleeps after the dice move before asking for another frame: short enough to catch a 90Hz
+         * screen's next refresh with time to spare, long enough that a 120Hz screen's next, which would only be skipped,
+         * goes unasked.
          */
-        const val DRIFT_SLEEP_MILLIS = 25L
+        const val DRIFT_SLEEP_MILLIS = 7L
     }
 
     var dice = newDrift()
@@ -146,8 +151,8 @@ internal class DriftState {
 
     /**
      * Moves the dice on, frame by frame, until cancelled. After each move it sleeps until the next is nearly due rather
-     * than waking for every refresh it would only skip ([onFrame]): about 30 wake-ups a second, not 120 on a 120Hz
-     * screen. A frame then arriving too soon (a 144Hz screen's) is waited past without sleeping again.
+     * than waking for every refresh it would only skip ([onFrame]): about 60 wake-ups a second, not 120 on a 120Hz
+     * screen. A frame then arriving too soon is waited past without sleeping again.
      *
      * The infinite-animation frame, not a plain one: it never ends, and this is what tells a UI test not to wait for it
      * to (a plain frame loop would keep the menu from ever idling). [sleep] is the screen's `delayWhileResumed`, as
@@ -169,9 +174,9 @@ internal class DriftState {
     fun onFrame(now: Long): Boolean {
         val last = lastFrameNanos
         if (last == now) return false
-        // The drift is slow, so about 30 redraws a second look the same as 60 or 120 and cost half or less: a
-        // frame arriving sooner than that is left for the next, and the dice then move on by the whole time
-        // since the last one they did move on for, so their speed is unchanged.
+        // The drift is slow, so a fast screen needn't redraw it on every refresh, and never fewer than 60 times a second
+        // where the screen can: a frame arriving too soon is left for the next, and the dice then move on by the whole
+        // time since the last one they did move on for, so their speed is unchanged.
         if (last != null && now - last < MIN_DRIFT_FRAME_NANOS) return false
         // A stalled frame (or the app coming back from the background) moves them on by
         // no more than a tenth of a second, never jumping them across the screen.

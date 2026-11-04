@@ -7,8 +7,8 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
 
 /**
- * The drift is slow, so it's redrawn about 30 times a second however fast the display refreshes - and, run as the
- * backdrop runs it, only wakes for about as many frames.
+ * The drift is slow, so a fast display doesn't redraw it on every refresh - but never below 60 times a second where the
+ * display can - and, run as the backdrop runs it, only wakes for about as many frames.
  */
 class DriftFrameRateTest {
 
@@ -59,28 +59,20 @@ class DriftFrameRateTest {
     private class OneSecondUp : RuntimeException()
 
     @Test
-    fun `run wakes for about 30 frames a second however fast the display - and moves the dice on nearly every one`() {
-        for (hz in listOf(60, 90, 120, 144)) {
+    fun `run moves the dice at least 60 times a second on any display that fast - and wakes for no frame it would skip`() {
+        val expectedMoves = mapOf(60 to 59..61, 90 to 88..91, 120 to 59..61, 144 to 70..73)
+        for ((hz, expected) in expectedMoves) {
             val (wakes, moves) = runForOneSecond(1_000_000_000L / hz)
-            assertTrue(moves in 27..31, "${hz}Hz moved the dice $moves times")
-            assertTrue(wakes <= moves * 2, "${hz}Hz woke $wakes times for $moves moves")
-        }
-        // On a 60, 90 or 120Hz display, every frame woken for moves the dice.
-        for (hz in listOf(60, 90, 120)) {
-            val (wakes, moves) = runForOneSecond(1_000_000_000L / hz)
+            assertTrue(moves in expected, "${hz}Hz moved the dice $moves times")
             assertEquals(moves, wakes, "${hz}Hz")
         }
     }
 
     @Test
-    fun `the drift redraws about 30 times a second on a 30 - 60 or 120Hz display`() {
-        // A 60Hz display redraws the drift about 30 times a second.
-        assertTrue(redrawsInOneSecond(16_666_667L) in 29..31)
-
-        // A 120Hz display redraws it no more often than that.
-        assertTrue(redrawsInOneSecond(8_333_333L) in 29..34)
-
-        // A 30Hz display is not slowed further.
+    fun `the drift redraws on every other refresh at 120Hz - and every refresh at 30 - 60 or 90Hz`() {
+        assertTrue(redrawsInOneSecond(8_333_333L) in 59..61)
+        assertTrue(redrawsInOneSecond(16_666_667L) in 59..61)
+        assertTrue(redrawsInOneSecond(11_111_111L) in 89..91)
         assertTrue(redrawsInOneSecond(33_333_333L) in 29..31)
     }
 
