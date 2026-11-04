@@ -59,14 +59,21 @@ VERSION="$(tr -d '[:space:]' < VERSION)"
 RAW="${ROOT}/build/store-assets/raw"
 OUT="${ROOT}/assets/${VERSION}"
 # Named with the version, as the release's own files are (DiceFive-<version>.aab).
-VIDEO_FILE="${OUT}/DiceFive-${VERSION}-Promo-1080p60.mp4"
+VIDEO_FILE="${OUT}/DiceFive-Promo-1080p60-${VERSION}.mp4"
 WORK="${ROOT}/build/store-assets/work"
 FONT="${ROOT}/app/shared/src/commonMain/composeResources/font/sora.ttf"
 CAPTIONS="${ROOT}/scripts/store-assets/captions.txt"
 
-# Brand colours - see UI.md's Colour section and the launcher icon.
-NAVY_TOP="#16305A"
-NAVY_DEEP="#06122A"
+# Brand colours - see UI.md's Colour section and the launcher icon. The felt's glow is brighter than the game's, so a
+# backdrop stands out from the felt on the screen in front of it.
+FELT_GLOW="#3A78C8"
+FELT_MIDDLE="#1C3D66"
+FELT_DEEP="#0B1E3A"
+MAT_GLOW="#2F6EBB"
+MAT_MIDDLE="#1F4F8F"
+MAT_EDGE="#13315F"
+MAT_RING="#E6C278"
+DIE_TINT="#9CC4F2"
 GOLD="#F2C46A"
 
 # The video's default music: "Happy Vibes" by Ruskerdax, CC0 (public domain - no credit required), chosen by the
@@ -111,13 +118,91 @@ caption_for() {
     printf '%s' "${line#*=}"
 }
 
-# The navy backdrop every caption sits on: a vertical gradient with a soft glow behind the headline.
+# A three-colour radial gradient, centred at centre_x,centre_y, reaching its middle colour at middle_percent of its radii.
+radial_fill() {
+    local width="$1" height="$2" centre_x="$3" centre_y="$4" radius_x="$5" radius_y="$6"
+    local inner="$7" middle="$8" outer="$9" middle_percent="${10}" out="${11}"
+    local inner_steps=$(( 1024 * middle_percent / 100 ))
+    magick \( -size "1x${inner_steps}" gradient:"${inner}-${middle}" \) \
+        \( -size "1x$(( 1024 - inner_steps ))" gradient:"${middle}-${outer}" \) -append "${WORK}/ramp.png"
+    magick -size "${width}x${height}" -depth 16 -define gradient:center="${centre_x},${centre_y}" \
+        -define gradient:radii="${radius_x},${radius_y}" radial-gradient:black-white \
+        "${WORK}/ramp.png" -clut -alpha off "${out}"
+}
+
+# Darkens an image's outer edges, in place.
+vignette() {
+    local image="$1" width="$2" height="$3"
+    magick "${image}" \
+        \( -size "${width}x${height}" -define gradient:center="$(( width / 2 )),$(( height / 2 ))" \
+           -define gradient:radii="$(( width * 72 / 100 )),$(( height * 80 / 100 ))" radial-gradient:white-'#8A8A8A' \) \
+        -compose multiply -composite -alpha off "${image}"
+}
+
+# The felt's cloth grain, in place, which also keeps its gradient from banding in the video. Seeded, so a rerun matches.
+felt_grain() {
+    magick "$1" -seed 1 -attenuate 0.12 +noise Gaussian -alpha off "$1"
+}
+
+# The lit felt each screenshot's caption sits on, with the light behind the headline.
 backdrop() {
     local width="$1" height="$2" out="$3"
-    magick -size "${width}x${height}" gradient:"${NAVY_TOP}-${NAVY_DEEP}" \
-        \( -size "${width}x${height}" radial-gradient:"rgba(242,196,106,0.16)-rgba(242,196,106,0)" \
-           -geometry "+0-$((height * 2 / 5))" \) -compose over -composite \
+    radial_fill "${width}" "${height}" "$(( width / 2 ))" "$(( height * 7 / 100 ))" "$(( width * 80 / 100 ))" "$(( height * 70 / 100 ))" \
+        "${FELT_GLOW}" "${FELT_MIDDLE}" "${FELT_DEEP}" 48 "${out}"
+    vignette "${out}" "${width}" "${height}"
+    felt_grain "${out}"
+}
+
+# A faint die in the air: its face in DIE_TINT, its pips cut out, turned by angle and softened by blur.
+faint_die() {
+    local image="$1" size="$2" value="$3" angle="$4" left="$5" top="$6" alpha="$7" blur="$8"
+    local near=$(( size * 27 / 100 )) centre=$(( size / 2 )) far=$(( size * 73 / 100 )) pip=$(( size * 9 / 100 ))
+    local corner=$(( size * 18 / 100 )) pips="" point pip_x pip_y
+    local -a points
+    case "${value}" in
+        1) points=("${centre},${centre}") ;;
+        2) points=("${near},${near}" "${far},${far}") ;;
+        3) points=("${near},${near}" "${centre},${centre}" "${far},${far}") ;;
+        4) points=("${near},${near}" "${far},${near}" "${near},${far}" "${far},${far}") ;;
+        5) points=("${near},${near}" "${far},${near}" "${centre},${centre}" "${near},${far}" "${far},${far}") ;;
+        *) points=("${near},${near}" "${far},${near}" "${near},${centre}" "${far},${centre}" "${near},${far}" "${far},${far}") ;;
+    esac
+    for point in "${points[@]}"; do
+        pip_x="${point%,*}"
+        pip_y="${point#*,}"
+        pips+="circle ${pip_x},${pip_y} $(( pip_x + pip )),${pip_y} "
+    done
+    magick -size "${size}x${size}" xc:"${DIE_TINT}" \
+        \( -size "${size}x${size}" xc:black -fill white -draw "roundrectangle 0,0 $(( size - 1 )),$(( size - 1 )) ${corner},${corner}" \
+           -fill black -draw "${pips}" \) \
+        -alpha off -compose CopyOpacity -composite -compose over -background none -rotate "${angle}" \
+        -channel A -evaluate multiply "${alpha}" +channel -blur "0x${blur}" "${WORK}/die.png"
+    magick "${image}" "${WORK}/die.png" -geometry "+${left}+${top}" -compose over -composite -alpha off "${image}"
+}
+
+# The video's backdrop, the launcher icon's composition at 1920x1080: lit felt with faint dice clear of the headline,
+# the mat's gold arc across the foot, and the phone standing on the mat where the icon's cup stands, with its shadow.
+table_backdrop() {
+    local out="$1" phone_centre="$2" phone_width="$3"
+    local width=1920 height=1080
+    radial_fill "${width}" "${height}" 620 330 1500 1020 "${FELT_GLOW}" "${FELT_MIDDLE}" "${FELT_DEEP}" 48 "${out}"
+    faint_die "${out}" 170 5 -18 90 60 0.15 2
+    faint_die "${out}" 120 2 24 500 110 0.15 1.2
+    faint_die "${out}" 90 4 -32 800 40 0.15 1
+    faint_die "${out}" 150 6 16 1600 90 0.15 1.6
+    faint_die "${out}" 100 3 -24 1760 330 0.15 1
+    faint_die "${out}" 125 1 30 1580 520 0.15 1.2
+    vignette "${out}" "${width}" "${height}"
+    radial_fill "${width}" "${height}" "${phone_centre}" 1040 1250 290 "${MAT_GLOW}" "${MAT_MIDDLE}" "${MAT_EDGE}" 60 "${WORK}/mat.png"
+    magick "${WORK}/mat.png" \
+        \( -size "${width}x${height}" xc:black -fill white -draw "ellipse 960,1330 1560,470 0,360" -blur 0x0.7 \) \
+        -alpha off -compose CopyOpacity -composite "${WORK}/mat.png"
+    magick "${out}" "${WORK}/mat.png" -compose over -composite \
+        -fill none -stroke "${MAT_RING}" -strokewidth 5 -draw "ellipse 960,1330 1560,470 0,360" \
+        \( -size "${width}x${height}" xc:none -fill "rgba(0,0,0,0.62)" -stroke none \
+           -draw "ellipse ${phone_centre},1012 $(( phone_width * 70 / 100 )),58 0,360" -blur 0x26 \) -composite \
         -alpha off "${out}"
+    felt_grain "${out}"
 }
 
 # A screen with rounded corners, a thin rim and a soft shadow, scaled to fit width x height.
@@ -216,7 +301,7 @@ if wants video; then
 
     magick -size "${phone_w}x${phone_h}" xc:black -fill white \
         -draw "roundrectangle 0,0 $((phone_w - 1)),$((phone_h - 1)) ${radius},${radius}" "${video_work}/mask.png"
-    backdrop "${VIDEO_W}" "${VIDEO_H}" "${video_work}/backdrop.png"
+    table_backdrop "${video_work}/backdrop.png" "$(( phone_x + phone_w / 2 ))" "${phone_w}"
     # The phone's shadow and rim, painted once into the backdrop.
     magick "${video_work}/backdrop.png" \
         \( -size "${phone_w}x${phone_h}" xc:none -fill black -draw "roundrectangle 0,0 $((phone_w - 1)),$((phone_h - 1)) ${radius},${radius}" \

@@ -11,7 +11,7 @@ the `store-assets` skill. The rest of the Play submission is in `PUBLISHING.md`.
 | `feature-graphic-1024x500.png`                                      | 1024x500, JPEG or 24-bit PNG (no alpha)                          |
 | `phone/phone-1-game.png` ... `phone-8-achievements.png`             | 1440x2560                                                        |
 | `tablet-10/tablet-10-1-game.png` ... `tablet-10-8-achievements.png` | 2560x1440 (landscape)                                            |
-| `DiceFive-<version>-Promo-1080p60.mp4`                              | ~35s, 1920x1080, 60fps, H.264; the app's sounds over music (AAC) |
+| `DiceFive-Promo-1080p60-<version>.mp4`                              | ~35s, 1920x1080, 60fps, H.264; the app's sounds over music (AAC) |
 | `video-description.txt`                                             | not uploaded: the YouTube description, with its credits          |
 | `feature-graphic.gif`                                               | not uploaded: the README's title, the feature graphic moving     |
 | `contact-sheet.png`                                                 | not uploaded: every still, for review                            |
@@ -32,8 +32,8 @@ the `store-assets` skill. The rest of the Play submission is in `PUBLISHING.md`.
 - **The phone is 9:16** (`w412dp-h732dp`), about the game screen's own height: a taller phone leaves empty space
     under the dice. The video uses the same phone.
 - **One video**, ~35s: Play advises keeping it short. Its scenes follow the screenshots, with a caption each.
-- **Captions** are part of the screenshot: a one-line headline on brand navy above the screen, at exactly 9:16 for the
-    phone and 16:9 for the tablet.
+- **Captions** are part of the screenshot: a one-line headline on the launcher icon's lit felt (`backdrop`) above the
+    screen, at exactly 9:16 for the phone and 16:9 for the tablet.
 
 **The feature graphic** keeps the logo left of centre, because Play overlays a play button in the middle when there's a
 video. The logo is centred in the felt left of the mat, which leaves it little room to grow: the button still crosses
@@ -56,7 +56,8 @@ the end of the wordmark.
     whatever the history left picked; their numbers are the seeded history's.
 - **The video**: `promo video frames` (a `FrameRecorder` per scene, with `hold(ms)` and `tap(node)`). The script lays
     frames on captions, joins them with fades, and ends on `StoreArtGeneratorTest`'s `video end card`, recorded as
-    frames with the dice swaying so googly eyes, glitch and RGB move.
+    frames with the dice swaying so googly eyes, glitch and RGB move. The scenes' backdrop is `table_backdrop` in the
+    script: the icon's composition, with faint dice clear of the headline and the phone standing on the mat's gold arc.
 - **The icon** is the launcher icon itself, cropped roughly as a launcher shows it. **The feature graphic** is
     `BannerScene` (`StoreArtGeneratorTest.kt`), on the launcher icon's felt, mat, and ring (`TableBackdrop`, store art
     only): the `AppLogo` and a spread of unlockable dice on the mat (`TOSSES`: strawberry cake, googly eyes, glitch, RGB

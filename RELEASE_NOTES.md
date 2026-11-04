@@ -1,0 +1,2 @@
+- Updated app icon and Play Store assets
+- Clarified game mode restrictions in the description of some achievements
