@@ -527,8 +527,10 @@ Leaderboard's Combined board.
         geometry is copied from the foreground. Change the two together.
     - `ic_launcher.xml` is the only wrapper (`roundIcon` too).
     - The icon's depth lives in its layers. `ic_launcher_background.xml` is the table (lit felt, the blue mat and its
-        gold ring), opaque to every edge of the canvas. The foreground's cup and dice are shaded by one light from the top
-        left, with each die's gradient and shadow worked back through its rotation. The flat themed icon has none of it.
+        gold ring), opaque to every edge of the canvas. The foreground's cup is shaded by one light from the top left, and
+        its dice are projected cubes, drawn as flat paths, each tilted 20 degrees away from the cup's mouth with its value
+        facing the screen. The themed icon keeps the cubes as flat faces. `scripts/generate-launcher-dice.py` generates
+        the dice in both layers, so change a pose there, never in the XML.
 
 ## Verifying UI work
 

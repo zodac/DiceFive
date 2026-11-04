@@ -65,7 +65,41 @@ class LauncherIconTest {
         assertEquals(0, Color.alpha(foreground.getPixel(justOutsideCup, atBandHeight)))
     }
 
+    @Test
+    fun `the cube dice keep their margin inside the 72 units a launcher shows`() {
+        val foreground = render(R.drawable.ic_launcher_foreground)
+        val low = ((VISIBLE_START + MIN_MARGIN) * PIXELS_PER_UNIT).toInt()
+        val high = ((CANVAS_UNITS - VISIBLE_START - MIN_MARGIN) * PIXELS_PER_UNIT).toInt()
+        val outside = (0 until foreground.height).sumOf { y ->
+            (0 until foreground.width).count { x ->
+                // Solid art only: the soft shadows may fade away past the margin.
+                (x < low || x >= high || y < low || y >= high) && Color.alpha(foreground.getPixel(x, y)) == OPAQUE
+            }
+        }
+        assertEquals(0, outside)
+    }
+
+    @Test
+    fun `the themed icon's art sits inside the foreground's`() {
+        val foreground = render(R.drawable.ic_launcher_foreground)
+        val monochrome = render(R.drawable.ic_launcher_monochrome)
+        var solid = 0
+        var uncovered = 0
+        for (y in 0 until monochrome.height) {
+            for (x in 0 until monochrome.width) {
+                if (Color.alpha(monochrome.getPixel(x, y)) == OPAQUE) {
+                    solid++
+                    if (Color.alpha(foreground.getPixel(x, y)) != OPAQUE) uncovered++
+                }
+            }
+        }
+        // The rim's stroke and antialiased edges may differ by a hair; a die out of place is far more.
+        assertTrue("$uncovered of $solid solid pixels are off the foreground", uncovered * 100 < solid)
+    }
+
     private companion object {
+        const val VISIBLE_START = 18
+        const val MIN_MARGIN = 2.5
         const val CANVAS_UNITS = 108
         const val PIXELS_PER_UNIT = 10
         const val OPAQUE = 255
