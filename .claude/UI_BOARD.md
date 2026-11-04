@@ -231,6 +231,11 @@ Renders cover 1280x800, 960x600, 891x411 and 800x360 in every mode, and 360x640 
     - The name row keeps `labelLarge`'s line height, so the tabs and the board under them are the same height at any
         player count (`PlayerTabHeightTest`). A frame draws behind the tab and never adds to its size.
     - CPU tabs carry `CpuPlayerIcon` (Material `Memory`, ~14dp of a ~72dp tab), and tab names use `ShrinkThenWrapText`.
+    - At a large font (`isLargeFont`) a tab's place shrinks no further than its size at 100%, and its name no further
+        than `LARGE_FONT_NAME_FLOOR` (10dp, a little under its 100% size: the phone's Roboto wraps the longest names at
+        12dp). At 3+ players both take back the extra side padding, down to `LARGE_FONT_TEXT_INSET` so a frame stays clear
+        (`ScoreFrameClearanceTest`). A name that still doesn't fit is cut short with an ellipsis: at a large font it never
+        wraps (`LargeFontFitTest`). At 100% it wraps to two lines, as it always has.
     - The caps were checked by estimate, not on a device: at 360dp, 4 players leaves ~72dp for a human name (~63 needed)
         and ~58dp for a CPU (~42 needed). 320dp is the tightest case.
 

@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -75,6 +76,9 @@ import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.joinClauses
 import net.zodac.dicefive.ui.common.ordinal
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.common.dpToSp
+import net.zodac.dicefive.ui.common.isLargeFont
+import net.zodac.dicefive.ui.common.sizeAtNormalFont
 import net.zodac.dicefive.ui.common.textScale
 import net.zodac.dicefive.ui.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.color
@@ -196,6 +200,8 @@ private fun PlayerTab(
         }
         .padding(vertical = 6.dp, horizontal = sidePadding)
     val nameStyle = if (compactName) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge
+    val density = LocalDensity.current
+    val largeFont = density.isLargeFont
     val nameRow = @Composable { nameModifier: Modifier ->
         Row(
             modifier = nameModifier,
@@ -211,11 +217,14 @@ private fun PlayerTab(
             // that it wraps to a second line rather than getting smaller - only reached at a large
             // system font, or by a very wide name, since the caps on name length (see
             // maxPlayerNameLength) are sized to fit one line at that size.
+            // At a large font the floor is LARGE_FONT_NAME_FLOOR, and a name that doesn't fit even then is cut short: it never wraps.
             ShrinkThenWrapText(
                 text = name,
                 style = nameStyle,
                 color = color,
                 fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                minFontSize = if (largeFont) density.dpToSp(LARGE_FONT_NAME_FLOOR) else MIN_READABLE_FONT_SIZE,
+                wrappedMaxLines = if (largeFont) 1 else NORMAL_FONT_NAME_LINES,
             )
         }
     }
@@ -269,8 +278,20 @@ private fun PlayerTab(
                 .background(if (active) color else Color.Transparent),
         )
     }
-    val place = @Composable {
-        if (standing != null) {
+    val place = @Composable { placeModifier: Modifier ->
+        if (standing != null && largeFont && !singleLine) {
+            // One line, however large the font: shrunk to fit the tab, no smaller than at 100%, rather than cut off.
+            val placeStyle = if (compactName) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium
+            ShrinkThenWrapText(
+                text = standing.label(),
+                style = placeStyle,
+                color = color,
+                fontWeight = FontWeight.Medium,
+                minFontSize = density.sizeAtNormalFont(placeStyle.fontSize),
+                wrappedMaxLines = 1,
+                modifier = placeModifier.clearAndSetSemantics {},
+            )
+        } else if (standing != null) {
             Text(
                 text = standing.label(),
                 color = color,
@@ -290,7 +311,7 @@ private fun PlayerTab(
             dot()
             nameRow(Modifier.weight(1f, fill = false))
             scoreText(MaterialTheme.typography.titleLarge)
-            place()
+            place(Modifier)
         }
         return
     }
@@ -300,7 +321,6 @@ private fun PlayerTab(
     // Measured rather than taken from the styles' line heights, which a line of text can outgrow.
     val measurer = rememberTextMeasurer()
     val type = MaterialTheme.typography
-    val density = LocalDensity.current
     val nameRowHeight = remember(name, type, density) {
         with(density) { measurer.measure(name, type.labelLarge.copy(fontWeight = FontWeight.Bold), maxLines = 1).size.height.toDp() }
     }
@@ -309,17 +329,19 @@ private fun PlayerTab(
     }
     Column(modifier = tabModifier, horizontalAlignment = Alignment.CenterHorizontally) {
         // Dropped a little below the tab's top, out of the way of the corner ornaments most frames draw there.
-        nameRow(Modifier.padding(top = NAME_TOP_DROP).heightIn(min = nameRowHeight))
+        // A long name or place at a large font takes back the side padding the larger score needs, as far as a frame leaves it room.
+        val textRoom = if (largeFont && compactName) Modifier.widerBy((sidePadding - LARGE_FONT_TEXT_INSET).coerceAtLeast(0.dp)) else Modifier
+        nameRow(textRoom.padding(top = NAME_TOP_DROP).heightIn(min = nameRowHeight))
         scoreText(MaterialTheme.typography.headlineSmall)
         // Whose turn it is (the dot) and the player's place. Its height is always kept (also solo, so a border clears the dot).
         Row(
-            modifier = Modifier.padding(top = 2.dp).heightIn(min = placeRowHeight),
+            modifier = textRoom.padding(top = 2.dp).heightIn(min = placeRowHeight),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             dot()
             if (standing != null) {
-                place()
+                place(if (largeFont) Modifier.weight(1f, fill = false) else Modifier)
                 // Balances the dot, so the place sits centred under the score.
                 Box(modifier = Modifier.size(6.dp))
             }
@@ -328,9 +350,25 @@ private fun PlayerTab(
 }
 
 private const val BASE_SIDE_PADDING_DP = 2f
+
+/** The smallest a name in a tab shrinks to at a large font, a little under its 100% size: the longest names need it to stay on one line. */
+private val LARGE_FONT_NAME_FLOOR = 10.dp
+
+/** How many lines a name that doesn't fit its tab may wrap to at a 100% font. At a large font it never wraps. */
+private const val NORMAL_FONT_NAME_LINES = 2
+
+/** How far a long name or place stays from a tab's side at a large font, clear of the frames that spread furthest into it (`ScoreFrameClearanceTest`). */
+private val LARGE_FONT_TEXT_INSET = 7.dp
 private val SCORE_FONT_STEP = 0.5.sp
 private const val SIDE_PADDING_DP_PER_FONT_SCALE = 25f
 private const val MAX_SIDE_PADDING_DP = 10f
+
+/** Offers the content [extra] more width each side than its parent has, centred, and takes up no more than the parent's width. */
+private fun Modifier.widerBy(extra: Dp): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints.copy(maxWidth = constraints.maxWidth + extra.roundToPx() * 2))
+    val width = minOf(placeable.width, constraints.maxWidth)
+    layout(width, placeable.height) { placeable.place((width - placeable.width) / 2, 0) }
+}
 
 /** Compose's built-in `Modifier.border` has no dash-pattern option, so the "viewed player" ring
  * draws its own rounded-rect stroke instead of reusing the active player's solid one. */

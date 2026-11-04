@@ -85,10 +85,13 @@ import net.zodac.dicefive.resources.achievements_progress
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.ConfigureOverlayDialogWindow
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import androidx.compose.ui.platform.LocalDensity
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
+import net.zodac.dicefive.ui.common.ShrinkToLinesText
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.grouped
+import net.zodac.dicefive.ui.common.isLargeFont
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.tooltipMarkup
 import net.zodac.dicefive.ui.game.LocalLeaveGameConfirmation
@@ -575,10 +578,15 @@ private const val BANNER_DESCRIPTION_LINES = 2
 
 /**
  * An achievement's description under its title: bodySmall, exactly [BANNER_DESCRIPTION_LINES] lines
- * tall whatever its length.
+ * tall whatever its length. At a large font, one that needs more lines shrinks until it fits them, no
+ * smaller than at 100%, in the height the two lines take at full size.
  */
 @Composable
 private fun BannerDescription(description: AnnotatedString, modifier: Modifier = Modifier) {
+    if (LocalDensity.current.isLargeFont) {
+        ShrinkToLinesText(text = description, style = MaterialTheme.typography.bodySmall, lines = BANNER_DESCRIPTION_LINES, modifier = modifier)
+        return
+    }
     Text(
         text = description,
         style = MaterialTheme.typography.bodySmall,

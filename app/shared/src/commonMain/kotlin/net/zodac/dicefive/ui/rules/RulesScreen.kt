@@ -143,6 +143,7 @@ import net.zodac.dicefive.resources.rules_timer_example_cd
 import net.zodac.dicefive.resources.rules_title
 import net.zodac.dicefive.resources.rules_tutorial_start
 import net.zodac.dicefive.ui.common.FooterPill
+import net.zodac.dicefive.ui.common.isLargeFont
 import net.zodac.dicefive.ui.common.LOGO_DICE
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.LocalReduceMotion
@@ -262,14 +263,21 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier, onStartTutori
         // (so a large font still clears it) plus a gap, so the last line can always scroll above it.
         var footerHeightPx by remember { mutableIntStateOf(0) }
         val density = LocalDensity.current
-        val pageBottomPadding = with(density) { footerHeightPx.toDp() } + PAGE_FOOTER_GAP
+        val footerRoom = with(density) { footerHeightPx.toDp() } + PAGE_FOOTER_GAP
+        // At a large font the pill covers more of the words behind it, so the pages stop above it instead.
+        val pagesAboveFooter = density.isLargeFont
+        val pageBottomPadding = if (pagesAboveFooter) 0.dp else footerRoom
         // Held here rather than inside each page, so the scrollbar beside the pager can follow whichever
         // page is showing.
         val pageScrollStates = remember { List(RULES_PAGES.size) { ScrollState(initial = 0) } }
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             // A gap between pages wider than the screen's side margin, so a page never shows a sliver
             // of its neighbour's text at its edge.
-            HorizontalPager(state = pagerState, pageSpacing = PAGE_SPACING, modifier = Modifier.fillMaxSize()) { page ->
+            HorizontalPager(
+                state = pagerState,
+                pageSpacing = PAGE_SPACING,
+                modifier = Modifier.fillMaxSize().then(if (pagesAboveFooter) Modifier.padding(bottom = footerRoom) else Modifier),
+            ) { page ->
                 val rulesPage = RULES_PAGES[page]
                 val shownBlocks = rememberShownBlocks(rulesPage.blocks.size)
                 // A readable line however wide the page: the text keeps to READABLE_PAGE_WIDTH, centred, in landscape.

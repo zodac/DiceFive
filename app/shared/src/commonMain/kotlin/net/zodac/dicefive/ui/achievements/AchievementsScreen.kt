@@ -157,6 +157,8 @@ import net.zodac.dicefive.ui.common.percentOf
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
 import net.zodac.dicefive.ui.common.rememberFilterSwitchState
+import net.zodac.dicefive.ui.common.WholeWordsText
+import net.zodac.dicefive.ui.common.isLargeFont
 import net.zodac.dicefive.ui.common.spokenList
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.timestamp
@@ -698,16 +700,16 @@ private fun GroupHeader(text: String, counts: Pair<Int, Int>, onPrevious: (() ->
             val complete = counts.first == counts.second
             val color = if (complete) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             val spokenCount = stringResource(Res.string.achievements_earned_count, counts.first, counts.second)
-            Text(
-                text = text,
-                style = categoryHeaderStyle,
-                color = color,
-                // The count after the label, as one heading.
-                modifier = Modifier.weight(1f).padding(start = 12.dp).semantics {
-                    heading()
-                    contentDescription = "$text, $spokenCount"
-                },
-            )
+            // The count after the label, as one heading.
+            val titleModifier = Modifier.weight(1f).padding(start = 12.dp).semantics {
+                heading()
+                contentDescription = "$text, $spokenCount"
+            }
+            if (LocalDensity.current.isLargeFont) {
+                WholeWordsText(text = text, style = categoryHeaderStyle, color = color, modifier = titleModifier)
+            } else {
+                Text(text = text, style = categoryHeaderStyle, color = color, modifier = titleModifier)
+            }
             // The heading above already speaks the count.
             Text(
                 text = stringResource(Res.string.achievements_category_count, counts.first, counts.second),

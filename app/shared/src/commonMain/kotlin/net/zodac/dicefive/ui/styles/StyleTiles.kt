@@ -156,10 +156,16 @@ import net.zodac.dicefive.resources.styles_unlock_count
 import net.zodac.dicefive.resources.styles_unlock_free
 import net.zodac.dicefive.resources.styles_unlock_specific
 import net.zodac.dicefive.resources.styles_unlocked_count
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.sp
 import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.ColourDisc
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.HorizontalScrollbar
+import net.zodac.dicefive.ui.common.fitFontSize
+import net.zodac.dicefive.ui.common.isLargeFont
+import net.zodac.dicefive.ui.common.sizeAtNormalFont
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.PAGE_CONTENT_FADE_IN_MILLIS
 import net.zodac.dicefive.ui.common.accessibleCombinedClickable
@@ -280,9 +286,9 @@ private val TILE_LABEL_CACHE_SIZE: Int by lazy { StyleCatalogs.sumOf { it.famili
  * just drawn after that. See .claude/BENCHMARKS.md.
  */
 @Composable
-private fun TileLabel(name: String) {
+private fun TileLabel(name: String, tileWidth: Dp) {
     val measurer = LocalTileLabelMeasurer.current
-    val style = MaterialTheme.typography.labelSmall
+    val style = tileLabelStyle(name, tileWidth)
     if (measurer == null) {
         Text(text = name, style = style)
         return
@@ -300,6 +306,24 @@ private fun TileLabel(name: String) {
         drawText(layout)
     }
 }
+
+/** `labelSmall`, or at a large font shrunk as far as [name] needs to stay within its tile and off its neighbours', no smaller than at 100%. */
+@Composable
+private fun tileLabelStyle(name: String, tileWidth: Dp): TextStyle {
+    val style = MaterialTheme.typography.labelSmall
+    val density = LocalDensity.current
+    if (!density.isLargeFont) return style
+    val fitter = rememberTextMeasurer()
+    val fit = remember(name, style, tileWidth, density) {
+        val width = with(density) { tileWidth.roundToPx() }
+        fitFontSize(style.fontSize, density.sizeAtNormalFont(style.fontSize), TILE_LABEL_FONT_STEP) { size ->
+            fitter.measure(name, style.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= width
+        }
+    }
+    return style.copy(fontSize = fit.size)
+}
+
+private val TILE_LABEL_FONT_STEP = 0.5.sp
 
 /** How many tiles [category]'s row has. */
 internal fun StyleCategory.tileCount(access: StyleAccess): Int {
@@ -1254,7 +1278,7 @@ private fun <T : TableArt> StyleFamilyTile(
                 )
             }
         }
-        TileLabel(stringResource(family.name))
+        TileLabel(stringResource(family.name), previewSize.width)
     }
 
     if (lockedVariantRequirement != null) {
@@ -1337,7 +1361,7 @@ private fun <T : TableArt> LockedStyleFamilyTile(
                 }
             }
         }
-        TileLabel(stringResource(family.name))
+        TileLabel(stringResource(family.name), previewSize.width)
     }
 
     if (showingRequirement) {

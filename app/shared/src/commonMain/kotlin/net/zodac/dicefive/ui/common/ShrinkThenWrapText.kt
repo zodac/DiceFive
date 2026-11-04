@@ -15,11 +15,14 @@ import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 
@@ -65,7 +68,7 @@ fun ShrinkThenWrapText(
         } else {
             FontFitCache.getOrPut(FontFitKey(listOf(text), base, minFontSize, fontStep, available, density.density, density.textScale)) {
                 fitFontSize(base.fontSize, minFontSize, fontStep) { size ->
-                    measurer.measure(text = text, style = base.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= available
+                    measurer.measure(text = text, style = base.fittedTo(size, density), maxLines = 1, softWrap = false).size.width <= available
                 }
             }
         }
@@ -78,7 +81,7 @@ fun ShrinkThenWrapText(
                 Text(
                     text = text,
                     color = color,
-                    style = base.copy(fontSize = fit.size),
+                    style = base.fittedTo(fit.size, density),
                     maxLines = if (fit.wraps) wrappedMaxLines else 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -89,13 +92,146 @@ fun ShrinkThenWrapText(
             val fit = fitAt(width)
             measurer.measure(
                 text = text,
-                style = drawn.copy(fontSize = fit.size),
+                style = drawn.fittedTo(fit.size, density),
                 overflow = TextOverflow.Ellipsis,
                 maxLines = if (fit.wraps) wrappedMaxLines else 1,
                 constraints = Constraints(maxWidth = width),
             ).size.height
         },
     )
+}
+
+/**
+ * This style at [size]. At a large font its line height and letter spacing shrink with it: otherwise a shrunk text that
+ * wraps leaves a line's gap meant for the larger size, and a long word keeps the spacing that stops it fitting. At 100%
+ * both stay as they are.
+ */
+private fun TextStyle.fittedTo(size: TextUnit, density: Density): TextStyle =
+    if (density.isLargeFont && fontSize.isSp) {
+        val ratio = size.value / fontSize.value
+        copy(
+            fontSize = size,
+            lineHeight = if (lineHeight.isSp) (lineHeight.value * ratio).sp else lineHeight,
+            letterSpacing = if (letterSpacing.isSp) (letterSpacing.value * ratio).sp else letterSpacing,
+        )
+    } else {
+        copy(fontSize = size)
+    }
+
+/**
+ * [text] wrapped only between words: stepped down by [fontStep] until its longest word fits the width on offer, so a label
+ * at a large font never breaks mid-word, but no smaller than [style]'s size at a 100% font scale. Words that fit keep their
+ * size. For large fonts: at 100% a plain [Text] draws the same label.
+ */
+@Composable
+fun WholeWordsText(
+    text: String,
+    style: TextStyle,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    textAlign: TextAlign? = null,
+    fontStep: TextUnit = 0.5.sp,
+) {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val minFontSize = density.sizeAtNormalFont(style.fontSize)
+    val words = remember(text) { text.split(' ').filter { it.isNotEmpty() } }
+
+    fun sizeAt(available: Int): TextUnit =
+        if (available == Constraints.Infinity) {
+            style.fontSize
+        } else {
+            FontFitCache.getOrPut(FontFitKey(words, style, minFontSize, fontStep, available, density.density, density.textScale)) {
+                fitFontSize(style.fontSize, minFontSize, fontStep) { size ->
+                    words.all { measurer.measure(text = it, style = style.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= available }
+                }
+            }.size
+        }
+
+    Layout(
+        content = {
+            BoxWithConstraints {
+                val available = constraints.maxWidth
+                val size = remember(words, style, fontStep, available, density) { sizeAt(available) }
+                Text(text = text, color = color, style = style.copy(fontSize = size), textAlign = textAlign)
+            }
+        },
+        modifier = modifier,
+        measurePolicy = WrappedTextPolicy(
+            heightAt = { width -> measurer.measure(text = text, style = style.copy(fontSize = sizeAt(width)), constraints = Constraints(maxWidth = width)).size.height },
+            longestWord = { words.maxOfOrNull { measurer.measure(text = it, style = style.copy(fontSize = minFontSize), maxLines = 1, softWrap = false).size.width } ?: 0 },
+            oneLine = { measurer.measure(text = text, style = style, maxLines = 1, softWrap = false).size.width },
+        ),
+    )
+}
+
+/**
+ * [text] in exactly [lines] lines' height at [style]'s size, stepped down by [fontStep] until all of it fits those lines,
+ * but no smaller than [style]'s size at a 100% font scale, and ellipsised past them only then. For large fonts: at 100% a
+ * plain [Text] draws the same words.
+ */
+@Composable
+fun ShrinkToLinesText(
+    text: AnnotatedString,
+    style: TextStyle,
+    lines: Int,
+    modifier: Modifier = Modifier,
+    fontStep: TextUnit = 0.5.sp,
+) {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val height = remember(style, lines, density) { measurer.measure(List(lines) { "A" }.joinToString("\n"), style).size.height }
+    Layout(
+        content = {
+            BoxWithConstraints {
+                val available = constraints.maxWidth
+                val fit = remember(text, style, lines, fontStep, available, density) {
+                    fitFontSize(style.fontSize, density.sizeAtNormalFont(style.fontSize), fontStep) { size ->
+                        !measurer.measure(text, style.copy(fontSize = size), maxLines = lines, constraints = Constraints(maxWidth = available)).hasVisualOverflow
+                    }
+                }
+                Text(text = text, style = style.copy(fontSize = fit.size), maxLines = lines, overflow = TextOverflow.Ellipsis)
+            }
+        },
+        modifier = modifier,
+        measurePolicy = FixedHeightPolicy(height),
+    )
+}
+
+/**
+ * Lays out its one child (a `BoxWithConstraints`, which can't answer an intrinsic query itself) as it would be on its own,
+ * and answers for it: the height with [heightAt] the width, the smallest width with its [longestWord], and the largest with
+ * its [oneLine]. A `Button` in a row of `IntrinsicSize.Min` asks for all of them.
+ */
+private class WrappedTextPolicy(
+    private val heightAt: (width: Int) -> Int,
+    private val longestWord: () -> Int,
+    private val oneLine: () -> Int,
+) : MeasurePolicy {
+    override fun MeasureScope.measure(measurables: List<Measurable>, constraints: Constraints): MeasureResult {
+        val placeable = measurables.single().measure(constraints)
+        return layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+    }
+
+    override fun IntrinsicMeasureScope.minIntrinsicHeight(measurables: List<IntrinsicMeasurable>, width: Int): Int = heightAt(width)
+
+    override fun IntrinsicMeasureScope.maxIntrinsicHeight(measurables: List<IntrinsicMeasurable>, width: Int): Int = heightAt(width)
+
+    override fun IntrinsicMeasureScope.minIntrinsicWidth(measurables: List<IntrinsicMeasurable>, height: Int): Int = longestWord()
+
+    override fun IntrinsicMeasureScope.maxIntrinsicWidth(measurables: List<IntrinsicMeasurable>, height: Int): Int = oneLine()
+}
+
+/** Lays out its one child (a `BoxWithConstraints`) at [height], whatever it draws, and answers the intrinsic heights with it. */
+private class FixedHeightPolicy(private val height: Int) : MeasurePolicy {
+    override fun MeasureScope.measure(measurables: List<Measurable>, constraints: Constraints): MeasureResult {
+        val placeable = measurables.single().measure(constraints.copy(minHeight = 0, maxHeight = height))
+        return layout(placeable.width, height) { placeable.place(0, 0) }
+    }
+
+    override fun IntrinsicMeasureScope.minIntrinsicHeight(measurables: List<IntrinsicMeasurable>, width: Int): Int = height
+
+    override fun IntrinsicMeasureScope.maxIntrinsicHeight(measurables: List<IntrinsicMeasurable>, width: Int): Int = height
 }
 
 /**

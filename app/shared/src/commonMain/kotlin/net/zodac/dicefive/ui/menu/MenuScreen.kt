@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -40,6 +41,8 @@ import net.zodac.dicefive.ui.common.AppLogo
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.PageColumn
+import net.zodac.dicefive.ui.common.WholeWordsText
+import net.zodac.dicefive.ui.common.isLargeFont
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DiceStyles
@@ -191,15 +194,25 @@ fun PlayButton(hasInProgressGame: Boolean, onContinue: () -> Unit, onNewGame: ()
             modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = MENU_BUTTON_HEIGHT),
             shape = NEW_GAME_HALF_SHAPE,
         ) {
-            Text(text = stringResource(Res.string.menu_new_game), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            PlayHalfLabel(stringResource(Res.string.menu_new_game))
         }
         Button(
             onClick = onContinue,
             modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = MENU_BUTTON_HEIGHT),
             shape = CONTINUE_HALF_SHAPE,
         ) {
-            Text(text = stringResource(Res.string.menu_continue), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            PlayHalfLabel(stringResource(Res.string.menu_continue))
         }
+    }
+}
+
+/** A half of the split Play button's label. Half a button's width is what a large font can outgrow by a whole word. */
+@Composable
+private fun PlayHalfLabel(text: String) {
+    if (LocalDensity.current.isLargeFont) {
+        WholeWordsText(text = text, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+    } else {
+        Text(text = text, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
     }
 }
 
