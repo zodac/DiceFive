@@ -7,11 +7,11 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -21,8 +21,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
@@ -34,7 +38,6 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.R
 import net.zodac.dicefive.ui.common.AppLogo
-import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DieMotion
 import net.zodac.dicefive.ui.style.DiceStyles
@@ -89,7 +92,7 @@ class StoreArtGeneratorTest {
 
     /**
      * 1024x500, drawn at 3x. Play lays its play button over the middle when the listing has a video, and crops the
-     * edges in some places, so the logo sits left of centre and nothing that matters touches an edge.
+     * edges in some places, so the logo sits in the felt left of the mat and nothing that matters touches an edge.
      *
      * Also one loop of the scene moving, every [FEATURE_GIF_STRIDE]th frame into a folder, for the README's animated
      * copy: [FEATURE_LOOP_FRAMES] frames, the length of the RGB dice's colour cycle and two of the googly dice's shaking,
@@ -101,7 +104,7 @@ class StoreArtGeneratorTest {
     fun `feature graphic`() {
         val dir = File(StoreAssets.outDir, "feature-graphic-frames").apply { deleteRecursively(); mkdirs() }
         compose.mainClock.autoAdvance = false
-        compose.setContent { DiceFiveTheme { BannerScene(logoDie = 52.dp, animated = true) } }
+        compose.setContent { DiceFiveTheme { BannerScene(logoDie = 56.dp, animated = true) } }
         for (frame in 1..FEATURE_LOOP_FRAMES) {
             compose.mainClock.advanceTimeBy(FRAME_MILLIS)
             // The still is where the glitch die is at the worst of a burst, so it shows it glitching.
@@ -116,7 +119,8 @@ class StoreArtGeneratorTest {
     }
 
     /**
-     * The video's last card: 1920x1080, drawn at 3x - the same scene, a little roomier, with the dice moving so the
+     * The video's last card: 1920x1080, drawn at 3x - the same scene, with its logo sized to clear the mat at this
+     * shape, and with the dice moving so the
      * styles that react to it (googly eyes, glitch, RGB) show. One folder of 60fps frames, like a video scene.
      */
     @Test
@@ -125,7 +129,7 @@ class StoreArtGeneratorTest {
     fun `video end card`() {
         val dir = File(StoreAssets.outDir, "video-end-card").apply { deleteRecursively(); mkdirs() }
         compose.mainClock.autoAdvance = false
-        compose.setContent { DiceFiveTheme { BannerScene(logoDie = 40.dp, animated = true) } }
+        compose.setContent { DiceFiveTheme { BannerScene(logoDie = 35.dp, animated = true) } }
         repeat(END_CARD_FRAMES) { frame ->
             compose.mainClock.advanceTimeBy(FRAME_MILLIS)
             StoreAssets.save(compose.onRoot().captureToImage().asAndroidBitmap(), File(dir, "%05d.png".format(frame)))
@@ -153,24 +157,25 @@ class StoreArtGeneratorTest {
 }
 
 /**
- * The brand backdrop, the menu's logo in the default dice and cup - no tagline, the logo is the brand - and a
- * handful of the unlockable dice tumbling across the right - a taste of the Styles screen. [animated] lets the googly
- * pupils slide and the glitch and RGB dice play, the dice themselves staying put.
+ * The launcher icon's table ([TableBackdrop]), the menu's logo in the default dice and cup, centred in the felt left of
+ * the mat - no tagline, the logo is the brand - and a handful of the unlockable dice on the mat - a taste of the Styles
+ * screen. [animated] lets the googly pupils slide and the glitch and RGB dice play, the dice themselves staying put.
  */
 @Composable
 private fun BannerScene(logoDie: Dp, animated: Boolean = false) {
-    BrandBackdrop(showDice = true) {
+    Box(Modifier.fillMaxSize()) {
+        TableBackdrop()
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val w = maxWidth
             val h = maxHeight
-            AppLogo(
-                modifier = Modifier.align(Alignment.CenterStart).padding(start = w * 0.07f),
-                dieSize = logoDie,
-                titleSize = (logoDie.value * 1.9f).sp,
-                diceStyle = DiceStyles.default,
-                cupStyle = DiceCupStyles.default,
-            )
-            val die = h * 0.17f
+            Box(Modifier.size(w * (MAT_CENTRE_X - MAT_RADIUS_X), h), contentAlignment = Alignment.Center) {
+                AppLogo(
+                    dieSize = logoDie,
+                    titleSize = (logoDie.value * 1.9f).sp,
+                    diceStyle = DiceStyles.default,
+                    cupStyle = DiceCupStyles.default,
+                )
+            }
             val phase = if (animated) {
                 rememberInfiniteTransition(label = "bannerSway").animateFloat(
                     initialValue = 0f,
@@ -183,6 +188,7 @@ private fun BannerScene(logoDie: Dp, animated: Boolean = false) {
             }
             TOSSES.forEachIndexed { i, toss ->
                 val style = DiceStyles.byId(toss.style)
+                val die = h * DIE_HEIGHT_FRACTION * toss.scale
                 val motion = remember(style) { style.pupilTravel?.let { DieMotion(seed = i, travel = it) } }
                 // The dice stay where they are. Googly pupils are told the die is being shaken about - a made-up path, a different beat for each die - so they slide as they would in a moving die.
                 if (motion != null) {
@@ -209,18 +215,68 @@ private fun BannerScene(logoDie: Dp, animated: Boolean = false) {
     }
 }
 
-/** One die on the right of the banner: which style, which face, where (as fractions of the banner) and at what turn. */
-private data class Toss(val style: String, val value: Int, val x: Float, val y: Float, val angle: Float)
+/**
+ * The launcher icon's table (`ic_launcher_background.xml`): its lit navy felt, and its blue mat and gold ring, here
+ * large enough to hold [TOSSES] and running off the banner's other three edges. The app's own backdrop stays as it is.
+ */
+@Composable
+private fun TableBackdrop() {
+    Canvas(Modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+        drawRect(
+            Brush.radialGradient(
+                0f to Color(0xFF3A6FB5),
+                0.55f to Color(0xFF1C3D6E),
+                1f to Color(0xFF0F2A50),
+                center = Offset(w * 0.42f, h * 0.10f),
+                radius = w * 0.78f,
+            ),
+        )
+        val radiusX = w * MAT_RADIUS_X
+        val radiusY = h * MAT_RADIUS_Y
+        val topLeft = Offset(w * MAT_CENTRE_X - radiusX, h * MAT_CENTRE_Y - radiusY)
+        val mat = Size(radiusX * 2, radiusY * 2)
+        drawOval(
+            Brush.radialGradient(
+                0f to Color(0xFF3F86D8),
+                0.65f to Color(0xFF2660AA),
+                1f to Color(0xFF1A4684),
+                center = Offset(w * 0.79f, h * 0.42f),
+                radius = maxOf(radiusX, radiusY) * 0.9f,
+            ),
+            topLeft,
+            mat,
+        )
+        drawOval(Color(0xFFE6C278), topLeft, mat, style = Stroke(h * 0.008f))
+    }
+}
+
+private const val MAT_CENTRE_X = 0.835f
+private const val MAT_CENTRE_Y = 0.50f
+private const val MAT_RADIUS_X = 0.295f
+private const val MAT_RADIUS_Y = 0.62f
+
+/** A die's height in the banner, as a fraction of the banner's. */
+private const val DIE_HEIGHT_FRACTION = 0.17f
+
+/**
+ * One die on the mat: which style, which face, where (as fractions of the banner), at what turn, and how much larger
+ * than the others. Every die stays inside the mat's ring at both the feature graphic's and the end card's shape.
+ */
+private data class Toss(val style: String, val value: Int, val x: Float, val y: Float, val angle: Float, val scale: Float = 1f)
 
 private val TOSSES = listOf(
-    Toss("cake_strawberry", 5, 0.62f, 0.30f, -14f),
-    Toss("googly_ivory", 6, 0.74f, 0.20f, 11f),
-    Toss("glitch_black", 4, 0.87f, 0.32f, -8f),
-    Toss("rgb_wave", 3, 0.66f, 0.68f, 18f),
-    Toss("christmas_baubles", 2, 0.80f, 0.60f, -20f),
-    Toss("meadow_green", 6, 0.92f, 0.76f, 9f),
-    Toss("world_japanese", 5, 0.55f, 0.84f, -6f),
-    Toss("d20_blue", 6, 0.72f, 0.44f, 7f),
+    Toss("cake_strawberry", 5, 0.670f, 0.27f, -14f),
+    Toss("googly_ivory", 6, 0.795f, 0.15f, 11f),
+    Toss("glitch_black", 4, 0.920f, 0.29f, -8f),
+    Toss("rgb_wave", 3, 0.655f, 0.62f, 18f),
+    Toss("christmas_baubles", 2, 0.910f, 0.58f, -20f),
+    Toss("meadow_green", 6, 0.880f, 0.85f, 9f),
+    Toss("world_japanese", 5, 0.730f, 0.82f, -6f),
+    // A d20 fills less of its box than a square die, so it's drawn larger to look the same size. Black, as the blue one
+    // is lost against the mat.
+    Toss("d20_black", 6, 0.785f, 0.47f, 7f, scale = 1.25f),
 )
 
 /** One loop of the made-up shaking of the googly dice takes this long, and has [SHAKE_BEATS] beats, each moving [SHAKE_REACH] die sizes. */

@@ -36,7 +36,8 @@ the `store-assets` skill. The rest of the Play submission is in `PUBLISHING.md`.
     phone and 16:9 for the tablet.
 
 **The feature graphic** keeps the logo left of centre, because Play overlays a play button in the middle when there's a
-video.
+video. The logo is centred in the felt left of the mat, which leaves it little room to grow: the button still crosses
+the end of the wordmark.
 
 ## Changing what's shown
 
@@ -57,8 +58,10 @@ video.
     frames on captions, joins them with fades, and ends on `StoreArtGeneratorTest`'s `video end card`, recorded as
     frames with the dice swaying so googly eyes, glitch and RGB move.
 - **The icon** is the launcher icon itself, cropped roughly as a launcher shows it. **The feature graphic** is
-    `BannerScene` (`StoreArtGeneratorTest.kt`): the `AppLogo` and a spread of unlockable dice (`TOSSES`: strawberry
-    cake, googly eyes, glitch, RGB wave, baubles, meadow, Japanese white/red, blue d20).
+    `BannerScene` (`StoreArtGeneratorTest.kt`), on the launcher icon's felt, mat, and ring (`TableBackdrop`, store art
+    only): the `AppLogo` and a spread of unlockable dice on the mat (`TOSSES`: strawberry cake, googly eyes, glitch, RGB
+    wave, baubles, meadow, Japanese white/red, and a larger black d20). The mat keeps every die inside its ring at both
+    shapes, so check both after moving one.
 - **The history** is `StoreState.seed` (`StoreAssets.kt`): about 36 games over two months for Sam, Jo, Alex and the CPU
     Ada, with every counted achievement except a deliberately locked few.
 
