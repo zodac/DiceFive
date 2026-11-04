@@ -5,14 +5,14 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.resources.Res
@@ -100,5 +100,6 @@ private val REVIEW_TIGHT_SPACING = 8.dp
 
 /** The shallowest the review's tray mat is made - under the game screen's own `MIN_SCATTER_HEIGHT`, which a live turn needs for dice to land in. */
 private val REVIEW_MIN_SCATTER_HEIGHT = 44.dp
+
 /** The player tabs' row (measured 86dp) with a few dp over, so the fit below errs towards no scrollbar. */
 private val REVIEW_HEADER_HEIGHT = 90.dp

@@ -1,7 +1,6 @@
 package net.zodac.dicefive.ui.common
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -81,7 +80,10 @@ fun <T> DropdownChoiceField(
     val chooseLabel = stringResource(Res.string.common_picker_choose_action, label)
     // DropdownMenu positions itself against its parent, so the field and the menu share this Box.
     Box(modifier = modifier.onSizeChanged { fieldWidth = with(density) { it.width.toDp() } }) {
+        // The Surface's own click, not a clickable on its modifier: that one sits outside the shape's clip, and so would
+        // its ripple.
         Surface(
+            onClick = { open = true },
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = FIELD_MIN_HEIGHT)
@@ -93,8 +95,7 @@ fun <T> DropdownChoiceField(
                         open = true
                         true
                     }
-                }
-                .clickable(onClickLabel = chooseLabel, role = Role.DropdownList) { open = true },
+                },
             shape = MaterialTheme.shapes.medium,
             color = MaterialTheme.colorScheme.surfaceContainerHighest,
             border = BorderStroke(1.dp, if (open) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline),

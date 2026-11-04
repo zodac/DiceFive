@@ -216,7 +216,7 @@ private const val SCORES_WARM_UP_DELAY_MILLIS = 2000L
 private const val SCORES_WARM_UP_FRAMES = 8
 
 /** The boards the warm-up draws: Standard's, which the page opens on, then Combined, whose rows are each coloured by mode. */
-private val WARM_UP_CHOICES = listOf(ModePage.Mode(GameMode.STANDARD), ModePage.Combined)
+private val WARM_UP_CHOICES = listOf(ModePage.STANDARD, ModePage.Combined)
 
 /**
  * Draws the Leaderboard - Standard's board, then Combined - once, out of sight, so opening it isn't
