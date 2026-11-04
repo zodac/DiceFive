@@ -9,6 +9,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +21,7 @@ import net.zodac.dicefive.data.scores.PlayerModeTotals
 import net.zodac.dicefive.data.scores.PlayerRecord
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.data.scores.WinStreaks
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.ModePage
@@ -85,7 +88,7 @@ class StatisticsPagesTest : UiTest() {
 
         override suspend fun playerRecords(): List<PlayerRecord> {
             check(!failing) { "The database can't be read" }
-            return listOf(PlayerRecord("Sam", listOf(PlayerModeTotals("sam", GameMode.STANDARD.id, 1, 0, 0, 1, 100, 100, 0, 0L))))
+            return listOf(PlayerRecord("Sam", listOf(PlayerModeTotals("sam", GameMode.STANDARD.id, 1, 0, 0, 1, 100, 100, 0, 0L)), WinStreaks(), emptyMap()))
         }
     }
 
@@ -116,6 +119,27 @@ class StatisticsPagesTest : UiTest() {
         compose.onNodeWithContentDescription("Delete Sam's stats").performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Would you like to delete Sam's stats in every game mode? Their leaderboard scores will not be affected.").assertExists()
+    }
+
+    @Test
+    fun `a picked page and sort are on view even when the write that keeps them can't be made`() = uiTest {
+        val full = object : DataStore<Preferences> by InMemoryPreferences() {
+            override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences = data.first()
+        }
+        val settings = SettingsRepository(full)
+        val viewModel = StatisticsViewModel(ScoreRepository(InMemoryScoreDao()), settings)
+        compose.waitForIdle()
+        assertEquals(ModePage.STANDARD, viewModel.page.value)
+
+        val byScore = StatisticsSortOrder(StatisticsSort.HIGHEST_SCORE)
+        viewModel.selectPage(ModePage.Combined)
+        viewModel.setSortOrder(ModePage.Combined, byScore)
+        compose.waitForIdle()
+
+        assertEquals(ModePage.Combined, viewModel.page.value)
+        assertEquals(byScore, viewModel.sortOrders.value!!.getValue(ModePage.Combined))
+        assertEquals(StatisticsSortOrder(), viewModel.sortOrders.value!!.getValue(ModePage.STANDARD))
+        assertEquals(null, settings.statisticsChoice.first())
     }
 
     @Test

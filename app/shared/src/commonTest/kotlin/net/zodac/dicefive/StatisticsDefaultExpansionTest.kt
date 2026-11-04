@@ -19,6 +19,7 @@ import net.zodac.dicefive.data.scores.PlayerRecord
 import net.zodac.dicefive.data.scores.PlayerStatistics
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.data.scores.WinStreaks
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.statistics.BUILT_AHEAD_TAG
@@ -36,7 +37,7 @@ class StatisticsDefaultExpansionTest : UiTest() {
     private val showcase = Showcase { compose }
 
     private fun showPlayers(count: Int) {
-        val records = (1..count).map { PlayerRecord("Player$it", listOf(totals("player$it", maxScore = 100 * it))) }
+        val records = (1..count).map { PlayerRecord("Player$it", listOf(totals("player$it", maxScore = 100 * it)), WinStreaks(), emptyMap()) }
         val dao = object : ScoreDao by InMemoryScoreDao(emptyList()) {
             override suspend fun playerRecords() = records
         }

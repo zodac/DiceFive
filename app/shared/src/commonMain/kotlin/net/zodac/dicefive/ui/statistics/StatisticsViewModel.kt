@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -37,23 +38,37 @@ class StatisticsViewModel(
     page: StateFlow<ModePage?>? = null,
 ) : ViewModel() {
 
-    /** How each page's cards are ordered - null until loaded, when the screen shows nothing. */
-    val sortOrders: StateFlow<Map<ModePage, StatisticsSortOrder>?> = sortOrders
+    private val storedSorts: StateFlow<Map<ModePage, StatisticsSortOrder>?> = sortOrders
         ?: settingsRepository.statisticsSorts
             .map(::parseStatisticsSorts)
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    /** The page on view - null until loaded. */
-    val page: StateFlow<ModePage?> = page
+    private val storedPage: StateFlow<ModePage?> = page
         ?: settingsRepository.statisticsChoice.map { ModePage.parse(it) }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /** The sorts picked on this visit: on view at once, whether or not the write that keeps them has landed or can be made. */
+    private val pickedSorts = MutableStateFlow<Map<ModePage, StatisticsSortOrder>>(emptyMap())
+
+    /** The page picked on this visit: on view at once, as [pickedSorts] are. */
+    private val pickedPage = MutableStateFlow<ModePage?>(null)
+
+    /** How each page's cards are ordered - null until loaded, when the screen shows nothing. */
+    val sortOrders: StateFlow<Map<ModePage, StatisticsSortOrder>?> = combine(storedSorts, pickedSorts) { stored, picked -> stored?.plus(picked) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, storedSorts.value)
+
+    /** The page on view - null until loaded. */
+    val page: StateFlow<ModePage?> = combine(storedPage, pickedPage) { stored, picked -> picked ?: stored }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, storedPage.value)
 
     /** Sets [page]'s own sort, kept for that page alone. */
     fun setSortOrder(page: ModePage, order: StatisticsSortOrder) {
+        pickedSorts.update { it + (page to order) }
         viewModelScope.launch { settingsRepository.setStatisticsSort(page.stored, order.stored) }
     }
 
     /** Moves to [page], and keeps it for the next visit. */
     fun selectPage(page: ModePage) {
+        pickedPage.value = page
         viewModelScope.launch { settingsRepository.setStatisticsChoice(page.stored) }
     }
 

@@ -122,9 +122,9 @@ data class PlayerRecord(
     val playerName: String,
     val modes: List<PlayerModeTotals>,
     /** The win streaks of every mode's games together. */
-    val streaks: WinStreaks = WinStreaks(),
+    val streaks: WinStreaks,
     /** The win streaks of each mode's games alone, by [ScoreEntry.gameModeId]; a mode with no game to beat anyone in is absent. */
-    val modeStreaks: Map<String, WinStreaks> = emptyMap(),
+    val modeStreaks: Map<String, WinStreaks>,
 )
 
 /** A player's win streak as it stands, and their longest. */
