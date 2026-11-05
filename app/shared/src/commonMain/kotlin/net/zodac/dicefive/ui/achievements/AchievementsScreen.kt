@@ -1122,11 +1122,10 @@ private fun ProgressRow(item: AchievementItem, ink: (Color) -> Color) {
 }
 
 /**
- * Stops a row drawing anywhere above the bottom edge of the pinned category header, so it's cut off
- * at that edge rather than sliding underneath it. The header covers what's behind it, except at its
- * rounded corners, where a row passing underneath still showed through; clipping the row takes it
- * out of that area entirely. The pinned header is the topmost header in the list's layout: while
- * the next one pushes it up, its bottom edge moves too, and the clip follows it.
+ * Stops a row drawing above the middle of the pinned category header. The row slides under the header and shows past the
+ * header's rounded bottom corners, as anything behind a rounded card does. It's gone before the top corners, where the top
+ * of the list would cut it flat. The pinned header is the topmost header in the list's layout: while the next one pushes
+ * it up, its middle moves too, and the clip follows it.
  *
  * Only affects drawing. The header is laid out on top, so it still takes any touch in that area.
  * Reads [LazyListState.layoutInfo] during the draw pass, so scrolling only redraws the rows and
@@ -1136,7 +1135,7 @@ private fun Modifier.hiddenUnderPinnedHeader(listState: LazyListState, key: Any)
     val visible = listState.layoutInfo.visibleItemsInfo
     val pinnedHeader = visible.filter { it.contentType == HEADER_CONTENT_TYPE }.minByOrNull { it.offset }
     val self = visible.firstOrNull { it.key == key }
-    val hiddenHeight = if (pinnedHeader == null || self == null) 0f else (pinnedHeader.offset + pinnedHeader.size - self.offset).toFloat()
+    val hiddenHeight = if (pinnedHeader == null || self == null) 0f else (pinnedHeader.offset + pinnedHeader.size / 2 - self.offset).toFloat()
     when {
         hiddenHeight <= 0f -> drawContent()
         hiddenHeight >= size.height -> Unit

@@ -31,8 +31,9 @@ Miscellaneous run in alphabetical order instead, and so do the Easter Eggs, whic
     label is `onSurface`, and the whole header turns brand gold (`primary`) once every one is earned. TalkBack reads
     "Milestones, 3 of 12 earned" as the heading; the drawn count is hidden from it. Every category has a count, Easter
     Eggs included: their rows are all listed, so their number is no secret.
-- Rows are clipped at the pinned header's bottom (`Modifier.hiddenUnderPinnedHeader`, from `layoutInfo` in the draw
-    pass). Otherwise they'd show through its rounded corners.
+- Rows slide under the pinned header and are cut at its middle (`Modifier.hiddenUnderPinnedHeader`, from `layoutInfo` in
+    the draw pass), so they show past its rounded bottom corners. Cut at its bottom edge, their square corners stick out
+    past its curve like a lip; left uncut, the top of the list cuts them flat in its top corners.
 
 **The list scrolls past its last row, on purpose.** A trailing blank item (`tail-space`, measured as the viewport less
 the header and the last row) lets the final rows reach the middle, so a banner long press can centre them.
