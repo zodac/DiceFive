@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CollectionInfo
@@ -49,6 +50,22 @@ import net.zodac.dicefive.ui.icons.Symbols
 private val FIELD_MIN_HEIGHT = 52.dp
 
 private val OPTION_MIN_HEIGHT = 48.dp
+
+/** What [DropdownMenu] keeps clear above and below its content, with no parameter to change it. */
+private val MENU_VERTICAL_PADDING = 8.dp
+
+/**
+ * Takes [MENU_VERTICAL_PADDING] off the top and bottom of a [DropdownMenu], so its first and last options reach its edges and
+ * read as centred in their dividers. Goes last on the menu's `modifier`, which wraps the padded column: the column is measured
+ * with the padding, then placed so that the menu's surface clips it away. The menu's own scrolling is inside the padding, so it
+ * keeps all the height it's offered.
+ */
+private fun Modifier.withoutMenuPadding(): Modifier = layout { measurable, constraints ->
+    val padding = MENU_VERTICAL_PADDING.roundToPx()
+    val maxHeight = if (constraints.hasBoundedHeight) constraints.maxHeight + 2 * padding else constraints.maxHeight
+    val column = measurable.measure(constraints.copy(maxHeight = maxHeight))
+    layout(column.width, (column.height - 2 * padding).coerceAtLeast(0)) { column.place(0, -padding) }
+}
 
 /**
  * A drop-down for picking one of [options]: a field showing the [selected] one, opening a menu as wide as the field
@@ -121,7 +138,10 @@ fun <T> DropdownChoiceField(
         DropdownMenu(
             expanded = open,
             onDismissRequest = { open = false },
-            modifier = Modifier.width(fieldWidth).semantics { collectionInfo = CollectionInfo(rowCount = options.size, columnCount = 1) },
+            modifier = Modifier
+                .width(fieldWidth)
+                .semantics { collectionInfo = CollectionInfo(rowCount = options.size, columnCount = 1) }
+                .withoutMenuPadding(),
         ) {
             options.forEachIndexed { index, option ->
                 val isSelected = option == selected
