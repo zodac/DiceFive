@@ -85,6 +85,7 @@ import net.zodac.dicefive.ui.common.LocalAnimationLevel
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ambientMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
+import net.zodac.dicefive.ui.common.redrawsAlone
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.GoldAccentDim
@@ -212,7 +213,7 @@ fun DiceTray(
     ) {
         // The mat's own decoration, if it has one, sits between the brush and
         // the dice - matchParentSize so it fills whatever height the Row below ends up with.
-        visualTheme.mat.DiceTrayDecoration(modifier = Modifier.matchParentSize())
+        visualTheme.mat.DiceTrayDecoration(modifier = Modifier.matchParentSize().redrawsAlone())
 
         val irish = LocalIrishTricolour.current
         // Built once for the game: none of the style, the mode's colours or Luck Of The Irish

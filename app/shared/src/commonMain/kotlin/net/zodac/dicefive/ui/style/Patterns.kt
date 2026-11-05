@@ -34,23 +34,54 @@ import net.zodac.dicefive.ui.common.ambientMotion
  * enough to read as the sky breathing rather than flashing. The default freezes them.
  */
 internal fun DrawScope.drawStars(seed: Int, color: Color = Color.White, seconds: Float = 0f) {
+    for (star in starField(seed)) {
+        val twinkle = 1f - TWINKLE_DEPTH * (0.5f + 0.5f * sin(seconds * star.speed + star.phase))
+        drawPath(star.path, color.copy(alpha = star.alpha * twinkle))
+    }
+}
+
+/** One of [drawStars]' stars: its shape, kept so a twinkle only changes its alpha, and how it twinkles. */
+private class Star(val path: Path, val alpha: Float, val phase: Float, val speed: Float)
+
+private data class StarFieldKey(val seed: Int, val size: Size, val density: Float)
+
+/** The stars for [seed] on a surface this size: built once, and kept for the frames after until [releaseCachedSurfaces]. */
+private fun DrawScope.starField(seed: Int): List<Star> {
+    val key = StarFieldKey(seed, size, density)
+    val field = starFields.remove(key) ?: buildStarField(seed).also { starFieldsBuilt++ }
+    // Re-added on every use, so the map runs least recently used first.
+    starFields[key] = field
+    if (starFields.size > STAR_FIELD_CACHE_SIZE) starFields.remove(starFields.keys.first())
+    return field
+}
+
+private fun DrawScope.buildStarField(seed: Int): List<Star> {
     val random = Random(seed)
     // Its own stream, so the stars stay where they always were.
     val beat = Random(seed + 7919)
     val cell = 44.dp.toPx()
     val count = (size.width * size.height / (cell * cell)).toInt().coerceAtLeast(4)
-    val star = Path()
-    repeat(count) {
+    return List(count) {
         val centre = Offset(random.nextFloat() * size.width, random.nextFloat() * size.height)
         val radius = (1.3f + random.nextFloat() * 1.9f).dp.toPx()
         val alpha = 0.3f + random.nextFloat() * 0.6f
         val phase = beat.nextFloat() * 2f * PI.toFloat()
         val speed = 0.5f + beat.nextFloat() * 1.1f
-        val twinkle = 1f - TWINKLE_DEPTH * (0.5f + 0.5f * sin(seconds * speed + phase))
-        star.fourPointStar(centre, radius)
-        drawPath(star, color.copy(alpha = alpha * twinkle))
+        Star(Path().fourPointStar(centre, radius), alpha, phase, speed)
     }
 }
+
+// Only ever drawn (and released) on the main thread, so never shared between threads.
+private val starFields = LinkedHashMap<StarFieldKey, List<Star>>()
+
+// A board and a mat, each upright and turned, and the Styles page's tiles of each.
+private const val STAR_FIELD_CACHE_SIZE = 8
+
+// How many star fields have been built, not reused from starFields, since the process started.
+private var starFieldsBuilt = 0
+
+/** For tests only: how many star fields [drawStars] has built so far, rather than reused. */
+internal fun starFieldsBuiltForTest(): Int = starFieldsBuilt
 
 // How far in a star's hollow sides pinch, as a fraction of its points' reach.
 private const val STAR_WAIST = 0.3f
@@ -148,12 +179,13 @@ internal fun DrawScope.cachedSurface(key: Any, paint: DrawScope.() -> Unit): Ima
 }
 
 /**
- * Lets go of every surface [drawCachedSurface] has painted, for the platform to call when it's short of memory with the
- * app in the background. Each is painted again on its next draw.
+ * Lets go of every surface [drawCachedSurface] has painted and every star field [drawStars] has built, for the platform to
+ * call when it's short of memory with the app in the background. Each is made again on its next draw.
  */
 fun releaseCachedSurfaces() {
     surfaceImages.clear()
     surfaceBytes = 0
+    starFields.clear()
 }
 
 // Only ever drawn (and released) on the main thread, so never shared between threads.

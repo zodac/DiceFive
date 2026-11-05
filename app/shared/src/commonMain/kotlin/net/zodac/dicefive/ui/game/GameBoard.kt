@@ -51,6 +51,7 @@ import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.flowerpotStage
 import net.zodac.dicefive.ui.common.delayWhileResumed
+import net.zodac.dicefive.ui.common.redrawsAlone
 import net.zodac.dicefive.ui.style.FlowerpotGrowth
 import net.zodac.dicefive.ui.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.color
@@ -87,16 +88,50 @@ private fun ScoreBoardRow(
     val visualTheme = LocalGameVisualTheme.current
     visualTheme.background.Animate()
 
-    val layout = boardLayout(categories)
-    BoxWithConstraints(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .height(if (landscape) landscapeBoardHeight(categories) else gameBoardHeight(categories))
             .clip(RoundedCornerShape(16.dp))
-            .background(visualTheme.background.scoreAreaBrush)
-            .drawBehind { with(visualTheme.background) { drawScoreAreaDecoration() } }
-            .padding(BOARD_PADDING),
+            .background(visualTheme.background.scoreAreaBrush),
     ) {
+        Spacer(
+            modifier = Modifier
+                .matchParentSize()
+                .redrawsAlone()
+                .drawBehind { with(visualTheme.background) { drawScoreAreaDecoration() } },
+        )
+        ScoreBoardContent(
+            categories,
+            player,
+            dice,
+            canScore,
+            showPreview,
+            available,
+            onScoreCategory,
+            cup,
+            landscape,
+            modifier = Modifier.fillMaxSize().padding(BOARD_PADDING),
+        )
+    }
+}
+
+/** What [ScoreBoardRow] lays out over its background: the score grid and the cup panel, or the landscape board. */
+@Composable
+private fun ScoreBoardContent(
+    categories: List<ScoreCategory>,
+    player: PlayerState?,
+    dice: List<Die>,
+    canScore: Boolean,
+    showPreview: Boolean,
+    available: Set<ScoreCategory>,
+    onScoreCategory: (ScoreCategory) -> Unit,
+    cup: CupPanelState?,
+    landscape: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val layout = boardLayout(categories)
+    BoxWithConstraints(modifier = modifier) {
         if (landscape) {
             CompositionLocalProvider(LocalBonusFontSize provides BONUS_MAX_SIZE) {
                 LandscapeBoard(categories, player, dice, canScore, showPreview, available, onScoreCategory, cup, maxWidth)

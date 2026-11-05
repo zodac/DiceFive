@@ -76,6 +76,11 @@ shows up late. Leave out `runOnIdle` and it can be missed.
     per frame.
 - **Recording vs replaying.** Capture the same frame twice. If the second capture is as slow as the first, the time
     is the harness's, not the app's.
+- **What a state change re-records.** Robolectric can't show this, as it repaints everything each capture. Use the
+    emulator, which has real RenderNodes: a throwaway Activity in a temporary `app/android/src/debug` (its own manifest
+    entry, exported), showing the scene and logging percentiles of `FrameMetrics.DRAW_DURATION` from
+    `window.addOnFrameMetricsAvailableListener`. Launch it with `adb shell am start -n`. Compare within a run, ignore
+    the first launch after an install, and delete the source set afterwards.
 
 ## Reading the numbers
 

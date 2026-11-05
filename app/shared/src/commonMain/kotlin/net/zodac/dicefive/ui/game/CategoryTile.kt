@@ -35,6 +35,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
@@ -272,7 +273,11 @@ private fun BoxScope.GlowBorder(shape: Shape) {
     Box(
         modifier = Modifier
             .matchParentSize()
-            .graphicsLayer { alpha = glowAlpha.value }
+            // One stroke overlaps nothing, so its alpha needs no offscreen pass: several tiles glow at once, on every frame.
+            .graphicsLayer {
+                alpha = glowAlpha.value
+                compositingStrategy = CompositingStrategy.ModulateAlpha
+            }
             .border(width = 2.dp, color = GoldAccent, shape = shape),
     )
 }

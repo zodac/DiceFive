@@ -27,6 +27,14 @@ Each of these fixed a reported stutter. New work must keep them.
     - Ambient loops obey the Animations levels (`UI.md`).
 - **Animate opacity or tint, not geometry.** Neon paints its tube once and pulses the alpha. RGB paints once in white
     and tints (`ColorFilter.tint(.., SrcIn)`). A tinted image per lamp is slower than a small gradient.
+    - A layer's animated alpha takes an offscreen pass per layer by default. Where its content doesn't overlap itself,
+        use `CompositingStrategy.ModulateAlpha`, as a score tile's glow does: up to one lit ring per open box, every frame.
+- **Give art on its own clock a layer of its own** (`Modifier.redrawsAlone`, on a sibling under what it sits behind). A
+    state read while drawing re-records the whole layer it's drawn in, unchanged neighbours included. `Modifier.clip` is
+    a layer too, so that was all of the board's score text and cup panel on every frame of an animated background.
+    `RedrawsAloneTest` holds the board, tray, and backdrop to it. A cup and a die on the mat already turn in layers.
+- **Keep a shape that only changes colour.** `drawStars` builds its paths once per seed, size, and density, and a twinkle
+    only changes their alpha. It used to rebuild up to ~190 paths a frame on a phone-sized board.
 - **Don't rebuild nodes on a state change.**
     - One `Moving(...)` call site takes either move's arguments, so landing doesn't rebuild every die.
     - A turn's first dice are composed off the mat during the shake.
@@ -165,6 +173,15 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
     it has measured (`measuredOrAverageSize`): a frame's draw is ~5.4 and allocates 44KB at every size.
     Pulling the thumb (warm, compose and layout): ~1.2 a frame at about 3 new rows, ~2.4 at 12, and 4-6 with every row new,
     against ~0.7 for a finger scroll.
+- **Recording an always-on frame** (2026-11-05, sandbox emulator, debug build, a scratch Activity's `FrameMetrics`
+    `DRAW_DURATION` over 300 idle frames, three runs each; p50 then p95). The only numbers here from real RenderNodes, as
+    Robolectric repaints everything each capture. Compare within this list only. CPU recording alone, not the GPU.
+    - A board and tray with no ambient art, the tile glow alone: 0.01 and 0.01, before and after. The glow only sets a
+        layer's alpha.
+    - Starry background and mat: 2.2 and ~4.2, now ~0.87 and ~1.4.
+    - Floating Dice background: 1.43 and ~2.7, now ~0.52 and ~0.8. No stars in it, so this is the layer's saving alone.
+    - The menu: 0.95 and ~2.5, now ~0.80 and ~1.4. Its content was already in layers; a backdrop with nothing on it is
+        ~0.75, so what's left is the drifting dice drawing themselves.
 - **Pages.** Styles opens at ~42-44 the first time after launch, then 16-24. A tile scrolling in costs ~0.6. Settings'
     first frame is ~26-30. A Rules tap frame is ~6-8.
 
@@ -177,6 +194,10 @@ Profile).
     `ImageBitmap` (`GraphicsLayer.toImageBitmap`). The cost is that animated styles freeze through the 0.9s toss.
 - **The ground shadow.** `GroundShadow` (`DiceTray.kt`) rebuilds its `Outline` and draws it four times each frame a die
     moves. Untried, and unmeasured on its own.
+- **One glow clock for all the lit tiles.** Each lit tile runs its own `InfiniteTransition`: ~0.1ms of a frame's animation
+    phase per tile (2026-11-05, same emulator set-up; four lit, ~0.87 against ~0.46 with none). Sharing one has to stop
+    when no tile is lit, so a still board keeps asking for no frames. Not built: reference-counted machinery for a debug
+    build's 0.1ms. Measure a release build first.
 - **Dice switching mode** rebuilds each die's nodes twice a roll. Drawing the pick-up with the resting composable and
     switching to `Moving` once off the mat would hide the first rebuild in the shake.
 - **Always-on animations' battery cost.** The menu drift skips a 120Hz screen's every other refresh and sleeps between its frames. Starry,

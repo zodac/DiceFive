@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.common
 import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -11,6 +12,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -91,18 +93,24 @@ fun BrandBackdrop(
                 onDrawBehind {
                     drawRect(base)
                     drawRect(spotlight)
-                    if (!showDice) return@onDrawBehind
-                    if (drift == null) {
-                        drawDiceWatermark(colorScheme.onSurface, WATERMARK_DICE.map { it.toDrifting() })
-                    } else {
+                    if (showDice && drift == null) drawDiceWatermark(colorScheme.onSurface, WATERMARK_DICE.map { it.toDrifting() })
+                }
+            },
+    ) {
+        if (drift != null) {
+            Spacer(
+                modifier = Modifier
+                    .matchParentSize()
+                    .redrawsAlone()
+                    .drawBehind {
                         drift.frame.longValue // Read here, so each move redraws.
                         // Only the dice actually showing - one sliding in from below isn't drawn until it's on screen.
                         drawDiceWatermark(colorScheme.onSurface, drift.dice.dice.filter { isShowing(it, size.width, size.height) })
-                    }
-                }
-            },
-        content = content,
-    )
+                    },
+            )
+        }
+        content()
+    }
 }
 
 /**
