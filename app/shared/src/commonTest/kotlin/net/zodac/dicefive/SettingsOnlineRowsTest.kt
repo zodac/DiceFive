@@ -1,13 +1,7 @@
 package net.zodac.dicefive
 
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -32,20 +26,16 @@ private class AchievementsUiServices(state: GameServicesState) : GameServices by
     override val serviceName = "Test Games"
     override val state: StateFlow<GameServicesState> = MutableStateFlow(state)
     override val canShowAchievementsUi = state is GameServicesState.SignedIn
-    var shown = 0
-    override fun showAchievementsUi() {
-        shown++
-    }
 }
 
 /** The screen this class's tests are drawn on. */
 private val SCREEN = TestScreen(360, 800)
 
 /**
- * While signed in, Reset achievements (which the service would undo) gives its place to a link to the service's
- * achievements, and Reset leaderboard's confirmation says the service's boards keep their scores.
+ * Settings has no achievements row at all, and while signed in, Reset leaderboard's confirmation says the service's
+ * boards keep their scores.
  */
-class OnlineAchievementsRowTest : UiTest() {
+class SettingsOnlineRowsTest : UiTest() {
 
     private fun show(services: GameServices) {
         val viewModel = settingsViewModel()
@@ -61,27 +51,18 @@ class OnlineAchievementsRowTest : UiTest() {
     }
 
     @Test
-    fun `signed in - the link is a button row in Reset achievements' place - and opens the service's screen`() = uiTest(SCREEN) {
-        val services = AchievementsUiServices(GameServicesState.SignedIn(OnlineAccount("Ann", null, "k")))
-        show(services)
+    fun `signed in - Settings has neither Reset achievements nor a link to the service's achievements`() = uiTest(SCREEN) {
+        show(AchievementsUiServices(GameServicesState.SignedIn(OnlineAccount("Ann", null, "k"))))
+        compose.onNodeWithText("Reset leaderboard").performScrollTo()
         compose.onNodeWithText("Reset achievements").assertDoesNotExist()
-        val link = compose.onNode(hasText("View in Test Games") and hasClickAction(), useUnmergedTree = false)
-        link.performScrollTo()
-        link.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
-        // TalkBack: "double-tap to open Test Games".
-        link.assert(SemanticsMatcher("double-tap to open the service") { it.config[SemanticsActions.OnClick].label == "Open Test Games" })
-        // The row is its label alone: no line under it.
-        assertEquals(listOf("View in Test Games"), link.fetchSemanticsNode().config[SemanticsProperties.Text].map { it.text })
-        link.performClick()
-        assertEquals(1, services.shown)
-        compose.onNodeWithText("Reset leaderboard").assertExists()
+        compose.onNodeWithText("View in Test Games").assertDoesNotExist()
     }
 
     @Test
-    fun `signed out - Reset achievements as before - and no link`() = uiTest(SCREEN) {
+    fun `signed out - Settings has no Reset achievements`() = uiTest(SCREEN) {
         show(AchievementsUiServices(GameServicesState.SignedOut()))
-        compose.onNodeWithText("Reset achievements").assertExists()
-        compose.onNodeWithText("View in Test Games").assertDoesNotExist()
+        compose.onNodeWithText("Reset leaderboard").performScrollTo()
+        compose.onNodeWithText("Reset achievements").assertDoesNotExist()
     }
 
     private val resetMessage = "Every recorded score will be deleted, clearing the Leaderboard screen - and Statistics with it, since it's " +

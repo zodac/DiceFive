@@ -42,8 +42,8 @@ import net.zodac.dicefive.model.TurnTimer
  * Every setting but the Animations level, the Orientation, the Styles page fit and the list filters goes in the cloud
  * save ([SYNCED_KEYS]): those are about this device - what it can draw, how it's held, its screen, and how this player likes
  * to browse. Each synced key is stamped with when its value last changed
- * ([stampKey]), and the cloud save keeps whichever device set it last. A Styles pick Reset achievements unstamps
- * ([unstampStylePicks]) is stamped 0: it loses to any later change, but beats a device that never set one.
+ * ([stampKey]), and the cloud save keeps whichever device set it last. A key with no stamp, as an older version's
+ * achievements reset left the Styles picks, is stamped 0: it loses to any later change, but beats a device that never set one.
  */
 class SettingsRepository(
     private val dataStore: DataStore<Preferences>,
@@ -155,14 +155,6 @@ class SettingsRepository(
                 prefs.remove(stampKey(key))
             }
         }
-    }
-
-    /**
-     * Unstamps the Styles picks, so the cloud save's own copy wins over them at the next sync: Reset achievements puts
-     * locked picks back to the defaults on this device only, as the reset itself is.
-     */
-    suspend fun unstampStylePicks() {
-        dataStore.edit { prefs -> STYLE_KEYS.forEach { prefs.remove(stampKey(it)) } }
     }
 
     /** [transform] of the settings as they change - only when its own value does, not on a write to another setting. */

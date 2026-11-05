@@ -266,7 +266,7 @@ will map to Play Games.
     - `settings`. Every key but the Animations level, the Orientation, the Styles page fit, and the two list filters is synced
         (`SettingsRepository.SYNCED_KEYS`) and stamped `synced_at:<key>` when it changes.
     - `achievements`: unlock times and counters, plus the cloud save's counter shares (this file's own share id and the
-        others' counts) and the streak's stamp. "Reset achievements" clears only this file.
+        others' counts) and the streak's stamp.
     - `in_progress_game`, stamped `saved_at` on every save and clear.
     - `online`: Play Games choices and the cloud save's bookkeeping (leaderboard reset marker, "Saved").
         No reset clears it.

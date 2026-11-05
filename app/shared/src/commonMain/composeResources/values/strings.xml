@@ -896,18 +896,10 @@
     <string name="settings_orientation_portrait">Portrait</string>
     <string name="settings_orientation_landscape">Landscape</string>
     <string name="settings_confirm_leaving">Confirm leaving game</string>
-    <!-- In Reset achievements' place while signed in: %1$s is the online service ("Google Play Games"). -->
-    <string name="settings_online_achievements">View in %1$s</string>
-    <!-- What a screen reader says a tap on that row does: %1$s is the online service. -->
-    <string name="settings_online_achievements_action">Open %1$s</string>
-    <string name="settings_reset_achievements">Reset achievements</string>
-    <string name="settings_reset_achievements_description">Lock every achievement again</string>
     <string name="settings_reset_leaderboard">Reset leaderboard</string>
     <string name="settings_reset_leaderboard_description">Delete all recorded scores</string>
     <!-- What a screen reader says a tap on either reset row does (it opens the "are you sure" dialog), and the red button of both those dialogs. -->
     <string name="settings_reset_action">Reset</string>
-    <string name="settings_reset_achievements_title">Reset achievements?</string>
-    <string name="settings_reset_achievements_message">Every achievement will be locked again and all progress towards them lost. This can't be undone. Your scores and settings are not affected.</string>
     <string name="settings_reset_leaderboard_title">Reset leaderboard?</string>
     <string name="settings_reset_leaderboard_message">Every recorded score will be deleted, clearing the Leaderboard screen - and Statistics with it, since it's calculated from the same scores. This can't be undone. Achievements and settings are not affected, though any achievement progress measured against the leaderboard will start over.</string>
     <string name="settings_reset_leaderboard_online_note">Scores already sent to %1$s stay there.</string>
@@ -1227,9 +1219,9 @@
     <!-- A switch at the end of a category's title: on, every tile of the category shows at once. %1$s is the category. -->
     <string name="styles_gallery_cd">%1$s gallery</string>
     <string name="styles_unlocked_count">%1$d of %2$d unlocked</string>
-    <!-- The count when "unlocked" doesn't fit the card, then the percentage when even this doesn't. %1$d, %2$d: the count and the total; %% is a literal percent sign. -->
+    <!-- The count when "unlocked" doesn't fit the card, then the percentage when even this doesn't. %1$d, %2$d: the count and the total. -->
     <string name="styles_unlocked_count_short">%1$d of %2$d</string>
-    <string name="styles_unlocked_percent">%1$d%%</string>
+    <string name="styles_unlocked_percent">%1$d%</string>
     <string name="styles_category_count">%1$d/%2$d</string>
     <string name="filter_all">All</string>
     <string name="styles_unlocked_only">Unlocked</string>
@@ -1373,10 +1365,12 @@
     <!-- Achievements (ui/achievements/*) -->
     <string name="achievements_title">Achievements</string>
     <!-- The card at the top: achievements earned, of all there are. -->
+    <!-- What a screen reader says a tap on the count banner does while signed in: %1$s is the online service ("Google Play Games"). -->
+    <string name="achievements_online_action">Open %1$s</string>
     <string name="achievements_earned_count">%1$d of %2$d earned</string>
-    <!-- The count when "earned" doesn't fit the card, then the percentage when even this doesn't. %%  is a literal percent sign. -->
+    <!-- The count when "earned" doesn't fit the card, then the percentage when even this doesn't. -->
     <string name="achievements_earned_count_short">%1$d of %2$d</string>
-    <string name="achievements_earned_percent">%1$d%%</string>
+    <string name="achievements_earned_percent">%1$d%</string>
     <string name="achievements_category_count">%1$d/%2$d</string>
     <string name="achievements_all_unlocked">Everything's unlocked. Nothing left to chase!</string>
     <string name="achievements_unearned_only">Unearned</string>

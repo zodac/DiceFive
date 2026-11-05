@@ -9,7 +9,10 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
 import androidx.core.content.edit
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
@@ -44,6 +47,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import net.zodac.dicefive.BuildConfig
 import net.zodac.dicefive.PLAY_STORE_PACKAGE
+import net.zodac.dicefive.R
 import net.zodac.dicefive.installerPackage
 import net.zodac.dicefive.model.Achievement
 
@@ -338,6 +342,10 @@ class PlayGamesServices private constructor(private val application: Application
             launchPlayScreen(activity, ACHIEVEMENTS_UI_KEY, intent)
         }
     }
+
+    /** Google's game controller badge, from its Play Games branding assets. */
+    @Composable
+    override fun serviceIcon(): Painter = painterResource(R.drawable.ic_play_games_controller)
 
     override val canShowLeaderboardUi: Boolean
         get() = signedInActivity() != null

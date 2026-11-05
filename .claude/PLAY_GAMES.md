@@ -83,8 +83,11 @@ app/android/src/play/.../online/  PlayGamesServices, PlayGamesIds, PlayGamesAchi
 - **Our unlock banner shows alongside Play's pop-up** while signed in: Play's at the top, ours at the bottom, so they
     don't overlap. TalkBack announces both. Ours can be held and long-pressed to open the achievement. Progress nudges
     and styles banners are unchanged.
-- **Reset achievements** is hidden while signed in (Play would restore it); "View in Google Play Games" takes its row.
-    A reset made signed out doesn't travel: the same account's next sync restores the unlocks and counters.
+- **Play's achievements screen** opens from the Achievements page's count banner while signed in, which carries
+    Google's game controller badge, which its branding guidelines require on an element or screen that opens Play's
+    screens (`GameServices.serviceIcon`; the `play` flavour's `ic_play_games_controller`, from Google's branding zip,
+    developer.android.com/games/pgs/downloads).
+    There is no achievements reset: the option was removed from Settings.
 - **Mapping**: `PlayGamesIds.kt`. `PlayGamesAchievements.kt` sets each one's Play type and visibility (`playType`,
     `playHidden`). Every achievement is mapped, steps ≤10,000, Professional Roller scaled
     (`PlayGamesIdsTest`).
@@ -120,7 +123,7 @@ Always on while signed in, with no switch and no prompt. Every sync merges; noth
 | Achievement counters                                                              | `CounterMerge`: `SUM` keeps one share per install (`counter_share_id`, new on each reset) and adds them; `FLAGS` union; win streak `LATEST`                                                                                                                                                 |
 | Scores                                                                            | Union by `ScoreEntry.uuid`, less any at or before `scores_reset_at`                                                                                                                                                                                                                         |
 | Dismissed stats cards                                                             | Union, later kept; dropped once a later game under the name is in the save                                                                                                                                                                                                                  |
-| Style picks, New Game setup, Statistics sort, sound, vibration, confirm-leaving   | Last writer wins per key (`synced_at:<key>`); an unstamped one (a pick after Reset achievements) beats one never set                                                                                                                                                                        |
+| Style picks, New Game setup, Statistics sort, sound, vibration, confirm-leaving   | Last writer wins per key (`synced_at:<key>`); an unstamped one (a pick an older reset unstamped) beats one never set                                                                                                                                                                        |
 | In-progress game                                                                  | Newest wins (`saved_at`, never earlier than the last); of two copies of one game (`GameState.id`) the one with more rolls wins (`furtherOn`), so neither a clock set back nor another device takes back a roll; one finished here (`finished_id`) or one this app can't read is never taken |
 | Animations level, Orientation, Styles page fit, Locked and Unlocked only switches | Not saved: they're about the device                                                                                                                                                                                                                                                         |
 
@@ -142,7 +145,6 @@ hidden when `Unavailable`.
     sync ends.
 - "Saved `<time>`" (`cloud_saved:<account>`, via `formatTimestamp`) under the name, on one line at 360dp: the text
     runs up to the button rather than stopping at a `ListItem`'s end padding.
-- In the last card, Reset achievements gives way to "View in `serviceName`", a one-line row.
 - While a sign-in's sync runs (`OnlineSync.progress`), a block names the step and count ("Merging scores (5/7)") with
     a spinner and a 400ms gliding bar (a still icon and snapping under reduced motion): `StepProgress`, which the
     github app's import shows too, with the same merge steps (`MergeStep`). Seven steps (`SyncStep`):

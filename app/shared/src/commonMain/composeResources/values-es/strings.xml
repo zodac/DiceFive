@@ -675,15 +675,9 @@
     <string name="settings_orientation_portrait">Vertical</string>
     <string name="settings_orientation_landscape">Horizontal</string>
     <string name="settings_confirm_leaving">Confirmar al salir de la partida</string>
-    <string name="settings_online_achievements">Ver en %1$s</string>
-    <string name="settings_online_achievements_action">Abrir %1$s</string>
-    <string name="settings_reset_achievements">Restablecer logros</string>
-    <string name="settings_reset_achievements_description">Vuelve a bloquear todos los logros</string>
     <string name="settings_reset_leaderboard">Restablecer clasificación</string>
     <string name="settings_reset_leaderboard_description">Borra todas las puntuaciones registradas</string>
     <string name="settings_reset_action">Restablecer</string>
-    <string name="settings_reset_achievements_title">¿Restablecer logros?</string>
-    <string name="settings_reset_achievements_message">Todos los logros volverán a bloquearse y se perderá todo el progreso hacia ellos. No se puede deshacer. Tus puntuaciones y ajustes no se ven afectados.</string>
     <string name="settings_reset_leaderboard_title">¿Restablecer la clasificación?</string>
     <string name="settings_reset_leaderboard_message">Se borrará cada puntuación registrada, lo que vaciará la pantalla de clasificación y también las estadísticas, ya que se calculan a partir de las mismas puntuaciones. No se puede deshacer. Los logros y los ajustes no se ven afectados, aunque cualquier progreso de logros medido con la clasificación volverá a empezar.</string>
     <string name="settings_reset_leaderboard_online_note">Las puntuaciones ya enviadas a %1$s se quedan allí.</string>
@@ -957,7 +951,7 @@
     <string name="styles_gallery_cd">Galería de %1$s</string>
     <string name="styles_unlocked_count">%1$d de %2$d desbloqueados</string>
     <string name="styles_unlocked_count_short">%1$d de %2$d</string>
-    <string name="styles_unlocked_percent">%1$d%%</string>
+    <string name="styles_unlocked_percent">%1$d%</string>
     <string name="styles_category_count">%1$d/%2$d</string>
     <string name="filter_all">Todos</string>
     <string name="styles_unlocked_only">Desbloqueados</string>
@@ -1057,9 +1051,10 @@
         <item quantity="other">%1$d partidas jugadas.</item>
     </plurals>
     <string name="achievements_title">Logros</string>
+    <string name="achievements_online_action">Abrir %1$s</string>
     <string name="achievements_earned_count">%1$d de %2$d conseguidos</string>
     <string name="achievements_earned_count_short">%1$d de %2$d</string>
-    <string name="achievements_earned_percent">%1$d%%</string>
+    <string name="achievements_earned_percent">%1$d%</string>
     <string name="achievements_category_count">%1$d/%2$d</string>
     <string name="achievements_all_unlocked">¡Todo desbloqueado! No queda nada por conseguir.</string>
     <string name="achievements_unearned_only">Pendientes</string>

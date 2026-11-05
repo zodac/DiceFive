@@ -57,16 +57,10 @@ import net.zodac.dicefive.resources.settings_confirm_leaving
 import net.zodac.dicefive.resources.settings_import_progress_confirm
 import net.zodac.dicefive.resources.settings_import_progress_message
 import net.zodac.dicefive.resources.settings_import_progress_title
-import net.zodac.dicefive.resources.settings_online_achievements
-import net.zodac.dicefive.resources.settings_online_achievements_action
 import net.zodac.dicefive.resources.settings_orientation
 import net.zodac.dicefive.resources.settings_orientation_device
 import net.zodac.dicefive.resources.settings_orientation_landscape
 import net.zodac.dicefive.resources.settings_orientation_portrait
-import net.zodac.dicefive.resources.settings_reset_achievements
-import net.zodac.dicefive.resources.settings_reset_achievements_description
-import net.zodac.dicefive.resources.settings_reset_achievements_message
-import net.zodac.dicefive.resources.settings_reset_achievements_title
 import net.zodac.dicefive.resources.settings_reset_action
 import net.zodac.dicefive.resources.settings_reset_leaderboard
 import net.zodac.dicefive.resources.settings_reset_leaderboard_description
@@ -164,28 +158,10 @@ internal fun SwitchSetting(icon: ImageVector, label: String, checked: Boolean, o
 }
 
 /**
- * A link out to the online service's own achievements screen, in [ResetSetting]'s place and shape while signed in
- * (resetting would be undone by the service at the next sign-in), but not tinted as destructive. A screen reader hears
- * one "View in Google Play Games, button, double-tap to open Google Play Games".
- */
-@Composable
-private fun OnlineAchievementsSetting(serviceName: String, onClick: () -> Unit) {
-    SettingRow(
-        icon = Symbols.EmojiEvents,
-        headline = { SettingLabel(stringResource(Res.string.settings_online_achievements, serviceName)) },
-        modifier = Modifier.clickable(
-            role = Role.Button,
-            onClickLabel = stringResource(Res.string.settings_online_achievements_action, serviceName),
-            onClick = onClick,
-        ),
-    )
-}
-
-/**
  * One destructive action as a row in the same shape as [SwitchSetting]: error-tinted icon and label (no
  * filled background - a red slab is the loudest thing on the page), a line saying what it does, and the whole
  * row as the tap target. It only opens a confirmation; nothing is deleted by the tap itself. A screen reader
- * hears one "Reset achievements, Lock every achievement again, button, double-tap to reset".
+ * hears one "Reset leaderboard, Delete all recorded scores, button, double-tap to reset".
  */
 @Composable
 private fun ResetSetting(icon: ImageVector, label: String, description: String, onClick: () -> Unit) {
@@ -279,7 +255,6 @@ fun SettingsScreen(
 ) {
     val loadedToggles by viewModel.toggles.collectAsStateWithLifecycle()
     // Saveable: a rotation mid-confirmation shouldn't silently drop the question.
-    var showResetAchievementsConfirmation by rememberSaveable { mutableStateOf(false) }
     var showResetLeaderboardConfirmation by rememberSaveable { mutableStateOf(false) }
     var showLicenses by rememberSaveable { mutableStateOf(false) }
     var showAbout by rememberSaveable { mutableStateOf(false) }
@@ -375,18 +350,6 @@ fun SettingsScreen(
         }
         val resetsCard = @Composable {
             CompactSettingsCard {
-                val gameServices = LocalGameServices.current
-                val signedIn = gameServices.state.collectAsStateWithLifecycle().value is GameServicesState.SignedIn
-                if (signedIn && gameServices.canShowAchievementsUi) {
-                    OnlineAchievementsSetting(gameServices.serviceName, onClick = gameServices::showAchievementsUi)
-                } else {
-                    ResetSetting(
-                        icon = Symbols.RestartAlt,
-                        label = stringResource(Res.string.settings_reset_achievements),
-                        description = stringResource(Res.string.settings_reset_achievements_description),
-                        onClick = { showResetAchievementsConfirmation = true },
-                    )
-                }
                 ResetSetting(
                     icon = Symbols.DeleteSweep,
                     label = stringResource(Res.string.settings_reset_leaderboard),
@@ -475,22 +438,6 @@ fun SettingsScreen(
 
     if (showAbout) {
         AboutDialog(onDismissRequest = { showAbout = false }, debugCrashes = LocalAppContainer.current.buildInfo.isDebug)
-    }
-
-    if (showResetAchievementsConfirmation) {
-        DiceFiveDialog(
-            icon = Symbols.RestartAlt,
-            title = stringResource(Res.string.settings_reset_achievements_title),
-            message = stringResource(Res.string.settings_reset_achievements_message),
-            confirmLabel = stringResource(Res.string.settings_reset_action),
-            onConfirm = {
-                viewModel.resetAchievements()
-                showResetAchievementsConfirmation = false
-            },
-            dismissLabel = stringResource(Res.string.common_cancel),
-            onDismiss = { showResetAchievementsConfirmation = false },
-            onDismissRequest = { showResetAchievementsConfirmation = false },
-        )
     }
 
     if (showImportConfirmation && progressFiles != null) {

@@ -112,14 +112,12 @@ given it, so the menu logo, the game table, the Styles screen and the Fresh Coat
 - With `ownsAllStyles`, every `AchievementCount`, `SpecificAchievement` and `AnyAchievement` lock is met.
 - **Secret colours** (`StyleVariant.secretAchievement`, the Easter eggs) are included: `isAvailable` is met with the
     flag too, so they appear on the Styles screen for owners. Their achievements still unlock as normal.
-- **Reset achievements** (`ProgressResets.resetAchievements`, `app/`) re-locks picks against empty achievements; it
-    must use the current `ownsAllStyles`, so an owner's picks survive a reset.
 - **Fresh Coat Of Paint** reads `SavedStyles.hasNonDefaultStyle` (`unlockedId`), so an owner can earn it on a bought style. Fine: Classic colours make
     it easy already.
 - **Eggcellent Discovery**: buying gives Egg dice and the Chicken cup early, so the golden egg's 1-in-500 roll comes
     sooner; the gold Egg colour itself is bought outright. The achievement still needs the roll. Record this in
     `GAME_MODES_AUDIT.md`'s style notes.
-- Unit tests: `StyleRegistryTest` (every lock met with the flag, secrets not), the reset path, `SavedStyles`.
+- Unit tests: `StyleRegistryTest` (every lock met with the flag, secrets not), `SavedStyles`.
 
 ### Banners and achievement rows
 
@@ -262,7 +260,7 @@ page opened on 2026-10-23, a day after it was published there.
 
 ### Phase 4: entitlement in the styles rules (code; done 2026-10-23)
 
-The "Styles rule change" section: `StyleAccess`, `SavedStyles`, the reset path, the cached flag read at launch, the
+The "Styles rule change" section: `StyleAccess`, `SavedStyles`, the cached flag read at launch, the
 debug fake store. Unit tests. Nothing visible yet but the superuser switch.
 
 ### Phase 5: the UI (code; done 2026-10-23)
@@ -287,7 +285,6 @@ On a real phone signed in to Play as a license tester (the emulator has no Play 
 - **Restoring**: uninstall and reinstall; styles unlock by themselves at launch. Then a second phone on the same
     Google account.
 - **Offline**: aeroplane mode after buying; styles stay unlocked.
-- Reset achievements as an owner: picks kept.
 - TalkBack through the button and its pending state.
 
 ### Phase 7: declarations and docs (maintainer + code)

@@ -6,7 +6,9 @@ import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -28,6 +30,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -89,12 +92,15 @@ import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.model.AchievementVisibility
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.online.GameServicesState
+import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.navigation.AchievementScrollRequests
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.achievements_all_unlocked
 import net.zodac.dicefive.resources.achievements_category_count
 import net.zodac.dicefive.resources.achievements_earned_count
+import net.zodac.dicefive.resources.achievements_online_action
 import net.zodac.dicefive.resources.achievements_earned_count_short
 import net.zodac.dicefive.resources.achievements_earned_percent
 import net.zodac.dicefive.resources.achievements_hidden_description
@@ -326,6 +332,8 @@ fun AchievementsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val superuserModeActive by viewModel.superuserModeActive.collectAsStateWithLifecycle()
+    val gameServices = LocalGameServices.current
+    val onlineAchievements = gameServices.state.collectAsStateWithLifecycle().value is GameServicesState.SignedIn && gameServices.canShowAchievementsUi
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     // The list's own scrolls jump rather than glide: Compose's animations only follow the system's setting, not the app's Off.
     val reduceMotion = LocalReduceMotion.current
@@ -483,23 +491,57 @@ fun AchievementsScreen(
         // it's armed, a long press unlocks every remaining achievement, and the long press after
         // that relocks everything - see onBannerLongPress's doc comment. No haptic feedback on long
         // press either: a buzz would tip off that something's there.
+        //
+        // While signed in it's a real button instead, with the service's mark after the count: a tap opens the service's
+        // achievements, and still counts toward arming superuser mode.
         Card(
-            // Raw gestures, not combinedClickable: that would tell TalkBack this is a button with a
-            // long-press action, announcing a control that (to anyone not in on it) does nothing.
-            modifier = countModifier.pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { viewModel.onUnlockedCountTapped() },
-                    onLongPress = { viewModel.onBannerLongPress() },
-                )
+            modifier = if (onlineAchievements) {
+                countModifier
+                    // The card's own clip is inside this modifier, so without one here the ripple would square off its corners.
+                    .clip(CardDefaults.shape)
+                    .combinedClickable(
+                        role = Role.Button,
+                        onClickLabel = stringResource(Res.string.achievements_online_action, gameServices.serviceName),
+                        // Only once armed: a long-press action would otherwise be announced that does nothing.
+                        onLongClick = if (superuserModeActive) viewModel::onBannerLongPress else null,
+                        hapticFeedbackEnabled = false,
+                        onClick = {
+                            viewModel.onUnlockedCountTapped()
+                            gameServices.showAchievementsUi()
+                        },
+                    )
+            } else {
+                // Raw gestures, not combinedClickable: that would tell TalkBack this is a button with a
+                // long-press action, announcing a control that (to anyone not in on it) does nothing.
+                countModifier.pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = { viewModel.onUnlockedCountTapped() },
+                        onLongPress = { viewModel.onBannerLongPress() },
+                    )
+                }
             },
         ) {
-            FittedCountText(
-                full = stringResource(Res.string.achievements_earned_count, state.unlockedCount, state.totalCount),
-                short = stringResource(Res.string.achievements_earned_count_short, state.unlockedCount, state.totalCount),
-                percent = stringResource(Res.string.achievements_earned_percent, percentOf(state.unlockedCount, state.totalCount)),
-                style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = if (compact) 4.dp else 12.dp).then(if (compact) Modifier else Modifier.fillMaxWidth()),
-            )
+            val countText = @Composable { textModifier: Modifier ->
+                FittedCountText(
+                    full = stringResource(Res.string.achievements_earned_count, state.unlockedCount, state.totalCount),
+                    short = stringResource(Res.string.achievements_earned_count_short, state.unlockedCount, state.totalCount),
+                    percent = stringResource(Res.string.achievements_earned_percent, percentOf(state.unlockedCount, state.totalCount)),
+                    style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
+                    modifier = textModifier,
+                )
+            }
+            val padding = Modifier.padding(horizontal = 16.dp, vertical = if (compact) 4.dp else 12.dp).then(if (compact) Modifier else Modifier.fillMaxWidth())
+            val onlineIcon = if (onlineAchievements) gameServices.serviceIcon() else null
+            if (onlineIcon == null) {
+                countText(padding)
+            } else {
+                // The count and the mark, centred together.
+                Row(modifier = padding, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                    countText(if (compact) Modifier else Modifier.weight(1f, fill = false))
+                    Spacer(modifier = Modifier.width(ONLINE_ICON_GAP))
+                    Image(painter = onlineIcon, contentDescription = null, modifier = Modifier.size(if (compact) ONLINE_ICON_SIZE_COMPACT else ONLINE_ICON_SIZE))
+                }
+            }
         }
     }
     val lockedOnlySwitch = @Composable {
@@ -647,6 +689,10 @@ fun AchievementsScreen(
         }
     }
 }
+
+private val ONLINE_ICON_SIZE = 20.dp
+private val ONLINE_ICON_SIZE_COMPACT = 18.dp
+private val ONLINE_ICON_GAP = 6.dp
 
 /**
  * A theme's subheader, in [categoryHeaderStyle] as the Styles page's category titles are.

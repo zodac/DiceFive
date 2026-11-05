@@ -1,0 +1,10 @@
+{
+  "uniqueId": "google-play-games-branding-icons",
+  "name": "Google Play Games controller badge",
+  "description": "Copyright Google LLC. The Google Play Games controller badge, used under Google's Play Games Services branding guidelines. Resized for DiceFive.",
+  "website": "https://developer.android.com/games/pgs/downloads",
+  "licenses": [
+    "LicenseRef-Google-Play-Games-Branding"
+  ],
+  "tag": "image"
+}

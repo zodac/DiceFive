@@ -65,6 +65,14 @@
       "freesound-140147"
     ]
   },
+  "app/android/src/play/res/drawable-nodpi/ic_play_games_controller.png": {
+    "description": "Google's Play Games controller badge (games_controller.png), resized from 512px to 96px",
+    "source": "https://developer.android.com/static/games/pgs/download-files/games-branding-icons.zip",
+    "license": "LicenseRef-Google-Play-Games-Branding",
+    "libraries": [
+      "google-play-games-branding-icons"
+    ]
+  },
   "app/android/src/main/res/drawable/ic_launcher_background.xml": {
     "description": "Launcher icon background layer: navy felt, the blue mat, and its gold ring",
     "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01FqpTvMHx2Fya7M6gpTXGHJ",

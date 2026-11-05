@@ -1,7 +1,9 @@
 package net.zodac.dicefive.online
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.painter.Painter
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -58,6 +60,10 @@ interface GameServices {
     val canShowAchievementsUi: Boolean
 
     fun showAchievementsUi()
+
+    /** The service's own mark, for an element that opens its screens, as it draws it (never tinted); null if it has none. */
+    @Composable
+    fun serviceIcon(): Painter?
 
     /** Whether the service's own leaderboard screen can be opened (signed in, and the platform has one). */
     val canShowLeaderboardUi: Boolean

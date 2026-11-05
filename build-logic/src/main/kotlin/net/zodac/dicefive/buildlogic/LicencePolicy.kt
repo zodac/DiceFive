@@ -24,6 +24,9 @@ object LicencePolicy {
         // anything NC, which rules out ads and Pro; neither is allowed here.)
         "CC0-1.0" to listOf("freesound-588198", "freesound-695731", "freesound-185986", "freesound-596051", "freesound-456803"),
         "CC-BY-4.0" to listOf("freesound-140147", "freesound-446043"),
+        // Google's branding guidelines for Play Games, for its controller badge: no pre-approval needed, and no condition on the
+        // app's own licence, provided those guidelines are followed.
+        "LicenseRef-Google-Play-Games-Branding" to listOf("google-play-games-branding-icons"),
         // Google's own terms for the Play SDKs (Play Games Services, the Play Billing Library, and what they pull in):
         // proprietary, free to ship in an app, with no condition on the app's own licence.
         "ASDKL" to listOf(

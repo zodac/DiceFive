@@ -11,8 +11,12 @@ import androidx.compose.ui.unit.sp
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import net.zodac.dicefive.ui.common.FittedCountText
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.achievements_earned_percent
+import net.zodac.dicefive.resources.styles_unlocked_percent
 import net.zodac.dicefive.ui.common.percentOf
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
+import org.jetbrains.compose.resources.getString
 
 /** The count banner stays on one line: it shrinks, then drops its word, then becomes a percentage. */
 class FittedCountTextTest : UiTest() {
@@ -54,6 +58,12 @@ class FittedCountTextTest : UiTest() {
 
         show(width = 30)
         assertEquals(12f, layout("10%").layoutInput.style.fontSize.value, 0.01f)
+    }
+
+    @Test
+    fun `the percentage has one percent sign`() = uiTest {
+        assertEquals("42%", getString(Res.string.achievements_earned_percent, 42))
+        assertEquals("42%", getString(Res.string.styles_unlocked_percent, 42))
     }
 
     @Test

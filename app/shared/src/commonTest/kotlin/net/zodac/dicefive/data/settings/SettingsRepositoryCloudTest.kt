@@ -166,15 +166,6 @@ class SettingsRepositoryCloudTest {
     }
 
     @Test
-    fun `unstamped style picks lose to the cloud's copy`() = runTest {
-        repository.setDiceStyleId("ocean")
-        repository.setDiceStyleId(DefaultStyleIds.DICE)
-        repository.unstampStylePicks()
-        repository.mergeCloud(mapOf("dice_style_id" to Stamped(SettingValue.Text("ocean"), 1L)))
-        assertEquals("ocean", repository.diceStyleId.first())
-    }
-
-    @Test
     fun `a change to a synced setting is announced - the Animations level's - Orientation's - page fit's and list filters' aren't`() = runTest {
         var changes = 0
         backgroundScope.launch { repository.syncedChanges.collect { changes++ } }
@@ -199,7 +190,7 @@ class SettingsRepositoryCloudTest {
 
     @Test
     fun `an unstamped pick travels to a device that never set one - and still loses to a later change`() = runTest {
-        // A pick another device's Reset achievements unstamped: in the save, stamped 0.
+        // A pick an older version's achievements reset unstamped on another device: in the save, stamped 0.
         repository.mergeCloud(mapOf("dice_style_id" to Stamped(SettingValue.Text("ocean"), 0L)))
         assertEquals("ocean", repository.diceStyleId.first())
         // Picked again here since: this change wins.

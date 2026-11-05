@@ -55,12 +55,12 @@ class SettingsViewModel(
     private val now: () -> Long = ::nowEpochMillis,
     /** This device's progress to and from a file, for a build with progress files ([PlatformServices.progressFiles]). */
     private val progressTransfer: ProgressTransfer? = null,
-    /** Whether the purchase unlocks every style ([AppContainer.ownsAllStyles]): an owner's picks survive a reset. */
+    /** Whether the purchase unlocks every style ([AppContainer.ownsAllStyles]). */
     ownsAllStyles: Flow<Boolean> = flowOf(false),
     /** Where its achievements are earned: the app's one ([AppContainer.achievementUnlocker]); a test's own otherwise. */
     private val achievementUnlocker: AchievementUnlocker = AchievementUnlocker(achievementsRepository, ownsAllStyles),
-    /** The resets it offers: the app's ([AppContainer.progressResets]); a test's own otherwise. */
-    private val progressResets: ProgressResets = ProgressResets(achievementsRepository, settingsRepository, scoreRepository, onlineSettingsRepository, ownsAllStyles, now),
+    /** The reset it offers: the app's ([AppContainer.progressResets]); a test's own otherwise. */
+    private val progressResets: ProgressResets = ProgressResets(scoreRepository, onlineSettingsRepository, now),
 ) : ViewModel() {
 
     /**
@@ -138,11 +138,6 @@ class SettingsViewModel(
                 else -> _versionTapMessages.trySend(stepsAway)
             }
         }
-    }
-
-    /** Wipes every unlock and progress counter, and the Styles picks that locks again - see [ProgressResets.resetAchievements]. */
-    fun resetAchievements() {
-        viewModelScope.launch { progressResets.resetAchievements() }
     }
 
     /** Wipes every recorded score, here and in the cloud save - see [ProgressResets.resetLeaderboard]. */

@@ -19,6 +19,10 @@ Miscellaneous run in alphabetical order instead, and so do the Easter Eggs, whic
     Easter Egg's row (title shown, description "???") is in the list from the start.
 - The unlocked/total count sits centred above the list. In landscape, where the list has two cards to a row, it moves
     into the app bar after the back arrow, with the Unearned switch at the bar's end (see `UI.md`, "Landscape pages").
+- **While signed in to the online service, the count is a button** to the service's own achievements screen, with the
+    service's mark (`GameServices.serviceIcon`, untinted) after the text, the two centred together. TalkBack:
+    "42 of 100 earned, button, double-tap to open Google Play Games"; the mark is decorative. Signed out it's plain
+    text, with no ripple, button role, or mark. A tap still counts toward a debug build's superuser mode.
 
 **Category headers** are `stickyHeader`s styled as a plain `Card`. A bare `Surface` has square corners.
 

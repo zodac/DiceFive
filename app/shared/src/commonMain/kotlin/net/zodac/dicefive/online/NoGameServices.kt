@@ -1,5 +1,7 @@
 package net.zodac.dicefive.online
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.painter.Painter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -29,6 +31,9 @@ object NoGameServices : GameServices {
     override val canShowAchievementsUi: Boolean = false
 
     override fun showAchievementsUi() = Unit
+
+    @Composable
+    override fun serviceIcon(): Painter? = null
 
     override val canShowLeaderboardUi: Boolean = false
 
