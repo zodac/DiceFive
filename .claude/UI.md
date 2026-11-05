@@ -432,6 +432,10 @@ Examples:
     `surfaceContainerHighest` track. Its rules, each fixing a real bug on lists with mixed heights:
     - Show or hide from `canScrollForward`/`canScrollBackward`, never `visibleItemsInfo.size` vs `totalItemsCount`.
         Prefetching breaks that comparison.
+    - New content that fits is only known not to scroll once it's laid out, a frame after the bar was composed. So the
+        draw asks again, and the bar takes its `Box`'s size (`matchParentSize`) without giving it one, or that frame shows
+        the old bar on a card still at the old height (`LeaderboardPageFlashTest`). Anything else shown only while the list
+        scrolls, like the Leaderboard's arrows, checks in its draw too.
     - Size and position are pixel-based (each visible item's `size`/`offset`), not counts of items.
     - Item sizes are remembered per index in a map that only grows, never re-averaged each frame.
     - The size estimate is frozen at the very first layout, for the thumb's size.

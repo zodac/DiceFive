@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
@@ -170,6 +171,9 @@ fun ColumnScope.LeaderboardTable(
                 if (scrolls) {
                     {
                         UpDownButtons(
+                            // Decided in the draw as well: a new page that fits is only known not to scroll once it's laid out, a
+                            // frame after this was composed, and these would show over it for that frame.
+                            modifier = Modifier.drawWithContent { if (scrolls) drawContent() },
                             onUp = { scope.launch { if (reduceMotion) listState.scrollToItem(0) else listState.smoothScrollToItem(0) } },
                             onDown = {
                                 scope.launch {

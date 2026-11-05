@@ -27,6 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -202,6 +204,9 @@ private class ScrollbarMemory {
  * while it's held, and the list follows it. Only the thumb takes the touch, in a handle at least
  * [THUMB_HANDLE_SIZE] each way; the rest of the track leaves touches to the list. Silent to a screen reader, which scrolls
  * the list by its own actions.
+ *
+ * The bar takes the size of the `Box` it's in and gives that `Box` none, and each draw checks again that there's anything to
+ * scroll: on the frame the list's content turns short, the bar is still composed, and it neither shows nor holds the `Box` tall.
  */
 @Composable
 fun BoxScope.LazyListScrollbar(
@@ -217,97 +222,115 @@ fun BoxScope.LazyListScrollbar(
     val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
     val memory = remember(listState) { ScrollbarMemory() }
 
-    Canvas(
-        modifier = modifier
-            .align(Alignment.CenterEnd)
-            .fillMaxHeight()
-            .width(SCROLLBAR_THICKNESS),
-    ) {
-        drawRoundRect(color = trackColor, cornerRadius = CornerRadius(size.width / 2))
-
-        val layoutInfo = listState.layoutInfo
-        val totalItems = layoutInfo.totalItemsCount
-        val visibleItems = layoutInfo.visibleItemsInfo
-        if (totalItems == 0 || visibleItems.isEmpty()) return@Canvas
-
-        if (memory.totalItemsAtLastCheck != totalItems) {
-            memory.totalItemsAtLastCheck = totalItems
-            memory.knownItemSizes.clear()
-            memory.frozenContentSize = null
+    // As big as the list makes the parent, never a say in it: a bar still composed when the list turns short would hold it tall.
+    Box(modifier = Modifier.matchParentSize()) {
+        Canvas(
+            modifier = modifier
+                .align(Alignment.CenterEnd)
+                .fillMaxHeight()
+                .width(SCROLLBAR_THICKNESS),
+        ) {
+            drawLazyListScrollbar(listState, memory, trackColor, thumbColor, contentTypeOf, sizeOf)
         }
-
-        for (item in visibleItems) {
-            // An item already measured that has changed height in place (a modifier card opening out its
-            // values) makes the frozen size estimate stale, so it is taken again from the new sizes.
-            val previous = memory.knownItemSizes.put(item.index, item.size)
-            if (previous != null && previous != item.size) memory.frozenContentSize = null
-        }
-
-        val knownTotalSize = memory.knownItemSizes.values.sum()
-        // Unseen items (below the fold, never yet scrolled to) are estimated at the average of
-        // what's actually been measured so far - of items of their own kind, where [contentTypeOf] says
-        // what kind each is (a list of cards with short headers between them, whose sizes an average of
-        // both would get wrong).
-        val averageItemSize = knownTotalSize.toFloat() / memory.knownItemSizes.size
-        val averageByType = contentTypeOf?.let { typeOf ->
-            memory.knownItemSizes.entries.groupBy({ typeOf(it.key) }, { it.value }).mapValues { (_, sizes) -> sizes.average().toFloat() }
-        }
-        // With every unseen item the same estimate, the sizes come from the measured items alone: a draw isn't a walk of the list.
-        fun itemsSize(start: Int, end: Int): Float {
-            if (contentTypeOf == null && sizeOf == null) return measuredOrAverageSize(memory.knownItemSizes, start, end, averageItemSize)
-            var total = 0f
-            for (index in start until end) {
-                total += memory.knownItemSizes[index]?.toFloat()
-                    ?: sizeOf?.invoke(index)?.toFloat()
-                    ?: averageByType?.get(contentTypeOf(index))
-                    ?: averageItemSize
-            }
-            return total
-        }
-        // The list's gaps between items (its spacedBy) are content too - left out, a widely spaced list's
-        // thumb comes out longer than what's actually on screen.
-        val itemSpacing = layoutInfo.mainAxisItemSpacing.toFloat()
-        val viewportSize = layoutInfo.viewportSize.height.toFloat()
-
-        val estimatedContentSize = memory.frozenContentSize
-            ?: (itemsSize(0, totalItems) + itemSpacing * (totalItems - 1)).also { memory.frozenContentSize = it }
-
-        val thumbFraction = (viewportSize / estimatedContentSize).coerceIn(MIN_THUMB_FRACTION, 1f)
-        val thumbHeight = size.height * thumbFraction
-
-        val anchor = anchorItem(visibleItems)
-        // How far the list has scrolled, in pixels: every item before the anchor's known (or, if not yet
-        // seen, estimated) size, less where the anchor is - `offset` is negative once its top has
-        // scrolled above the viewport.
-        val scrolledPastSize = itemsSize(0, anchor.index) + itemSpacing * anchor.index - anchor.offset
-
-        // How far is left to scroll: everything from the anchor on (measured where seen, estimated where not), less what's
-        // already scrolled into it and the viewport. The thumb's place is what's been scrolled out of that plus what's left,
-        // so a wrong estimate only changes its pace a little as the unseen items come into view - and it meets the end of the
-        // track exactly as the list meets its end, rather than jumping there.
-        val belowTopSize = itemsSize(anchor.index, totalItems) + itemSpacing * (totalItems - anchor.index)
-        val remainingSize = (belowTopSize - itemSpacing + anchor.offset - viewportSize).coerceAtLeast(0f)
-        // canScrollForward/Backward are exact, so they settle the two ends whatever the estimate says.
-        val scrollFraction = memory.heldFraction ?: when {
-            !listState.canScrollForward -> 1f
-            !listState.canScrollBackward -> 0f
-            else -> (scrolledPastSize / (scrolledPastSize + remainingSize).coerceAtLeast(1f)).coerceIn(0f, 1f)
-        }
-        val thumbOffsetY = (size.height - thumbHeight) * scrollFraction
-        memory.thumbTop = thumbOffsetY
-        memory.thumbHeight = thumbHeight
-        memory.trackHeight = size.height
-
-        // Thicker about its middle while held, so it's the same whichever side the bar's on.
-        val thumbThickness = if (memory.heldFraction != null) HELD_THUMB_THICKNESS.toPx() else size.width
-        drawRoundRect(
-            color = thumbColor,
-            topLeft = Offset((size.width - thumbThickness) / 2, thumbOffsetY),
-            size = Size(thumbThickness, thumbHeight),
-            cornerRadius = CornerRadius(thumbThickness / 2),
-        )
+        ThumbHandle(listState, memory, modifier, contentTypeOf, sizeOf)
     }
-    ThumbHandle(listState, memory, modifier, contentTypeOf, sizeOf)
+}
+
+/** Draws a [LazyListScrollbar]'s track and thumb, and notes where the thumb went in [memory]. */
+private fun DrawScope.drawLazyListScrollbar(
+    listState: LazyListState,
+    memory: ScrollbarMemory,
+    trackColor: Color,
+    thumbColor: Color,
+    contentTypeOf: ((Int) -> Any?)?,
+    sizeOf: ((Int) -> Int?)?,
+) {
+    // Asked again here: new content that fits is only known not to scroll once it's laid out, a frame after the bar was composed.
+    if (!listState.canScrollForward && !listState.canScrollBackward) return
+
+    drawRoundRect(color = trackColor, cornerRadius = CornerRadius(size.width / 2))
+
+    val layoutInfo = listState.layoutInfo
+    val totalItems = layoutInfo.totalItemsCount
+    val visibleItems = layoutInfo.visibleItemsInfo
+    if (totalItems == 0 || visibleItems.isEmpty()) return
+
+    if (memory.totalItemsAtLastCheck != totalItems) {
+        memory.totalItemsAtLastCheck = totalItems
+        memory.knownItemSizes.clear()
+        memory.frozenContentSize = null
+    }
+
+    for (item in visibleItems) {
+        // An item already measured that has changed height in place (a modifier card opening out its
+        // values) makes the frozen size estimate stale, so it is taken again from the new sizes.
+        val previous = memory.knownItemSizes.put(item.index, item.size)
+        if (previous != null && previous != item.size) memory.frozenContentSize = null
+    }
+
+    val knownTotalSize = memory.knownItemSizes.values.sum()
+    // Unseen items (below the fold, never yet scrolled to) are estimated at the average of
+    // what's actually been measured so far - of items of their own kind, where [contentTypeOf] says
+    // what kind each is (a list of cards with short headers between them, whose sizes an average of
+    // both would get wrong).
+    val averageItemSize = knownTotalSize.toFloat() / memory.knownItemSizes.size
+    val averageByType = contentTypeOf?.let { typeOf ->
+        memory.knownItemSizes.entries.groupBy({ typeOf(it.key) }, { it.value }).mapValues { (_, sizes) -> sizes.average().toFloat() }
+    }
+    // With every unseen item the same estimate, the sizes come from the measured items alone: a draw isn't a walk of the list.
+    fun itemsSize(start: Int, end: Int): Float {
+        if (contentTypeOf == null && sizeOf == null) return measuredOrAverageSize(memory.knownItemSizes, start, end, averageItemSize)
+        var total = 0f
+        for (index in start until end) {
+            total += memory.knownItemSizes[index]?.toFloat()
+                ?: sizeOf?.invoke(index)?.toFloat()
+                ?: averageByType?.get(contentTypeOf(index))
+                ?: averageItemSize
+        }
+        return total
+    }
+    // The list's gaps between items (its spacedBy) are content too - left out, a widely spaced list's
+    // thumb comes out longer than what's actually on screen.
+    val itemSpacing = layoutInfo.mainAxisItemSpacing.toFloat()
+    val viewportSize = layoutInfo.viewportSize.height.toFloat()
+
+    val estimatedContentSize = memory.frozenContentSize
+        ?: (itemsSize(0, totalItems) + itemSpacing * (totalItems - 1)).also { memory.frozenContentSize = it }
+
+    val thumbFraction = (viewportSize / estimatedContentSize).coerceIn(MIN_THUMB_FRACTION, 1f)
+    val thumbHeight = size.height * thumbFraction
+
+    val anchor = anchorItem(visibleItems)
+    // How far the list has scrolled, in pixels: every item before the anchor's known (or, if not yet
+    // seen, estimated) size, less where the anchor is - `offset` is negative once its top has
+    // scrolled above the viewport.
+    val scrolledPastSize = itemsSize(0, anchor.index) + itemSpacing * anchor.index - anchor.offset
+
+    // How far is left to scroll: everything from the anchor on (measured where seen, estimated where not), less what's
+    // already scrolled into it and the viewport. The thumb's place is what's been scrolled out of that plus what's left,
+    // so a wrong estimate only changes its pace a little as the unseen items come into view - and it meets the end of the
+    // track exactly as the list meets its end, rather than jumping there.
+    val belowTopSize = itemsSize(anchor.index, totalItems) + itemSpacing * (totalItems - anchor.index)
+    val remainingSize = (belowTopSize - itemSpacing + anchor.offset - viewportSize).coerceAtLeast(0f)
+    // canScrollForward/Backward are exact, so they settle the two ends whatever the estimate says.
+    val scrollFraction = memory.heldFraction ?: when {
+        !listState.canScrollForward -> 1f
+        !listState.canScrollBackward -> 0f
+        else -> (scrolledPastSize / (scrolledPastSize + remainingSize).coerceAtLeast(1f)).coerceIn(0f, 1f)
+    }
+    val thumbOffsetY = (size.height - thumbHeight) * scrollFraction
+    memory.thumbTop = thumbOffsetY
+    memory.thumbHeight = thumbHeight
+    memory.trackHeight = size.height
+
+    // Thicker about its middle while held, so it's the same whichever side the bar's on.
+    val thumbThickness = if (memory.heldFraction != null) HELD_THUMB_THICKNESS.toPx() else size.width
+    drawRoundRect(
+        color = thumbColor,
+        topLeft = Offset((size.width - thumbThickness) / 2, thumbOffsetY),
+        size = Size(thumbThickness, thumbHeight),
+        cornerRadius = CornerRadius(thumbThickness / 2),
+    )
 }
 
 /** What takes the touch on a [LazyListScrollbar]'s thumb: a box centred on the thumb, and only there. */
