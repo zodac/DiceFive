@@ -1,0 +1,11 @@
+- The leaderboard now holds up to 1,000 scores per page
+- Added the ability to hold and pull scrollbars
+- Removed the Reset achievements option from Settings
+- Cloud saves now hold about twice as many scores
+- Syncing with Google Play Games now does much less work when nothing has changed
+- Animated styles score boxes now redraw less of the screen on Android 10 and up
+- Fixed statistics page lagging when loading a long history
+- Fixed a very large cloud save being written over when another device couldn't read it
+- Fixed the app crashing when the Achievements page couldn't read the scores
+- Fixed the Achievements and Styles counts showing two percent signs at very large font sizes
+- Fixed a brief flash of the scrollbar when moving to a Leaderboard page short enough not to need one
