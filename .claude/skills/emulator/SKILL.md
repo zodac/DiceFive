@@ -49,12 +49,14 @@ emulator.sh stop
 - A font scale left at 200% fails the journey for no fault of its own: the mode picker overflows, and `chooseMode` never
     sees `Standard`. Compare the failure's screen with CI's before fixing anything.
 - Just after a boot on starved cores, the uninstall can fail with `DELETE_FAILED_INTERNAL_ERROR`, which the `2>/dev/null`
-    above doesn't hide: try it again, or the first lap won't start like a fresh install.
+    above doesn't hide: try it again, or the benchmark install may not replace what's there.
 - Two busy loops on two cores (below) can take a 3-lap run past 55 minutes. Start with fewer laps.
 - `journeyLaps=1` takes ~5 min. `journeyLaps=10` (CI's soak of a changed journey) takes ~45 min. The default is up to
     15 laps (~70 min). One lap doesn't prove a full run, because timing races can take several laps to show.
-- After the uninstall, the first lap starts like CI's fresh install: modes are locked, so it first plays a solo game to
-    the end to unlock them (`unlockModes`).
+- The first lap clears the app's data (`wipeAppData`), so it starts like a fresh install on any run, CI's retry
+    included: it raises the one-time achievement banner, then plays a solo game to the end to unlock the modes
+    (`unlockModes`). Later laps keep those unlocks.
+- A journey step names labels the app shows, so removing or relabelling one means changing `Journeys.kt` with it.
 - A failing step names itself (`Baseline Profile journey: 'X' never appeared`). The report is at
     `app/baselineprofile/build/reports/androidTests/connected/nonMinifiedRelease/index.html`. The screen and UI hierarchy
     as it failed are saved as `journey-failure-lap<N>.png`/`.xml` under

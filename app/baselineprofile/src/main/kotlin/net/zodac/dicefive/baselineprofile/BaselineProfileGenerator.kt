@@ -9,7 +9,7 @@ import org.junit.runner.RunWith
 
 /**
  * Records what a typical session touches, so the generated profile compiles those paths ahead of
- * time: cold start, an achievement banner and its jump to the Achievements screen, on a fresh install a solo game of
+ * time: cold start, on the first lap an achievement banner with its jump to the Achievements screen and a solo game of
  * Standard played to the end to unlock the setup's modes, a game (new,
  * played a turn, a game in each of three other modes, then resumed and rolled in landscape), one more played to the
  * end (the Game Over page, its scorecards review, a CPU's turns), a few turns of the tutorial, and every screen
@@ -49,17 +49,20 @@ class BaselineProfileGenerator {
     }
 
     private fun MacrobenchmarkScope.journey(first: Boolean) {
+        // Only the first lap starts from nothing, whatever a retried run left on the emulator: the rest keep its unlocks.
+        if (first) wipeAppData()
         pressHome()
         startActivityAndWait()
 
-        // Achievements locked again so the banner below can fire, then the banner: tapped into
-        // existence from the logo, long-pressed to jump to its achievement and its glow.
-        resetAchievements()
-        visitAchievementBanner()
+        if (first) {
+            // The banner: tapped into existence from the logo, long-pressed to jump to its achievement and its glow. Its
+            // achievement can only be earned once, so this lap alone can raise it.
+            visitAchievementBanner()
 
-        // A fresh install locks the setup's modes and modifiers until a game is finished, and the steps below pick
-        // both. The unlock survives from lap to lap, so only the first looks.
-        if (first) unlockModes()
+            // A fresh install locks the setup's modes and modifiers until a game is finished, and the steps below pick
+            // both. The unlock survives from lap to lap.
+            unlockModes()
+        }
 
         // A game is left saved behind, so the menu then offers Continue - and the next lap of the
         // run, which starts from that state, takes the New Game route instead of Play.

@@ -447,21 +447,19 @@ internal fun MacrobenchmarkScope.visitSettings() {
 }
 
 /**
- * Locks every achievement again (Settings > Reset achievements), so the "Not Those Dice!" unlock in
- * [visitAchievementBanner] fires on every lap of the run - it can only be earned once, and the app's
- * data survives from one lap to the next.
+ * Wipes the app's data, as on a fresh install: the only way a release build can lock an achievement again, and a run
+ * retried on the same emulator (android-release.yml) finds the last run's data otherwise. Stops the app, if it's running.
  */
-internal fun MacrobenchmarkScope.resetAchievements() {
-    openFromMenu("Settings")
-    tapTextUntil("Reset achievements") { device.hasObject(By.text("Reset")) }
-    closeDialog(By.text("Reset"), "the reset dialog's Reset button")
-    backToMenu()
+internal fun MacrobenchmarkScope.wipeAppData() {
+    val result = device.executeShellCommand("pm clear $PACKAGE").trim()
+    check(result == "Success") { "Baseline Profile journey: clearing the app's data said '$result'" }
 }
 
 /**
  * Taps the logo's dice on the menu (the "Not Those Dice!" easter egg) to raise an unlock banner, taps the
  * banner to pause its countdown, then long-presses it, which takes the player to that achievement on the
- * Achievements screen, where its row glows. Needs the achievement locked - see [resetAchievements].
+ * Achievements screen, where its row glows. Needs the achievement locked, so only the lap that starts from
+ * [wipeAppData] can run it.
  *
  * The dice are drawn with a raw tap gesture and have no label to find them by, so they are found
  * from the wordmark under them: AppLogo puts "DiceFive" 16dp below the row of dice (each 34dp tall),
@@ -482,10 +480,13 @@ internal fun MacrobenchmarkScope.visitAchievementBanner() {
 private fun MacrobenchmarkScope.pressAchievementBanner() {
     for (attempt in 1..BANNER_ATTEMPTS) {
         // A banner that was raised but missed can't be raised again until the achievement is locked. Any banners still
-        // up are swiped away first: one the tap paused stays over the menu's buttons until it's tapped again.
+        // up are swiped away first: one the tap paused stays over the menu's buttons until it's tapped again. This runs
+        // before the lap has done anything else, so wiping the data loses nothing.
         if (attempt > 1) {
             clearBanners()
-            resetAchievements()
+            wipeAppData()
+            pressHome()
+            startActivityAndWait()
         }
         val bannerBounds = withShortIdleWait { raiseBanner() } ?: continue
         // A tap pauses the banner's countdown until the next tap, so the long-press isn't racing it. One that came
@@ -907,15 +908,15 @@ private fun MacrobenchmarkScope.pickFromDropDown(field: String, option: String) 
 
 /**
  * The Achievements page: scrolled, then the "Unearned" switch on and off, and the Collection's Tally
- * long-pressed for the scores it still lacks (the page has them locked, as [resetAchievements] left them, and
- * the Leaderboard has none of the scores it wants).
+ * long-pressed for the scores it still lacks (it wants 46 different scores on the Standard leaderboard, far more than a
+ * run's few finished games of Standard can record, so it stays locked).
  */
 internal fun MacrobenchmarkScope.visitAchievements() {
     openFromMenu("Achievements")
     scrollDown(2)
     // The switch's label is the filter in force: "All" turns to "Unearned" as the switch takes the tap, and back.
     tapTextUntil("All") { device.hasObject(By.text("Unearned")) }
-    // The page opens where it was last left, which after visitAchievementBanner is that banner's row in Easter Eggs.
+    // The page opens where it was last left, which on the lap of visitAchievementBanner is that banner's row in Easter Eggs.
     hopToCategory("Collection")
     // A press can be dropped (the row's tooltip, a banner fading out over it), so it is repeated until the dialog is up.
     // The scores' line shares its text with the mode restriction above it ("Can only be earned in..."), so it is found
