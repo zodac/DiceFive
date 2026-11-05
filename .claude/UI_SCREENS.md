@@ -23,8 +23,9 @@ Miscellaneous run in alphabetical order instead, and so do the Easter Eggs, whic
 **Category headers** are `stickyHeader`s styled as a plain `Card`. A bare `Surface` has square corners.
 
 - Up and down arrows glide to the previous or next header (`smoothScrollToItem`: one eased animation, 350-800ms by
-    distance; the stock `animateScrollToItem` spring ends in a quarter of a second and reads as a snap). The arrow with
-    nowhere to go is greyed, not removed.
+    distance; the stock `animateScrollToItem` spring ends in a quarter of a second and reads as a snap). Each frame moves
+    its share of what's left. A sticky header is laid out pinned as soon as the list reaches its category, so its own
+    offset never says how far is left (`offsetWhereItLies`). The arrow with nowhere to go is greyed, not removed.
 - They're stock `IconButton`s, so the header is 48dp tall.
 - Each header carries its category's earned/total (`3/12`), counted over the whole category even while the Unearned switch is on
     hides rows. Label and count are `categoryHeaderStyle` (Sora, `titleSmall`, as written), as on the Styles screen. The
@@ -308,6 +309,13 @@ exists opens Standard's.
         are under it, in a row whose height is reserved so a one-page board ends where a two-page one does. In landscape
         they share the drop-down's row (`LeaderboardPagination`) over a 640dp table.
     - A long press on a row shows its date (a mode's board's title says the mode). That is the row's `stateDescription`.
+    - **While a page scrolls** (whenever its scrollbar shows), its title row has gold up and down arrows
+        (`UpDownButtons`, as on Achievements' category headers, there in the header's own colour) that glide to its top
+        and bottom (`smoothScrollToItem`, or jump under reduced motion), each faded and disabled at its own end. They're
+        at the row's end, in the same place signed in or out, and like Global take no height. Where all won't fit,
+        Global goes to its globe first, then the title steps down in size (`ShrinkThenWrapText`). Only when even its
+        smallest readable size won't fit does it take two lines, which grows the card ("Third Wind" at 200%). TalkBack
+        hears "Go to the top of the page" and "Go to the bottom of the page".
     - **Combined** holds every mode's games: each player's name is in its mode's colour (`UI.md`, "Mode colours"), the
         podium rows keep their gold, silver, and bronze, and a long press adds the mode under the date.
     - A board with no scores shows a card saying so instead: "No scores in `<board>` yet". Every board is listed, scored
@@ -315,10 +323,11 @@ exists opens Standard's.
 - A board is read the first time it is picked and kept. The switch waits, with the board on view still up, until the new
     one is read, then gives way in one frame (no empty page).
 - Every board lists only games played with no modifier on (`playedUnmodified`), as online boards do.
-- **Global** (signed in to a service): a text button with a globe on a mode's title row, opening that mode's board on the
-    service (`GlobalLeaderboardButton`). It takes **no height**: the title sets the row's, and the button is centred on
-    it, spilling into the card's padding, so the card doesn't move on signing in. Where the title and the label won't
-    share the line (large fonts, narrow phones) it's the globe alone, never a wrapped title. TalkBack hears "Global
+- **Global** (signed in to a service): a text button with a globe in the middle of a mode's title row, moving along only to
+    clear a long title, opening that mode's board on the service (`GlobalLeaderboardButton`). It takes **no height**: the
+    title sets the row's, and the button is centred on it, spilling into the card's padding, so the card doesn't move on
+    signing in. Where the title and the label won't share the line (large fonts, narrow phones) it's the globe alone. On a
+    board with no arrows, that keeps the title from wrapping. TalkBack hears "Global
     leaderboard for `<mode>` on `<service>`", a button. Combined has none: it has no board on the service.
 - **TalkBack.** The field is one drop-down ("Leaderboard, Standard"), with state Collapsed or Expanded. Each menu row is
     a radio button, the picked one "Selected", with its place in the set. Board titles are headings.

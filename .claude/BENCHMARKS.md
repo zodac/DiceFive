@@ -163,6 +163,8 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
     item: 87KB allocated a draw at 1,000, 950KB at 10,000, and 9.6MB at 100,000, with a whole frame's draw going from 5.5
     to ~10 at 100,000. C2 hid most of that allocation. Given no `contentTypeOf` or `sizeOf`, it now walks only the items
     it has measured (`measuredOrAverageSize`): a frame's draw is ~5.4 and allocates 44KB at every size.
+    Pulling the thumb (warm, compose and layout): ~1.2 a frame at about 3 new rows, ~2.4 at 12, and 4-6 with every row new,
+    against ~0.7 for a finger scroll.
 - **Pages.** Styles opens at ~42-44 the first time after launch, then 16-24. A tile scrolling in costs ~0.6. Settings'
     first frame is ~26-30. A Rules tap frame is ~6-8.
 

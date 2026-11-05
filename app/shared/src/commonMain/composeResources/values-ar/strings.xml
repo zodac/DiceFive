@@ -1089,6 +1089,8 @@
     <string name="scores_header_score">النتيجة</string>
     <string name="scores_previous">السابق</string>
     <string name="scores_next">التالي</string>
+    <string name="scores_page_top_cd">الانتقال إلى أعلى الصفحة</string>
+    <string name="scores_page_bottom_cd">الانتقال إلى أسفل الصفحة</string>
     <string name="common_page_of">الصفحة %1$d من %2$d</string>
     <string name="stats_title">الإحصائيات</string>
     <string name="stats_sort_action">ترتيب اللاعبين</string>

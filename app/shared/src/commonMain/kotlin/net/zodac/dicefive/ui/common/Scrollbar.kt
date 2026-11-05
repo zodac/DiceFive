@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
@@ -29,12 +30,19 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 
 /** How much of the track's cross-axis the scrollbar occupies - the track's width when the bar runs
  * vertically, its height when the bar runs horizontally. */
@@ -42,6 +50,12 @@ private val SCROLLBAR_THICKNESS = 4.dp
 
 /** The thumb never shrinks below this fraction of the track, however long the list gets. */
 private const val MIN_THUMB_FRACTION = 0.08f
+
+/** A scrollbar thumb's thickness while it's held, so it shows past the finger. */
+private val HELD_THUMB_THICKNESS = 8.dp
+
+/** The least a thumb's handle takes touches over, each way: the minimum touch target, whatever the thumb's size. */
+private val THUMB_HANDLE_SIZE = 48.dp
 
 /** Everything [LazyListScrollbar] needs to remember between draws, for one [LazyListState]. */
 /**
@@ -71,11 +85,34 @@ internal fun measuredOrAverageSize(measured: Map<Int, Int>, start: Int, end: Int
     return total + (end - start - measuredInRange) * average
 }
 
+/**
+ * Where the list's scroll offset [target] falls: the item it lands in and how far into that item, given each item's size
+ * from [itemSize] and the [spacing] between items. Past the end, that's the last item, as far in as [target] reaches; the
+ * list stops at its own end.
+ */
+internal fun scrollPositionAt(target: Float, totalItems: Int, spacing: Float, itemSize: (Int) -> Float): Pair<Int, Int> {
+    var start = 0f
+    for (index in 0 until totalItems - 1) {
+        val next = start + itemSize(index) + spacing
+        if (target < next) return index to (target - start).roundToInt().coerceAtLeast(0)
+        start = next
+    }
+    return (totalItems - 1).coerceAtLeast(0) to (target - start).roundToInt().coerceAtLeast(0)
+}
+
 private class ScrollbarMemory {
     /** -1 so the very first draw always looks like a "shape change" and seeds these fresh. */
     var totalItemsAtLastCheck = -1
     val knownItemSizes = mutableMapOf<Int, Int>()
     var frozenContentSize: Float? = null
+
+    /** Where the thumb was last drawn, in px, for its handle and a drag along the track. */
+    var thumbTop by mutableFloatStateOf(0f)
+    var thumbHeight by mutableFloatStateOf(0f)
+    var trackHeight = 0f
+
+    /** How far along its travel a held thumb is, which it follows rather than the list. Null while it isn't held. */
+    var heldFraction by mutableStateOf<Float?>(null)
 }
 
 /**
@@ -160,6 +197,11 @@ private class ScrollbarMemory {
  * (Achievements' cards, and the short headers between them): an unseen item is then estimated at the average of its own
  * kind, and the thumb keeps a steady size and pace instead of correcting itself as each kind scrolls past. [sizeOf] gives the
  * size in px of any item the caller already knows, seen or not (a spacer the list ends with), used in place of an estimate.
+ *
+ * The thumb can be held and pulled to move through the list: it follows the finger from the moment it's pressed, thickening
+ * while it's held, and the list follows it. Only the thumb takes the touch, in a handle at least
+ * [THUMB_HANDLE_SIZE] each way; the rest of the track leaves touches to the list. Silent to a screen reader, which scrolls
+ * the list by its own actions.
  */
 @Composable
 fun BoxScope.LazyListScrollbar(
@@ -246,20 +288,84 @@ fun BoxScope.LazyListScrollbar(
         val belowTopSize = itemsSize(anchor.index, totalItems) + itemSpacing * (totalItems - anchor.index)
         val remainingSize = (belowTopSize - itemSpacing + anchor.offset - viewportSize).coerceAtLeast(0f)
         // canScrollForward/Backward are exact, so they settle the two ends whatever the estimate says.
-        val scrollFraction = when {
+        val scrollFraction = memory.heldFraction ?: when {
             !listState.canScrollForward -> 1f
             !listState.canScrollBackward -> 0f
             else -> (scrolledPastSize / (scrolledPastSize + remainingSize).coerceAtLeast(1f)).coerceIn(0f, 1f)
         }
         val thumbOffsetY = (size.height - thumbHeight) * scrollFraction
+        memory.thumbTop = thumbOffsetY
+        memory.thumbHeight = thumbHeight
+        memory.trackHeight = size.height
 
+        // Thicker about its middle while held, so it's the same whichever side the bar's on.
+        val thumbThickness = if (memory.heldFraction != null) HELD_THUMB_THICKNESS.toPx() else size.width
         drawRoundRect(
             color = thumbColor,
-            topLeft = Offset(0f, thumbOffsetY),
-            size = Size(size.width, thumbHeight),
-            cornerRadius = CornerRadius(size.width / 2),
+            topLeft = Offset((size.width - thumbThickness) / 2, thumbOffsetY),
+            size = Size(thumbThickness, thumbHeight),
+            cornerRadius = CornerRadius(thumbThickness / 2),
         )
     }
+    ThumbHandle(listState, memory, modifier, contentTypeOf, sizeOf)
+}
+
+/** What takes the touch on a [LazyListScrollbar]'s thumb: a box centred on the thumb, and only there. */
+@Composable
+private fun BoxScope.ThumbHandle(
+    listState: LazyListState,
+    memory: ScrollbarMemory,
+    modifier: Modifier,
+    contentTypeOf: ((Int) -> Any?)?,
+    sizeOf: ((Int) -> Int?)?,
+) {
+    val density = LocalDensity.current
+    val dragState = rememberDraggableState { delta ->
+        val fraction = ((memory.heldFraction ?: 0f) + delta / (memory.trackHeight - memory.thumbHeight).coerceAtLeast(1f)).coerceIn(0f, 1f)
+        memory.heldFraction = fraction
+        val layoutInfo = listState.layoutInfo
+        val known = memory.knownItemSizes
+        if (known.isNotEmpty()) {
+            val average = known.values.sum().toFloat() / known.size
+            val averageByType = contentTypeOf?.let { typeOf ->
+                known.entries.groupBy({ typeOf(it.key) }, { it.value }).mapValues { (_, sizes) -> sizes.average().toFloat() }
+            }
+            val itemSize = { index: Int ->
+                known[index]?.toFloat() ?: sizeOf?.invoke(index)?.toFloat() ?: averageByType?.get(contentTypeOf(index)) ?: average
+            }
+            val totalItems = layoutInfo.totalItemsCount
+            val spacing = layoutInfo.mainAxisItemSpacing.toFloat()
+            val contentSize = (0 until totalItems).sumOf { itemSize(it).toDouble() }.toFloat() + spacing * (totalItems - 1)
+            val target = fraction * (contentSize - layoutInfo.viewportSize.height).coerceAtLeast(0f)
+            val (index, offset) = scrollPositionAt(target, totalItems, spacing, itemSize)
+            listState.requestScrollToItem(index, offset)
+        }
+    }
+    Box(
+        modifier = modifier
+            .align(Alignment.TopEnd)
+            .offset {
+                val handleHeight = maxOf(memory.thumbHeight, THUMB_HANDLE_SIZE.toPx())
+                IntOffset(
+                    // Centred across the bar, which sits at this box's end.
+                    x = ((THUMB_HANDLE_SIZE - SCROLLBAR_THICKNESS).toPx() / 2).roundToInt(),
+                    y = (memory.thumbTop + (memory.thumbHeight - handleHeight) / 2).roundToInt(),
+                )
+            }
+            .width(THUMB_HANDLE_SIZE)
+            .heightIn(min = THUMB_HANDLE_SIZE)
+            .height(with(density) { memory.thumbHeight.toDp() })
+            .clearAndSetSemantics {}
+            .draggable(
+                state = dragState,
+                orientation = Orientation.Vertical,
+                startDragImmediately = true,
+                onDragStarted = {
+                    memory.heldFraction = (memory.thumbTop / (memory.trackHeight - memory.thumbHeight).coerceAtLeast(1f)).coerceIn(0f, 1f)
+                },
+                onDragStopped = { memory.heldFraction = null },
+            ),
+    )
 }
 
 /**
@@ -293,31 +399,78 @@ fun HorizontalScrollbar(scrollState: ScrollState, modifier: Modifier = Modifier,
 
     val thumbColor = MaterialTheme.colorScheme.primary
     val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    val thumb = remember(scrollState) { ThumbPlace() }
 
-    Canvas(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(SCROLLBAR_THICKNESS),
-    ) {
-        if (!showScrollbar) return@Canvas
-        drawRoundRect(color = trackColor, cornerRadius = CornerRadius(size.height / 2))
+    Box(modifier = modifier.fillMaxWidth().height(SCROLLBAR_THICKNESS)) {
+        Canvas(modifier = Modifier.matchParentSize()) {
+            if (!showScrollbar) return@Canvas
+            drawRoundRect(color = trackColor, cornerRadius = CornerRadius(size.height / 2))
 
-        // Exact, not estimated: a ScrollState already knows its full scrollable extent up front,
-        // unlike a LazyColumn which only measures items as they're scrolled into view.
-        val viewportSize = size.width
-        val contentSize = viewportSize + scrollState.maxValue
-        val thumbFraction = (viewportSize / contentSize).coerceIn(MIN_THUMB_FRACTION, 1f)
-        val thumbWidth = size.width * thumbFraction
-        val scrollFraction = if (scrollState.maxValue == 0) 0f else scrollState.value.toFloat() / scrollState.maxValue
-        val thumbOffsetX = (size.width - thumbWidth) * scrollFraction
+            // Exact, not estimated: a ScrollState already knows its full scrollable extent up front,
+            // unlike a LazyColumn which only measures items as they're scrolled into view.
+            val viewportSize = size.width
+            val contentSize = viewportSize + scrollState.maxValue
+            val thumbFraction = (viewportSize / contentSize).coerceIn(MIN_THUMB_FRACTION, 1f)
+            val thumbWidth = size.width * thumbFraction
+            val scrollFraction = if (scrollState.maxValue == 0) 0f else scrollState.value.toFloat() / scrollState.maxValue
+            val thumbOffsetX = (size.width - thumbWidth) * scrollFraction
+            thumb.start = thumbOffsetX
+            thumb.length = thumbWidth
+            thumb.trackLength = size.width
 
-        drawRoundRect(
-            color = thumbColor,
-            topLeft = Offset(thumbOffsetX, 0f),
-            size = Size(thumbWidth, size.height),
-            cornerRadius = CornerRadius(size.height / 2),
-        )
+            // Thicker about its middle while held, spilling past the bar's own height.
+            val thickness = if (thumb.held) HELD_THUMB_THICKNESS.toPx() else size.height
+            drawRoundRect(
+                color = thumbColor,
+                topLeft = Offset(thumbOffsetX, (size.height - thickness) / 2),
+                size = Size(thumbWidth, thickness),
+                cornerRadius = CornerRadius(thickness / 2),
+            )
+        }
+        if (showScrollbar) HorizontalThumbHandle(scrollState, thumb)
     }
+}
+
+/** Where a [HorizontalScrollbar]'s or [VerticalScrollbar]'s thumb was last drawn along its track, in px, and whether it's held. */
+private class ThumbPlace {
+    var start by mutableFloatStateOf(0f)
+    var length by mutableFloatStateOf(0f)
+    var trackLength = 0f
+    var held by mutableStateOf(false)
+}
+
+/**
+ * What takes the touch on a [HorizontalScrollbar]'s thumb: a box centred on it, at least [THUMB_HANDLE_SIZE] each way. The bar is a
+ * thin row of its own, so this reports no size: its reach is over what's around the bar, which doesn't move for it.
+ */
+@Composable
+private fun HorizontalThumbHandle(scrollState: ScrollState, thumb: ThumbPlace) {
+    val dragState = rememberDraggableState { delta ->
+        val travel = thumb.trackLength - thumb.length
+        if (travel > 0f) scrollState.dispatchRawDelta(delta * scrollState.maxValue / travel)
+    }
+    Box(
+        modifier = Modifier
+            .layout { measurable, _ ->
+                val minimum = THUMB_HANDLE_SIZE.roundToPx()
+                val width = maxOf(thumb.length.roundToInt(), minimum)
+                val placeable = measurable.measure(Constraints.fixed(width, minimum))
+                layout(0, 0) {
+                    placeable.place(
+                        x = (thumb.start + (thumb.length - width) / 2).roundToInt(),
+                        y = (SCROLLBAR_THICKNESS.roundToPx() - minimum) / 2,
+                    )
+                }
+            }
+            .clearAndSetSemantics {}
+            .draggable(
+                state = dragState,
+                orientation = Orientation.Horizontal,
+                startDragImmediately = true,
+                onDragStarted = { thumb.held = true },
+                onDragStopped = { thumb.held = false },
+            ),
+    )
 }
 
 /**
@@ -389,8 +542,9 @@ fun HorizontalScrollbar(listState: LazyListState, modifier: Modifier = Modifier)
  * scroll to.
  *
  * It's [width] wide to take drags, with the bar drawn down its middle: placed in a page's side margin,
- * the whole margin is its handle without covering anything a finger might want. Dragging moves the
- * thumb with the finger, scrolling the page in proportion. Silent to a screen reader, which scrolls
+ * the whole margin takes a drag without covering anything a finger might want. The thumb itself is held
+ * from a press, in a handle at least [THUMB_HANDLE_SIZE] each way, and thickens while held. Dragging moves
+ * the thumb with the finger, scrolling the page in proportion. Silent to a screen reader, which scrolls
  * the page by its own actions.
  */
 @Composable
@@ -422,44 +576,79 @@ fun VerticalScrollbar(
 
     val thumbColor = MaterialTheme.colorScheme.primary
     val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    val thumb = remember { ThumbPlace() }
     // The track's length, for turning a drag along it into a scroll of the page.
     var trackHeight by remember { mutableIntStateOf(0) }
     val dragState = rememberDraggableState { delta ->
         val viewport = trackHeight.toFloat()
         val max = maxPosition()
         val content = viewport + max
-        val thumb = viewport * (viewport / content).coerceIn(MIN_THUMB_FRACTION, 1f)
-        val travel = viewport - thumb
+        val thumbLength = viewport * (viewport / content).coerceIn(MIN_THUMB_FRACTION, 1f)
+        val travel = viewport - thumbLength
         if (travel > 0f) scrollBy(delta * max / travel)
     }
 
-    Canvas(
+    Box(
         modifier = modifier
             .fillMaxHeight()
             .width(width)
             .clearAndSetSemantics {}
             .onSizeChanged { trackHeight = it.height }
-            .draggable(dragState, Orientation.Vertical),
+            .draggable(
+                state = dragState,
+                orientation = Orientation.Vertical,
+                onDragStarted = { thumb.held = true },
+                onDragStopped = { thumb.held = false },
+            ),
     ) {
-        val thickness = SCROLLBAR_THICKNESS.toPx()
-        val left = (size.width - thickness) / 2
-        drawRoundRect(
-            color = trackColor,
-            topLeft = Offset(left, 0f),
-            size = Size(thickness, size.height),
-            cornerRadius = CornerRadius(thickness / 2),
-        )
+        Canvas(modifier = Modifier.matchParentSize()) {
+            val thickness = SCROLLBAR_THICKNESS.toPx()
+            drawRoundRect(
+                color = trackColor,
+                topLeft = Offset((size.width - thickness) / 2, 0f),
+                size = Size(thickness, size.height),
+                cornerRadius = CornerRadius(thickness / 2),
+            )
 
-        val max = maxPosition()
-        val viewportSize = size.height
-        val contentSize = viewportSize + max
-        val thumbHeight = size.height * (viewportSize / contentSize).coerceIn(MIN_THUMB_FRACTION, 1f)
-        val scrollFraction = if (max <= 0) 0f else (position().toFloat() / max).coerceIn(0f, 1f)
-        drawRoundRect(
-            color = thumbColor,
-            topLeft = Offset(left, (size.height - thumbHeight) * scrollFraction),
-            size = Size(thickness, thumbHeight),
-            cornerRadius = CornerRadius(thickness / 2),
+            val max = maxPosition()
+            val viewportSize = size.height
+            val contentSize = viewportSize + max
+            val thumbHeight = size.height * (viewportSize / contentSize).coerceIn(MIN_THUMB_FRACTION, 1f)
+            val scrollFraction = if (max <= 0) 0f else (position().toFloat() / max).coerceIn(0f, 1f)
+            val thumbTop = (size.height - thumbHeight) * scrollFraction
+            thumb.start = thumbTop
+            thumb.length = thumbHeight
+
+            val thumbThickness = if (thumb.held) HELD_THUMB_THICKNESS.toPx() else thickness
+            drawRoundRect(
+                color = thumbColor,
+                topLeft = Offset((size.width - thumbThickness) / 2, thumbTop),
+                size = Size(thumbThickness, thumbHeight),
+                cornerRadius = CornerRadius(thumbThickness / 2),
+            )
+        }
+        // The strip is as wide as the margin it's in, which can be narrower than a finger: the thumb reaches further, and is held
+        // the moment it's pressed. It reports no size, so nothing around the bar moves for it.
+        Box(
+            modifier = Modifier
+                .layout { measurable, constraints ->
+                    val minimum = THUMB_HANDLE_SIZE.roundToPx()
+                    val height = maxOf(thumb.length.roundToInt(), minimum)
+                    val placeable = measurable.measure(Constraints.fixed(minimum, height))
+                    layout(0, 0) {
+                        placeable.place(
+                            x = (constraints.maxWidth - minimum) / 2,
+                            y = (thumb.start + (thumb.length - height) / 2).roundToInt(),
+                        )
+                    }
+                }
+                .draggable(
+                    state = dragState,
+                    orientation = Orientation.Vertical,
+                    startDragImmediately = true,
+                    onDragStarted = { thumb.held = true },
+                    onDragStopped = { thumb.held = false },
+                ),
         )
     }
 }

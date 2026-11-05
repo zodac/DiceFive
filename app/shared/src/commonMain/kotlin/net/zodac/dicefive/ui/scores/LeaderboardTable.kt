@@ -26,7 +26,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.game.TieBreak
@@ -50,12 +54,17 @@ import net.zodac.dicefive.resources.common_tied_rank
 import net.zodac.dicefive.resources.scores_header_player
 import net.zodac.dicefive.resources.scores_header_score
 import net.zodac.dicefive.resources.scores_next
+import net.zodac.dicefive.resources.scores_page_bottom_cd
+import net.zodac.dicefive.resources.scores_page_top_cd
 import net.zodac.dicefive.resources.scores_previous
 import net.zodac.dicefive.ui.common.EmptyStateCard
 import net.zodac.dicefive.ui.common.LazyListScrollbar
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.OnDemandTooltip
+import net.zodac.dicefive.ui.common.UpDownButtons
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.localised
+import net.zodac.dicefive.ui.common.smoothScrollToItem
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.textScale
 import net.zodac.dicefive.ui.common.timestampFormatter
@@ -98,8 +107,19 @@ private class ScoreColumns(val rank: Float, val player: Float, val fiveOfAKind: 
 private val NORMAL_COLUMNS = ScoreColumns(rank = 1f, player = 4f, fiveOfAKind = 1f, score = 1.5f)
 private val LARGE_FONT_COLUMNS = ScoreColumns(rank = 1.5f, player = 3.5f, fiveOfAKind = 1.5f, score = 2.5f)
 
+/** From this font scale up, a four-digit rank needs more of the row still, or it runs into the name. */
+private const val HUGE_FONT_SCALE = 1.5f
+private val HUGE_FONT_COLUMNS = ScoreColumns(rank = 2.25f, player = 3f, fiveOfAKind = 1.25f, score = 2.5f)
+
 @Composable
-private fun scoreColumns(): ScoreColumns = if (LocalDensity.current.textScale > LARGE_FONT_SCALE) LARGE_FONT_COLUMNS else NORMAL_COLUMNS
+private fun scoreColumns(): ScoreColumns {
+    val scale = LocalDensity.current.textScale
+    return when {
+        scale > HUGE_FONT_SCALE -> HUGE_FONT_COLUMNS
+        scale > LARGE_FONT_SCALE -> LARGE_FONT_COLUMNS
+        else -> NORMAL_COLUMNS
+    }
+}
 
 
 /** Widest a board's table, and the row over it, are in landscape. */
@@ -125,7 +145,7 @@ fun ColumnScope.LeaderboardTable(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     landscape: Boolean,
-    header: @Composable ColumnScope.() -> Unit,
+    header: @Composable ColumnScope.(scrollButtons: (@Composable () -> Unit)?) -> Unit,
 ) {
     if (board.entries.isEmpty()) {
         EmptyStateCard(emptyText)
@@ -139,12 +159,38 @@ fun ColumnScope.LeaderboardTable(
     val endsOnPodium = ranked.last().rank <= PODIUM_RANKS
     Card(modifier = Modifier.widthIn(max = if (landscape) LANDSCAPE_TABLE_WIDTH else Dp.Infinity).fillMaxWidth().weight(1f, fill = false)) {
         Column(modifier = Modifier.padding(start = 8.dp, top = 8.dp, end = 8.dp, bottom = if (endsOnPodium) 8.dp + PODIUM_END_EXTRA_PADDING else 8.dp)) {
-            header()
+            val listState = rememberLazyListState()
+            // The arrows are there whenever the scrollbar is.
+            val scrolls by remember(listState) { derivedStateOf { listState.canScrollForward || listState.canScrollBackward } }
+            val scope = rememberCoroutineScope()
+            val reduceMotion = LocalReduceMotion.current
+            val toTop = stringResource(Res.string.scores_page_top_cd)
+            val toBottom = stringResource(Res.string.scores_page_bottom_cd)
+            header(
+                if (scrolls) {
+                    {
+                        UpDownButtons(
+                            onUp = { scope.launch { if (reduceMotion) listState.scrollToItem(0) else listState.smoothScrollToItem(0) } },
+                            onDown = {
+                                scope.launch {
+                                    if (reduceMotion) listState.scrollToItem(ranked.lastIndex) else listState.smoothScrollToItem(ranked.lastIndex, toEnd = true)
+                                }
+                            },
+                            upEnabled = listState.canScrollBackward,
+                            downEnabled = listState.canScrollForward,
+                            upDescription = toTop,
+                            downDescription = toBottom,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                } else {
+                    null
+                },
+            )
             HeaderRow()
             // No divider under the headings - it would cut across the top of a podium row's rounded background. The
             // header cells' own colour and weight already separate them from the rows.
             Spacer(modifier = Modifier.height(4.dp))
-            val listState = rememberLazyListState()
             // A new page starts at its top, not wherever the last one was scrolled to.
             LaunchedEffect(board.pageIndex) { listState.scrollToItem(0) }
             Box(modifier = Modifier.fillMaxWidth()) {

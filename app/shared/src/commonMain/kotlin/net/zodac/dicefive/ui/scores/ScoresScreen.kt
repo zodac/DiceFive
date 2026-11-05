@@ -20,6 +20,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -50,7 +51,9 @@ import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.ModePagePicker
 import net.zodac.dicefive.ui.common.OffscreenWarmUp
 import net.zodac.dicefive.ui.common.ScreenScaffold
+import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.UP_DOWN_BUTTONS_WIDTH
 import net.zodac.dicefive.ui.common.modePageName
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.icons.Symbols
@@ -124,11 +127,12 @@ fun ScoresScreen(
                 onPrevious = viewModel::previousPage,
                 onNext = viewModel::nextPage,
                 landscape = landscape,
-                header = {
+                header = { scrollButtons ->
                     BoardTitle(
                         title = boardName,
                         mode = (choice as? ModePage.Mode)?.mode,
                         services = services.takeIf { online },
+                        scrollButtons = scrollButtons,
                     )
                 },
             )
@@ -137,34 +141,58 @@ fun ScoresScreen(
 }
 
 /**
- * A board's title, a heading, with - for a [mode]'s board while signed in to a service ([services]) - its Global button.
- * The button's label goes before the title does: where both won't fit on the line, it's the icon alone. With no button
- * there is nothing to measure.
+ * A board's title, a heading, at the row's start, with [scrollButtons] at its end while the page scrolls, in the same place signed in
+ * or out, and - for a [mode]'s board while signed in to a service ([services]) - its Global button in its middle. Where a
+ * long title reaches the middle, the button moves along to clear it. Its label goes before the title's size does: where they
+ * won't all fit on the line, it's the icon alone. Neither takes any height: the title sets the row's.
  */
 @Composable
-private fun BoardTitle(title: String, mode: GameMode?, services: GameServices?) {
+private fun BoardTitle(title: String, mode: GameMode?, services: GameServices?, scrollButtons: (@Composable () -> Unit)?) {
     val titleStyle = MaterialTheme.typography.titleMedium.copy(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold)
     val titleText = @Composable { titleModifier: Modifier ->
-        Text(
-            text = title,
-            style = titleStyle,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = titleModifier.padding(horizontal = TITLE_HORIZONTAL_PADDING, vertical = 4.dp).semantics { heading() },
-        )
+        val placed = titleModifier.padding(horizontal = TITLE_HORIZONTAL_PADDING, vertical = 4.dp).semantics { heading() }
+        // Beside the arrows, a long title steps down to stay on its one line.
+        if (scrollButtons != null) {
+            ShrinkThenWrapText(text = title, style = titleStyle, color = MaterialTheme.colorScheme.primary, modifier = placed)
+        } else {
+            Text(text = title, style = titleStyle, color = MaterialTheme.colorScheme.primary, modifier = placed)
+        }
     }
-    if (mode == null || services == null) return titleText(Modifier.fillMaxWidth())
+    val hasGlobal = mode != null && services != null
+    if (!hasGlobal && scrollButtons == null) return titleText(Modifier.fillMaxWidth())
     BoxWithConstraints {
         val measurer = rememberTextMeasurer()
         val label = stringResource(Res.string.scores_global)
         val labelStyle = MaterialTheme.typography.labelLarge
-        val fitsLabel = with(LocalDensity.current) {
-            val titleWidth = measurer.measure(title, titleStyle).size.width.toDp() + TITLE_HORIZONTAL_PADDING * 2
+        val arrowsWidth = if (scrollButtons != null) UP_DOWN_BUTTONS_WIDTH else 0.dp
+        val density = LocalDensity.current
+        val titleWidth = with(density) { measurer.measure(title, titleStyle).size.width.toDp() } + TITLE_HORIZONTAL_PADDING * 2
+        val fitsLabel = with(density) {
             val buttonWidth = measurer.measure(label, labelStyle).size.width.toDp() + GLOBAL_BUTTON_CHROME_WIDTH
-            titleWidth + buttonWidth <= maxWidth
+            titleWidth + buttonWidth + arrowsWidth <= maxWidth
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            titleText(Modifier.weight(1f))
-            GlobalLeaderboardButton(mode, services, label.takeIf { fitsLabel })
+        Layout(
+            content = {
+                titleText(Modifier)
+                if (mode != null && services != null) GlobalLeaderboardButton(mode, services, label.takeIf { fitsLabel })
+                if (scrollButtons != null) Box(Modifier.takingNoHeight()) { scrollButtons() }
+            },
+        ) { measurables, constraints ->
+            val width = constraints.maxWidth
+            val loose = constraints.copy(minWidth = 0, minHeight = 0)
+            val global = if (hasGlobal) measurables[1].measure(loose) else null
+            val arrows = if (scrollButtons != null) measurables.last().measure(loose) else null
+            val arrowsStart = width - (arrows?.width ?: 0)
+            val titlePlaceable = measurables[0].measure(loose.copy(maxWidth = arrowsStart - (global?.width ?: 0)))
+            val rowHeight = titlePlaceable.height
+            layout(width, rowHeight) {
+                titlePlaceable.placeRelative(0, 0)
+                global?.placeRelative(
+                    x = ((width - global.width) / 2).coerceIn(minOf(titlePlaceable.width, titleWidth.roundToPx()), arrowsStart - global.width),
+                    y = rowHeight / 2,
+                )
+                arrows?.placeRelative(arrowsStart, rowHeight / 2)
+            }
         }
     }
 }
@@ -178,12 +206,7 @@ private fun BoardTitle(title: String, mode: GameMode?, services: GameServices?) 
 private fun GlobalLeaderboardButton(mode: GameMode, services: GameServices, label: String?) {
     val description = stringResource(Res.string.scores_global_cd, stringResource(mode.displayName), services.serviceName)
     val onClick = { services.showLeaderboardUi(mode.onlineLeaderboardKey) }
-    val modifier = Modifier
-        .layout { measurable, constraints ->
-            val placeable = measurable.measure(constraints.copy(minHeight = 0))
-            layout(placeable.width, 0) { placeable.place(0, -placeable.height / 2) }
-        }
-        .semantics { contentDescription = description }
+    val modifier = Modifier.takingNoHeight().semantics { contentDescription = description }
     if (label == null) {
         IconButton(onClick = onClick, modifier = modifier) {
             Icon(imageVector = Symbols.Public, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -195,6 +218,12 @@ private fun GlobalLeaderboardButton(mode: GameMode, services: GameServices, labe
         Spacer(modifier = Modifier.size(GLOBAL_ICON_GAP))
         Text(label, maxLines = 1)
     }
+}
+
+/** Centred on the row it's in, spilling into the card's padding, so the row is as tall as it would be without this. */
+private fun Modifier.takingNoHeight(): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints.copy(minHeight = 0))
+    layout(placeable.width, 0) { placeable.place(0, -placeable.height / 2) }
 }
 
 /** Set once [ScoresWarmUp] has drawn every board it draws, for the life of the process. */

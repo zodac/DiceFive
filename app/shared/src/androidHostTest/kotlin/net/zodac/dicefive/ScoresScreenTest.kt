@@ -1,22 +1,29 @@
 package net.zodac.dicefive
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.Density
 import java.io.File
+import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -176,6 +183,72 @@ class ScoresScreenTest : UiTest() {
         field("Tricolour").assertExists()
         compose.onNodeWithText("Player2").assertExists()
         compose.onAllNodesWithText("Player1").assertCountEquals(0)
+    }
+
+    private val toTop get() = compose.onNodeWithContentDescription("Go to the top of the page")
+    private val toBottom get() = compose.onNodeWithContentDescription("Go to the bottom of the page")
+
+    @Test
+    fun aLongPagesArrowsGoToItsEndsEachFadedAndDisabledAtItsOwnEnd() = uiTest {
+        show((1..40).map { rowOf(it.toLong(), 1_000 - it, GameMode.STANDARD) }, saved = MutableStateFlow(ModePage.Mode(GameMode.STANDARD)))
+        toTop.assertIsNotEnabled()
+        toBottom.assertIsEnabled()
+
+        toBottom.performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Player40").assertExists()
+        toTop.assertIsEnabled()
+        toBottom.assertIsNotEnabled()
+
+        toTop.performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Player1").assertExists()
+        toTop.assertIsNotEnabled()
+    }
+
+    @Test
+    fun aLongTitleBesideTheArrowsAndGlobalStepsDownToStayOnOneLine() = uiTest(TestScreen(360, 800)) {
+        fun titleHeight(mode: GameMode): Float {
+            val viewModel = ScoresViewModel(
+                ScoreRepository(InMemoryScoreDao((1..40).map { rowOf(it.toLong(), 1_000 - it, mode) })),
+                MutableStateFlow(ModePage.Mode(mode)),
+            )
+            showcase.show {
+                val density = LocalDensity.current
+                CompositionLocalProvider(LocalDensity provides Density(density.density, 1.8f), LocalGameServices provides LeaderboardServices()) {
+                    DiceFiveTheme { ScoresScreen(viewModel = viewModel, onBack = {}) }
+                }
+            }
+            compose.waitForIdle()
+            // The board's title: the page's own comes after it in the tree.
+            return compose.onAllNodes(isHeading()).fetchSemanticsNodes().first().boundsInRoot.height
+        }
+        val oneLine = titleHeight(GameMode.STANDARD)
+        assertTrue(titleHeight(GameMode.STUD) <= oneLine)
+    }
+
+    @Test
+    fun aLongPagesArrowsAreInTheSamePlaceSignedInOrOutAndGlobalIsInTheRowsMiddle() = uiTest {
+        val rows = (1..40).map { rowOf(it.toLong(), 1_000 - it, GameMode.STANDARD) }
+        val standard = MutableStateFlow<ModePage?>(ModePage.Mode(GameMode.STANDARD))
+        show(rows, saved = standard)
+        val up = toTop.fetchSemanticsNode().boundsInRoot
+        val down = toBottom.fetchSemanticsNode().boundsInRoot
+
+        show(rows, LeaderboardServices(), saved = standard)
+        assertEquals(up, toTop.fetchSemanticsNode().boundsInRoot)
+        assertEquals(down, toBottom.fetchSemanticsNode().boundsInRoot)
+
+        val global = compose.onNode(hasContentDescription("Global leaderboard for Standard on Google Play Games")).fetchSemanticsNode().boundsInRoot
+        val screen = compose.onRoot().fetchSemanticsNode().boundsInRoot
+        assertTrue(abs(global.center.x - screen.center.x) <= 2f, "\${global.center.x} against \${screen.center.x}")
+    }
+
+    @Test
+    fun aPageWhoseRowsAllFitHasNoScrollbarSoNoArrows() = uiTest {
+        show(someRows)
+        compose.onAllNodes(hasContentDescription("Go to the top of the page")).assertCountEquals(0)
+        compose.onAllNodes(hasContentDescription("Go to the bottom of the page")).assertCountEquals(0)
     }
 
     @Test

@@ -1278,6 +1278,8 @@
     <string name="scores_header_score">Score</string>
     <string name="scores_previous">Previous</string>
     <string name="scores_next">Next</string>
+    <string name="scores_page_top_cd">Go to the top of the page</string>
+    <string name="scores_page_bottom_cd">Go to the bottom of the page</string>
     <!-- Spoken (and drawn) page counts: "Page 2 of 5". -->
     <string name="common_page_of">Page %1$d of %2$d</string>
 

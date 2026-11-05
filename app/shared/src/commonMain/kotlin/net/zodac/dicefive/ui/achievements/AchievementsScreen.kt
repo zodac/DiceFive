@@ -163,6 +163,8 @@ import net.zodac.dicefive.ui.common.spokenList
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.timestamp
 import net.zodac.dicefive.ui.common.tooltipMarkup
+import net.zodac.dicefive.ui.common.smoothScrollToItem
+import net.zodac.dicefive.ui.common.UpDownButtons
 import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.style.description
 import net.zodac.dicefive.ui.theme.GoldAccent
@@ -269,41 +271,6 @@ private val LIST_SPACING = 8.dp
 private fun LazyListState.centeredScrollOffset(estimatedItemHeightPx: Int): Int {
     val viewportHeight = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
     return -((viewportHeight - estimatedItemHeightPx) / 2).coerceAtLeast(0)
-}
-
-/** The shortest and longest an arrow's scroll to another category header takes. */
-private const val CATEGORY_SCROLL_MIN_MILLIS = 350
-private const val CATEGORY_SCROLL_MAX_MILLIS = 800
-
-/** The extra time an arrow's scroll takes for each viewport of list it crosses. */
-private const val CATEGORY_SCROLL_MILLIS_PER_VIEWPORT = 90
-
-/**
- * Scrolls to the item at [target] with one eased animation, slower the further it goes: [LazyListState.animateScrollToItem] is a
- * fixed spring that is over in a quarter of a second, which across several screens of rows reads as a snap.
- *
- * Items between here and [target] haven't been measured, so the distance starts as an estimate (the visible items' average size
- * per item crossed) and is replaced by the real one as soon as [target] is laid out. A last [LazyListState.scrollToItem] absorbs
- * whatever the estimate still got wrong.
- */
-private suspend fun LazyListState.smoothScrollToItem(target: Int) {
-    val visible = layoutInfo.visibleItemsInfo
-    if (visible.isEmpty()) return scrollToItem(target)
-    val averageStep = visible.sumOf { it.size }.toFloat() / visible.size + layoutInfo.mainAxisItemSpacing
-    val viewport = (layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset).coerceAtLeast(1)
-    val estimate = (target - firstVisibleItemIndex) * averageStep - firstVisibleItemScrollOffset
-    val duration = (CATEGORY_SCROLL_MIN_MILLIS + abs(estimate) / viewport * CATEGORY_SCROLL_MILLIS_PER_VIEWPORT)
-        .toInt().coerceIn(CATEGORY_SCROLL_MIN_MILLIS, CATEGORY_SCROLL_MAX_MILLIS)
-    scroll {
-        var total = estimate
-        var done = 0f
-        animate(0f, 1f, animationSpec = tween(duration, easing = FastOutSlowInEasing)) { progress, _ ->
-            layoutInfo.visibleItemsInfo.firstOrNull { it.index == target }?.let { total = done + it.offset }
-            val wanted = total * progress
-            done += scrollBy(wanted - done)
-        }
-    }
-    scrollToItem(target)
 }
 
 /**
@@ -717,12 +684,14 @@ private fun GroupHeader(text: String, counts: Pair<Int, Int>, onPrevious: (() ->
                 color = color,
                 modifier = Modifier.padding(horizontal = 8.dp).clearAndSetSemantics { },
             )
-            IconButton(onClick = { onPrevious?.invoke() }, enabled = onPrevious != null) {
-                Icon(imageVector = Symbols.KeyboardArrowUp, contentDescription = stringResource(Res.string.achievements_previous_category_cd))
-            }
-            IconButton(onClick = { onNext?.invoke() }, enabled = onNext != null) {
-                Icon(imageVector = Symbols.KeyboardArrowDown, contentDescription = stringResource(Res.string.achievements_next_category_cd))
-            }
+            UpDownButtons(
+                onUp = { onPrevious?.invoke() },
+                onDown = { onNext?.invoke() },
+                upEnabled = onPrevious != null,
+                downEnabled = onNext != null,
+                upDescription = stringResource(Res.string.achievements_previous_category_cd),
+                downDescription = stringResource(Res.string.achievements_next_category_cd),
+            )
         }
     }
 }
