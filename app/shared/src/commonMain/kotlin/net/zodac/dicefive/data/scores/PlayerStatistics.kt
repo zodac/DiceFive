@@ -113,6 +113,9 @@ data class PlayerLatestName(val playerKey: String, val playerName: String)
 /** Whether the player [playerKey] names won one game of [gameModeId] with someone to beat, and when - [ScoreDao.playerOutcomes]'s row. */
 data class PlayerOutcome(val playerKey: String, val gameModeId: String, val won: Boolean, val timestampEpochMillis: Long)
 
+/** What [ScoreDao.playerRows] reads, every player's together. */
+data class PlayerRows(val names: List<PlayerLatestName>, val outcomes: List<PlayerOutcome>, val modeTotals: List<PlayerModeTotals>)
+
 /**
  * Everything the Statistics screen needs about one player, as [ScoreDao.playerRecords] reads it: the spelling of their
  * latest game, their games added up per mode, and their win streaks - which depend on game order, which a `GROUP BY`

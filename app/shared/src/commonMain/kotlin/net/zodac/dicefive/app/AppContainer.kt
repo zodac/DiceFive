@@ -154,7 +154,7 @@ class AppContainer(
             fun dataStore(file: PreferencesFile) = createPreferencesDataStore("$dataDir/${file.fileName}")
 
             return AppContainer(
-                scoreRepository = ScoreRepository(databaseBuilder.buildAppDatabase().scoreDao()),
+                scoreRepository = ScoreRepository(databaseBuilder.buildAppDatabase().scoreDao(), computeContext = Dispatchers.Default),
                 settingsRepository = SettingsRepository(dataStore(PreferencesFile.SETTINGS)),
                 achievementsRepository = AchievementsRepository(dataStore(PreferencesFile.ACHIEVEMENTS)),
                 inProgressGameRepository = InProgressGameRepository(dataStore(PreferencesFile.IN_PROGRESS_GAME)),

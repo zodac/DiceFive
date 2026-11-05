@@ -139,15 +139,16 @@ interface ScoreDao {
      * [ScoreEntry.playerKey] ("bob" and "Bob" are one player, as the New Game screen compares them), in key order -
      * excluding anyone dismissed from the Statistics screen (see [DismissedPlayerStats]). Every game with no modifier on
      * counts ([ScoreEntry.playedUnmodified]), on the Leaderboard or not (see [ScoreEntry.onLeaderboard]). SQLite adds up each player's games per mode; only the
-     * outcomes, which the win streaks need in order, come back a game at a time. Three reads, however many players. The
-     * streaks are walked here because a transaction runs off the main thread, where a long history costs no frame.
+     * outcomes, which the win streaks need in order, come back a game at a time. Three reads, however many players, in
+     * [playerRows]'s transaction; the streaks are walked once it has ended, so a long history holds up no write. The
+     * caller picks the thread that walks them ([ScoreRepository.playerStatistics]).
      */
-    @Transaction
     suspend fun playerRecords(): List<PlayerRecord> {
-        val names = latestPlayerNames().associate { it.playerKey to it.playerName }
+        val rows = playerRows()
+        val names = rows.names.associate { it.playerKey to it.playerName }
         // Each player's newest first: what the win streaks walk.
-        val outcomes = playerOutcomes().groupBy { it.playerKey }.mapValues { (_, games) -> games.sortedByDescending { it.timestampEpochMillis } }
-        return playerModeTotals().groupBy { it.playerKey }.map { (playerKey, modes) ->
+        val outcomes = rows.outcomes.groupBy { it.playerKey }.mapValues { (_, games) -> games.sortedByDescending { it.timestampEpochMillis } }
+        return rows.modeTotals.groupBy { it.playerKey }.map { (playerKey, modes) ->
             val games = outcomes[playerKey].orEmpty()
             PlayerRecord(
                 playerName = names.getValue(playerKey),
@@ -157,6 +158,10 @@ interface ScoreDao {
             )
         }
     }
+
+    /** The three reads [playerRecords] makes, in one transaction so they agree with each other. */
+    @Transaction
+    suspend fun playerRows(): PlayerRows = PlayerRows(latestPlayerNames(), playerOutcomes(), playerModeTotals())
 
     /**
      * Each Statistics player's games in each mode, added up - see [playerRecords]. In key order, then mode id order. Each

@@ -245,15 +245,17 @@ will map to Play Games.
         - `playerKey, onLeaderboard, score`: a player's best.
         - `index_scores_primary_player`: player 1's career points and modes played.
         - `index_scores_player_mode_totals` and `index_scores_player_history`: Statistics (below).
-    - **Statistics is added up by SQLite.** `playerRecords` reads each player's games summed per mode (a `GROUP BY` over
-        a covering index), their latest spelling, and only the outcomes of their decided games, newest first, for the win
-        streaks; window functions, which could do the streaks too, need Android 11. That's three reads for every player
-        together, never a read per player (`ScoreQueryPlanTest`). `ScoreRepository` adds the modes up
-        and walks the streaks. `PlayerStatisticsQueryTest` checks the result equals walking every game.
+    - **Statistics is added up by SQLite.** `playerRows` reads, in one transaction, each player's games summed per mode (a
+        `GROUP BY` over a covering index), their latest spelling, and only the outcomes of their decided games, unordered,
+        for the win streaks; window functions, which could do the streaks too, need Android 11. That's three reads for
+        every player together, never a read per player (`ScoreQueryPlanTest`). `playerRecords` then puts each player's
+        outcomes newest first and walks the streaks, and `ScoreRepository` adds the modes up, all after the transaction and
+        off the main thread, so a long history holds up no write. `PlayerStatisticsQueryTest` checks the result equals
+        walking every game.
     - **Leaderboard order is total.** Rows equal on every criterion follow in `rowid` (recording) order, so `LIMIT/OFFSET`
         pages never repeat or skip a row.
     - **Multi-statement reads and writes are one transaction**: a game's rows (`insertGame`), a reset (`clearAll`), the
-        achievements' figures (`leaderboardTotals`) and the cloud merge (`mergeCloud`).
+        achievements' figures (`leaderboardTotals`), Statistics' reads (`playerRows`) and the cloud merge (`mergeCloud`).
     - Every schema change needs a version bump and a migration in `MIGRATIONS` (`data/scores/Migrations.kt`), tested by
         `ScoreDatabaseMigrationTest` from the exported schema it migrates from. There is **deliberately no destructive
         fallback**: a missing migration must fail loudly, never wipe scores. A change to `playerNameKey` changes stored
