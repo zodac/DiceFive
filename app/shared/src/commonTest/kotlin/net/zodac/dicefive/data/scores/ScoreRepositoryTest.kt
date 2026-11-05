@@ -3,6 +3,8 @@ package net.zodac.dicefive.data.scores
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.test.runTest
 import net.zodac.dicefive.game.TieBreakStats
 import net.zodac.dicefive.game.nowEpochMillis
@@ -117,6 +119,38 @@ class ScoreRepositoryTest {
         )
         // Solo games aren't in a win rate; with nothing but solo games there's none.
         assertEquals(listOf(null, 50), alice.modes.map { it.winRatePercent })
+    }
+
+    @Test
+    fun `Statistics walks its rows in the context it's given`() = runTest {
+        var walkedIn: String? = null
+        val dao = object : ScoreDao by InMemoryScoreDao() {
+            override suspend fun playerRecords(): List<PlayerRecord> {
+                walkedIn = currentCoroutineContext()[CoroutineName]?.name
+                return emptyList()
+            }
+        }
+        ScoreRepository(dao, computeContext = CoroutineName("off the main thread")).playerStatistics()
+        assertEquals("off the main thread", walkedIn)
+    }
+
+    @Test
+    fun `every write moves the count of writes on - and a read doesn't`() = runTest {
+        val repository = ScoreRepository(InMemoryScoreDao())
+        val counts = mutableListOf(repository.writes)
+        repository.record("Sam", 200)
+        counts += repository.writes
+        repository.dismissPlayerStatistics("Sam", atEpochMillis = 5L)
+        counts += repository.writes
+        repository.mergeCloud(0L, CloudScores())
+        counts += repository.writes
+        repository.resetLeaderboard()
+        counts += repository.writes
+        assertEquals(listOf(0L, 1L, 2L, 3L, 4L), counts)
+        repository.cloudScores()
+        repository.playerStatistics()
+        repository.totalCount()
+        assertEquals(4L, repository.writes)
     }
 
     @Test

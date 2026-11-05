@@ -37,7 +37,7 @@ class AchievementUnlocker(private val store: AchievementStore, private val ownsA
             if (!update.isEmpty) {
                 store.record(update.unlockedAt(), update.counters)
                 announce(update, ownsAllStyles.first())
-                OnlineSyncRequests.request()
+                if (update.newlyUnlocked.isEmpty()) OnlineSyncRequests.requestOutsideGame() else OnlineSyncRequests.request()
             }
             update
         }

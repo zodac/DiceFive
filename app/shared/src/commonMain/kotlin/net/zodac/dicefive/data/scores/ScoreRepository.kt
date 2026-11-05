@@ -1,5 +1,10 @@
 package net.zodac.dicefive.data.scores
 
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withContext
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.game.TieBreakStats
 import net.zodac.dicefive.game.nowEpochMillis
@@ -35,7 +40,18 @@ interface LeaderboardSource {
     suspend fun totalCountForMode(gameMode: GameMode): Int
 }
 
-class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
+class ScoreRepository(
+    private val scoreDao: ScoreDao,
+    /** Where [playerStatistics] walks the rows it has read: off the main thread in the app. */
+    private val computeContext: CoroutineContext = EmptyCoroutineContext,
+) : LeaderboardSource {
+
+    private val writeCount = MutableStateFlow(0L)
+
+    /** How many writes this has made since the app started: the same count twice means no score has changed between them. */
+    val writes: Long get() = writeCount.value
+
+    private fun wrote() = writeCount.update { it + 1 }
 
     /**
      * Records one finished game's human players ([results]) in a single write: all of them or none. With each, which
@@ -69,6 +85,7 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
                 )
             },
         )
+        wrote()
     }
 
     override suspend fun page(pageIndex: Int, pageSize: Int): List<ScoreEntry> =
@@ -97,15 +114,20 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
      * Wipes every recorded score, which necessarily empties the Statistics screen too - it's
      * computed from these same rows (see [playerStatistics]) - so nothing is left to dismiss either.
      */
-    suspend fun resetLeaderboard() = scoreDao.clearAll()
+    suspend fun resetLeaderboard() {
+        scoreDao.clearAll()
+        wrote()
+    }
 
     /**
      * Hides [playerName] from the Statistics screen without touching their recorded scores - the
      * Leaderboard keeps their full history. Playing another game under the same name un-hides them
      * again, in [recordScore].
      */
-    suspend fun dismissPlayerStatistics(playerName: String, atEpochMillis: Long = nowEpochMillis()) =
+    suspend fun dismissPlayerStatistics(playerName: String, atEpochMillis: Long = nowEpochMillis()) {
         scoreDao.dismissPlayer(playerName, atEpochMillis)
+        wrote()
+    }
 
     /** Every recorded row and dismissal, for the cloud save. */
     suspend fun cloudScores(): CloudScores = CloudScores(
@@ -114,11 +136,14 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
     )
 
     /** Merges [scores] into this device's, dropping everything a reset at [resetAtEpochMillis] cleared - see [ScoreDao.mergeCloud]. */
-    suspend fun mergeCloud(resetAtEpochMillis: Long, scores: CloudScores) = scoreDao.mergeCloud(
-        resetAtEpochMillis,
-        scores.rows,
-        scores.dismissedAt.map { (name, at) -> DismissedPlayerStats(name, at) },
-    )
+    suspend fun mergeCloud(resetAtEpochMillis: Long, scores: CloudScores) {
+        scoreDao.mergeCloud(
+            resetAtEpochMillis,
+            scores.rows,
+            scores.dismissedAt.map { (name, at) -> DismissedPlayerStats(name, at) },
+        )
+        wrote()
+    }
 
     /**
      * [playerName]'s own highest score on the leaderboard, or null if they haven't recorded one.
@@ -152,9 +177,11 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
      * Players come in [ScoreEntry.playerKey] order; names differing only by case are one player, shown by the spelling
      * of their latest game.
      */
-    suspend fun playerStatistics(): List<PlayerStatistics> = scoreDao.playerRecords().map { record ->
+    suspend fun playerStatistics(): List<PlayerStatistics> = withContext(computeContext) { scoreDao.playerRecords().map(::toPlayerStatistics) }
+
+    private fun toPlayerStatistics(record: PlayerRecord): PlayerStatistics {
         val modes = record.modes
-        PlayerStatistics(
+        return PlayerStatistics(
             playerName = record.playerName,
             firstPlayedEpochMillis = modes.minOf { it.firstPlayedEpochMillis },
             gamesPlayed = modes.sumOf { it.gamesPlayed },

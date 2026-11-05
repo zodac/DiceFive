@@ -11,8 +11,11 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -37,6 +40,7 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.model.TurnTimer
+import net.zodac.dicefive.online.OnlineSyncRequests
 
 /** More turns than any game here lasts, so a helper playing one out can't loop for ever. */
 private const val MAX_TURNS_PLAYED = 200
@@ -188,6 +192,18 @@ class GameAchievementsWiringTest {
         advanceUntilIdle()
         for (achievement in listOf(Achievement.THE_JOURNEY_BEGINS, Achievement.PRACTICE_MAKES_PERFECT, Achievement.NATURAL_5X, Achievement.FIVE_X)) {
             assertTrue(achievement in unmodified.unlocked, "$achievement without a modifier, got ${unmodified.unlocked}")
+        }
+    }
+
+    @Test
+    fun `a finished game asks for the sync that posts its score - with a modifier on or not`() = runTest {
+        for (setUp in listOf<GameViewModel.() -> Unit>({}, { setupForm.setRollsPerTurn(2) })) {
+            val requests = mutableListOf<Unit>()
+            val collecting = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { OnlineSyncRequests.requests.toList(requests) }
+            started(setUp = setUp).viewModel.playEveryBox()
+            advanceUntilIdle()
+            assertTrue(requests.isNotEmpty())
+            collecting.cancel()
         }
     }
 

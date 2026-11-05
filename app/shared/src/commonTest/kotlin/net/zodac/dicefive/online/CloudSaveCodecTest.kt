@@ -16,6 +16,9 @@ import okio.GzipSource
 import okio.buffer
 import okio.use
 
+/** What an app on format version 1 reads a save up to: past it, that app takes the save for corrupt and writes over it. */
+private const val VERSION_1_MAX_INFLATED_BYTES = 16L * 1024 * 1024
+
 class CloudSaveCodecTest {
 
     private fun gzip(text: String): ByteArray {
@@ -83,7 +86,7 @@ class CloudSaveCodecTest {
     fun `a row's uuid is written as its 32 hex digits`() {
         val row = cloudRow("", at = 10).copy(uuid = Uuid.parseHex("0123456789abcdef0123456789abcdef"))
         val text = GzipSource(Buffer().write(CloudSaveCodec.encode(CloudSave(scores = CloudScores(rows = listOf(row)))))).buffer().use { it.readUtf8() }
-        assertTrue("\"uuid\":\"0123456789abcdef0123456789abcdef\"" in text, text)
+        assertTrue("0123456789abcdef0123456789abcdef," in text, text)
     }
 
     @Test
@@ -96,7 +99,7 @@ class CloudSaveCodecTest {
     @Test
     fun `a newer app's save is read for what this app knows - and never written over`() {
         val newer = """
-            {"version":2,"futureSection":{"x":1},
+            {"version":3,"futureSection":{"x":1},
              "achievements":{"unlocked":{"FIVE_X":5,"FUTURE":6},"devices":{},"flags":{},"latest":{},"futureCounters":[1]},
              "scores":{"resetAt":0,"rows":[{"uuid":"0123456789abcdef0123456789abcdef","playerName":"Ann","score":200,"timestampEpochMillis":10,"won":null,
                "isPrimaryPlayer":true,"fiveOfAKindCount":0,"zeroedCategoryCount":0,"upperSectionTotal":0,"chanceScore":0,
@@ -105,7 +108,7 @@ class CloudSaveCodecTest {
              "settings":{},"game":{"value":null,"at":0}}
         """.trimIndent()
         val save = CloudSaveCodec.decode(gzip(newer))!!
-        assertEquals(2, save.version)
+        assertEquals(3, save.version)
         assertFalse(save.writableHere)
         assertEquals(mapOf("FIVE_X" to 5L, "FUTURE" to 6L), save.achievements.unlockedAt)
         assertEquals(listOf("0123456789abcdef0123456789abcdef"), save.scores.rows.map { it.uuid.toHexString() })
@@ -115,7 +118,7 @@ class CloudSaveCodecTest {
 
     @Test
     fun `a newer app's save this app can't read past comes back empty - and never written over`() {
-        val save = CloudSaveCodec.decode(gzip("{\"version\":3,\"scores\":{\"rows\":\"packed\"}}"))!!
+        val save = CloudSaveCodec.decode(gzip("{\"version\":3,\"scores\":{\"table\":\"packed\"}}"))!!
         assertEquals(CloudSave(version = 3), save)
         assertFalse(save.writableHere)
     }
@@ -140,6 +143,73 @@ class CloudSaveCodecTest {
         assertTrue(bomb.size < 100_000, "${bomb.size} bytes gzipped")
         assertNull(CloudSaveCodec.decode(bomb))
     }
+
+    @Test
+    fun `every field of a row round-trips - and a name holding the table's own separators stays whole`() {
+        val rows = listOf(
+            cloudRow("", at = 1_790_000_000_000L, name = "Sam; \"the, dice\"", score = 1_575).copy(
+                uuid = Uuid.random(), won = true, isPrimaryPlayer = true, fiveOfAKindCount = 3, zeroedCategoryCount = 1, upperSectionTotal = 84,
+                chanceScore = 27, threeOfAKindScore = 24, fourOfAKindScore = 26, gameModeId = "tricolour", playedUnmodified = false,
+            ),
+            cloudRow("", at = 1_790_000_000_500L, name = "Ada", score = 90).copy(uuid = Uuid.random(), won = false, isPrimaryPlayer = false),
+            // Earlier than the row before: a device's own rows aren't in time order until they're merged.
+            cloudRow("", at = 1_780_000_000_000L, name = "Ada", score = 91).copy(uuid = Uuid.random(), won = null),
+        )
+        val read = CloudSaveCodec.decode(CloudSaveCodec.encode(CloudSave(scores = CloudScores(rows = rows))))!!
+        assertEquals(rows, read.scores.rows)
+        assertEquals(rows.map { it.playerKey }, read.scores.rows.map { it.playerKey })
+        assertEquals(rows.map { it.onLeaderboard }, read.scores.rows.map { it.onLeaderboard })
+    }
+
+    @Test
+    fun `this format has no rows for an app on version 1 to fail on - which takes the rest and never writes over it`() {
+        val text = inflated(CloudSaveCodec.encode(full))
+        assertTrue(CloudSaveCodec.VERSION > 1)
+        assertTrue("\"version\":${CloudSaveCodec.VERSION}" in text, text)
+        assertFalse("\"rows\"" in text, text)
+    }
+
+    @Test
+    fun `a save merged from an older one is written as this format's`() {
+        val text = inflated(CloudSaveCodec.encode(full.copy(version = 1)))
+        assertTrue("\"version\":${CloudSaveCodec.VERSION}" in text, text)
+    }
+
+    @Test
+    fun `a hundred thousand games fit the service - and inflate to what an app on version 1 can still read`() {
+        val rows = (1..100_000).map { index ->
+            cloudRow("", at = 1_790_000_000_000L + index * 431_017L, name = "Player ${index % 4}", score = 90 + (index * 7919) % 330).copy(
+                uuid = Uuid.random(), won = index % 3 == 0, fiveOfAKindCount = index % 3, zeroedCategoryCount = (index * 31) % 6,
+                upperSectionTotal = 30 + (index * 17) % 70, chanceScore = 5 + (index * 13) % 25, threeOfAKindScore = (index * 11) % 25, fourOfAKindScore = (index * 3) % 25,
+            )
+        }
+        val bytes = CloudSaveCodec.encode(CloudSave(scores = CloudScores(rows = rows)))
+        assertTrue(bytes.size < CloudSaveCodec.MAX_SAVE_BYTES, "${bytes.size} bytes")
+        assertTrue(inflatedSize(bytes) < VERSION_1_MAX_INFLATED_BYTES, "${inflatedSize(bytes)} bytes inflated")
+        assertEquals(rows, CloudSaveCodec.decode(bytes)?.scores?.rows)
+    }
+
+    @Test
+    fun `a version 1 save past the old limit is still read`() {
+        val row = "{\"uuid\":\"%s\",\"playerName\":\"Ann\",\"score\":200,\"timestampEpochMillis\":10,\"won\":null,\"isPrimaryPlayer\":true,\"fiveOfAKindCount\":0," +
+            "\"zeroedCategoryCount\":0,\"upperSectionTotal\":0,\"chanceScore\":0,\"threeOfAKindScore\":0,\"fourOfAKindScore\":0,\"onLeaderboard\":true," +
+            "\"gameModeId\":\"standard\",\"playedUnmodified\":true}"
+        val rows = (1..55_000).joinToString(",") { row.replace("%s", Uuid.random().toHexString()) }
+        val text = "{\"version\":1,\"scores\":{\"resetAt\":0,\"rows\":[$rows],\"dismissed\":{}}}"
+        assertTrue(text.length > VERSION_1_MAX_INFLATED_BYTES, "${text.length} characters")
+        assertEquals(55_000, CloudSaveCodec.decode(gzip(text))?.scores?.rows?.size)
+    }
+
+    @Test
+    fun `what bytes are - a save - too large to read - or corrupt`() {
+        assertEquals(DecodedSave.Readable(full), CloudSaveCodec.read(CloudSaveCodec.encode(full)))
+        assertEquals(DecodedSave.Corrupt, CloudSaveCodec.read("not gzip".encodeToByteArray()))
+        assertEquals(DecodedSave.Corrupt, CloudSaveCodec.read(gzip("{\"version\":${CloudSaveCodec.VERSION},\"scores\":{\"table\":\"nonsense\",\"names\":[],\"modes\":[]}}")))
+        val padding = " ".repeat((CloudSaveCodec.MAX_INFLATED_BYTES + 1).toInt())
+        assertEquals(DecodedSave.TooLarge, CloudSaveCodec.read(gzip("{\"version\":1,$padding\"scores\":{}}")))
+    }
+
+    private fun inflated(bytes: ByteArray): String = GzipSource(Buffer().write(bytes)).buffer().use { it.readUtf8() }
 
     private fun inflatedSize(bytes: ByteArray): Long = GzipSource(Buffer().write(bytes)).buffer().use { it.readByteArray().size.toLong() }
 }

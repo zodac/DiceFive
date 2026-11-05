@@ -835,11 +835,9 @@ class GameViewModel(
             val previousLeaderboard = orNullOnFailure { scoreRepository.leaderboardTotals() }
                 ?: LeaderboardTotals()
             orNullOnFailure { persistHumanScores(state) }
-            // Records something for every game without a modifier (Games Played counts each), so it also asks for the
-            // online sync that posts this game's score - after the rows above are written. A game with a modifier records
-            // nothing there, so its rows ask for the sync themselves.
             recordEndOfGameAchievements(state, previousBestScore, previousLeaderboard)
-            if (state.hasModifiers) OnlineSyncRequests.request()
+            // The online sync that posts this game's score, and saves its rows - after the rows above are written.
+            OnlineSyncRequests.request()
         }
     }
 

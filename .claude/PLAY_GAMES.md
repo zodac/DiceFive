@@ -129,11 +129,25 @@ Always on while signed in, with no switch and no prompt. Every sync merges; noth
 
 - **Ids, not enums**, so an older app carries a newer one's achievements, counters and settings through a merge.
 - **Versions.** Fields are only added within a `version`. An app reads a newer version's known fields but never writes
-    over it (`CloudSave.writableHere`). An unreadable (corrupt) save is replaced by this device's.
+    over it (`CloudSave.writableHere`). A corrupt save is replaced by this device's.
+- **Format.** Version 2 packs the scores: `names` and `modes` hold each value once, and `table` is one string of rows
+    (`CloudSaveCodec.encodeScores`). About 100,000 rows fit in the service's 3 MB, at 27-30 bytes a row. Version 1's `rows`,
+    an object per row, are still read; an app on version 1 finds none in a version 2 save, takes the rest, and never writes
+    over it, so that device's scores stop syncing until it updates.
+- **Size.** A save inflating past `MAX_INFLATED_BYTES` (32 MiB), or too large for the device's memory, is
+    `DecodedSave.TooLarge`: it is never written over or wiped for, and the sync counts as unreachable. A save over
+    `MAX_SAVE_BYTES` isn't sent: it stays on the device, and the sync counts as unreachable.
 - **After a merge**, `AchievementEngine.evaluateProgress` unlocks whatever the combined totals reach (quietly, then
     mirrored, so Play's pop-up announces it).
 - **The write** reopens the snapshot and merges with anything committed since the read (`RESOLUTION_POLICY_MANUAL`,
     up to 10 retries). It writes only if this device added something, and before posting scores.
+- **A sync with nothing to do costs no rows.** The save is still read from the service, but one matching the hash of
+    what this device left there isn't decoded, and with `CloudSaveStore.changeStamp` unchanged too (the score writes
+    `ScoreRepository` has made, and the save's other parts) no row is read and nothing is written. It is kept in memory, so
+    each launch's first sync does it all.
+- **When.** A new unlock syncs at once, as Play announces it. An update with only counters or progress waits while the
+    game screen is up (`OnlineSyncRequests.requestOutsideGame`): a finished game, leaving the screen, and going to the
+    background each ask for a sync anyway.
 
 ## Settings card
 

@@ -234,7 +234,7 @@ will map to Play Games.
         "Ángel" and "ángel" would be two players). It is `playerNameKey(playerName)`, derived in the entity, so a copy with
         another name gets that name's key.
     - **`onLeaderboard` is derived too**: the mode's `countsOnLeaderboard` and `playedUnmodified`, so it can't disagree with
-        them. The cloud save still writes it, as format 1's readers require it, but it is worked out again on reading.
+        them. The cloud save doesn't hold it from format 2 on; a format 1 save's is ignored, and it is worked out on reading.
     - **Every read made while the app is in use comes from an index**, never a scan or a sort of the table. Statistics
         (`playerRecords`) adds up every game, so reads a whole index, but never the table; the cloud save (`allScores`) reads
         every row by design. `ScoreQueryPlanTest` checks each read's query plan against the real SQLite. The indices:

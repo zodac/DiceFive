@@ -17,6 +17,12 @@ interface CloudSaveStore {
     /** Everything on this device that the cloud save holds. */
     suspend fun snapshot(): CloudSave
 
+    /**
+     * What changes whenever [snapshot] would, for comparing: the same stamp twice means nothing has changed between them.
+     * It may be far cheaper to read than the [snapshot].
+     */
+    suspend fun changeStamp(): Any = snapshot()
+
     suspend fun mergeSettings(save: CloudSave)
 
     suspend fun mergeGame(save: CloudSave)
@@ -42,10 +48,14 @@ class LocalCloudSave(
     private val online: OnlineSettingsRepository,
 ) : CloudSaveStore {
 
-    override suspend fun snapshot(): CloudSave = CloudSave(
+    override suspend fun snapshot(): CloudSave = withoutScores().copy(scores = scores.cloudScores())
+
+    /** The [snapshot] but for the scores, which aren't read, every row of them, just to see that none has changed. */
+    override suspend fun changeStamp(): Any = scores.writes to withoutScores()
+
+    private suspend fun withoutScores() = CloudSave(
         achievements = achievements.cloudAchievements(),
         scoresResetAtEpochMillis = online.scoresResetAt(),
-        scores = scores.cloudScores(),
         settings = settings.cloudSettings(),
         inProgressGame = inProgressGame.cloudGame(),
     )

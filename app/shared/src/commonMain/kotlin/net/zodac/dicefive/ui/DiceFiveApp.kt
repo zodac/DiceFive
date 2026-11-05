@@ -93,8 +93,9 @@ fun DiceFiveApp(
     SideEffect { LastAnimationLevel.value = animationLevel }
     val leaveConfirmation = remember { LeaveGameConfirmation() }
     // Achievements, scores and the cloud save are synced with the online service on signing in (and at each launch once
-    // signed in), after every recorded change, a few seconds after a synced setting changes (a Styles pick), on leaving
-    // the game screen, on going to the background and on coming back; requests made while one runs fold into the next.
+    // signed in), after every recorded change (one with no new unlock waits if the game screen is up), a few seconds after
+    // a synced setting changes (a Styles pick), on leaving the game screen, on going to the background and on coming back;
+    // requests made while one runs fold into the next.
     val onlineSync = remember(container, gameServices) {
         OnlineSync(
             gameServices,
@@ -170,6 +171,11 @@ fun DiceFiveApp(
                         navController.currentBackStackEntryFlow.map { it.destination.route }.distinctUntilChanged()
                             .collect { Breadcrumbs.record("Opened $it") } // i18n: not translated - a crash report's breadcrumb
                     }
+                    // What can wait for the game to end does: leaving its screen, below, asks for the sync anyway.
+                    LaunchedEffect(navController) {
+                        OnlineSyncRequests.outsideGameRequests.awayFrom(Screen.PLAY_GAME) { navController.currentDestination?.route }
+                            .collect { OnlineSyncRequests.request() }
+                    }
                     // A game left part-way through is saved as it was left, for another device's Continue.
                     LaunchedEffect(navController) {
                         navController.currentBackStackEntryFlow.map { it.destination.route }.leaving(Screen.PLAY_GAME)
@@ -217,6 +223,9 @@ internal fun Flow<String?>.leaving(route: String): Flow<Unit> = flow {
         previous = current
     }
 }
+
+/** Each of these made while [current] isn't [route]. */
+internal fun Flow<Unit>.awayFrom(route: String, current: () -> String?): Flow<Unit> = filter { current() != route }
 
 /** How long synced settings are left unchanged before they're saved to the cloud: a run of Styles picks saves once. */
 private val SETTINGS_SYNC_DELAY = 5.seconds

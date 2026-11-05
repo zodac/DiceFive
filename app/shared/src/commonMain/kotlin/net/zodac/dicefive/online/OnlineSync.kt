@@ -20,6 +20,8 @@ import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.GameMode
+import okio.ByteString
+import okio.ByteString.Companion.toByteString
 import net.zodac.dicefive.model.ProgressStyle
 
 /**
@@ -45,7 +47,9 @@ import net.zodac.dicefive.model.ProgressStyle
  * With a [cloudSave], the whole of this device's progress is also merged with the account's cloud save ([CloudSave]):
  * read and merged in first, then written back if this device added anything, and "Saved" recorded once the two
  * match ([OnlineSettingsRepository.cloudSavedAt]). A different account's switch wipes all of it here first, and waits
- * for the service to answer about the save too. A save written by a newer app is merged in but never written over.
+ * for the service to answer about the save too. A save written by a newer app is merged in but never written over, and
+ * one too large to read here ([DecodedSave.TooLarge]) is left as it is, counted as the service not being reached. A save
+ * unchanged since this device left it isn't read again, and is written only once something here has changed.
  * Another device's totals can carry a counter, score band or the career points past a target neither reached alone:
  * those achievements are unlocked quietly here, and so reach the service, whose own pop-up announces them.
  *
@@ -142,21 +146,26 @@ class OnlineSync(
         val remote = services.unlockedAchievementIds() ?: return 0.also { mutableUnreachable.value = true }
         val cloud = cloudSave?.let { services.readCloudSave(::mergeSaves) }
         val switched = settings.syncedAccount.first().let { it != null && it != account.accountKey }
-        if (switched && cloud == CloudSaveRead.Failed) return 0.also { mutableUnreachable.value = true }
+        val found = (cloud as? CloudSaveRead.Found)?.bytes
+        // The save as this device left it holds nothing new, so isn't read: the most a sync can cost, for every row.
+        val alreadyMerged = found != null && withContext(Dispatchers.Default) { synced?.isSave(account.accountKey, found) } == true
+        val decoded = if (found == null || alreadyMerged) null else withContext(Dispatchers.Default) { CloudSaveCodec.read(found) }
+        val tooLarge = decoded == DecodedSave.TooLarge
+        if (switched && (cloud == CloudSaveRead.Failed || tooLarge)) return 0.also { mutableUnreachable.value = true }
 
         if (switched) {
+            synced = null
             store.locked { store.resetAll() }
             cloudSave?.wipe()
         }
-        // A save read means there is a store to merge it into: the compiler knows cloudSave isn't null wherever it is.
-        val remoteSave = (cloud as? CloudSaveRead.Found)?.let { withContext(Dispatchers.Default) { CloudSaveCodec.decode(it.bytes) } }
+        val remoteSave = (decoded as? DecodedSave.Readable)?.save
 
         step(SyncStep.SETTINGS)
-        remoteSave?.let { cloudSave.mergeSettings(it) }
+        remoteSave?.let { cloudSave?.mergeSettings(it) }
         step(SyncStep.GAME)
-        remoteSave?.let { cloudSave.mergeGame(it) }
+        remoteSave?.let { cloudSave?.mergeGame(it) }
         step(SyncStep.ACHIEVEMENTS)
-        remoteSave?.let { cloudSave.mergeAchievements(it) }
+        remoteSave?.let { cloudSave?.mergeAchievements(it) }
         val restored = store.locked {
             val state = store.current()
             val missing = Achievement.entries.filter { it.id in remote && !state.isUnlocked(it) }
@@ -164,7 +173,7 @@ class OnlineSync(
             missing
         }
         step(SyncStep.SCORES)
-        if (remoteSave != null) {
+        if (remoteSave != null && cloudSave != null) {
             cloudSave.mergeScores(remoteSave)
             // Last, as the score bands and career points count the merged scores.
             unlockReachedTargets()
@@ -187,8 +196,9 @@ class OnlineSync(
         // The save before the scores: going to the background is often the last chance before the app is closed.
         val saved = when {
             cloudSave == null -> true
-            cloud == CloudSaveRead.Failed -> false
-            else -> saveToCloud(cloudSave, account.accountKey, remoteSave)
+            cloud == CloudSaveRead.Failed || tooLarge -> false
+            alreadyMerged && synced?.stamp == cloudSave.changeStamp() -> true.also { settings.setCloudSavedAt(account.accountKey, now()) }
+            else -> saveToCloud(cloudSave, account.accountKey, found, remoteSave)
         }
         step(SyncStep.LEADERBOARDS)
         postScores(account.accountKey)
@@ -211,35 +221,54 @@ class OnlineSync(
         if (services.setProgress(achievement.id, progress)) sent[achievement] = progress
     }
 
+    /** Where the last [saveToCloud] left the save and this device, until another device's write or a change here moves on. */
+    private var synced: SyncedSave? = null
+
     /**
-     * Writes this device's progress, merged with [remoteSave] (the save as read, if any), unless the two already match.
-     * False if the service didn't take it; a newer app's save, never written over, counts as reached.
+     * Writes this device's progress, merged with [remoteSave] (the save read as [found], if it was read), unless the two
+     * already match. False if the service didn't take it, or it's larger than the service takes
+     * ([CloudSaveCodec.MAX_SAVE_BYTES]), when it stays on this device; a newer app's save, never written over, counts as
+     * reached.
      */
-    private suspend fun saveToCloud(cloudSave: CloudSaveStore, accountKey: String, remoteSave: CloudSave?): Boolean {
+    private suspend fun saveToCloud(cloudSave: CloudSaveStore, accountKey: String, found: ByteArray?, remoteSave: CloudSave?): Boolean {
         if (remoteSave != null && !remoteSave.writableHere) return true
+        // Before the snapshot: a change made after this one is a change next time, even if the snapshot has it.
+        val stamp = cloudSave.changeStamp()
         val local = cloudSave.snapshot()
         val merged = withContext(Dispatchers.Default) { CloudSaveMerge.merge(local, remoteSave ?: CloudSave()) }
+        var onService = found
         if (merged != remoteSave) {
             val data = withContext(Dispatchers.Default) { CloudSaveCodec.encode(merged) }
+            if (data.size > CloudSaveCodec.MAX_SAVE_BYTES) return false
             val written = services.writeCloudSave(data, ::mergeSaves) ?: return false
+            onService = written
             // Another device's save, written since the read, came back merged in: take its part here too.
             if (!written.contentEquals(data)) {
-                withContext(Dispatchers.Default) { CloudSaveCodec.decode(written) }?.let {
-                    cloudSave.merge(it)
-                    unlockReachedTargets()
+                when (val read = withContext(Dispatchers.Default) { CloudSaveCodec.read(written) }) {
+                    is DecodedSave.Readable -> {
+                        cloudSave.merge(read.save)
+                        unlockReachedTargets()
+                    }
+                    DecodedSave.TooLarge -> return false
+                    DecodedSave.Corrupt -> Unit
                 }
             }
         }
         settings.setCloudSavedAt(accountKey, now())
+        synced = onService?.let { SyncedSave(accountKey, withContext(Dispatchers.Default) { it.toByteString().sha256() }, stamp) }
         return true
     }
 
     /**
-     * Two copies of the save as one, for the service to store when it finds them in conflict. Neither is lost: one that
-     * can't be read gives way to the other, and a newer app's is kept as it is.
+     * Two copies of the save as one, for the service to store when it finds them in conflict. Neither is lost: a corrupt
+     * one gives way to the other, and a newer app's, or one too large to read here, is kept as it is.
      */
     private fun mergeSaves(local: ByteArray, remote: ByteArray): ByteArray {
-        val theirs = CloudSaveCodec.decode(remote) ?: return local
+        val theirs = when (val read = CloudSaveCodec.read(remote)) {
+            is DecodedSave.Readable -> read.save
+            DecodedSave.Corrupt -> return local
+            DecodedSave.TooLarge -> return remote
+        }
         if (!theirs.writableHere) return remote
         val ours = CloudSaveCodec.decode(local) ?: return remote
         if (!ours.writableHere) return local
@@ -264,9 +293,27 @@ object OnlineSyncRequests {
     private val mutableRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     val requests: SharedFlow<Unit> = mutableRequests.asSharedFlow()
 
+    private val mutableOutsideGameRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+    /** Each [requestOutsideGame]: `DiceFiveApp` makes it a [request] unless the game screen is up. */
+    val outsideGameRequests: SharedFlow<Unit> = mutableOutsideGameRequests.asSharedFlow()
+
     fun request() {
         mutableRequests.tryEmit(Unit)
     }
+
+    /**
+     * Asks for a sync that can wait while a game is played: leaving the game screen, or the app, asks for one anyway. A
+     * new unlock can't wait, as the service announces it, so it makes a [request].
+     */
+    fun requestOutsideGame() {
+        mutableOutsideGameRequests.tryEmit(Unit)
+    }
+}
+
+/** A cloud save's contents ([save], hashed) in [accountKey], and this device's [CloudSaveStore.changeStamp] as it was read for it. */
+private class SyncedSave(val accountKey: String, val save: ByteString, val stamp: Any) {
+    fun isSave(accountKey: String, bytes: ByteArray): Boolean = accountKey == this.accountKey && bytes.toByteString().sha256() == save
 }
 
 /**

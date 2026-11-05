@@ -12,10 +12,16 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import net.zodac.dicefive.data.achievements.AchievementsRepository
+import net.zodac.dicefive.game.AchievementUpdate
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.model.AchievementCounter
+import net.zodac.dicefive.online.OnlineSyncRequests
 
 /** In-memory preferences whose writes wait for [gate] while it's set - so a write can be caught half-way. */
 private class GatedPreferences : DataStore<Preferences> {
@@ -52,6 +58,23 @@ class AchievementUnlockerTest {
         val updates = listOf(firstUpdate.await(), secondUpdate.await())
         assertEquals(1, updates.count { !it.isEmpty }, "recorded once, got $updates")
         assertTrue(repository.current().isUnlocked(Achievement.NOT_THOSE_DICE))
+    }
+
+    @Test
+    fun `a new unlock asks for a sync now - as the service announces it - and counters alone can wait for the game to end`() = runTest {
+        val now = mutableListOf<Unit>()
+        val outsideGame = mutableListOf<Unit>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { OnlineSyncRequests.requests.toList(now) }
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { OnlineSyncRequests.outsideGameRequests.toList(outsideGame) }
+        val unlocker = AchievementUnlocker(AchievementsRepository(GatedPreferences()), flowOf(false))
+
+        unlocker.apply { AchievementUpdate(counters = mapOf(AchievementCounter.DICE_ROLLED to 1)) }
+        runCurrent()
+        assertEquals(0 to 1, now.size to outsideGame.size)
+
+        unlocker.unlock(setOf(Achievement.WHO_MADE_THIS))
+        runCurrent()
+        assertEquals(1 to 1, now.size to outsideGame.size)
     }
 
     @Test

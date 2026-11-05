@@ -44,27 +44,37 @@ import okio.use
  */
 object CloudSaveCodec {
 
-    /** This app's format. */
-    const val VERSION = 1
+    /**
+     * This app's format. Version 2 holds the scores as [encodeScores] packs them: an app on version 1 finds no `rows`, so
+     * takes the rest of the save and, as it's a newer format, never writes over it. Version 1's `rows` are still read.
+     */
+    const val VERSION = 2
 
     /** The snapshot's name on the service. Permanent: another name would be another, empty, save. */
     const val SNAPSHOT_NAME = "dicefive-progress"
 
-    /** The most a save is read up to once inflated: anything larger isn't one, and [decode] reads it as corrupt. */
-    internal const val MAX_INFLATED_BYTES = 16L * 1024 * 1024
+    /**
+     * The most a save is read up to once inflated: more than a version 1 save the service's [MAX_SAVE_BYTES] can hold.
+     * Anything larger is [DecodedSave.TooLarge].
+     */
+    internal const val MAX_INFLATED_BYTES = 32L * 1024 * 1024
+
+    /** The most this app sends the service, which stores 3 MB at most: a larger save stays on the device. */
+    internal const val MAX_SAVE_BYTES = 3_000_000
+
+    private const val ROW_SEPARATOR = ';'
+    private const val FIELD_SEPARATOR = ','
+    private const val FLAG_PRIMARY_PLAYER = 1
+    private const val FLAG_UNMODIFIED = 2
+    private const val FLAG_LOST = 4
+    private const val FLAG_WON = 8
 
     fun encode(save: CloudSave): ByteArray {
         val json = buildJsonObject {
-            put("version", save.version)
+            // Never below this app's: what's written is this app's format, whichever save it was merged from.
+            put("version", maxOf(save.version, VERSION))
             put("achievements", encode(save.achievements))
-            put(
-                "scores",
-                buildJsonObject {
-                    put("resetAt", save.scoresResetAtEpochMillis)
-                    put("rows", JsonArray(save.scores.rows.map(::encodeRow)))
-                    put("dismissed", jsonLongs(save.scores.dismissedAt))
-                },
-            )
+            put("scores", encodeScores(save))
             put(
                 "settings",
                 JsonObject(save.settings.mapValues { (_, stamped) -> stamped(stamped) { encodeSetting(it) } }),
@@ -76,22 +86,34 @@ object CloudSaveCodec {
         return gzipped.readByteArray()
     }
 
+    /** The save in [bytes], or null if this app can't read it, for whichever reason [read] gives. */
+    fun decode(bytes: ByteArray): CloudSave? = (read(bytes) as? DecodedSave.Readable)?.save
+
     /**
-     * The save in [bytes], or null if they aren't one this app can read at all - corrupt, or not gzipped JSON. A newer
-     * version whose fields can't be read comes back empty but for its [CloudSave.version], so it is still never written
-     * over.
+     * What [bytes] are: a save, one too large to read here, or not a save at all. A newer version whose fields can't be
+     * read comes back empty but for its [CloudSave.version], so it is still never written over.
      */
-    fun decode(bytes: ByteArray): CloudSave? {
-        val root = runCatching {
-            val text = GzipSource(Buffer().write(bytes)).buffer().use { source ->
-                // A few kilobytes can inflate to gigabytes: a save that would is no save, rather than the app's memory.
-                check(!source.request(MAX_INFLATED_BYTES + 1)) { "Larger than a save" }
-                source.readUtf8()
-            }
-            parseJson(text) as JsonObject
-        }.getOrNull() ?: return null
-        val version = runCatching { root.intOrNull("version") }.getOrNull() ?: return null
-        return runCatching { decodeBody(root, version) }.getOrElse { if (version > VERSION) CloudSave(version = version) else null }
+    fun read(bytes: ByteArray): DecodedSave = try {
+        val text = GzipSource(Buffer().write(bytes)).buffer().use { source ->
+            // A few kilobytes can inflate to gigabytes: one that would is never read into the app's memory.
+            if (source.request(MAX_INFLATED_BYTES + 1)) null else source.readUtf8()
+        }
+        if (text == null) DecodedSave.TooLarge else readJson(text)
+    } catch (_: Exception) {
+        DecodedSave.Corrupt
+    } catch (_: Throwable) {
+        // Out of memory, or the stack: a save this device can't hold says nothing about whether it is one.
+        DecodedSave.TooLarge
+    }
+
+    private fun readJson(text: String): DecodedSave {
+        val root = parseJson(text) as JsonObject
+        val version = root.intOrNull("version") ?: return DecodedSave.Corrupt
+        return try {
+            DecodedSave.Readable(decodeBody(root, version))
+        } catch (_: Exception) {
+            if (version > VERSION) DecodedSave.Readable(CloudSave(version = version)) else DecodedSave.Corrupt
+        }
     }
 
     private fun decodeBody(root: JsonObject, version: Int): CloudSave {
@@ -107,7 +129,7 @@ object CloudSaveCodec {
             ),
             scoresResetAtEpochMillis = scores.longOrNull("resetAt") ?: 0,
             scores = CloudScores(
-                rows = ((scores["rows"] as? JsonArray)?.items ?: emptyList()).map { decodeRow(it as JsonObject) },
+                rows = decodeRows(scores),
                 dismissedAt = scores.section("dismissed").longs(),
             ),
             settings = root.section("settings").fields.mapValues { (_, value) -> decodeStamped(value, ::decodeSetting) },
@@ -123,26 +145,78 @@ object CloudSaveCodec {
         put("latest", JsonObject(achievements.latestCounters.mapValues { (_, stamped) -> stamped(stamped) { JsonNumber(it) } }))
     }
 
-    // One object per game, with ScoreEntry's own field names; the uuid as its 32 hex digits.
-    private fun encodeRow(row: ScoreEntry): JsonObject = buildJsonObject {
-        put("uuid", row.uuid.toHexString())
-        put("playerName", row.playerName)
-        put("score", row.score)
-        put("timestampEpochMillis", row.timestampEpochMillis)
-        put("won", row.won?.let(::JsonBoolean) ?: JsonNull)
-        put("isPrimaryPlayer", row.isPrimaryPlayer)
-        put("fiveOfAKindCount", row.fiveOfAKindCount)
-        put("zeroedCategoryCount", row.zeroedCategoryCount)
-        put("upperSectionTotal", row.upperSectionTotal)
-        put("chanceScore", row.chanceScore)
-        put("threeOfAKindScore", row.threeOfAKindScore)
-        put("fourOfAKindScore", row.fourOfAKindScore)
-        // Derived from the mode and playedUnmodified on reading, but still written: format 1's readers require it.
-        put("onLeaderboard", row.onLeaderboard)
-        put("gameModeId", row.gameModeId)
-        put("playedUnmodified", row.playedUnmodified)
+    /**
+     * The scores, in far less than an object per row: `names` and `modes` hold each player name and mode id once, and
+     * `table` is one string of rows, split by [ROW_SEPARATOR], each row's fields by [FIELD_SEPARATOR]: its uuid as 32 hex
+     * digits, its name's and mode's places in those lists, score, time since the row before, flags ([FLAG_PRIMARY_PLAYER]
+     * and the rest), then 5x count, zeroed categories, upper section, Chance, 3x, and 4x. Fields are only added at a row's
+     * end. A row's [ScoreEntry.playerKey] and [ScoreEntry.onLeaderboard] are worked out again on reading.
+     */
+    private fun encodeScores(save: CloudSave): JsonObject {
+        val rows = save.scores.rows
+        val names = rows.mapTo(LinkedHashSet()) { it.playerName }.withIndex().associate { (index, name) -> name to index }
+        val modes = rows.mapTo(LinkedHashSet()) { it.gameModeId }.withIndex().associate { (index, mode) -> mode to index }
+        val table = StringBuilder()
+        var previousTime = 0L
+        for (row in rows) {
+            if (table.isNotEmpty()) table.append(ROW_SEPARATOR)
+            val flags = (if (row.isPrimaryPlayer) FLAG_PRIMARY_PLAYER else 0) or
+                (if (row.playedUnmodified) FLAG_UNMODIFIED else 0) or
+                when (row.won) {
+                    null -> 0
+                    true -> FLAG_WON
+                    false -> FLAG_LOST
+                }
+            listOf(
+                row.uuid.toHexString(), names.getValue(row.playerName), modes.getValue(row.gameModeId), row.score, row.timestampEpochMillis - previousTime, flags,
+                row.fiveOfAKindCount, row.zeroedCategoryCount, row.upperSectionTotal, row.chanceScore, row.threeOfAKindScore, row.fourOfAKindScore,
+            ).joinTo(table, FIELD_SEPARATOR.toString())
+            previousTime = row.timestampEpochMillis
+        }
+        return buildJsonObject {
+            put("resetAt", save.scoresResetAtEpochMillis)
+            put("names", JsonArray(names.keys.map(::JsonString)))
+            put("modes", JsonArray(modes.keys.map(::JsonString)))
+            put("table", table.toString())
+            put("dismissed", jsonLongs(save.scores.dismissedAt))
+        }
     }
 
+    /** The rows of a save: [encodeScores]' `table`, or version 1's `rows`, an object for each. */
+    private fun decodeRows(scores: JsonObject): List<ScoreEntry> {
+        val table = (scores["table"] as? JsonString)?.value ?: return ((scores["rows"] as? JsonArray)?.items ?: emptyList()).map { decodeRow(it as JsonObject) }
+        if (table.isEmpty()) return emptyList()
+        val names = (scores["names"] as JsonArray).items.map { (it as JsonString).value }
+        val modes = (scores["modes"] as JsonArray).items.map { (it as JsonString).value }
+        var time = 0L
+        return table.split(ROW_SEPARATOR).map { row ->
+            val fields = row.split(FIELD_SEPARATOR)
+            time += fields[4].toLong()
+            val flags = fields[5].toInt()
+            ScoreEntry(
+                uuid = Uuid.parseHex(fields[0]),
+                playerName = names[fields[1].toInt()],
+                gameModeId = modes[fields[2].toInt()],
+                score = fields[3].toInt(),
+                timestampEpochMillis = time,
+                isPrimaryPlayer = flags and FLAG_PRIMARY_PLAYER != 0,
+                playedUnmodified = flags and FLAG_UNMODIFIED != 0,
+                won = when {
+                    flags and FLAG_WON != 0 -> true
+                    flags and FLAG_LOST != 0 -> false
+                    else -> null
+                },
+                fiveOfAKindCount = fields[6].toInt(),
+                zeroedCategoryCount = fields[7].toInt(),
+                upperSectionTotal = fields[8].toInt(),
+                chanceScore = fields[9].toInt(),
+                threeOfAKindScore = fields[10].toInt(),
+                fourOfAKindScore = fields[11].toInt(),
+            )
+        }
+    }
+
+    // Version 1's row: one object per game, with ScoreEntry's own field names; the uuid as its 32 hex digits.
     private fun decodeRow(row: JsonObject): ScoreEntry = ScoreEntry(
         uuid = Uuid.parseHex(row.string("uuid")),
         playerName = row.string("playerName"),
@@ -186,4 +260,16 @@ object CloudSaveCodec {
 
     /** A missing section reads as an empty one. */
     private fun JsonObject.section(key: String): JsonObject = objOrNull(key) ?: JsonObject(emptyMap())
+}
+
+/** What a save's bytes turned out to be ([CloudSaveCodec.read]). */
+sealed interface DecodedSave {
+
+    data class Readable(val save: CloudSave) : DecodedSave
+
+    /** Not a save, or a broken one: it holds nothing to keep, so it may be written over. */
+    data object Corrupt : DecodedSave
+
+    /** Too large to read here: it may well be someone's whole progress, so it is never written over. */
+    data object TooLarge : DecodedSave
 }
