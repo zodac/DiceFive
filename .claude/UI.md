@@ -440,6 +440,8 @@ Examples:
         estimate only changes the pace a little and the thumb meets the end with the list instead of jumping.
     - `contentTypeOf` lets a list of very different items (Achievements' cards and headers) estimate unseen ones by
         kind, and `sizeOf` gives sizes known in advance (its tail spacer).
+    - Without those two, a draw walks only the measured items (`measuredOrAverageSize`), never the whole list: the
+        Leaderboard's pages run to 1,000 rows. With either, it walks every item, so keep those lists short.
     - Remembered state resets when `totalItemsCount` changes. This is checked in the `Canvas` draw phase
         (`ScrollbarMemory.totalItemsAtLastCheck`), not by keying a `remember`.
     - The endpoints are pinned to `canScrollForward`/`canScrollBackward`, which are exact.

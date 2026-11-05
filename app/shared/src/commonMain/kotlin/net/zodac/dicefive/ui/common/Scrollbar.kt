@@ -55,6 +55,22 @@ internal fun anchorItem(visible: List<LazyListItemInfo>): LazyListItemInfo {
     return inOrder.getOrElse(1) { inOrder.first() }
 }
 
+/**
+ * How long the items from [start] up to [end] are: the [measured] size of each that has one, and [average] for the rest. Walks
+ * only the [measured] items, however many items the range holds.
+ */
+internal fun measuredOrAverageSize(measured: Map<Int, Int>, start: Int, end: Int, average: Float): Float {
+    var total = 0f
+    var measuredInRange = 0
+    for ((index, size) in measured) {
+        if (index in start until end) {
+            total += size
+            measuredInRange++
+        }
+    }
+    return total + (end - start - measuredInRange) * average
+}
+
 private class ScrollbarMemory {
     /** -1 so the very first draw always looks like a "shape change" and seeds these fresh. */
     var totalItemsAtLastCheck = -1
@@ -194,15 +210,25 @@ fun BoxScope.LazyListScrollbar(
         val averageByType = contentTypeOf?.let { typeOf ->
             memory.knownItemSizes.entries.groupBy({ typeOf(it.key) }, { it.value }).mapValues { (_, sizes) -> sizes.average().toFloat() }
         }
-        val estimatedSize = { index: Int -> sizeOf?.invoke(index)?.toFloat() ?: averageByType?.get(contentTypeOf(index)) ?: averageItemSize }
-        val unseenSize = (0 until totalItems).sumOf { index -> if (index in memory.knownItemSizes) 0.0 else estimatedSize(index).toDouble() }.toFloat()
+        // With every unseen item the same estimate, the sizes come from the measured items alone: a draw isn't a walk of the list.
+        fun itemsSize(start: Int, end: Int): Float {
+            if (contentTypeOf == null && sizeOf == null) return measuredOrAverageSize(memory.knownItemSizes, start, end, averageItemSize)
+            var total = 0f
+            for (index in start until end) {
+                total += memory.knownItemSizes[index]?.toFloat()
+                    ?: sizeOf?.invoke(index)?.toFloat()
+                    ?: averageByType?.get(contentTypeOf(index))
+                    ?: averageItemSize
+            }
+            return total
+        }
         // The list's gaps between items (its spacedBy) are content too - left out, a widely spaced list's
         // thumb comes out longer than what's actually on screen.
         val itemSpacing = layoutInfo.mainAxisItemSpacing.toFloat()
-        val liveContentSize = knownTotalSize + unseenSize + itemSpacing * (totalItems - 1)
         val viewportSize = layoutInfo.viewportSize.height.toFloat()
 
-        val estimatedContentSize = memory.frozenContentSize ?: liveContentSize.also { memory.frozenContentSize = it }
+        val estimatedContentSize = memory.frozenContentSize
+            ?: (itemsSize(0, totalItems) + itemSpacing * (totalItems - 1)).also { memory.frozenContentSize = it }
 
         val thumbFraction = (viewportSize / estimatedContentSize).coerceIn(MIN_THUMB_FRACTION, 1f)
         val thumbHeight = size.height * thumbFraction
@@ -211,20 +237,13 @@ fun BoxScope.LazyListScrollbar(
         // How far the list has scrolled, in pixels: every item before the anchor's known (or, if not yet
         // seen, estimated) size, less where the anchor is - `offset` is negative once its top has
         // scrolled above the viewport.
-        var scrolledPastSize = 0f
-        for (index in 0 until anchor.index) {
-            scrolledPastSize += (memory.knownItemSizes[index]?.toFloat() ?: estimatedSize(index)) + itemSpacing
-        }
-        scrolledPastSize -= anchor.offset
+        val scrolledPastSize = itemsSize(0, anchor.index) + itemSpacing * anchor.index - anchor.offset
 
         // How far is left to scroll: everything from the anchor on (measured where seen, estimated where not), less what's
         // already scrolled into it and the viewport. The thumb's place is what's been scrolled out of that plus what's left,
         // so a wrong estimate only changes its pace a little as the unseen items come into view - and it meets the end of the
         // track exactly as the list meets its end, rather than jumping there.
-        var belowTopSize = 0f
-        for (index in anchor.index until totalItems) {
-            belowTopSize += (memory.knownItemSizes[index]?.toFloat() ?: estimatedSize(index)) + itemSpacing
-        }
+        val belowTopSize = itemsSize(anchor.index, totalItems) + itemSpacing * (totalItems - anchor.index)
         val remainingSize = (belowTopSize - itemSpacing + anchor.offset - viewportSize).coerceAtLeast(0f)
         // canScrollForward/Backward are exact, so they settle the two ends whatever the estimate says.
         val scrollFraction = when {

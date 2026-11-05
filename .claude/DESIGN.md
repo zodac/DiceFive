@@ -364,7 +364,7 @@ they open on, then **Combined**, every mode's games together, last (a divider af
 - **Leaderboard** (`ScoresScreen`). The drop-down (`ModePage`) picks a board. The pick is the
     `leaderboard_choice` preference (the mode's id, or `combined`), restored on every open and carried in the cloud save
     and the GitHub app's export; a mode no longer known opens Standard's. Details are in `UI_SCREENS.md`.
-    - **Every board is the same `LeaderboardTable`**: score-descending, 50 a page, 1st-3rd in gold/silver/bronze, "="
+    - **Every board is the same `LeaderboardTable`**: score-descending, 1,000 a page, 1st-3rd in gold/silver/bronze, "="
         only for a true tie, paged on its own.
     - Every board has only games with no modifier on (`playedUnmodified`). A **mode's board** has its mode's, the same
         ones its online leaderboard takes. **Combined** has every mode's (Stud's and Third Wind's run far above

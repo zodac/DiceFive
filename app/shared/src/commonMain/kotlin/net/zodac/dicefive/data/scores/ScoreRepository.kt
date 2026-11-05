@@ -6,8 +6,8 @@ import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.playerNameKey
 
-/** How many leaderboard rows make up one page. Was 100; halved so a page is a shorter scroll. */
-const val SCORES_PAGE_SIZE = 50
+/** How many leaderboard rows make up one page. Each page is read whole, so a read takes longer the more rows it finds. */
+const val SCORES_PAGE_SIZE = 1_000
 
 /**
  * One human player's part of a finished game, for [ScoreRepository.recordGame]: their score and tie-break stats (see

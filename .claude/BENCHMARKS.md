@@ -80,7 +80,7 @@ Each of these fixed a reported stutter. New work must keep them.
         nothing ahead on a device.
     - `StylesWarmUp` pre-draws on the menu's idle frames (`UI_SCREENS.md`).
 - **The Leaderboard and Statistics.** Neither page's frames grow with the scores behind them: every board reads
-    50 rows a page, Statistics is a `LazyColumn` (only the cards on screen are built), and every Leaderboard board is
+    1,000 rows a page, Statistics is a `LazyColumn` (only the cards on screen are built), and every Leaderboard board is
     one `LeaderboardTable`, read when first picked. What grew was elsewhere:
     - The old Game Mode view built a screenful of cards first, then one a frame (`ScreenfulFirstColumn`). Built all at
         once, seven cards (~10-12ms each) held the switch up while only two or three could be seen. The drop-down shows
@@ -156,6 +156,13 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
         2-2.4. Building ahead costs 17-26 a card, on every other frame once the page is still (seven cards on a 411x891dp
         screen). Closing is 2-4, then ~1, and ~3 when a card moves into view below. A card moves on a 300ms eased tween: the
         default spring took ~30 frames, its last dozen a pixel or so each.
+- **A Leaderboard page by size** (2026-11-05, desktop JVM limited to C1 for its boxing, 360x800dp, in-memory Room, 50 to
+    100,000 rows). Reading a page is linear, off the main thread: 1 at 50 rows, 15 at 1,000, 75 at 5,000, 153 at 10,000,
+    ~2,000 at 100,000. It holds ~265 bytes a row. Ranking, on the main thread, is 0.1 at 1,000, 1.4 at 10,000, and 12 at
+    100,000. Opening and scrolling compose flat (~1 a scrolling frame). `LazyListScrollbar`'s draw used to walk every
+    item: 87KB allocated a draw at 1,000, 950KB at 10,000, and 9.6MB at 100,000, with a whole frame's draw going from 5.5
+    to ~10 at 100,000. C2 hid most of that allocation. Given no `contentTypeOf` or `sizeOf`, it now walks only the items
+    it has measured (`measuredOrAverageSize`): a frame's draw is ~5.4 and allocates 44KB at every size.
 - **Pages.** Styles opens at ~42-44 the first time after launch, then 16-24. A tile scrolling in costs ~0.6. Settings'
     first frame is ~26-30. A Rules tap frame is ~6-8.
 

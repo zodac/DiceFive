@@ -296,8 +296,8 @@ private fun ScoreRow(
                 .clip(MaterialTheme.shapes.small)
                 // A podium row gets a rounded tint in its own gold/silver/bronze instead of the
                 // ordinary zebra striping - that stripe would otherwise fight with the accent
-                // colour for attention. Off the podium, striping instead of a divider per row: at
-                // 100 rows a page, lines turn the table into a grid, while alternating fills stay
+                // colour for attention. Off the podium, striping instead of a divider per row: on
+                // a long page, lines turn the table into a grid, while alternating fills stay
                 // quiet.
                 .background(
                     when {
