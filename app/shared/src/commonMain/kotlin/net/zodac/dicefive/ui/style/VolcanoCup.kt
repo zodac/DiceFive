@@ -9,7 +9,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -38,6 +37,7 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.random.Random
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.ui.common.BoundedArt
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 
 /** A volcano's colours: its rock, light to dark, the lava it pours, crust to white-hot core, and its ash. */
@@ -130,7 +130,7 @@ class VolcanoDiceCupStyle(override val id: String, private val palette: VolcanoP
         // The rumble's clock only exists while it counts, so a still volcano asks for no frames.
         val rumble: State<Float>? = if (rolling || rumbleWeight > 0f) rememberRumbleLoop() else null
 
-        Canvas(modifier = modifier) {
+        BoundedArt(modifier = modifier, overflow = CUP_ART_OVERFLOW) {
             val scope = CupDrawScope(this, shape, CupPose(0f, 0f))
             // Read here, inside the draw, so the rumble only repaints the cup. Only the top half
             // moves - its foot stays planted on the table (see [drawCone]).

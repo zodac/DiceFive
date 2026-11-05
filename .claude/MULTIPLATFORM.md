@@ -134,6 +134,8 @@ app/
     - `SoraFontFamily` is a `@Composable` getter, as CMP's `Font()` is.
     - `BackHandler` is `ui/common/BackHandler.kt`, on the navigation-event API.
     - Licences: Android supplies `TextView`; previews use `ComposeLicenceDocument`.
+    - `PulsingArt` and `BoundedArt` (`expect`, no provider needed): a `RenderNode` on Android 10 up, a Compose layer
+        otherwise.
     - Tests: `MainActivitySmokeTest` launches the real app.
 
 ## Gotchas

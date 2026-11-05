@@ -35,6 +35,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
+import net.zodac.dicefive.ui.common.BoundedArt
 import net.zodac.dicefive.ui.common.dpToSp
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.IrishGreenSwatch
@@ -140,7 +141,7 @@ internal fun StyledDie(
                     drawRect(pipColor, topLeft = Offset(centre.x - half, centre.y - half), size = Size(half * 2, half * 2))
                 }
             }
-            PipShape.CUSTOM -> Canvas(modifier = Modifier.fillMaxSize().padding(pipPadding)) { customPips(value) }
+            PipShape.CUSTOM -> BoundedArt(modifier = Modifier.fillMaxSize().padding(pipPadding)) { customPips(value) }
             PipShape.NUMERAL -> BoxWithConstraints(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 // One size for every face of a style, as a fraction of the die's height - set small
                 // enough by numeral systems with longer numerals that their widest one still fits.

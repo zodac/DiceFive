@@ -10,7 +10,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
@@ -21,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.dp
+import net.zodac.dicefive.ui.common.BoundedArt
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 
 private const val SHAKE_AMPLITUDE_DEGREES = 7f
@@ -164,15 +165,19 @@ fun CupCanvas(
     // trail the cup by one.
     val liquidRotation = if (LocalReduceMotion.current) rotation else sloshing
     val pose = remember(rotation, liquidRotation) { CupPose({ rotation.value }, { liquidRotation.value }) }
-    Canvas(
+    BoundedArt(
         modifier = modifier.graphicsLayer {
             rotationZ = rotation.value
             transformOrigin = TransformOrigin(0.5f, PIVOT_Y_FRACTION)
         },
+        overflow = CUP_ART_OVERFLOW,
     ) {
         CupDrawScope(this, shape, pose).onDraw()
     }
 }
+
+/** How far past its box a cup's art can reach: what it's cut off at, and how far past its box each of its frames redraws. */
+internal val CUP_ART_OVERFLOW = 32.dp
 
 /**
  * The shake-then-settle rotation (in degrees) shared by every [DiceCupStyle]: standing upright most

@@ -29,10 +29,15 @@ Each of these fixed a reported stutter. New work must keep them.
     and tints (`ColorFilter.tint(.., SrcIn)`). A tinted image per lamp is slower than a small gradient.
     - A layer's animated alpha takes an offscreen pass per layer by default. Where its content doesn't overlap itself,
         use `CompositingStrategy.ModulateAlpha`, as a score tile's glow does: up to one lit ring per open box, every frame.
-- **Give art on its own clock a layer of its own** (`Modifier.redrawsAlone`, on a sibling under what it sits behind). A
-    state read while drawing re-records the whole layer it's drawn in, unchanged neighbours included. `Modifier.clip` is
-    a layer too, so that was all of the board's score text and cup panel on every frame of an animated background.
-    `RedrawsAloneTest` holds the board, tray, and backdrop to it. A cup and a die on the mat already turn in layers.
+- **Draw art on its own clock in `BoundedArt`, not a `Canvas`.** A state read while drawing re-records the whole layer it's
+    drawn in, and any change to a Compose layer redraws the whole window on the GPU (see "Still on the table"). `BoundedArt`
+    is a `RenderNode` clipped to the art, re-recorded when what it read changes, so neither happens. Give it `overflow` for
+    art past its box: a clip cuts off anything further. Art that only fades is cheaper as `PulsingArt`, recorded once.
+    Used by a board's background, an animated mat, `CupCanvas` and the three cups with a canvas of their own, a die's
+    `PipShape.CUSTOM`, and Glitch. `BoundedArtTest` holds it.
+- **Art that fills the screen gets a layer instead** (`Modifier.redrawsAlone`, on a sibling under what it sits behind): the
+    menu's drifting dice, where a node would bound nothing. It saves the recording, not the redraw. `Modifier.clip` is a
+    layer too. `RedrawsAloneTest` holds the tray and backdrop to it.
 - **Keep a shape that only changes colour.** `drawStars` builds its paths once per seed, size, and density, and a twinkle
     only changes their alpha. It used to rebuild up to ~190 paths a frame on a phone-sized board.
 - **Don't rebuild nodes on a state change.**
@@ -194,6 +199,26 @@ Profile).
     `ImageBitmap` (`GraphicsLayer.toImageBitmap`). The cost is that animated styles freeze through the 0.9s toss.
 - **The ground shadow.** `GroundShadow` (`DiceTray.kt`) rebuilds its `Outline` and draws it four times each frame a die
     moves. Untried, and unmeasured on its own.
+- **Any animating Compose layer redraws the whole window on the GPU** (2026-11-05). `redrawsAlone` saves recording, not
+    this. HWUI bounds a node's damage only with `clipToBounds`; without it the damage is effectively infinite
+    (`RenderNode::damageSelf`). Compose 1.12's `GraphicsLayerV29` sets `clipToBounds` only with `clip` on and no outline,
+    and `clip = true` on the ring's `graphicsLayer` didn't narrow it. Show view updates on the emulator: one 48dp pulsing
+    box on an empty Compose screen flashed a far corner of the window, as did a tile, the board, and the menu; a still
+    screen flashed nothing and drew no frames; the same box as a plain `View` in a plain Activity left that corner alone.
+    The trace's `Drawing` rectangle says the same: `atrace -t 2 gfx view`, with a screen's rectangle per frame.
+    - On a phone at 120Hz (HWUI bars, read by eye), the rings alone were ~1.7x the green line, nearly all red and orange.
+    - A score tile's glow is therefore `PulsingArt`, a `RenderNode` of its own with `clipToBounds`, faded through
+        `onDescendantInvalidated` (Android 10 up). Emulator rectangles, real board: 100% of the window to 14% with four
+        rings on the left, and 30% with the 5x tile too, as damage is one rectangle round them all. Its phone numbers are
+        still to be taken. A hosted `View` didn't help: an `AndroidView` still drew the whole window.
+    - `BoundedArt` does the same for art that changes shape. Emulator rectangles: any animated background (Starry, Floating
+        Dice, Ocean Waves) 42% of the window, the Starry mat 21%, RGB, neon, and glitter dice ~11%, a neon, fishbowl, or
+        cauldron cup ~5%. Moving together, they cover one rectangle round them all: Starry background and mat with rings,
+        64%.
+    - Still the whole window: the menu's dice (they roam it), a cup's shake and a die's toss (Compose layers turning),
+        a score's count-up, and Material's drop-downs. Each but the dice is under a second.
+    - **The HWUI bars can't show any of this.** Profile HWUI rendering makes every frame redraw the whole window
+        (`FrameInfoVisualizer::unionDirty`), so it reads the same either way. Time it with `FrameMetrics` and no overlay.
 - **One glow clock for all the lit tiles.** Each lit tile runs its own `InfiniteTransition`: ~0.1ms of a frame's animation
     phase per tile (2026-11-05, same emulator set-up; four lit, ~0.87 against ~0.46 with none). Sharing one has to stop
     when no tile is lit, so a still board keeps asking for no frames. Not built: reference-counted machinery for a debug
@@ -213,6 +238,11 @@ Profile).
 
 ## Tried and dropped
 
+- **Bounding the menu's drifting dice** (2026-11-06, considered, not built). Damage is one rectangle per frame, and four dice
+    spread over the screen need nearly all of it, whether or not each has a node of its own. Moving one die a frame doesn't
+    help: `computeDirtyRect` joins the last few frames' damage for buffer reuse, and each die would move less often than the
+    60fps floor. Keeping the dice together, or resting between moves, would change how the backdrop looks. Caching the menu's
+    content in a layer would cost ~10MB for an unmeasured saving. Left at the whole window by the maintainer's choice.
 - **A 60Hz vote for ambient art at High** (`Modifier.preferredFrameRate(FrameRateCategory.Normal)`, 2026-11-03,
     investigated, not built). From Android 15, Compose takes the highest vote among the layers that redrew in a frame;
     a layer with no vote, and Compose's own scrolling and flings, add nothing. So a vote on always-running art (stars,

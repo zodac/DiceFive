@@ -1,6 +1,5 @@
 package net.zodac.dicefive.ui.style
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,6 +18,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.unit.dp
 import kotlin.math.floor
 import kotlin.random.Random
+import net.zodac.dicefive.ui.common.BoundedArt
 import net.zodac.dicefive.ui.theme.GoldAccent
 
 private const val GLITCH_CORNER_PERCENT = 14
@@ -38,6 +38,9 @@ private const val GLITCH_WINDOW_SPREAD = 1.6f
 private const val GLITCH_EDGE_WINDOW = 0.5f
 private const val GLITCH_EDGE_SPREAD = 0.3f
 private const val GLITCH_EDGE_BAND = 0.17f
+
+// How far past the die a burst's bands and blocks of noise can jump.
+private val GLITCH_ART_OVERFLOW = 8.dp
 
 // The colour fringes either side of the pips: always a hair apart, flung wider in a burst.
 private val GlitchCyan = Color(0xFF00F0FF)
@@ -97,7 +100,7 @@ class GlitchDiceStyle(
         val seconds = rememberArtSeconds()
         // Frozen (tumbling), it's held at its clean face - never stuck mid-burst.
         val frozen = LocalArtFrozen.current
-        Canvas(modifier = modifier.dieShadow(RoundedCornerShape(GLITCH_CORNER_PERCENT))) {
+        BoundedArt(modifier = modifier.dieShadow(RoundedCornerShape(GLITCH_CORNER_PERCENT)), overflow = GLITCH_ART_OVERFLOW) {
             val now = if (frozen) 0f else seconds.value
             val strength = glitchStrength(dieIndex, now)
             val slot = floor(now / GLITCH_SLOT_SECONDS).toInt()

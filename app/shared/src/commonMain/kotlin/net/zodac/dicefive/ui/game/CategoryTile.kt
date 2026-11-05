@@ -35,25 +35,24 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.ceil
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.HitTarget
 import net.zodac.dicefive.model.PlaceMatch
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.PulsingArt
 import net.zodac.dicefive.ui.common.scorePulse
 import net.zodac.dicefive.ui.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.style.palette
@@ -125,7 +124,8 @@ fun CategoryTile(
     onPressChange: ((Boolean) -> Unit)? = null,
 ) {
     val irishTricolour = LocalIrishTricolour.current
-    val shape = RoundedCornerShape(if (squareSize != null) 16.dp else 10.dp)
+    val cornerRadius = if (squareSize != null) 16.dp else 10.dp
+    val shape = RoundedCornerShape(cornerRadius)
     val interactionSource = remember { MutableInteractionSource() }
     if (onPressChange != null) {
         val pressed by interactionSource.collectIsPressedAsState()
@@ -207,7 +207,7 @@ fun CategoryTile(
             matches = matches,
         )
         if (disabled) Box(modifier = Modifier.matchParentSize().drawBehind { drawSlash() })
-        if (highlighted) GlowBorder(shape)
+        if (highlighted) GlowBorder(cornerRadius)
     }
 }
 
@@ -252,16 +252,16 @@ private const val DISABLED_CORNER_RADIUS_FRACTION = 0.2f
 
 /**
  * A highlighted tile's gold border, pulsing. Only composed on a highlighted tile, and its alpha is
- * applied in a graphics layer rather than read while composing, so the pulse is a repaint of this
+ * applied by [PulsingArt] rather than read while composing, so the pulse is a repaint of this
  * border alone: a glow clock on every tile, read into the border colour, used to recompose the
  * whole grid every frame for the entire game, highlighted or not.
  */
 @Composable
-private fun BoxScope.GlowBorder(shape: Shape) {
+private fun BoxScope.GlowBorder(cornerRadius: Dp) {
     // At the Low and Off animation levels (and under reduced motion), just a plain gold border at full strength -
     // no pulse, and no layer for one: still the gold that marks a good pick.
     if (!scorePulse) {
-        Box(modifier = Modifier.matchParentSize().border(width = 2.dp, color = GoldAccent, shape = shape))
+        Box(modifier = Modifier.matchParentSize().border(width = GLOW_WIDTH, color = GoldAccent, shape = RoundedCornerShape(cornerRadius)))
         return
     }
     val glowAlpha = rememberInfiniteTransition(label = "tileGlow").animateFloat( // i18n: not translated - an animation label, not shown
@@ -270,15 +270,22 @@ private fun BoxScope.GlowBorder(shape: Shape) {
         animationSpec = infiniteRepeatable(animation = tween(900, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
         label = "tileGlowAlpha", // i18n: not translated - an animation label, not shown
     )
-    Box(
-        modifier = Modifier
-            .matchParentSize()
-            // One stroke overlaps nothing, so its alpha needs no offscreen pass: several tiles glow at once, on every frame.
-            .graphicsLayer {
-                alpha = glowAlpha.value
-                compositingStrategy = CompositingStrategy.ModulateAlpha
-            }
-            .border(width = 2.dp, color = GoldAccent, shape = shape),
+    PulsingArt(alpha = glowAlpha, modifier = Modifier.matchParentSize()) { alpha -> drawGlowRing(cornerRadius, alpha) }
+}
+
+private val GLOW_WIDTH = 2.dp
+
+/** The ring of a tile's glow at [alpha], just inside the tile's edge: where `Modifier.border` draws the steady one. */
+private fun DrawScope.drawGlowRing(cornerRadius: Dp, alpha: Float) {
+    val width = ceil(GLOW_WIDTH.toPx())
+    val inset = width / 2
+    drawRoundRect(
+        color = GoldAccent,
+        topLeft = Offset(inset, inset),
+        size = Size(size.width - width, size.height - width),
+        cornerRadius = CornerRadius(cornerRadius.toPx() - inset),
+        alpha = alpha,
+        style = Stroke(width),
     )
 }
 

@@ -34,7 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -50,8 +49,8 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.flowerpotStage
+import net.zodac.dicefive.ui.common.BoundedArt
 import net.zodac.dicefive.ui.common.delayWhileResumed
-import net.zodac.dicefive.ui.common.redrawsAlone
 import net.zodac.dicefive.ui.style.FlowerpotGrowth
 import net.zodac.dicefive.ui.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.color
@@ -95,12 +94,7 @@ private fun ScoreBoardRow(
             .clip(RoundedCornerShape(16.dp))
             .background(visualTheme.background.scoreAreaBrush),
     ) {
-        Spacer(
-            modifier = Modifier
-                .matchParentSize()
-                .redrawsAlone()
-                .drawBehind { with(visualTheme.background) { drawScoreAreaDecoration() } },
-        )
+        BoundedArt(modifier = Modifier.matchParentSize()) { with(visualTheme.background) { drawScoreAreaDecoration() } }
         ScoreBoardContent(
             categories,
             player,

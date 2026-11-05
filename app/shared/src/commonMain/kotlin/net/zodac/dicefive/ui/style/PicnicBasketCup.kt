@@ -10,7 +10,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -38,6 +37,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.ui.common.BoundedArt
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 
 /**
@@ -141,7 +141,7 @@ class PicnicBasketDiceCupStyle(override val id: String, private val palette: Bas
         // The shake's clock only exists while it counts, so a still basket asks for no frames.
         val shake: State<Float>? = if (rolling || shakeWeight > 0f) rememberBasketShakeLoop() else null
 
-        Canvas(
+        BoundedArt(
             modifier = modifier.graphicsLayer {
                 // Read here, so the shake only moves the layer.
                 val t = (shake?.value ?: 0f) * 2f * PI.toFloat()
@@ -151,6 +151,7 @@ class PicnicBasketDiceCupStyle(override val id: String, private val palette: Bas
                 translationY = -weight * size.height * BASKET_HOP * basketLift(t) / CupShape.SQUAT.gridHeight
                 transformOrigin = TransformOrigin(0.5f, 0.9f)
             },
+            overflow = CUP_ART_OVERFLOW,
         ) {
             val scope = CupDrawScope(this, shape, CupPose(0f, 0f))
             val t = (shake?.value ?: 0f) * 2f * PI.toFloat()

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.sin
 import kotlin.random.Random
+import net.zodac.dicefive.ui.common.BoundedArt
 
 /**
  * A mat's colours: the tray's [top]-to-[bottom] gradient, its held-dice slots ([slotTop] to
@@ -52,8 +53,12 @@ abstract class PatternedDiceMat(final override val id: String, protected val pal
     @Composable
     final override fun DiceTrayDecoration(modifier: Modifier) {
         var seconds by remember { mutableFloatStateOf(0f) }
-        if (animated) TwinkleClock { seconds = it }
-        Canvas(modifier = modifier) { drawPattern(seconds) }
+        if (animated) {
+            TwinkleClock { seconds = it }
+            BoundedArt(modifier = modifier) { drawPattern(seconds) }
+        } else {
+            Canvas(modifier = modifier) { drawPattern(seconds) }
+        }
     }
 }
 

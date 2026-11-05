@@ -16,25 +16,19 @@ import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
-import net.zodac.dicefive.model.PlayerConfig
-import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.REDRAWS_ALONE_TAG
 import net.zodac.dicefive.ui.game.DiceTray
-import net.zodac.dicefive.ui.game.GameBoard
-import net.zodac.dicefive.ui.game.gameBoardHeight
 import net.zodac.dicefive.ui.style.DiceMats
 import net.zodac.dicefive.ui.style.GameVisualTheme
 import net.zodac.dicefive.ui.style.LocalGameVisualTheme
-import net.zodac.dicefive.ui.style.TableBackgrounds
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /**
- * Art that redraws on its own clock (the board's background, the tray's mat, and the backdrop's drifting dice) is drawn in a
- * layer of its own, covering all it always covered, so its frames don't record what it sits behind again.
+ * The tray's mat and the backdrop's drifting dice are drawn in a layer of their own, covering all they always covered, so
+ * their frames don't record what they sit behind again.
  */
 class RedrawsAloneTest : UiTest() {
 
@@ -50,20 +44,6 @@ class RedrawsAloneTest : UiTest() {
         assertEquals(expected, node.size)
         assertTrue(node.layoutInfo.getModifierInfo().any { it.extra != null }, "No layer of its own")
         assertEquals(setOf(SemanticsProperties.TestTag), node.config.map { it.key }.toSet())
-    }
-
-    @Test
-    fun theBoardsBackgroundRedrawsAloneOverTheWholeBoard() = uiTest {
-        val state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Sam")))
-        showcase.show {
-            DiceFiveTheme {
-                CompositionLocalProvider(LocalGameVisualTheme provides GameVisualTheme(background = TableBackgrounds.byId("starry_midnight"))) {
-                    GameBoard(state = state, rolling = false, canUndo = false, onScoreCategory = {}, onCupTap = {}, onUndo = {}, modifier = Modifier.width(BOARD_WIDTH))
-                }
-            }
-        }
-        // The board's own padding keeps the score grid in from its edge, not the background.
-        assertRedrawsAlone(IntSize(BOARD_WIDTH.px(), gameBoardHeight(state.categories).px()))
     }
 
     @Test
