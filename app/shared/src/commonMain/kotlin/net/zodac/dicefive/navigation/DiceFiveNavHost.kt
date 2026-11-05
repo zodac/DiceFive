@@ -103,9 +103,6 @@ private fun NavGraphBuilder.pages(navController: NavHostController, container: A
             // Under the menu, which is opaque: runs the Styles page's drawing code once while the
             // menu idles, so opening Styles isn't the first time it runs - see StylesWarmUp.
             val warmUpScope = rememberCoroutineScope()
-            // Opens the scores database now, while the menu idles, so the Leaderboard's first read isn't
-            // also the database's first open.
-            LaunchedEffect(Unit) { container.scoreRepository.totalCount() }
             // The warm-ups' copies of a page are never what the cover waits on.
             CompositionLocalProvider(LocalPageCover provides null) {
                 StylesWarmUp(

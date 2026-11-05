@@ -24,6 +24,7 @@ import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
+import net.zodac.dicefive.data.orNullOnFailure
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.model.Achievement
@@ -124,7 +125,8 @@ class AchievementsViewModel(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), AchievementsUiState())
 
     init {
-        viewModelScope.launch { leaderboard.value = scoreRepository.leaderboardTotals() }
+        // One that can't be read shows the page with no score progress, rather than taking the app down.
+        viewModelScope.launch { leaderboard.value = orNullOnFailure { scoreRepository.leaderboardTotals() } ?: LeaderboardTotals() }
     }
 
     /** The unlocked-count banner's tap-5-times entry point into superuser mode. */
