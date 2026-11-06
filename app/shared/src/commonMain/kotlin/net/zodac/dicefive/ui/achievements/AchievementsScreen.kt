@@ -30,7 +30,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -69,6 +68,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -78,6 +78,9 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.constrainHeight
+import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -530,17 +533,17 @@ fun AchievementsScreen(
                     modifier = textModifier,
                 )
             }
-            val padding = Modifier.padding(horizontal = 16.dp, vertical = if (compact) 4.dp else 12.dp).then(if (compact) Modifier else Modifier.fillMaxWidth())
+            val verticalPadding = if (compact) 4.dp else 12.dp
+            val width = if (compact) Modifier else Modifier.fillMaxWidth()
             val onlineIcon = if (onlineAchievements) gameServices.serviceIcon() else null
             if (onlineIcon == null) {
-                countText(padding)
+                countText(Modifier.padding(horizontal = COUNT_SIDE_PADDING, vertical = verticalPadding).then(width))
             } else {
-                // The count and the mark, centred together.
-                Row(modifier = padding, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                    countText(if (compact) Modifier else Modifier.weight(1f, fill = false))
-                    Spacer(modifier = Modifier.width(ONLINE_ICON_GAP))
-                    Image(painter = onlineIcon, contentDescription = null, modifier = Modifier.size(if (compact) ONLINE_ICON_SIZE_COMPACT else ONLINE_ICON_SIZE))
-                }
+                CountWithMark(
+                    count = { countText(Modifier) },
+                    mark = { Image(painter = onlineIcon, contentDescription = null, modifier = Modifier.size(if (compact) ONLINE_ICON_SIZE_COMPACT else ONLINE_ICON_SIZE)) },
+                    modifier = Modifier.padding(vertical = verticalPadding).then(width),
+                )
             }
         }
     }
@@ -693,6 +696,30 @@ fun AchievementsScreen(
 private val ONLINE_ICON_SIZE = 20.dp
 private val ONLINE_ICON_SIZE_COMPACT = 18.dp
 private val ONLINE_ICON_GAP = 6.dp
+private val COUNT_SIDE_PADDING = 16.dp
+
+/**
+ * The count, with [mark] centred in the gap between the count's end and the card's. The count gets all the width that leaves
+ * [ONLINE_ICON_GAP] before the mark and [COUNT_SIDE_PADDING] after it, and sits as it would centred together with the mark at that gap.
+ */
+@Composable
+private fun CountWithMark(count: @Composable () -> Unit, mark: @Composable () -> Unit, modifier: Modifier = Modifier) {
+    Layout(content = { count(); mark() }, modifier = modifier) { measurables, constraints ->
+        val side = COUNT_SIDE_PADDING.roundToPx()
+        val gap = ONLINE_ICON_GAP.roundToPx()
+        val markPlaceable = measurables[1].measure(Constraints())
+        val countMax = if (constraints.hasBoundedWidth) (constraints.maxWidth - 2 * side - gap - markPlaceable.width).coerceAtLeast(0) else Constraints.Infinity
+        val countPlaceable = measurables[0].measure(Constraints(maxWidth = countMax))
+        val width = constraints.constrainWidth(2 * side + countPlaceable.width + gap + markPlaceable.width)
+        val height = constraints.constrainHeight(maxOf(countPlaceable.height, markPlaceable.height))
+        val countX = (width - countPlaceable.width - gap - markPlaceable.width) / 2
+        val countEnd = countX + countPlaceable.width
+        layout(width, height) {
+            countPlaceable.placeRelative(countX, (height - countPlaceable.height) / 2)
+            markPlaceable.placeRelative(countEnd + (width - countEnd - markPlaceable.width) / 2, (height - markPlaceable.height) / 2)
+        }
+    }
+}
 
 /**
  * A theme's subheader, in [categoryHeaderStyle] as the Styles page's category titles are.
