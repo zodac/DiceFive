@@ -6,7 +6,14 @@ import android.content.ContextWrapper
 import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import net.zodac.dicefive.CrashActivity
+import net.zodac.dicefive.app.ResumeAttempt
+import net.zodac.dicefive.data.game.UnresumableGameException
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -112,5 +119,31 @@ class CrashHandlerTest {
     @Test
     fun `tests run in the app's own process, not the crash page's`() {
         assertFalse(CrashHandler.isCrashProcess())
+    }
+
+    @Test
+    fun `an error while a saved game is being resumed asks for it to be removed and the page says so - any other doesn't`() = runBlocking {
+        val discard = SavedGameDiscardFile(application)
+        discard.done()
+
+        crash(IllegalStateException("Not resuming"))
+        assertFalse(discard.isRequested())
+        assertFalse(checkNotNull(shadowOf(application).nextStartedActivity).getBooleanExtra(GAME_REMOVED, true))
+
+        // A fresh handler: only an error's first report opens a page.
+        Thread.setDefaultUncaughtExceptionHandler(null)
+        install(application)
+        val attempt = launch(start = CoroutineStart.UNDISPATCHED) { ResumeAttempt.during { awaitCancellation() } }
+        crash(UnresumableGameException(IllegalArgumentException("Not a JSON object")))
+        attempt.cancelAndJoin()
+
+        assertTrue(discard.isRequested())
+        assertTrue(checkNotNull(shadowOf(application).nextStartedActivity).getBooleanExtra(GAME_REMOVED, false))
+        discard.done()
+        assertFalse(discard.isRequested())
+    }
+
+    private companion object {
+        const val GAME_REMOVED = "net.zodac.dicefive.GAME_REMOVED"
     }
 }

@@ -406,9 +406,13 @@ class GameViewModel(
         )
     }
 
-    /** Loads a previously in-progress game, if any. Returns whether one was found and resumed. */
+    /**
+     * Loads a previously in-progress game, if any. Returns whether one was found and resumed.
+     *
+     * @throws net.zodac.dicefive.data.game.UnresumableGameException if there's one that can't be read
+     */
     suspend fun resumeGame(): Boolean {
-        val loaded = inProgressGameRepository.load() ?: return false
+        val loaded = inProgressGameRepository.loadToResume() ?: return false
         beginGame(
             loaded.copy(turnSecondsLeft = null, undoneCategory = null, undoSnapshot = null),
             resumedSecondsLeft = loaded.turnSecondsLeft,

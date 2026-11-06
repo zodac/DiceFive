@@ -101,4 +101,11 @@ class CrashPageTest : UiTest() {
         assertEquals(1, copies)
         compose.onNode(isButton and hasText("Copied") and isPoliteLiveRegion).performScrollTo().assertIsDisplayed()
     }
+
+    @Test
+    fun `a saved game that can't be resumed is said to be going - in place of what a crash usually costs`() = uiTest(SCREEN) {
+        compose.setContent { DiceFiveTheme { CrashPage(details = "Boom", gameRemoved = true, onRestart = {}, onCopy = {}, onReport = {}) } }
+        compose.onNodeWithText("Your scores, achievements, and settings are kept, but the game in progress can't be resumed and will be removed.").assertIsDisplayed()
+        compose.onNodeWithText("Your scores, achievements, and settings are kept, but a game in progress may have lost its last move.").assertDoesNotExist()
+    }
 }

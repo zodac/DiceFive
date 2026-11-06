@@ -2,12 +2,16 @@ package net.zodac.dicefive.data.game
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.assertNull
+import kotlin.uuid.Uuid
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -16,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import net.zodac.dicefive.data.Stamped
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
@@ -117,5 +122,69 @@ class InProgressGameRepositoryTest {
         runCurrent()
         assertTrue(loaded.isCompleted)
         assertEquals(gameWithDie(2), loaded.await())
+    }
+
+    @Test
+    fun `a saved game that can't be read is nothing to warm up - but Continue says so rather than taking it for no game`() = runTest {
+        val store = CountingPreferencesStore()
+        val repository = InProgressGameRepository(store, backgroundScope)
+        assertNull(repository.loadToResume())
+
+        store.edit { it[stringPreferencesKey("state")] = "not a game" }
+
+        assertNull(repository.load())
+        val failure = assertFailsWith<UnresumableGameException> { repository.loadToResume() }
+        assertEquals("The saved game can't be resumed", failure.message)
+        assertTrue(repository.hasInProgressGame.first(), "still saved until the crash handler has it removed")
+    }
+
+    @Test
+    fun `a removal the crash handler asked for comes before the menu sees the game - and no copy of it comes back from the cloud`() = runTest {
+        val game = gameWithDie(4).copy(id = Uuid.random())
+        val store = CountingPreferencesStore()
+        InProgressGameRepository(store, backgroundScope).run {
+            save(game)
+            runCurrent()
+        }
+        val discard = RecordingDiscard(requested = true)
+
+        val repository = InProgressGameRepository(store, backgroundScope, discard = discard)
+        val saved = async { repository.hasInProgressGame.first() }
+        runCurrent()
+
+        assertFalse(saved.await())
+        assertNull(repository.loadToResume())
+        assertFalse(discard.requested, "the request is over once the game has gone")
+        repository.mergeCloud(Stamped(GameStateJson.encode(game), Long.MAX_VALUE))
+        assertNull(repository.load())
+    }
+
+    @Test
+    fun `with no removal asked for the saved game stays - and a removal that can't be written stays asked for`() = runTest {
+        val store = FlakyPreferencesStore()
+        InProgressGameRepository(store, backgroundScope).run {
+            save(gameWithDie(5))
+            runCurrent()
+        }
+
+        val untouched = InProgressGameRepository(store, backgroundScope, discard = RecordingDiscard(requested = false))
+        val kept = async { untouched.load() }
+        runCurrent()
+        assertEquals(gameWithDie(5), kept.await())
+
+        store.failing = true
+        val discard = RecordingDiscard(requested = true)
+        val failed = InProgressGameRepository(store, backgroundScope, discard = discard)
+        runCurrent()
+        assertTrue(discard.requested)
+        assertEquals(gameWithDie(5), failed.load())
+    }
+}
+
+private class RecordingDiscard(var requested: Boolean) : SavedGameDiscard {
+    override fun isRequested(): Boolean = requested
+
+    override fun done() {
+        requested = false
     }
 }

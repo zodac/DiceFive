@@ -1249,6 +1249,7 @@
     <string name="common_crash_title">Algo ha salido mal</string>
     <string name="common_crash_body">%1$s ha tenido un problema del que no ha podido recuperarse, así que se ha detenido aquí.</string>
     <string name="common_crash_advice">Tus puntuaciones, logros y ajustes se conservan, pero una partida en curso puede haber perdido su última jugada.</string>
+    <string name="common_crash_advice_game_removed">Tus puntuaciones, logros y ajustes se conservan, pero la partida en curso no se puede reanudar y se eliminará.</string>
     <string name="common_crash_restart">Reiniciar</string>
     <string name="common_crash_copy">Copiar detalles</string>
     <string name="common_crash_copied">Copiado</string>

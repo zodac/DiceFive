@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -23,6 +24,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.app.ResumeAttempt
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.game.TutorialScript
@@ -55,6 +57,9 @@ import net.zodac.dicefive.ui.statistics.StatisticsViewModel
 import net.zodac.dicefive.ui.styles.StylesScreen
 import net.zodac.dicefive.ui.styles.StylesWarmUp
 import net.zodac.dicefive.ui.styles.StylesViewModel
+
+/** How many frames of a resumed board still count as its [ResumeAttempt]: enough for it to be composed, laid out, and drawn. */
+private const val RESUME_ATTEMPT_FRAMES = 5
 
 /**
  * The app's pages. Opening one is done under the [cover] (see [PageCover]), never with the NavHost's own transitions: one
@@ -158,10 +163,17 @@ private fun NavGraphBuilder.pages(navController: NavHostController, container: A
             DisposableEffect(driftState) { onDispose { if (!gameOver) driftState?.reset() } }
             // Continue comes straight here, to a fresh view model holding no game, and so does Android rebuilding
             // this back stack after ending the app's process in the background. Every move is saved, so the game is
-            // loaded back, under the page cover; with nothing saved (cleared elsewhere), it's back to the menu.
+            // loaded back, under the page cover; with nothing saved (cleared elsewhere), it's back to the menu. A saved game
+            // that can't be read or drawn takes the app to the crash page (ResumeAttempt), which removes it.
             LaunchedEffect(gameViewModel) {
-                if (gameViewModel.game.value == null && !gameViewModel.resumeGame()) {
-                    navController.popBackStack(Screen.MENU, inclusive = false)
+                if (gameViewModel.game.value == null) {
+                    ResumeAttempt.during {
+                        if (gameViewModel.resumeGame()) {
+                            repeat(RESUME_ATTEMPT_FRAMES) { withFrameNanos {} }
+                        } else {
+                            navController.popBackStack(Screen.MENU, inclusive = false)
+                        }
+                    }
                 }
             }
             GameScreen(viewModel = gameViewModel, onBackToMenu = backToMenu)

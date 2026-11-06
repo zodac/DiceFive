@@ -1610,6 +1610,7 @@
     <string name="common_crash_title">Something went wrong</string>
     <string name="common_crash_body">%1$s ran into a problem it couldn't recover from, so it has stopped here.</string>
     <string name="common_crash_advice">Your scores, achievements, and settings are kept, but a game in progress may have lost its last move.</string>
+    <string name="common_crash_advice_game_removed">Your scores, achievements, and settings are kept, but the game in progress can't be resumed and will be removed.</string>
     <!-- The button that starts the app again, beside Report on GitHub. -->
     <string name="common_crash_restart">Restart</string>
     <!-- In the details section, above them: copies them, then says it has. -->

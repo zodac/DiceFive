@@ -301,8 +301,7 @@ can't is a page saying so, with the stack trace to report. The app never just cl
 - **Recovered where it happens**, so nothing reaches the pages:
     - storage: `ResilientDataStore` (see "Persistence"), and `orNullOnFailure` (`data/Failures.kt`, which rethrows a
         `CancellationException`) around writes and loads that can fail;
-    - a saved, cloud or progress-file game that can't be read or played (`GameStateJson.checkPlayable`) is "nothing to
-        continue";
+    - a cloud or progress-file game that can't be read or played (`GameStateJson.checkPlayable`) is never taken;
     - a failed cloud sync costs that sync (`DiceFiveApp`), and a progress file that won't open is reported on its card;
     - Hard's perfect-play table that can't be read leaves Hard estimating (`AppContainer`);
     - Leaderboard or Statistics data that can't be read leaves what's on view, or opens empty with nothing on view yet.
@@ -351,11 +350,20 @@ can't is a page saying so, with the stack trace to report. The app never just cl
             whole of it (`ScrollingColumn`, its bar in the page's margin); on a screen too short to leave 160dp it gets that
             much, and the page scrolls too. The database page's details are
             always shown.
+- **A saved game that can't be resumed** (an upgrade across versions, say) goes to the crash page, then goes for good.
+    - Continue offers any saved game. `loadToResume` throws `UnresumableGameException` for one it can't read.
+    - `ResumeAttempt` marks what counts: Continue's load and the board's first frames (`DiceFiveNavHost`), and the menu's
+        off-screen drawing of the saved game (`SavedGameWarmUp`), which would otherwise fail at every start. Any error nothing
+        caught during one, on any thread, counts. One after it, such as on the next roll, is an ordinary crash.
+    - `CrashHandler` then writes `SavedGameDiscardFile`, whether or not a page opens, and `CrashPage` says the game will be
+        removed (`gameRemoved`).
+    - `InProgressGameRepository` removes it at the app's next start, before anything reads the save, however the page was
+        closed: Restart, Back, reported or not, or swiped away. No copy of it comes back from the cloud (`FINISHED_KEY`).
 - **Not caught**: native crashes and ANRs.
 - **Trying it**: a debug build's crash mode on Settings > About (see "Superuser modes"). The taps on the name are
     raw gestures, attached only in a debug build, so no other build has them and TalkBack is never handed a dead link.
     For a crash anywhere else, throw from a temporary line, and take it out again.
-- **Tests**: `CrashHandlerTest`, `CrashReportTest`, `CrashActivityTest`, `CrashPageTest`, `BreadcrumbsTest`,
+- **Tests**: `ResumeAttemptTest`, `InProgressGameRepositoryTest`, `CrashHandlerTest`, `CrashReportTest`, `CrashActivityTest`, `CrashPageTest`, `BreadcrumbsTest`,
     `GameBreadcrumbsTest`, `AboutDebugCrashesTest`, and `DatabaseFailureTest`.
 
 ## Leaderboard and Statistics

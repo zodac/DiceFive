@@ -1383,6 +1383,7 @@
     <string name="common_crash_title">حدث خطأ ما</string>
     <string name="common_crash_body">واجه %1$s مشكلة لم يتمكن من التعافي منها، لذا توقّف هنا.</string>
     <string name="common_crash_advice">نتائجك وإنجازاتك وإعداداتك محفوظة، لكن ربما فقدت اللعبة الجارية آخر حركة فيها.</string>
+    <string name="common_crash_advice_game_removed">نتائجك وإنجازاتك وإعداداتك محفوظة، لكن لا يمكن استئناف اللعبة الجارية وستتم إزالتها.</string>
     <string name="common_crash_restart">إعادة التشغيل</string>
     <string name="common_crash_copy">نسخ التفاصيل</string>
     <string name="common_crash_copied">تم النسخ</string>

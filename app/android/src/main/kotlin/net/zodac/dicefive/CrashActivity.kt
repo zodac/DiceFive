@@ -45,6 +45,7 @@ class CrashActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val report = CrashReport.from(intent.getBundleExtra(EXTRA_REPORT))
         val details = report.text()
+        val gameRemoved = intent.getBooleanExtra(EXTRA_GAME_REMOVED, false)
         // The level the app was drawn at, as DiceFiveApp provides it: this process doesn't read the settings.
         val animationLevel = AnimationLevel.entries.firstOrNull { it.id == intent.getStringExtra(EXTRA_ANIMATION_LEVEL) } ?: AnimationLevel.default
         setContent {
@@ -53,7 +54,7 @@ class CrashActivity : ComponentActivity() {
                     Surface(modifier = Modifier.fillMaxSize()) {
                         // Faded in as a page opened from the menu is: Android's own window animation is off (intent).
                         RevealedPage {
-                            CrashPage(details = details, onRestart = ::restart, onCopy = { copy(details) }, onReport = { openIssue(report) })
+                            CrashPage(details = details, gameRemoved = gameRemoved, onRestart = ::restart, onCopy = { copy(details) }, onReport = { openIssue(report) })
                         }
                     }
                 }
@@ -85,6 +86,7 @@ class CrashActivity : ComponentActivity() {
     companion object {
         private const val EXTRA_REPORT = "net.zodac.dicefive.CRASH_REPORT"
         private const val EXTRA_ANIMATION_LEVEL = "net.zodac.dicefive.ANIMATION_LEVEL"
+        private const val EXTRA_GAME_REMOVED = "net.zodac.dicefive.GAME_REMOVED"
 
         /** What the clipboard says it holds. */
         private const val CLIP_LABEL = "DiceFive crash report"
@@ -106,12 +108,19 @@ class CrashActivity : ComponentActivity() {
 
         /**
          * Opens the page with [report], in a task of its own in place of the app's, drawn at [animationLevel] (the app's
-         * last). Without Android's window animation: the page fades in as the app's own pages do.
+         * last), saying the saved game goes if [gameRemoved]. Without Android's window animation: the page fades in as the
+         * app's own pages do.
          */
-        internal fun intent(context: Context, report: CrashReport, animationLevel: AnimationLevel = LastAnimationLevel.value): Intent =
+        internal fun intent(
+            context: Context,
+            report: CrashReport,
+            animationLevel: AnimationLevel = LastAnimationLevel.value,
+            gameRemoved: Boolean = false,
+        ): Intent =
             Intent(context, CrashActivity::class.java)
                 .putExtra(EXTRA_REPORT, report.toBundle())
                 .putExtra(EXTRA_ANIMATION_LEVEL, animationLevel.id)
+                .putExtra(EXTRA_GAME_REMOVED, gameRemoved)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
     }
 }

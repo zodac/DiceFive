@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.resources.common_crash_advice
+import net.zodac.dicefive.resources.common_crash_advice_game_removed
 import net.zodac.dicefive.resources.common_crash_body
 import net.zodac.dicefive.resources.common_crash_copied
 import net.zodac.dicefive.resources.common_crash_copy
@@ -53,17 +54,17 @@ import net.zodac.dicefive.ui.icons.Symbols
  * Shown in place of the app after an error nothing caught stopped it: what has happened, buttons that [onRestart] the
  * app and [onReport] the [details] as a GitHub issue, then the details themselves - the error's report - in a section
  * collapsed until Show Details opens it, scrolling in the room below, with a button that [onCopy]s them. Copy Details says Copied once it has, which
- * TalkBack announces. See [FailurePage].
+ * TalkBack announces. If [gameRemoved], what's kept says the saved game isn't. See [FailurePage].
  */
 @Composable
-fun CrashPage(details: String, onRestart: () -> Unit, onCopy: () -> Unit, onReport: () -> Unit) {
+fun CrashPage(details: String, onRestart: () -> Unit, onCopy: () -> Unit, onReport: () -> Unit, gameRemoved: Boolean = false) {
     val appName = stringResource(Res.string.app_name)
     var expanded by remember { mutableStateOf(false) }
     val reduceMotion = LocalReduceMotion.current
     FailurePage(
         title = stringResource(Res.string.common_crash_title),
         body = stringResource(Res.string.common_crash_body, appName),
-        advice = stringResource(Res.string.common_crash_advice),
+        advice = stringResource(if (gameRemoved) Res.string.common_crash_advice_game_removed else Res.string.common_crash_advice),
         actions = {
             // Side by side where they fit, one above the other where they don't (a large font).
             FlowRow(

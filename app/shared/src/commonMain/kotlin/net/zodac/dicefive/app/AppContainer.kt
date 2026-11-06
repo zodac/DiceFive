@@ -24,6 +24,7 @@ import net.zodac.dicefive.data.PreferencesFile
 import net.zodac.dicefive.data.achievements.AchievementsRepository
 import net.zodac.dicefive.data.createPreferencesDataStore
 import net.zodac.dicefive.data.game.InProgressGameRepository
+import net.zodac.dicefive.data.game.SavedGameDiscard
 import net.zodac.dicefive.data.orNullOnFailure
 import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.data.scores.ScoreRepository
@@ -150,14 +151,19 @@ class AppContainer(
          * Builds the container every platform shares: the scores database from the platform's
          * [databaseBuilder] (its driver and path), and one DataStore per [PreferencesFile] in [dataDir].
          */
-        fun create(dataDir: String, databaseBuilder: RoomDatabase.Builder<AppDatabase>, buildInfo: BuildInfo): AppContainer {
+        fun create(
+            dataDir: String,
+            databaseBuilder: RoomDatabase.Builder<AppDatabase>,
+            buildInfo: BuildInfo,
+            savedGameDiscard: SavedGameDiscard = SavedGameDiscard.None,
+        ): AppContainer {
             fun dataStore(file: PreferencesFile) = createPreferencesDataStore("$dataDir/${file.fileName}")
 
             return AppContainer(
                 scoreRepository = ScoreRepository(databaseBuilder.buildAppDatabase().scoreDao(), computeContext = Dispatchers.Default),
                 settingsRepository = SettingsRepository(dataStore(PreferencesFile.SETTINGS)),
                 achievementsRepository = AchievementsRepository(dataStore(PreferencesFile.ACHIEVEMENTS)),
-                inProgressGameRepository = InProgressGameRepository(dataStore(PreferencesFile.IN_PROGRESS_GAME)),
+                inProgressGameRepository = InProgressGameRepository(dataStore(PreferencesFile.IN_PROGRESS_GAME), discard = savedGameDiscard),
                 onlineSettingsRepository = OnlineSettingsRepository(dataStore(PreferencesFile.ONLINE)),
                 purchasesRepository = PurchasesRepository(dataStore(PreferencesFile.PURCHASES)),
                 buildInfo = buildInfo,

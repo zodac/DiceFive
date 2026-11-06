@@ -10,6 +10,7 @@ import android.util.Log
 import java.io.File
 import kotlin.system.exitProcess
 import net.zodac.dicefive.CrashActivity
+import net.zodac.dicefive.app.ResumeAttempt
 
 /**
  * What an error nothing caught does: [CrashActivity] shows its [CrashReport], in a process of its own ([PROCESS_SUFFIX], the
@@ -18,6 +19,9 @@ import net.zodac.dicefive.CrashActivity
  * crash reports. An error with no page goes to the platform's handler, as before there was a page, so none goes
  * unshown and unreported: one whose page couldn't be opened, and one while the app isn't on screen, where Android
  * quietly refuses to open a page (and shows no dialog either).
+ *
+ * An error during a [ResumeAttempt] also has the saved game removed, whether or not a page opens: [SavedGameDiscardFile]
+ * asks for it, and the app's next start does it, however the page is closed.
  */
 internal object CrashHandler {
 
@@ -63,9 +67,11 @@ internal object CrashHandler {
         override fun uncaughtException(thread: Thread, error: Throwable) {
             if (!tried) {
                 tried = true
+                val gameRemoved = ResumeAttempt.active
+                if (gameRemoved) runCatching { SavedGameDiscardFile(appContext).request() }
                 // Whatever goes wrong opening the page (out of memory, for one), the error still goes somewhere.
                 opened = runCatching {
-                    onScreen() && run { appContext.startActivity(CrashActivity.intent(appContext, CrashReport.of(appContext, thread, error))); true }
+                    onScreen() && run { appContext.startActivity(CrashActivity.intent(appContext, CrashReport.of(appContext, thread, error), gameRemoved = gameRemoved)); true }
                 }.getOrDefault(false)
             }
             // No platform handler only on a plain JVM (a Robolectric test): print it, as the JVM itself would.

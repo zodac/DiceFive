@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.offset
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import net.zodac.dicefive.app.ResumeAttempt
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.game.ProjectedHand
 import net.zodac.dicefive.game.newLeaderboardScoreSeats
@@ -372,12 +373,22 @@ fun GameWarmUp(viewModel: GameViewModel, modifier: Modifier = Modifier) {
 fun SavedGameWarmUp(picks: SavedStyles?, hasInProgressGame: Boolean, loadGame: suspend () -> GameState?, modifier: Modifier = Modifier) {
     val game by produceState<GameState?>(null, hasInProgressGame) { value = if (hasInProgressGame) loadGame() else null }
     val theme = remember(picks) { picks?.visualTheme }
-    GameArtWarmUp(theme ?: return, game ?: return, SAVED_GAME_WARM_UP_DELAY_MILLIS, modifier)
+    // A saved game the board can't draw would otherwise fail on the menu at every start, with no Continue tapped.
+    GameArtWarmUp(theme ?: return, game ?: return, SAVED_GAME_WARM_UP_DELAY_MILLIS, modifier) { ResumeAttempt.during(it) }
 }
 
-/** Draws [game]'s art in [theme] for [GameWarmUp], [delayMillis] after the screen it's under settles. */
+/**
+ * Draws [game]'s art in [theme] for [GameWarmUp], [delayMillis] after the screen it's under settles, the drawing run
+ * through [drawing].
+ */
 @Composable
-private fun GameArtWarmUp(theme: GameVisualTheme, game: GameState, delayMillis: Long, modifier: Modifier) {
+private fun GameArtWarmUp(
+    theme: GameVisualTheme,
+    game: GameState,
+    delayMillis: Long,
+    modifier: Modifier,
+    drawing: suspend (suspend () -> Unit) -> Unit = { it() },
+) {
     val window = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
     val key = GameWarmUpKey(theme, game.gameMode, game.categories, window, density.density, density.textScale)
@@ -394,7 +405,7 @@ private fun GameArtWarmUp(theme: GameVisualTheme, game: GameState, delayMillis: 
             // Each die has a face of its own for each value (naturalPatternSeed): turned round a value a pass, every die shows every one.
             val values = game.gameMode.dieValues.toList()
             val faces = values.indices.map { turn -> GameWarmUpPass.Dice(game.dice.indices.map { values[(it + turn) % values.size] }) }
-            for (pass in listOf(GameWarmUpPass.Board, GameWarmUpPass.Mat) + faces) draw(pass)
+            drawing { for (pass in listOf(GameWarmUpPass.Board, GameWarmUpPass.Mat) + faces) draw(pass) }
             gameWarmedUp = key
         },
     ) { pass ->

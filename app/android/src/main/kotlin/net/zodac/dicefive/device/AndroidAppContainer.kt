@@ -29,5 +29,6 @@ object AndroidAppContainer {
             name = appContext.getDatabasePath(AppDatabase.FILE_NAME).absolutePath,
         ),
         buildInfo = BuildInfo(versionName = BuildConfig.VERSION_NAME, isDebug = BuildConfig.DEBUG),
+        savedGameDiscard = SavedGameDiscardFile(appContext),
     )
 }
