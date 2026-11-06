@@ -3,13 +3,22 @@ package net.zodac.dicefive.ui.style
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -26,11 +35,12 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.geometry.lerp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.atan2
@@ -76,21 +86,6 @@ private fun rememberRgbShake(rolling: Boolean): Pair<State<Float>, State<Float>>
     return seconds to strength
 }
 
-/** A small die of the RGB set at [centre], [size] across and turned [degrees]: a [panel] face with [value]'s pips lit [colour]. */
-private fun DrawScope.drawLedDie(centre: Offset, size: Float, degrees: Float, value: Int, panel: Color, colour: Color) {
-    rotate(degrees, centre) {
-        val topLeft = centre - Offset(size / 2f, size / 2f)
-        drawRoundRect(Color.Black.copy(alpha = 0.35f), topLeft + Offset(size * 0.06f, size * 0.1f), Size(size, size), CornerRadius(size * 0.2f))
-        drawRoundRect(panel, topLeft, Size(size, size), CornerRadius(size * 0.2f))
-        drawRoundRect(lerp(panel, Color.White, 0.25f), topLeft, Size(size, size), CornerRadius(size * 0.2f), style = Stroke(width = size * 0.05f))
-        for (pip in pipLayout(value)) {
-            val at = topLeft + Offset(pip.x * size, pip.y * size)
-            drawCircle(colour.copy(alpha = 0.35f), size * 0.13f, at)
-            drawCircle(lerp(colour, Color.White, 0.45f), size * 0.065f, at)
-        }
-    }
-}
-
 // The Halo cup: five rings, top to bottom, each a little narrower than the one above, floating over a base.
 private const val HALO_RINGS = 5
 private const val HALO_TOP_Y = 14f
@@ -111,15 +106,70 @@ private const val HALO_RATTLE = 0.7f
 // A Wave stack's colour climbs it: each ring this far round the hues behind the one below.
 private const val HALO_WAVE_SPREAD = 0.11f
 
+/** One die of a [HaloDicePile]: where it rests, in grid units from the cup's centre line and top, turned [degrees], showing [value]. */
+internal data class HaloDieSpot(val x: Float, val y: Float, val degrees: Float, val value: Int)
+
+/** Dice heaped on the Halo's base, [size] grid units across, each drawn over those before it. */
+internal data class HaloDicePile(val size: Float, val spots: List<HaloDieSpot>)
+
+// The heap's sizes: 20 up to five dice, and 16 for the two more that a game can have.
+private const val HALO_DIE_SIZE = 20f
+private const val HALO_DIE_SIZE_CROWDED = 16f
+private const val HALO_MOST_DICE_BIG = 5
+private const val HALO_MOST_DICE = 7
+
+// The heap's front row, on the base, with the middle die in front of the others.
+private val HALO_FRONT_LEFT = HaloDieSpot(-6f, 67f, -4f, 3)
+private val HALO_FRONT_RIGHT = HaloDieSpot(6f, 67f, 4f, 1)
+private val HALO_FRONT_MIDDLE = HaloDieSpot(0f, 69f, 3f, 5)
+private val HALO_FRONT = listOf(HALO_FRONT_LEFT, HALO_FRONT_RIGHT, HALO_FRONT_MIDDLE)
+
 /**
- * An RGB cup - to go with the RGB dice: a Halo stack, five separate LED rings hovering one above another in the
- * shape of a cup over a lit base, with nothing between them but the base's glow - so the two RGB dice inside show through the gaps until
- * they're poured. [body] is the rings' sleeves and the base: black, or white (frosted tubes). The rings bob gently,
- * out of step; shaken, they jolt apart and rattle, settling back together as it pours. Rainbow, it's all one colour at
- * a time; as a [wave], the colours climb the stack ring by ring. Still under reduced motion, rings together.
+ * The heap [count] dice make on the Halo's base: none to seven, more being held to seven. Every die stays inside the rings,
+ * however it's turned: wider, and it would show past their sides, so the dice overlap rather than spread (`RgbHaloDiceTest`).
+ */
+internal fun haloDicePile(count: Int): HaloDicePile = when (count.coerceAtMost(HALO_MOST_DICE)) {
+    0 -> HaloDicePile(HALO_DIE_SIZE, emptyList())
+    1 -> HaloDicePile(HALO_DIE_SIZE, listOf(HALO_FRONT_MIDDLE))
+    2 -> HaloDicePile(HALO_DIE_SIZE, listOf(HaloDieSpot(-6f, 67.5f, -4f, 3), HaloDieSpot(6f, 67.5f, 4f, 5)))
+    3 -> HaloDicePile(HALO_DIE_SIZE, HALO_FRONT)
+    4 -> HaloDicePile(HALO_DIE_SIZE, listOf(HaloDieSpot(0f, 53f, 6f, 6)) + HALO_FRONT)
+    HALO_MOST_DICE_BIG -> HaloDicePile(HALO_DIE_SIZE, listOf(HaloDieSpot(-5f, 53.5f, 6f, 6), HaloDieSpot(5f, 52.5f, -5f, 2)) + HALO_FRONT)
+    else -> {
+        val top = if (count == HALO_MOST_DICE_BIG + 1) {
+            listOf(HaloDieSpot(0.5f, 42f, 9f, 4))
+        } else {
+            listOf(HaloDieSpot(-3.5f, 42f, 9f, 4), HaloDieSpot(4f, 41f, -7f, 6))
+        }
+        val middle = listOf(HaloDieSpot(-6f, 54f, -6f, 2), HaloDieSpot(6f, 54f, 7f, 1))
+        val front = listOf(HaloDieSpot(-7.8f, 68f, -6f, 3), HaloDieSpot(7.8f, 68f, 6f, 6), HaloDieSpot(0f, 70f, 3f, 5))
+        HaloDicePile(HALO_DIE_SIZE_CROWDED, top + middle + front)
+    }
+}
+
+// A die in the heap is laid out at the tray's usual size and drawn scaled down: a die's art is made for that size (its pips'
+// padding is in dp), and its faces are the ones already painted for the tray.
+private val HALO_DIE_LAYOUT_SIZE = 44.dp
+
+// Whichever dice lie this low rest on the base, and cast a shadow on it.
+private const val HALO_ON_BASE_Y = 65f
+
+// Shaken, how far each die turns (degrees), hops and slides (grid units), and how many faces it shows a second.
+internal const val HALO_DIE_TURN = 14f
+private const val HALO_DIE_HOP = 6f
+internal const val HALO_DIE_SLIDE = 0.8f
+private const val HALO_DIE_FACES_PER_SECOND = 9f
+
+/**
+ * An RGB cup - to go with the RGB dice: a Halo stack, five separate LED rings hovering one above another in the shape
+ * of a cup over a lit base, with nothing between them but the base's glow - so the dice inside ([LocalCupDice], in the
+ * player's own style) show through the gaps until they're poured. [body] is the rings' sleeves and the base: black, or
+ * white (frosted tubes). The rings bob gently, out of step; shaken, they jolt apart and rattle, and the dice tumble,
+ * settling back together as it pours. Rainbow, it's all one colour at a time; as a [wave], the colours climb the stack
+ * ring by ring. Still under reduced motion, rings together.
  *
- * Live per frame, all of it (nothing here is costly to paint): the base, its glow, two dice, and each ring's back and
- * front half - eight strokes a ring.
+ * Live per frame while upright: the base, its glow, up to seven of the player's dice as they draw themselves, and each
+ * ring's back and front half - eight strokes a ring. Once poured, the dice are gone from the composition.
  */
 class RgbHaloDiceCupStyle(override val id: String, private val body: CupPalette, private val wave: Boolean) : DiceCupStyle, Swatched {
     override val swatch: Color = RgbSwatch
@@ -131,26 +181,76 @@ class RgbHaloDiceCupStyle(override val id: String, private val body: CupPalette,
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
         val seconds = rememberArtSeconds()
         val (shakeSeconds, shake) = rememberRgbShake(rolling)
-        CupCanvas(rolling, tilted, modifier) {
-            val time = seconds.value
-            val phase = time / RGB_CYCLE_SECONDS
-            val colour = rgbColour(phase)
+        val dice = LocalCupDice.current
+        val pile = remember(dice.count) { haloDicePile(dice.count) }
+        // Where ring [i] is: its bob, and while shaken its spread and rattle.
+        fun ringOffset(i: Int): Offset {
             val strength = shake.value
             val rattle = shakeSeconds.value
-            drawPool(colour)
-            drawBase(colour)
-            // Where each ring is: its bob, and while shaken its spread and rattle.
-            val offsets = List(HALO_RINGS) { i ->
-                val bob = HALO_BOB * sin(2f * PI.toFloat() * time / HALO_BOB_SECONDS + i * 1.1f)
-                val spread = (i - (HALO_RINGS - 1) / 2f) * HALO_SPREAD * (0.75f + 0.25f * sin(rattle * 31f + i * 1.7f))
-                val jolt = HALO_RATTLE * sin(rattle * 47f + i * 2.3f)
-                Offset(strength * HALO_RATTLE * sin(rattle * 39f + i * 1.3f), bob + strength * (spread + jolt))
+            val bob = HALO_BOB * sin(2f * PI.toFloat() * seconds.value / HALO_BOB_SECONDS + i * 1.1f)
+            val spread = (i - (HALO_RINGS - 1) / 2f) * HALO_SPREAD * (0.75f + 0.25f * sin(rattle * 31f + i * 1.7f))
+            val jolt = HALO_RATTLE * sin(rattle * 47f + i * 2.3f)
+            return Offset(strength * HALO_RATTLE * sin(rattle * 39f + i * 1.3f), bob + strength * (spread + jolt))
+        }
+        LayeredCupCanvas(
+            rolling = rolling,
+            tilted = tilted,
+            modifier = modifier,
+            back = {
+                val phase = seconds.value / RGB_CYCLE_SECONDS
+                val colour = rgbColour(phase)
+                drawPool(colour)
+                drawBase(colour)
+                for (i in 0 until HALO_RINGS) drawRing(i, ringOffset(i), phase, front = false)
+                if (holdsDice(pose)) drawDiceShadows(pile)
+            },
+            front = {
+                val phase = seconds.value / RGB_CYCLE_SECONDS
+                for (i in 0 until HALO_RINGS) drawRing(i, ringOffset(i), phase, front = true)
+            },
+        ) { gridUnit, pose ->
+            val holding by remember(pose) { derivedStateOf { holdsDice(pose) } }
+            if (holding) {
+                pile.spots.forEachIndexed { index, spot ->
+                    key(index) { HaloDie(dice.style, spot, index, pile.size, gridUnit, shakeSeconds, shake) }
+                }
             }
-            for (i in 0 until HALO_RINGS) drawRing(i, offsets[i], phase, front = false)
-            // Gone while it's tipped past halfway, poured out - by how far it's actually turned, so they go (and come
-            // back as it stands up) on the frame it turns, not the one before.
-            if (pose.rotation > RESTING_TILT_DEGREES / 2f) drawDice(colour, strength, rattle)
-            for (i in 0 until HALO_RINGS) drawRing(i, offsets[i], phase, front = true)
+        }
+    }
+
+    /** Whether the dice are still in it: gone while it's tipped past halfway, poured out - by how far it's actually turned, so they go (and come back as it stands up) on the frame it turns. */
+    private fun holdsDice(pose: CupPose) = pose.rotation > RESTING_TILT_DEGREES / 2f
+
+    /** One die of the heap, in the player's [style], tumbling by [shake]'s strength. Only a new face recomposes it. */
+    @Composable
+    private fun HaloDie(style: DiceStyle, spot: HaloDieSpot, index: Int, size: Float, gridUnit: Dp, shakeSeconds: State<Float>, shake: State<Float>) {
+        val value by remember(spot, index) {
+            derivedStateOf {
+                val step = if (shake.value > 0f) (shakeSeconds.value * HALO_DIE_FACES_PER_SECOND + index * 1.7f).toInt() else 0
+                (spot.value - 1 + step * (index + 2)) % PIP_FACES + 1
+            }
+        }
+        val scale = gridUnit * size / HALO_DIE_LAYOUT_SIZE
+        // A die that stands up stays standing, at rest.
+        val restDegrees = if (style.standsUpright) 0f else spot.degrees
+        Box(
+            modifier = Modifier
+                .wrapContentSize(unbounded = true, align = Alignment.TopStart)
+                .offset(x = gridUnit * (CUP_GRID_WIDTH / 2f + spot.x) - HALO_DIE_LAYOUT_SIZE / 2, y = gridUnit * spot.y - HALO_DIE_LAYOUT_SIZE / 2)
+                .requiredSize(HALO_DIE_LAYOUT_SIZE)
+                .graphicsLayer {
+                    val strength = shake.value
+                    val time = shakeSeconds.value
+                    scaleX = scale
+                    scaleY = scale
+                    rotationZ = restDegrees + strength * HALO_DIE_TURN * sin(time * (23f + index * 3f) + index)
+                    translationX = (gridUnit * strength * HALO_DIE_SLIDE * sin(time * (19f + index * 5f) + index * 3f)).toPx()
+                    translationY = -(gridUnit * strength * HALO_DIE_HOP * sin(time * (29f + index * 4f) + index * 2f).coerceAtLeast(0f)).toPx()
+                },
+        ) {
+            CompositionLocalProvider(LocalDieIndex provides index) {
+                style.Die(value = value, held = false, modifier = Modifier.fillMaxSize())
+            }
         }
     }
 
@@ -185,13 +285,14 @@ class RgbHaloDiceCupStyle(override val id: String, private val body: CupPalette,
         }
     }
 
-    /** The two RGB dice resting on the base inside the stack, jiggling while it's shaken. */
-    private fun CupDrawScope.drawDice(colour: Color, strength: Float, rattle: Float) {
-        val panel = if (frosted) Color(0xFFF4F4F6) else Color(0xFF111114)
-        val size = gx(9f)
-        val jiggle = gy(1.2f) * strength
-        drawLedDie(Offset(gx(centreX - 5f), gy(HALO_BASE_Y - 3.5f) - jiggle * sin(rattle * 41f).coerceAtLeast(0f)), size, -12f + 20f * strength * sin(rattle * 29f), 5, panel, colour)
-        drawLedDie(Offset(gx(centreX + 5.5f), gy(HALO_BASE_Y - 2.5f) - jiggle * sin(rattle * 37f + 1f).coerceAtLeast(0f)), size, 14f - 18f * strength * sin(rattle * 33f), 3, panel, colour)
+    /** A shadow under each die of the [pile] that lies on the base. */
+    private fun CupDrawScope.drawDiceShadows(pile: HaloDicePile) {
+        val width = gx(pile.size * 1.08f)
+        val height = gy(pile.size * 0.3f)
+        for (spot in pile.spots) {
+            if (spot.y < HALO_ON_BASE_Y) continue
+            drawOval(Color.Black.copy(alpha = 0.4f), Offset(gx(centreX + spot.x) - width / 2f, gy(spot.y + pile.size * 0.5f) - height * 0.6f), Size(width, height))
+        }
     }
 
     /** Ring [i]'s [front] half (or its back, behind the dice), moved by [offset]: a lit tube, glowing. */

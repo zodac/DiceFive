@@ -46,12 +46,14 @@ import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.resources.sora
+import net.zodac.dicefive.ui.style.CupDice
 import net.zodac.dicefive.ui.style.CupShape
 import net.zodac.dicefive.ui.style.DiceCupStyle
 import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DiceStyle
 import net.zodac.dicefive.ui.style.DiceStyles
 import net.zodac.dicefive.ui.style.DieMotion
+import net.zodac.dicefive.ui.style.LocalCupDice
 import net.zodac.dicefive.ui.style.LocalDieIndex
 import net.zodac.dicefive.ui.style.LocalDieMotion
 import org.jetbrains.compose.resources.Font
@@ -312,14 +314,17 @@ fun AppLogo(
             // Standing behind the fan, in its own shape's proportions so it isn't stretched.
             // Upright, and still unless tapped (see shakeCupOnTap): never tipped, so it never lets the
             // Top Hat's rabbit out - it only peeks from a hat left tipped over - and a shake ends upright.
-            cupStyle.Cup(
-                rolling = cupShaking,
-                tilted = false,
-                modifier = Modifier
-                    .noLayoutSpace()
-                    .offset(y = cupHeight / 2 - dieSize / 2 - cupAboveDice)
-                    .size(width = cupWidth, height = cupHeight),
-            )
+            // Nothing in a cup that shows its dice: they'd merge with the fan in front of it.
+            CompositionLocalProvider(LocalCupDice provides CupDice(diceStyle, 0)) {
+                cupStyle.Cup(
+                    rolling = cupShaking,
+                    tilted = false,
+                    modifier = Modifier
+                        .noLayoutSpace()
+                        .offset(y = cupHeight / 2 - dieSize / 2 - cupAboveDice)
+                        .size(width = cupWidth, height = cupHeight),
+                )
+            }
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),

@@ -64,11 +64,14 @@ import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.style.CupDice
 import net.zodac.dicefive.ui.style.FlowerpotGrowth
 import net.zodac.dicefive.ui.style.LocalCupActivity
 import net.zodac.dicefive.ui.style.LocalCupAnimated
+import net.zodac.dicefive.ui.style.LocalCupDice
 import net.zodac.dicefive.ui.style.LocalFlowerpotGrowth
 import net.zodac.dicefive.ui.style.LocalGameVisualTheme
+import net.zodac.dicefive.ui.style.plainDiceStyle
 import net.zodac.dicefive.ui.theme.TileIconColor
 
 /**
@@ -119,6 +122,10 @@ data class CupPanelState(
      * was still playing out - a volcano cooling, say - never carries over to the next turn.
      */
     val turnKey: Int = 0,
+    /** How many dice the next roll throws: every one not held, unlucky ones included. For the cup that shows them ([LocalCupDice]). */
+    val diceToRoll: Int,
+    /** What the game's dice can land on, which picks their style for the cup that shows them ([plainDiceStyle]). */
+    val dieValues: IntRange,
 )
 
 /** The cup's own square - what the rows it sits over must be tall enough for: two in a six-row board, more beyond that. */
@@ -436,6 +443,7 @@ internal fun DiceCup(
                     CompositionLocalProvider(
                         LocalCupAnimated provides (cup.rollsRemaining > 0),
                         LocalCupActivity provides dice,
+                        LocalCupDice provides CupDice(plainDiceStyle(visualTheme.diceStyle, cup.dieValues), cup.diceToRoll),
                         LocalFlowerpotGrowth provides cup.flowerpotGrowth,
                     ) {
                         // Under reduced motion the cup doesn't shake (the shake sound and buzz still play -

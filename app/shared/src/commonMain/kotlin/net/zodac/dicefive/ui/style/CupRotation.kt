@@ -10,6 +10,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
@@ -20,7 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.common.BoundedArt
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 
@@ -120,6 +123,15 @@ val LocalCupAnimated = compositionLocalOf { true }
  */
 val LocalCupActivity = compositionLocalOf<Any?> { null }
 
+/** What's in the cup, for a cup that shows it (the RGB Halo): [count] dice of [style], the player's own. */
+data class CupDice(val style: DiceStyle, val count: Int)
+
+/**
+ * The dice in the cup: in a game, those the next roll throws, a full set of the player's own on the Styles page, and none
+ * on the menu's logo, where they'd merge with the fan in front of it. A full set of the default dice anywhere else.
+ */
+val LocalCupDice = compositionLocalOf { CupDice(DiceStyles.default, GameMode.STANDARD.diceCount) }
+
 /**
  * Called the moment the Top Hat's rabbit peeks out, for The Magician's Secret. The game provides
  * it; anywhere else (the Styles screen, where the hat never tips) it does nothing.
@@ -173,6 +185,35 @@ fun CupCanvas(
         overflow = CUP_ART_OVERFLOW,
     ) {
         CupDrawScope(this, shape, pose).onDraw()
+    }
+}
+
+/**
+ * [CupCanvas] for a cup with real composables inside it ([between], such as a player's dice), which can't be drawn on a
+ * canvas: its [back] art, then those, then its [front] art, all turned as one. [between] gets the size of a grid unit, and
+ * the pose it's turned by. No liquid can be drawn in it: its pose never sloshes.
+ */
+@Composable
+internal fun LayeredCupCanvas(
+    rolling: Boolean,
+    tilted: Boolean,
+    modifier: Modifier,
+    back: CupDrawScope.() -> Unit,
+    front: CupDrawScope.() -> Unit,
+    shape: CupShape = CupShape.TALL,
+    between: @Composable (gridUnit: Dp, pose: CupPose) -> Unit,
+) {
+    val rotation = rememberCupRotation(rolling, tilted, RESTING_TILT_DEGREES)
+    val pose = remember(rotation) { CupPose({ rotation.value }, { rotation.value }) }
+    BoxWithConstraints(
+        modifier = modifier.graphicsLayer {
+            rotationZ = rotation.value
+            transformOrigin = TransformOrigin(0.5f, PIVOT_Y_FRACTION)
+        },
+    ) {
+        BoundedArt(modifier = Modifier.matchParentSize(), overflow = CUP_ART_OVERFLOW) { CupDrawScope(this, shape, pose).back() }
+        between(maxWidth / shape.gridWidth, pose)
+        BoundedArt(modifier = Modifier.matchParentSize(), overflow = CUP_ART_OVERFLOW) { CupDrawScope(this, shape, pose).front() }
     }
 }
 

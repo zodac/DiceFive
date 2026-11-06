@@ -124,6 +124,12 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
         rest p95 6.6-8.1 against Classic ~6.4 and Glitter ~9.7, tumbling p95 14-16 against Classic ~17.9 and Glitter ~19.5.
 - **Cups, backgrounds, mats** (board plus tray): 2-4 a frame in idle, shake and toss for every one, within ~20% of each
     other. A cup alone is 0.8-1.7.
+    - The RGB Halo with the player's dice inside (the cup alone, one run, p95, measured when they were 15dp and 14dp): 1.2
+        empty, 1.5 with five Classic and 1.7 with seven, up to 3.1 at rest and 2.9 shaken with seven RGB or Glitter. Its
+        dice are live while it stands and gone once poured.
+    - Its dice painted from nothing, the first frame's worst: seven Stone 43, seven Glitter 26, and 12 at most in a shake
+        that shows new faces. A game's warm-up paints the tray's 44dp faces first, which the cup then stamps; a seven-dice
+        tray's smaller faces aren't the cup's, so only the faces the warm-up's cup showed are ready there.
     - A patterned mat's or background's first frame is 17-55. Stone stamps three textured flags to stay there.
     - First paint, whole-screen harness (411x891dp xxhdpi, ~25 floor): the Leather and Granite backgrounds add ~50,
         Black Marble, Meadow and the Honeycomb one 30-38; Honeycomb and Stone mats ~24; Leather and Stone dice ~22.

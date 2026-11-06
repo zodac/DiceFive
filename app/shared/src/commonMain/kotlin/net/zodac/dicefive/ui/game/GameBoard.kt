@@ -426,6 +426,9 @@ private fun cupPanelState(
         onCupTap = onCupTap,
         onUndo = onUndo,
         turnKey = state.scoresEntered,
+        // From all the dice: the board's own list is only those that score, which in Stud is only the held ones.
+        diceToRoll = state.dice.count { !it.isHeld },
+        dieValues = state.gameMode.dieValues,
         flowerpotGrowth = FlowerpotGrowth(
             stage = player?.flowerpotStage ?: 0,
             grower = state.currentPlayerIndex,

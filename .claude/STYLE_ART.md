@@ -126,6 +126,16 @@ once, in a function every category calls, rather than copying it. Already shared
     colour), keeping `remember`ed state. Keep per-colour state out of `remember` initialisers.
 - **Reduced motion** (`LocalReduceMotion`, `UI.md`): stop decorative motion and keep the outcome (the lid still opens,
     spilled pieces appear at rest). Don't rely on Compose's animation scale alone.
+- **A cup that shows its dice** (the RGB Halo) reads `LocalCupDice`: the game's unheld dice (unlucky ones are rolled again,
+    so they count), in the style the tray draws them in, a full set of the player's own on the Styles page, or none on the
+    menu's logo, where they'd merge with its fan.
+    - A `Die` is a composable, so it can't go on a cup's canvas. `LayeredCupCanvas` turns a back canvas, the composables,
+        and a front canvas as one.
+    - Lay a die out at the tray's size (44dp) and scale it in a `graphicsLayer`. Its art is made for that size (pips' padding
+        is in dp), and it stamps the faces the game's warm-up already painted.
+    - The dice leave the composition once poured, so a tipped cup costs nothing for them.
+    - A die has to stay inside what holds it, turned or shaken: its reach is its half-width times `cos + sin` of its turn. The
+        Halo's heap is held to its narrowest ring's inner edge at rest and that ring's outer edge shaken (`RgbHaloDiceTest`).
 
 ## Shipping a style
 

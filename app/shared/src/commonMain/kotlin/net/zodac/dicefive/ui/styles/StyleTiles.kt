@@ -120,6 +120,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.game.style.StyleAccess
 import net.zodac.dicefive.game.style.StyleCategory
@@ -179,11 +180,13 @@ import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.tooltipMarkup
 import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 import net.zodac.dicefive.ui.icons.Symbols
+import net.zodac.dicefive.ui.style.CupDice
 import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DiceMats
 import net.zodac.dicefive.ui.style.DiceStyle
 import net.zodac.dicefive.ui.style.DiceStyles
 import net.zodac.dicefive.ui.style.DieMotion
+import net.zodac.dicefive.ui.style.LocalCupDice
 import net.zodac.dicefive.ui.style.LocalDieMotion
 import net.zodac.dicefive.ui.style.ScoreFrame
 import net.zodac.dicefive.ui.style.ScoreFramePreviewColour
@@ -195,6 +198,7 @@ import net.zodac.dicefive.ui.style.StyleFamily
 import net.zodac.dicefive.ui.style.TableArt
 import net.zodac.dicefive.ui.style.TableBackgrounds
 import net.zodac.dicefive.ui.style.catalog
+import net.zodac.dicefive.ui.style.visualTheme
 import net.zodac.dicefive.ui.theme.GoldAccent
 import org.jetbrains.compose.resources.StringResource
 
@@ -376,6 +380,7 @@ internal fun StyleCategorySection(
 
         StyleCategory.DICE_CUP -> CategoryCard(title = stringResource(Res.string.styles_category_dice_cup)) {
             val shake = rememberCupPickShake()
+            val cupDice = CupDice(picks.visualTheme.diceStyle, GameMode.STANDARD.diceCount)
             StyleFamilyTiles(
                 catalog = DiceCupStyles,
                 selectedId = picks.diceCupStyleId,
@@ -398,14 +403,16 @@ internal fun StyleCategorySection(
                 key(style.id) {
                     // Forced still under reduced motion, as in a game (and off screen - see TileSlot).
                     val moving = shake.cupId == style.id && !LocalReduceMotion.current
-                    style.Cup(
-                        rolling = moving && shake.shaking,
-                        tilted = moving && !shake.shaking,
-                        modifier = Modifier.size(
-                            width = (style.shape.gridWidth * CUP_ART_SCALE).dp,
-                            height = (style.shape.gridHeight * CUP_ART_SCALE).dp,
-                        ),
-                    )
+                    CompositionLocalProvider(LocalCupDice provides cupDice) {
+                        style.Cup(
+                            rolling = moving && shake.shaking,
+                            tilted = moving && !shake.shaking,
+                            modifier = Modifier.size(
+                                width = (style.shape.gridWidth * CUP_ART_SCALE).dp,
+                                height = (style.shape.gridHeight * CUP_ART_SCALE).dp,
+                            ),
+                        )
+                    }
                 }
             }
         }

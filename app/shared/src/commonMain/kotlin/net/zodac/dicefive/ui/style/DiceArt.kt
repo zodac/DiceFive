@@ -433,6 +433,9 @@ class NumeralDiceStyle(
  */
 fun d20Like(base: DiceStyle): DiceStyle = if (base is D20DiceStyle) base else D20WhiteDiceStyle
 
+/** [base], or - for dice valued [dieValues] with more faces than its art has (D20's) - the white D20 (or the D20 style the player picked). */
+fun plainDiceStyle(base: DiceStyle, dieValues: IntRange): DiceStyle = if (dieValues.last > PIP_FACES) d20Like(base) else base
+
 /** The most faces a die's pips (and most styles' art) can show: a six-sided die's. */
 const val PIP_FACES = 6
 

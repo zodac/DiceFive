@@ -103,7 +103,7 @@ import net.zodac.dicefive.ui.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.style.PickUpPath
 import net.zodac.dicefive.ui.style.PIP_FACES
 import net.zodac.dicefive.ui.style.TossPath
-import net.zodac.dicefive.ui.style.d20Like
+import net.zodac.dicefive.ui.style.plainDiceStyle
 import net.zodac.dicefive.ui.style.TossPose
 import net.zodac.dicefive.ui.style.palette
 
@@ -1030,8 +1030,7 @@ private class TrayDiceStyles(base: DiceStyle, private val colours: List<DieColou
         colour = if (colours.isEmpty()) null else colours[random.nextInt(colours.size)],
     )
 
-    /** [base], or - for dice with more faces than its art has (D20's) - the white D20 (or the D20 style the player picked). */
-    val plain: DiceStyle = if (faceCount > PIP_FACES) d20Like(base) else base
+    val plain: DiceStyle = plainDiceStyle(base, dieValues)
 
     private val coloured: Map<DieColour, DiceStyle> = colours.associateWith { plain.recoloured(it.palette(irish)) }
 
