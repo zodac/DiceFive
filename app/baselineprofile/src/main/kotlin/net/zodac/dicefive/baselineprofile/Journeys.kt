@@ -404,11 +404,12 @@ private fun MacrobenchmarkScope.rollInLandscape() {
  */
 private fun MacrobenchmarkScope.leaveGame() {
     back()
-    await(By.text(Pattern.compile("Leave game\\?|Settings")), "the leave dialog or the menu after leaving a game")
+    // The wordmark, not a button lower down: a stack of banners from a game just finished can cover those for longer than a wait.
+    await(By.text(Pattern.compile("Leave game\\?|DiceFive")), "the leave dialog or the menu after leaving a game")
     if (hasText("Leave game?")) {
         closeDialog(By.text("Leave"), "the leave dialog's Leave button")
     }
-    await(By.text("Settings"), "the menu after leaving a game")
+    await(MENU, "the menu after leaving a game")
 }
 
 /** Back press in a game, then "Cancel" on the leave dialog (if the setting asks): the game carries on. */
@@ -929,7 +930,7 @@ internal fun MacrobenchmarkScope.visitAchievements() {
         if (device.wait(Until.hasObject(missing), CLOSE_WAIT_MS)) break
     }
     await(missing, "Tally's missing scores")
-    closeDialog(By.text("Done"), "the missing scores' Done button")
+    closeDialog(By.text("OK"), "the missing scores' OK button")
     tapTextUntil("Unearned") { device.hasObject(By.text("All")) }
     backToMenu()
 }
