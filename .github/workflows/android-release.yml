@@ -29,7 +29,7 @@ name: Android release
 # Play App Signing upload key - Play re-signs the bundle with its own key.
 #
 # The checks run side by side, each on a runner of its own - the app's Robolectric tests, the shared
-# module's tests, lint, and the Baseline Profile, which stops itself if a check fails. The signed APK is
+# module's tests, lint, the upgrade check, and the Baseline Profile, which stops itself if a check fails. The signed APK is
 # built with that profile once it and every check have passed, and the release itself is made only once
 # all of that has. Each job sets itself up through .github/actions/build-setup.
 #
@@ -82,6 +82,7 @@ jobs:
       name: ${{ steps.version.outputs.name }}
       sha: ${{ steps.version.outputs.sha }}
       release: ${{ steps.version.outputs.release }}
+      previous_tag: ${{ steps.version.outputs.previous_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -109,6 +110,7 @@ jobs:
             echo "::notice::Nothing on main since $previous_tag but the version bump - nothing to release"
           fi
           echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "previous_tag=$previous_tag" >> "$GITHUB_OUTPUT"
           echo "Releasing: $release (android-v$version, $sha; previous release: ${previous_tag:-none})"
 
   # app:android's unit tests - Robolectric, so the slowest of the checks. One runner per flavour, side by side: each
@@ -288,7 +290,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           nohup .github/scripts/watch_checks.sh "$RUNNER_TEMP/checks-failed" "android-tests (Play)" "android-tests (Github)" \
-            shared-tests lint \
+            shared-tests lint upgrade-check \
             > "$RUNNER_TEMP/watch-checks.log" 2>&1 &
 
       - name: Set up the build
@@ -432,11 +434,107 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  # A game left on the last release must resume on this one: .github/scripts/ci_upgrade_check.py plays one on the last
+  # release's APK, upgrades over it, and continues it (.claude/EMULATOR.md, "The upgrade check"). A failure fails the job,
+  # and with it the release. Both APKs are real R8 builds, re-signed with the public debug key: an upgrade needs one key,
+  # and this way a job that runs the app holds no signing secrets. Signing itself is the apk job's.
+  #
+  # An emulator that fails to boot, or an old app that couldn't be driven, says nothing about the upgrade and is tried
+  # again (three attempts in all). What the upgrade itself did (the script's exit status 2) is never retried: a game lost
+  # now and then is still a game lost.
+  upgrade-check:
+    needs: version
+    if: needs.version.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true # code-quality-config: lint's rules, which release builds read too (lintVital)
+          ref: ${{ needs.version.outputs.sha }}
+
+      - name: Set up the build
+        uses: ./.github/actions/build-setup
+        with:
+          ffmpeg: "true"
+
+      - name: Read the emulator's Android version
+        id: emulator
+        run: |
+          echo "api=$(grep -oP '^ARG EMULATOR_API=\K[0-9.]+' ai-sandbox-configuration/Dockerfile)" >> "$GITHUB_OUTPUT"
+          echo "sdk=$ANDROID_HOME" >> "$GITHUB_OUTPUT"
+
+      # Restored only: the baseline-profile job saves this key. On a miss ci_emulator.sh installs them.
+      - name: Restore the emulator and its system image
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ steps.emulator.outputs.sdk }}/emulator
+            ${{ steps.emulator.outputs.sdk }}/system-images/android-${{ steps.emulator.outputs.api }}
+          key: emulator-${{ runner.os }}-api${{ steps.emulator.outputs.api }}
+
+      # No signing secrets here, so Gradle leaves the APK unsigned.
+      - name: Build this version's APK
+        run: ./gradlew :app:android:assembleGithubRelease --console=plain
+
+      - name: Fetch the last release's APK and sign both with one key
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIOUS_TAG: ${{ needs.version.outputs.previous_tag }}
+          VERSION: ${{ needs.version.outputs.name }}
+        run: |
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "::error::No android-v* release to upgrade from"
+            exit 1
+          fi
+          mkdir "$RUNNER_TEMP/upgrade"
+          gh release download "$PREVIOUS_TAG" --repo "$GITHUB_REPOSITORY" --pattern "DiceFive-${PREVIOUS_TAG#android-v}.apk" --output "$RUNNER_TEMP/upgrade/old.apk"
+          cp "app/android/build/outputs/apk/github/release/DiceFive-$VERSION-github-release-unsigned.apk" "$RUNNER_TEMP/upgrade/new.apk"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)"
+          for apk in old new; do
+            "$apksigner" sign --ks app/android/debug.keystore --ks-pass pass:android --ks-key-alias androiddebugkey \
+              --key-pass pass:android "$RUNNER_TEMP/upgrade/$apk.apk"
+          done
+
+      - name: Upgrade over a game in progress
+        timeout-minutes: 40
+        run: |
+          for attempt in 1 2 3; do
+            if ! .github/scripts/ci_emulator.sh start; then
+              .github/scripts/ci_emulator.sh stop
+              echo "::warning::The emulator failed to boot (attempt $attempt)"
+              continue
+            fi
+            status=0
+            .github/scripts/ci_upgrade_check.py "$RUNNER_TEMP/upgrade/old.apk" "$RUNNER_TEMP/upgrade/new.apk" \
+              "$RUNNER_TEMP/upgrade-failure-$attempt" || status=$?
+            if [ "$status" -eq 0 ]; then
+              exit 0
+            fi
+            .github/scripts/ci_emulator.sh stop
+            if [ "$status" -eq 2 ]; then
+              exit 1
+            fi
+          done
+          echo "::error::The upgrade check couldn't drive the last release in three attempts - see the upgrade-check-report artifact"
+          exit 1
+
+      - name: Upload the upgrade check's report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: upgrade-check-report
+          path: |
+            ${{ runner.temp }}/upgrade-failure-*/
+            ${{ runner.temp }}/emulator-*.log
+          retention-days: 7
+
   # The signed release APK and App Bundle, built with the Baseline Profile generated above - only once the
   # profile and every check have passed (there's no use for a build that won't be released). Handed to the
   # release job as an artifact, with the mapping.txt each R8 run wrote.
   apk:
-    needs: [version, android-tests, shared-tests, lint, baseline-profile]
+    needs: [version, android-tests, shared-tests, lint, upgrade-check, baseline-profile]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -531,7 +629,7 @@ jobs:
 
   # Made only once every job it needs has succeeded (Actions' default), so a release always has its APK.
   release:
-    needs: [version, android-tests, shared-tests, lint, baseline-profile, apk]
+    needs: [version, android-tests, shared-tests, lint, upgrade-check, baseline-profile, apk]
     runs-on: ubuntu-latest
     permissions:
       contents: write

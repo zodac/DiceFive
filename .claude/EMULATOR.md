@@ -93,6 +93,25 @@ if the journey or a profile file changed beyond its comments and blank lines. Th
 **Reproducing a first boot like CI's**: run `.github/scripts/ci_emulator.sh start` with `ANDROID_HOME=/opt/android-sdk`
 and an empty `ANDROID_AVD_HOME` and `RUNNER_TEMP`.
 
+## The upgrade check in CI
+
+`android-release.yml`'s `upgrade-check` job blocks a release unless a game left on the last release resumes on this one.
+`.github/scripts/ci_upgrade_check.py` (its pure parts tested by `scripts/tests/ci-upgrade-check-test.py`) takes about two
+minutes in the sandbox.
+
+- **It plays** a fresh install of the last release's github APK: a score, a roll, four dice held, and a roll to prove the
+    holds took. **It upgrades** from the background with `adb install -r`. **It resumes** with Continue, compares the names,
+    totals, rolls left, and dice, then rolls to prove the holds came back and plays on.
+- **The github APK, not the play app:** only the APK is a release asset that installs directly. Both APKs are real R8
+    builds, re-signed with the debug key, so the job holds no signing secrets.
+- **Labels.** It drives a release already out, so its labels are the constants at the top of the script, not `Journeys.kt`.
+    Relabelling one means keeping the old label beside the new one until the new one is the last release's.
+- **Exit status.** 1 (the old app couldn't be driven) is retried; 2 (the upgrade lost or changed the game, or the crash
+    page showed) never is.
+- **Failures.** The `upgrade-check-report` artifact has the screen, the UI hierarchy, and the logcat.
+- **Trying it here:** sign both APKs as the job does, `emulator.sh start`, then
+    `python3 -I .github/scripts/ci_upgrade_check.py <old.apk> <new.apk> <directory>`.
+
 ## Versions: the emulator follows compileSdk
 
 - **`ARG EMULATOR_API=37.0` in `ai-sandbox-configuration/Dockerfile` is the one place** the emulator's version is chosen.

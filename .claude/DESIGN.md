@@ -701,7 +701,8 @@ Two apps from one source, one per way the app reaches players: product flavours 
         one at a time, so a push made during a run builds after that run's bump, not the version just released. It fails
         when `android-v<VERSION>` already exists (a release's files are never replaced), and releases nothing when the
         only commits since the last release are the bot's own (every other job is then skipped);
-    - parallel jobs, each on that commit: Android tests (a runner per flavour), shared tests, lint, the Baseline Profile
+    - parallel jobs, each on that commit: Android tests (a runner per flavour), shared tests, lint, the upgrade check
+        (a game on the last release's APK must resume on this one; `EMULATOR.md`, "The upgrade check"), the Baseline Profile
         (generated fresh on an emulator from the play app, and given to both; see `EMULATOR.md`), and the github APK plus
         the play App Bundle;
     - then a `release` job that publishes GitHub release `android-v<version>` once every check has passed, with
