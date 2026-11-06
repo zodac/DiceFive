@@ -902,7 +902,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `each counter moves when its timing says - and a finished game moves every one`() {
+    fun `each counter moves when its timing says - and a finished game moves every one but the time played`() {
         val asScored = setOf(AchievementCounter.SCORED_5X, AchievementCounter.FIVE_X_NUMBERS, AchievementCounter.FULL_HOUSES)
         assertEquals(asScored, AchievementCounter.entries.filterTo(mutableSetOf()) { it.timing == CounterTiming.AS_SCORED })
 
@@ -910,7 +910,7 @@ class AchievementEngineTest {
         val scoring = midGamePlayer(mapOf(ScoreCategory.FIVE_OF_A_KIND to 50)).copy(fiveOfAKindNumbers = setOf(3), fullHouseHands = setOf(1))
         assertEquals(asScored, AchievementEngine.evaluateInProgress(inProgress(scoring), AchievementsState(), NOW).counters.keys)
 
-        assertEquals(AchievementCounter.entries.toSet(), evaluate(finishedGame(player())).counters.keys)
+        assertEquals(AchievementCounter.entries.toSet() - AchievementCounter.PLAY_SECONDS, evaluate(finishedGame(player())).counters.keys)
     }
 
     @Test

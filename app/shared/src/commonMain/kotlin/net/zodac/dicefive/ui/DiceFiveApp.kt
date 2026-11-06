@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import kotlin.time.Duration.Companion.seconds
@@ -134,6 +135,11 @@ fun DiceFiveApp(
     }
     // What the store says the player owns is kept on the device, which every style lock reads.
     LaunchedEffect(container, store) { container.purchasesRepository.follow(store) }
+    // Only while in front of the player: pausing covers the background, the screen going off, and a system sheet on top.
+    LifecycleResumeEffect(container) {
+        container.playTime.resume()
+        onPauseOrDispose { container.playTime.pause() }
+    }
     // Put one device down and pick another up: the first saves, the second reads.
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { OnlineSyncRequests.request() }
     LifecycleEventEffect(Lifecycle.Event.ON_START) { OnlineSyncRequests.request() }

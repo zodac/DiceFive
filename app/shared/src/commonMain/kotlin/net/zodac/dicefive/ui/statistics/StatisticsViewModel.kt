@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -36,6 +37,8 @@ class StatisticsViewModel(
     sortOrders: StateFlow<Map<ModePage, StatisticsSortOrder>?>? = null,
     /** The app's own copy of the page ([AppContainer.statisticsChoice]); without one, it's read from [settingsRepository]. */
     page: StateFlow<ModePage?>? = null,
+    /** The time played on every device, in seconds, up to now. */
+    val readPlaySeconds: suspend () -> Int = { 0 },
 ) : ViewModel() {
 
     private val storedSorts: StateFlow<Map<ModePage, StatisticsSortOrder>?> = sortOrders
@@ -100,7 +103,7 @@ class StatisticsViewModel(
     companion object {
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                StatisticsViewModel(container.scoreRepository, container.settingsRepository, container.statisticsSorts, container.statisticsChoice)
+                StatisticsViewModel(container.scoreRepository, container.settingsRepository, container.statisticsSorts, container.statisticsChoice, { container.achievementsRepository.playSeconds.first() + container.playTime.unsavedSeconds })
             }
         }
     }

@@ -2,6 +2,7 @@ package net.zodac.dicefive.data.achievements
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.Stamped
@@ -101,5 +102,32 @@ class AchievementsRepositoryCloudTest {
             mapOf(before to mapOf(AchievementCounter.GAMES_PLAYED.id to 10), after to mapOf(AchievementCounter.GAMES_PLAYED.id to 2)),
             repository.cloudAchievements().deviceCounters,
         )
+    }
+
+    @Test
+    fun `time played is a share of its own in the save - added up across devices - and out of the achievements' state`() = runTest {
+        repository.addPlaySeconds(100)
+        repository.addPlaySeconds(20)
+        assertEquals(120, repository.playSeconds.first())
+        assertEquals(emptyMap(), repository.current().counters, "a minute's save mustn't move what the achievements watch")
+        assertEquals(mapOf(AchievementCounter.PLAY_SECONDS.id to 120), repository.cloudAchievements().deviceCounters.getValue(ownShare()))
+
+        val other = CloudAchievements(deviceCounters = mapOf("other" to mapOf(AchievementCounter.PLAY_SECONDS.id to 50)))
+        repository.mergeCloud(other)
+        repository.mergeCloud(other)
+        assertEquals(170, repository.playSeconds.first(), "merging one in twice counts it once")
+
+        repository.addPlaySeconds(5)
+        assertEquals(mapOf(AchievementCounter.PLAY_SECONDS.id to 125), repository.cloudAchievements().deviceCounters.getValue(ownShare(setOf("other"))))
+    }
+
+    @Test
+    fun `a game writing its counters leaves time played as it is`() = runTest {
+        repository.addPlaySeconds(100)
+        val before = repository.current().counters
+        repository.addPlaySeconds(10)
+        repository.record(emptyMap(), before + (AchievementCounter.GAMES_PLAYED to 1))
+        assertEquals(110, repository.playSeconds.first())
+        assertEquals(mapOf(AchievementCounter.GAMES_PLAYED to 1), repository.current().counters)
     }
 }

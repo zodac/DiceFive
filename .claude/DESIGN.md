@@ -368,6 +368,15 @@ can't is a page saying so, with the stack trace to report. The app never just cl
 
 ## Leaderboard and Statistics
 
+**Time played** is a line at the top of Statistics, on every page and with no players yet: `PlayTimeLine`, seconds
+counting up for the first minute ("42s"), then hours and minutes however many hours ("Time played: 1,234h 5m", spoken
+"1234 hours and 5 minutes"). It reads the total again only when the line would next change, and only while resumed.
+`PlayTimeTracker` counts the app in front of the player, from `ON_RESUME` to `ON_PAUSE` on the monotonic clock, and
+saves at each pause and every minute while resumed. It's the counter `AchievementCounter.PLAY_SECONDS`, for the
+per-device `SUM` in the cloud save and progress files, but stays out of `AchievementsState`, so it never moves
+achievement flows or a game's counter write, and out of `changeStamp`, so it goes with the next save that has
+something else to send. It started at zero in the version that added it.
+
 Both pages pick what they show from a drop-down at the top: a page for each game mode, Standard's first and the one
 they open on, then **Combined**, every mode's games together, last (a divider after Standard and before Combined).
 

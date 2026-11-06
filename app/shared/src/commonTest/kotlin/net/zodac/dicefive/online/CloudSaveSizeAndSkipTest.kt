@@ -23,6 +23,7 @@ import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.game.TieBreakStats
+import net.zodac.dicefive.model.AchievementCounter
 import okio.Buffer
 import okio.GzipSink
 import okio.buffer
@@ -294,8 +295,9 @@ class CloudSaveSizeAndSkipTest {
     fun `the real store's stamp stands still until something the save holds changes - and reads no rows`() = runTest {
         val scores = ScoreRepository(InMemoryScoreDao())
         val online = OnlineSettingsRepository(InMemoryPreferences())
+        val achievements = AchievementsRepository(InMemoryPreferences())
         val store = LocalCloudSave(
-            AchievementsRepository(InMemoryPreferences()),
+            achievements,
             scores,
             SettingsRepository(InMemoryPreferences()),
             InProgressGameRepository(InMemoryPreferences()),
@@ -303,6 +305,11 @@ class CloudSaveSizeAndSkipTest {
         )
         val first = store.changeStamp()
         assertEquals(first, store.changeStamp())
+
+        // Time played alone is nothing to write a save for: it goes with the next save that has something else to send.
+        achievements.addPlaySeconds(60)
+        assertEquals(first, store.changeStamp())
+        assertEquals(60, store.snapshot().achievements.deviceCounters.values.single()[AchievementCounter.PLAY_SECONDS.id])
 
         scores.recordGame(listOf(PlayerResult("Sam", TieBreakStats(score = 200, fiveOfAKindCount = 0, zeroedCategoryCount = 0, tricolourScoredCount = null, upperSectionTotal = 0, chance = 0, threeOfAKind = 0, fourOfAKind = 0), won = null, isPrimaryPlayer = true)))
         val afterGame = store.changeStamp()

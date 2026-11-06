@@ -260,6 +260,13 @@ enum class AchievementCounter(
 
     /** Each of [Achievement.FULL_HOUSES_HANDS] player 1 has scored a Full House with: bit `n - 1` for the `n`th. */
     FULL_HOUSES("FULL_HOUSES", isFlags = true, timing = CounterTiming.AS_SCORED),
+
+    /**
+     * The seconds the app has been in front of the player ([net.zodac.dicefive.app.PlayTimeTracker]). No achievement
+     * measures it, and it isn't in [net.zodac.dicefive.data.achievements.AchievementsState]: it's here for the cloud
+     * save's share per device.
+     */
+    PLAY_SECONDS("PLAY_SECONDS"),
     ;
 
     /** How far [stored] - this counter's stored value - counts towards an achievement's target. */

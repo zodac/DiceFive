@@ -78,6 +78,9 @@ class AppContainer(
     val savedStyles: StateFlow<SavedStyles?> =
         savedStylesFlow(settingsRepository, achievementsRepository, ownsAllStyles).stateIn(scope, SharingStarted.Eagerly, null)
 
+    /** Counts the time the app is on screen, for the life of the process, so a write outlives the page that asked. */
+    val playTime: PlayTimeTracker = PlayTimeTracker(achievementsRepository::addPlaySeconds, scope)
+
     /** The one way an achievement is earned, shared by every screen - see [AchievementUnlocker]. */
     val achievementUnlocker: AchievementUnlocker = AchievementUnlocker(achievementsRepository, ownsAllStyles)
 

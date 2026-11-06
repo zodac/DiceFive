@@ -50,9 +50,19 @@ class AchievementsRepository(
     override val state: Flow<AchievementsState> = dataStore.data.map { prefs ->
         AchievementsState(
             unlockedAt = UNLOCKED_KEYS.mapNotNull { (achievement, key) -> prefs[key]?.let { achievement to it } }.toMap(),
-            counters = COUNTER_KEYS.mapNotNull { (counter, key) -> prefs[key]?.let { counter to it } }.toMap(),
+            counters = COUNTER_KEYS.filter { (counter, _) -> counter != AchievementCounter.PLAY_SECONDS }
+                .mapNotNull { (counter, key) -> prefs[key]?.let { counter to it } }.toMap(),
         )
     }.distinctUntilChanged()
+
+    /** The seconds played on every device, as of the last merge. Apart from [state], which it would move every minute. */
+    val playSeconds: Flow<Int> = dataStore.data.map { it[counterKey(AchievementCounter.PLAY_SECONDS)] ?: 0 }.distinctUntilChanged()
+
+    /** Adds [seconds] to [playSeconds], in an edit of its own, so it can't lose or undo a game's write of the other counters. */
+    suspend fun addPlaySeconds(seconds: Int) {
+        val key = counterKey(AchievementCounter.PLAY_SECONDS)
+        dataStore.edit { it[key] = ((it[key] ?: 0).toLong() + seconds).coerceAtMost(Int.MAX_VALUE.toLong()).toInt() }
+    }
 
     override suspend fun current(): AchievementsState = state.first()
 

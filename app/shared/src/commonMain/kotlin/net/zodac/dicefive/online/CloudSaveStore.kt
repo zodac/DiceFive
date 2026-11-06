@@ -1,5 +1,6 @@
 package net.zodac.dicefive.online
 
+import net.zodac.dicefive.model.AchievementCounter
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsRepository
 import net.zodac.dicefive.data.game.InProgressGameRepository
@@ -50,8 +51,13 @@ class LocalCloudSave(
 
     override suspend fun snapshot(): CloudSave = withoutScores().copy(scores = scores.cloudScores())
 
-    /** The [snapshot] but for the scores, which aren't read, every row of them, just to see that none has changed. */
-    override suspend fun changeStamp(): Any = scores.writes to withoutScores()
+    /**
+     * The [snapshot] but for the scores, which aren't read, every row of them, just to see that none has changed, and
+     * the time played, which moves every session: it goes with the next save that has something else to send.
+     */
+    override suspend fun changeStamp(): Any = scores.writes to withoutScores().let { save ->
+        save.copy(achievements = save.achievements.copy(deviceCounters = save.achievements.deviceCounters.mapValues { (_, counters) -> counters - AchievementCounter.PLAY_SECONDS.id }))
+    }
 
     private suspend fun withoutScores() = CloudSave(
         achievements = achievements.cloudAchievements(),

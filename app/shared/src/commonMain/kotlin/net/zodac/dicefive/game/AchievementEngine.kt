@@ -311,7 +311,7 @@ object AchievementEngine {
                 AchievementCounter.SCORED_5X -> before.counter(counter) + uncountedFiveOfAKinds(humans)
                 AchievementCounter.FIVE_X_NUMBERS -> flagsWith(Achievement.FULL_SET, player.fiveOfAKindNumbers)
                 AchievementCounter.FULL_HOUSES -> flagsWith(Achievement.FULL_HOUSES, player.fullHouseHands)
-                AchievementCounter.GAMES_PLAYED, AchievementCounter.GAMES_WON, AchievementCounter.WIN_STREAK, AchievementCounter.DICE_ROLLED -> null
+                AchievementCounter.GAMES_PLAYED, AchievementCounter.GAMES_WON, AchievementCounter.WIN_STREAK, AchievementCounter.DICE_ROLLED, AchievementCounter.PLAY_SECONDS -> null
             }
             if (value != null) put(counter, value)
         }

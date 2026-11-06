@@ -58,7 +58,7 @@ class StatisticsDefaultExpansionTest : UiTest() {
     }
 
     @Test
-    fun `only the first card opens when they don't all fit - and opening another leaves it open`() = uiTest {
+    fun `only the first card opens when they don't all fit - and opening another leaves it open`() = uiTest(TestScreen(360, 640)) {
         showPlayers(4)
         compose.onAllNodes(OPEN_CARD).assertCountEquals(1)
 
@@ -69,7 +69,7 @@ class StatisticsDefaultExpansionTest : UiTest() {
     }
 
     @Test
-    fun `closed cards on screen have their open content built ahead - taking no room and silent - and a tap shows it`() = uiTest {
+    fun `closed cards on screen have their open content built ahead - taking no room and silent - and a tap shows it`() = uiTest(TestScreen(360, 1000)) {
         showPlayers(4)
         val builtAhead = compose.onAllNodesWithTag(BUILT_AHEAD_TAG, useUnmergedTree = true).fetchSemanticsNodes()
         assertTrue(builtAhead.isNotEmpty())
