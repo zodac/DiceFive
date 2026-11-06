@@ -2,7 +2,7 @@
 
 [← Back to Documentation](./index.md)
 
-**Last updated:** 23 October 2026
+**Last updated:** 7 November 2026
 
 This Privacy Policy explains how DiceFive ("the App") handles information when you use the App.
 
@@ -19,7 +19,8 @@ section 4) and are not sent to us. If you sign in to Google Play Games, they are
 (see section 3), with your scores, so your other signed-in devices can show them.
 
 Signing in to Google Play Games is optional. The App never signs you in by itself: it does so only when you choose
-Sign in in the App's Settings. Until then, nothing leaves your device through the App. The App connects to Google
+Sign in in the App's Settings. Until then, nothing leaves your device through the App, unless you choose to send a crash
+report (see section 5) or to save a progress file (see section 4). The App connects to Google
 Play Games only through the Google Play services app on your device, and only when it was installed from Google Play.
 Copies of the App downloaded from elsewhere never use Google Play Games.
 
@@ -50,6 +51,7 @@ so that your devices signed in to the same account share it. It includes:
 
 - Scores and statistics, with the player names typed in for them
 - Achievements and achievement progress
+- How long you have played the App
 - Game settings and preferences, including the styles you have chosen
 - The game in progress, if there is one
 
@@ -73,6 +75,11 @@ stored data in your device backup (for example, to your Google account). This ba
 Android and Google under your device and account settings, not by the App, and you can turn it off in
 your device's settings.
 
+Copies of the App downloaded from elsewhere than Google Play can also save your progress to a file, and read it back.
+The file holds your scores and statistics with the player names typed in for them, your achievements and their progress,
+how long you have played, your settings and chosen styles, and any game in progress. It is saved only when you ask, to the place you pick, and is
+not sent to us. Where it goes from there, and who can reach it, depends on the place you picked.
+
 ## 5. Advertising and Analytics
 
 The App does not show advertising, and does not use advertising services or third-party analytics services.
@@ -84,6 +91,19 @@ We do not use analytics services to track how individual users interact with the
 If the App crashes or stops responding, Google Play may collect technical diagnostic information (such
 as crash reports) and share it with us in a form that does not identify you, as described in Google's
 Privacy Policy. This depends on your device's settings.
+
+If the App stops because of an error, it shows a page describing the problem, with the option to report it on GitHub. The
+App sends nothing by itself. Choosing to report opens your web browser at a new GitHub issue, filled in with:
+
+- The App's version, and how it was installed
+- Your device's manufacturer and model, its Android version, and its screen size and font size
+- The language in use
+- The App's recent actions, such as the pages opened and the moves made, which never include the player names you typed
+- The technical details of the error
+
+You can read and change all of it before posting, and nothing is sent unless you post it, which needs a GitHub account of
+your own. GitHub issues are public, and GitHub's own terms and privacy statement apply to them. To have a report removed,
+contact us (see section 11). You can also copy these details from the page to share them another way.
 
 If these practices change in the future, this Privacy Policy will be updated accordingly.
 

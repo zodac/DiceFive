@@ -62,6 +62,12 @@ until the player signs in.
         (the saved game: settings, styles, the game in progress).
     - App info and performance > **Crash logs** and **Diagnostics**: collected by the Play Games SDK itself, purpose
         Analytics (Google's list says "to improve the stability of our SDKs").
+    - Financial info > **Purchase history**: the play app reads whether the player's Google Play account owns "Unlock all
+        styles", and keeps one flag on the device. Purpose App functionality. Not linked to any server of ours, as there
+        is none. Check Google's current guidance on whether a read through Play Billing counts as collecting.
+- **The crash page's GitHub report isn't collection by the app.** The player posts it from their own browser and account,
+    the app sends nothing, and the play app has no `INTERNET` permission. The privacy policy still describes it.
+- **Progress files aren't in the form.** They're only in the GitHub APK, which isn't on Play.
 - **Revisit** when billing or analytics ship, or the cloud save gains a new kind of data.
 
 ## Store listing
