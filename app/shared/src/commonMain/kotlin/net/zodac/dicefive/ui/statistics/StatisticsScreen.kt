@@ -74,7 +74,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -131,7 +130,6 @@ import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.EmptyStateCard
 import net.zodac.dicefive.ui.common.HoldPageCover
-import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.LocalPageCover
@@ -170,17 +168,6 @@ fun StatisticsScreen(
     var pendingDeleteName by rememberSaveable { mutableStateOf<String?>(null) }
     val sortOrders by viewModel.sortOrders.collectAsStateWithLifecycle()
     val page by viewModel.page.collectAsStateWithLifecycle()
-    // Read again when the line would next change, and only while resumed. Never going back: a save moves seconds from
-    // what's counted to what's stored.
-    var playSeconds by remember { mutableStateOf<Int?>(null) }
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    LaunchedEffect(viewModel, lifecycle) {
-        while (true) {
-            val shown = maxOf(playSeconds ?: 0, viewModel.readPlaySeconds())
-            playSeconds = shown
-            lifecycle.delayWhileResumed(untilPlayTimeChanges(shown).inWholeMilliseconds)
-        }
-    }
     // The page's own sort; null until both are loaded.
     val sortOrder = page?.let { sortOrders?.get(it) }
     val players = remember(state.players, page, sortOrder) { page?.let { sortOrder?.order(it.cards(state.players)) }.orEmpty() }
@@ -205,8 +192,7 @@ fun StatisticsScreen(
         // before the player cards - and the page cover kept up over it meanwhile.
         val onPage = page
         if (!state.isLoaded || sortOrder == null || onPage == null) return@ScreenScaffold HoldPageCover()
-        val seconds = playSeconds ?: return@ScreenScaffold HoldPageCover()
-        PlayTimeLine(seconds, modifier = Modifier.padding(bottom = 8.dp))
+        LivePlayTimeLine(viewModel.readPlaySeconds, modifier = Modifier.padding(bottom = 8.dp))
         if (state.players.isEmpty()) return@ScreenScaffold EmptyStateCard(stringResource(Res.string.stats_empty))
         ModePagePicker(
             selected = onPage,

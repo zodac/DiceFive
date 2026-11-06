@@ -23,7 +23,7 @@ class PlayTimeTracker(
     private val addSeconds: suspend (Int) -> Unit,
     scope: CoroutineScope,
     private val clock: TimeSource.WithComparableMarks = TimeSource.Monotonic,
-    private val saveEvery: Duration = 1.minutes,
+    private val saveEvery: Duration = 5.minutes,
 ) {
 
     /** What's been counted and not saved: [unsaved] up to [resumedAt], and all the time since it while it isn't null. */

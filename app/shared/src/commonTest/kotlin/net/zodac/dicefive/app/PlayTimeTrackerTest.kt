@@ -51,17 +51,17 @@ class PlayTimeTrackerTest {
     }
 
     @Test
-    fun `it saves each minute while resumed - so an ending with no warning costs at most that`() = runTest {
+    fun `it saves every five minutes while resumed - so an ending with no warning costs at most that`() = runTest {
         val tracker = tracker()
         tracker.resume()
         runCurrent()
-        advanceTimeBy(2.minutes + 1.seconds)
+        advanceTimeBy(10.minutes + 1.seconds)
         runCurrent()
-        assertEquals(listOf(60, 60), saved)
+        assertEquals(listOf(300, 300), saved)
 
         tracker.pause()
         runCurrent()
-        assertEquals(listOf(60, 60, 1), saved)
+        assertEquals(listOf(300, 300, 1), saved)
     }
 
     @Test
@@ -98,15 +98,15 @@ class PlayTimeTrackerTest {
         advanceTimeBy(42.seconds)
         assertEquals(42, total + tracker.unsavedSeconds)
 
-        advanceTimeBy(60.seconds)
+        advanceTimeBy(300.seconds)
         runCurrent()
-        assertEquals(60, total)
-        assertEquals(102, total + tracker.unsavedSeconds)
+        assertEquals(300, total)
+        assertEquals(342, total + tracker.unsavedSeconds)
 
         tracker.pause()
         runCurrent()
-        assertEquals(102, total)
+        assertEquals(342, total)
         advanceTimeBy(30.seconds)
-        assertEquals(102, total + tracker.unsavedSeconds, "nothing counts while paused")
+        assertEquals(342, total + tracker.unsavedSeconds, "nothing counts while paused")
     }
 }

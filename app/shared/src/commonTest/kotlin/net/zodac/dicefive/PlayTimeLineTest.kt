@@ -11,6 +11,7 @@ import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.scores.InMemoryScoreDao
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
+import net.zodac.dicefive.ui.statistics.LivePlayTimeLine
 import net.zodac.dicefive.ui.statistics.PlayTimeLine
 import net.zodac.dicefive.ui.statistics.StatisticsScreen
 import net.zodac.dicefive.ui.statistics.StatisticsViewModel
@@ -67,6 +68,24 @@ class PlayTimeLineTest : UiTest() {
         assertEquals(1.seconds, untilPlayTimeChanges(86399))
         assertEquals(60.seconds, untilPlayTimeChanges(86400))
         assertEquals(59.seconds, untilPlayTimeChanges(86401))
+    }
+
+    @Test
+    fun `the live line updates as the total grows - and never goes back when a save moves seconds across`() = uiTest {
+        var total = 5
+        showcase.show { DiceFiveTheme { LivePlayTimeLine({ total }) } }
+        compose.waitForIdle()
+        compose.onNodeWithText("Time played: 5s").assertExists()
+
+        total = 6
+        compose.mainClock.advanceTimeBy(1_100)
+        compose.waitForIdle()
+        compose.onNodeWithText("Time played: 6s").assertExists()
+
+        total = 2
+        compose.mainClock.advanceTimeBy(1_100)
+        compose.waitForIdle()
+        compose.onNodeWithText("Time played: 6s").assertExists()
     }
 
     @Test

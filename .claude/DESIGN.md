@@ -371,12 +371,13 @@ can't is a page saying so, with the stack trace to report. The app never just cl
 **Time played** is a line at the top of Statistics, on every page and with no players yet: `PlayTimeLine`, seconds
 counting up for the first minute ("42s"), then minutes, hours and minutes ("12h 34m"), and from 24 hours days, hours,
 and minutes, however many days ("Time played: 3d 4h 12m", spoken "3 days, 4 hours, and 12 minutes"). Its numbers are
-gold in the brand font (Arabic's digits fall back to the system font, in gold). It reads the total again only when the
-line would next change, and only while resumed. `PlayTimeTracker` counts the app in front of the player, from
-`ON_RESUME` to `ON_PAUSE` on the monotonic clock, and saves at each pause and every minute while resumed. It's the
-counter `AchievementCounter.PLAY_SECONDS`, for the per-device `SUM` in the cloud save and progress files, but stays
-out of `AchievementsState`, so it never moves achievement flows or a game's counter write, and out of `changeStamp`,
-so it goes with the next save that has something else to send. It started at zero in the version that added it.
+gold in the brand font (Arabic's digits fall back to the system font, in gold). `LivePlayTimeLine` reads the total
+again only when the line would next change, and only while resumed, and holds its state itself, so an update
+recomposes only that line. `PlayTimeTracker` counts the app in front of the player, from `ON_RESUME` to `ON_PAUSE` on
+the monotonic clock, and saves at each pause and every five minutes while resumed. It's the counter
+`AchievementCounter.PLAY_SECONDS`, for the per-device `SUM` in the cloud save and progress files, but stays out of
+`AchievementsState`, so it never moves achievement flows or a game's counter write, and out of `changeStamp`, so it
+goes with the next save that has something else to send. It started at zero in the version that added it.
 
 Both pages pick what they show from a drop-down at the top: a page for each game mode, Standard's first and the one
 they open on, then **Combined**, every mode's games together, last (a divider after Standard and before Combined).

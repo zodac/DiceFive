@@ -6,6 +6,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -14,6 +19,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.stats_play_time
 import net.zodac.dicefive.resources.stats_play_time_days_hours_minutes
@@ -25,6 +31,8 @@ import net.zodac.dicefive.resources.stats_play_time_minutes_spoken
 import net.zodac.dicefive.resources.stats_play_time_seconds
 import net.zodac.dicefive.resources.stats_play_time_seconds_spoken
 import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.HoldPageCover
+import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.spokenList
@@ -40,6 +48,25 @@ internal fun untilPlayTimeChanges(seconds: Int): Duration =
 
 /** Where [shown], a time like "1,234d 4h 12m", has its numbers: each whole, with its grouping, in any language's digits. */
 internal fun playTimeNumbers(shown: String): List<IntRange> = Regex("\\p{Nd}+(?:[.,\u066C]\\p{Nd}+)*").findAll(shown).map { it.range }.toList()
+
+/**
+ * [PlayTimeLine] for the total [read] gives, read again when the line would next change, and only while resumed. Its state
+ * is read here, so an update recomposes this line and not the page around it. Never going back: a save moves seconds from
+ * what's counted to what's stored. The page cover stays up until the first read.
+ */
+@Composable
+internal fun LivePlayTimeLine(read: suspend () -> Int, modifier: Modifier = Modifier) {
+    var seconds by remember { mutableStateOf<Int?>(null) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(read, lifecycle) {
+        while (true) {
+            val shown = maxOf(seconds ?: 0, read())
+            seconds = shown
+            lifecycle.delayWhileResumed(untilPlayTimeChanges(shown).inWholeMilliseconds)
+        }
+    }
+    seconds?.let { PlayTimeLine(it, modifier) } ?: HoldPageCover()
+}
 
 /**
  * The time played on every device, whatever the Statistics page: seconds for the first minute, then minutes, then hours
