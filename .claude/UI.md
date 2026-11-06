@@ -46,8 +46,10 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
     tonal maths).
 - **Dark only.** `DiceFiveTheme` takes no arguments and ignores system dark mode. Two things outside Compose depend on
     this:
-    - `MainActivity` passes `SystemBarStyle.dark` to `enableEdgeToEdge`, or light-mode phones get dark status icons.
-    - The window theme in `themes.xml` is dark `Theme.Material.NoActionBar`, so the first frame isn't white.
+    - The window theme in `themes.xml` is dark `Theme.Material.NoActionBar`, so the first frame isn't white and
+        light-mode phones keep light status icons.
+    - Its versioned copies (`values-v28`, `-v29`, `-v30`) hold the bars' transparency, contrast, and cutout mode. Never
+        use androidx's `enableEdgeToEdge()` or `Window`'s bar colour setters: Play flags them as deprecated.
 - **No dynamic colour.** The navy-and-gold table is the identity. `dynamicDarkColorScheme` is a two-line change if
     it's ever wanted (deferred).
 - **No typography or shape overrides**, and no `Type.kt`. Make per-use changes at the call site
@@ -102,7 +104,8 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
 - **`PageColumn`** fills the screen but scrolls when the content can't fit. The inner column is held to at least the
     viewport height, so `weight` spacers work.
     - **The trap**: a `weight` inside an unbounded scroll collapses to nothing without `heightIn(min = ...)`.
-- **Edge-to-edge** (`enableEdgeToEdge()`). **Exactly one** inset source applies per page:
+- **Edge-to-edge** (`setDecorFitsSystemWindows(window, false)` and the window theme). **Exactly one** inset source
+    applies per page:
     - inside `ScreenScaffold`, pass its `innerPadding` to `PageColumn` as `contentPadding`;
     - a standalone page (the menu, the results) uses `PageColumn`'s system-bar default.
 

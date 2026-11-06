@@ -53,9 +53,10 @@ android {
     androidResources {
         generateLocaleConfig = true
         // Only those languages' resources, and English's: in any other the app is wholly English (MainActivity's
-        // stringsLanguageConfiguration), so the libraries' other translations could never be read.
+        // stringsLanguageConfiguration), so the libraries' other translations could never be read. A values-vNN folder is
+        // an Android version's (the window theme), not a language.
         localeFilters += listOf("en") + file("src/main/res").list().orEmpty()
-            .filter { it.startsWith("values-") }.map { it.removePrefix("values-") }
+            .filter { it.startsWith("values-") && !it.matches(Regex("""values-v\d+""")) }.map { it.removePrefix("values-") }
     }
 
     defaultConfig {

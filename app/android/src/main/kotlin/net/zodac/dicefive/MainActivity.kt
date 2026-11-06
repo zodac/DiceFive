@@ -1,17 +1,15 @@
 package net.zodac.dicefive
 
 import android.content.Context
-import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.MonotonicFrameClock
 import androidx.compose.ui.platform.AndroidUiDispatcher
 import androidx.compose.ui.platform.compositionContext
 import androidx.compose.ui.platform.createLifecycleAwareWindowRecomposer
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.device.AndroidAppContainer
@@ -36,12 +34,9 @@ class MainActivity : ComponentActivity() {
         // Draws behind the system bars, which is the platform default from Android 15 (targetSdk
         // 35) onwards rather than an opt-in: screens handle the insets themselves, via Scaffold or
         // windowInsetsPadding, so the backdrop runs edge to edge under a transparent status bar.
-        // The bars are told the app is dark: left to follow the system, a phone in light mode would
-        // draw dark status bar icons on the app's dark page.
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-        )
+        // Not androidx's edge-to-edge helper: it calls Window's APIs deprecated by Android 15. The
+        // bars' colours, contrast, and the cutout are in the window theme (themes.xml).
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
         val container = AndroidAppContainer.get(this)
         // Each flavour's own (Distribution): Play Games and Play Billing in the play app, progress files in the github one.

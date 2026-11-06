@@ -1,0 +1,8 @@
+<resources>
+    <!-- No scrim behind the bars: three-button navigation would otherwise get one over the backdrop. -->
+    <style name="Theme.DiceFive" parent="Base.Theme.DiceFive">
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+    </style>
+</resources>

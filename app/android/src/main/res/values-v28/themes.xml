@@ -1,0 +1,6 @@
+<resources>
+    <!-- Android 9 and 10 can't draw into a cutout on a long edge: Android 11 adds "always". -->
+    <style name="Theme.DiceFive" parent="Base.Theme.DiceFive">
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+</resources>

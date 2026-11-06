@@ -5,18 +5,16 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
 import android.os.Process
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.core.net.toUri
+import androidx.core.view.WindowCompat
 import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.device.CrashHandler
 import net.zodac.dicefive.device.CrashReport
@@ -42,10 +40,8 @@ class CrashActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-        )
+        // Edge to edge as MainActivity is, with the same window theme.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
         val report = CrashReport.from(intent.getBundleExtra(EXTRA_REPORT))
         val details = report.text()
