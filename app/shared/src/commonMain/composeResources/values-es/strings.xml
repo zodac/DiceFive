@@ -987,12 +987,18 @@
     <string name="stats_title">Estadísticas</string>
     <string name="stats_play_time">Tiempo de juego: %1$s</string>
     <string name="stats_play_time_seconds">%1$d s</string>
-    <string name="stats_play_time_hours_minutes">%1$s h %2$d min</string>
+    <string name="stats_play_time_days_hours_minutes">%1$s d %2$d h %3$d min</string>
+    <string name="stats_play_time_hours_minutes">%1$d h %2$d min</string>
     <string name="stats_play_time_minutes">%1$d min</string>
     <plurals name="stats_play_time_seconds_spoken">
         <item quantity="one">%1$d segundo</item>
         <item quantity="many">%1$d de segundos</item>
         <item quantity="other">%1$d segundos</item>
+    </plurals>
+    <plurals name="stats_play_time_days_spoken">
+        <item quantity="one">%1$d día</item>
+        <item quantity="many">%1$d de días</item>
+        <item quantity="other">%1$d días</item>
     </plurals>
     <plurals name="stats_play_time_hours_spoken">
         <item quantity="one">%1$d hora</item>

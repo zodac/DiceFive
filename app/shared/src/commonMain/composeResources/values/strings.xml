@@ -1278,11 +1278,16 @@
     <string name="stats_title">Statistics</string>
     <string name="stats_play_time">Time played: %1$s</string>
     <string name="stats_play_time_seconds">%1$ds</string>
-    <string name="stats_play_time_hours_minutes">%1$sh %2$dm</string>
+    <string name="stats_play_time_days_hours_minutes">%1$sd %2$dh %3$dm</string>
+    <string name="stats_play_time_hours_minutes">%1$dh %2$dm</string>
     <string name="stats_play_time_minutes">%1$dm</string>
     <plurals name="stats_play_time_seconds_spoken">
         <item quantity="one">%1$d second</item>
         <item quantity="other">%1$d seconds</item>
+    </plurals>
+    <plurals name="stats_play_time_days_spoken">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
     </plurals>
     <plurals name="stats_play_time_hours_spoken">
         <item quantity="one">%1$d hour</item>
