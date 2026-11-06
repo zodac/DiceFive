@@ -2,7 +2,7 @@
 
 [← Back to Documentation](./index.md)
 
-**Last updated:** 7 November 2026
+**Last updated:** set when published
 
 This Privacy Policy explains how DiceFive ("the App") handles information when you use the App.
 

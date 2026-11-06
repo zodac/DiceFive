@@ -21,9 +21,11 @@ In order:
    - GitHub Pages publishes it (`.github/workflows/pages.yml`, which runs when `docs/` changes; the Pages source must be
      "GitHub Actions") at <https://zodac.github.io/DiceFive/privacy-policy>.
    - The contact is <zodacapps@gmail.com>.
-   - **Update it, and its "Last updated" date,** when billing changes, a new SDK or `INTERNET` use ships, or when
-     `android:allowBackup` changes (it mentions backup). It describes the purchase (section 6) and says there are no
-     ads (section 5), as of 2026-10-23.
+   - **Update it** when billing changes, a new SDK or `INTERNET` use ships, or when `android:allowBackup` changes (it
+     mentions backup). It describes the purchase (section 6) and says there are no ads (section 5).
+   - **Never edit its "Last updated" line.** `pages.yml` sets it as it publishes (`.github/scripts/stamp_privacy_date.sh`,
+     tested by `scripts/tests/stamp-privacy-date-test.sh`): the publish date when the policy changed in that push, and
+     otherwise the date already live, so another page's change or a manual re-publish doesn't move it.
 
 **Console-only configuration**:
 
