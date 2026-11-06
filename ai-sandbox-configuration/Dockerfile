@@ -317,8 +317,8 @@ ENV JAVA_HOME=/opt/java/openjdk \
     PATH=/opt/java/openjdk/bin:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:${PATH}
 
 # ── Project tooling ───────────────────────────────────────────────────────────
-# Everything DiceFive needs at RUNTIME beyond the shared base (which already has git,
-# gh, jq, python3 + pip/venv, lsof, iproute2, sudo, tzdata and unzip).
+# Everything DiceFive needs at RUNTIME beyond the shared base (which already has git, gh, jq, python3 +
+# pip/venv, less, lsof, iproute2, procps, sudo, tzdata, unzip, and vim).
 #
 # python3-fonttools: `app/shared/src/commonMain/composeResources/font/sora.ttf` is a static weight-700
 # instance produced with `python3 -m fontTools.varLib.instancer`, subset to printable ASCII with
@@ -331,9 +331,6 @@ ENV JAVA_HOME=/opt/java/openjdk \
 # ffmpeg joins that same asset toolchain for audio: this project ships .ogg sound effects
 # (app/android/src/main/res/raw/) and re-encoding/gain-adjusting one occasionally comes up (e.g. boosting a
 # clip that plays too quiet at SoundPool's volume ceiling of 1.0).
-#
-# procps gives ps, pgrep, and pkill: finding and stopping the emulator's process or a stuck Gradle run, and the busy
-# loops of a starved-emulator soak (the emulator skill).
 #
 # fontconfig backs the copied-in Temurin JDK: the temurin base image normally supplies it (the JDK
 # itself only bundles freetype), so on this Debian base we add it explicitly, for the reflective
@@ -348,7 +345,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
     apt-get update && apt-get install -yqq --no-install-recommends \
         ffmpeg="7:7.1.5-0+deb13u1" \
         fontconfig="2.15.0-2.3" \
-        procps="2:4.0.4-9" \
         python3-fonttools="4.57.0-1+deb13u1"
 # END DEBIAN PACKAGES
 
