@@ -60,6 +60,7 @@ import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.LandscapePage
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.MAIN_ACTION_HEIGHT
 import net.zodac.dicefive.ui.common.PageColumn
 import net.zodac.dicefive.ui.common.PageTopBar
 import net.zodac.dicefive.ui.common.SoraFontFamily
@@ -188,7 +189,7 @@ fun GameOverScreen(
                             // third option of equal weight with them.
                             OutlinedButton(
                                 onClick = onReviewScorecards,
-                                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                                modifier = Modifier.fillMaxWidth().heightIn(min = MAIN_ACTION_HEIGHT),
                             ) {
                                 Text(text = stringResource(Res.string.gameover_review), style = MaterialTheme.typography.titleMedium)
                             }
@@ -201,13 +202,13 @@ fun GameOverScreen(
                             ) {
                                 OutlinedButton(
                                     onClick = onBackToMenu,
-                                    modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                                    modifier = Modifier.weight(1f).heightIn(min = MAIN_ACTION_HEIGHT),
                                 ) {
                                     Text(text = stringResource(if (tutorialFinished) Res.string.common_done else Res.string.gameover_main_menu), style = MaterialTheme.typography.titleMedium)
                                 }
                                 Button(
                                     onClick = onPlayAgain,
-                                    modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                                    modifier = Modifier.weight(1f).heightIn(min = MAIN_ACTION_HEIGHT),
                                 ) {
                                     Text(text = stringResource(if (tutorialFinished) Res.string.gameover_tutorial_new_game else Res.string.gameover_play_again), style = MaterialTheme.typography.titleMedium)
                                 }

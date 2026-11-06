@@ -490,8 +490,8 @@
     <string name="common_cancel">Cancel</string>
     <string name="common_done">Done</string>
     <!-- TalkBack's name for a long press on a row that has a tooltip ("Double-tap and hold to show details") and for tapping a Statistics card, and the crash page's button that opens and closes its details. -->
-    <string name="common_show_details">Show details</string>
-    <string name="common_hide_details">Hide details</string>
+    <string name="common_show_details">Show Details</string>
+    <string name="common_hide_details">Hide Details</string>
     <!-- TalkBack's name for tapping a picker field. %1$s is the picker's title ("Game Mode"). -->
     <string name="common_picker_choose_action">Choose %1$s</string>
     <!-- A drop-down's spoken state, and the option it has picked. -->
@@ -512,7 +512,6 @@
 
     <!-- About dialog (ui/settings/AboutDialog.kt). Text in `backticks` is highlighted as a name. -->
     <string name="about_title">About</string>
-    <string name="about_close_cd">Close about</string>
     <string name="about_author_heading">Author</string>
     <string name="about_author_body">%1$s is created by `zodac`.</string>
     <string name="about_author_link">Source code on GitHub</string>
@@ -527,10 +526,9 @@
 
     <!-- Licences dialog (ui/settings/LicensesDialog.kt, ComposeLicenceDocument.kt, and Android's TextViewLicenceDocument via LicenceLabels). -->
     <string name="licences_title">Licences</string>
-    <string name="licences_close_cd">Close licences</string>
     <string name="licences_intro">%1$s is built with the open-source software, fonts, and sounds below, each used under the licence it's listed with.</string>
-    <string name="licences_show_text">Show licence text</string>
-    <string name="licences_hide_text">Hide licence text</string>
+    <string name="licences_show_text">Show Licence Text</string>
+    <string name="licences_hide_text">Hide Licence Text</string>
     <string name="licences_notices_title">Notices</string>
     <string name="licences_notices_subtitle">Attribution notices shipped with the libraries above</string>
     <!-- The long-press menu on a link in the list. -->
@@ -789,8 +787,8 @@
     <string name="setup_tutorial_prompt">New to the game? Play the tutorial</string>
     <!-- TalkBack's name for a player's name field. %1$d is the seat. -->
     <string name="setup_player_name_cd">Player %1$d name</string>
-    <!-- The chip that switches a seat between a person ("User") and the computer ("CPU", common_cpu_cd). -->
-    <string name="setup_type_user">User</string>
+    <!-- The chip that switches a seat between a person ("Player") and the computer ("CPU", common_cpu_cd). -->
+    <string name="setup_type_user">Player</string>
     <!-- A computer player's difficulty. If the three don't fit side by side their first letters are shown instead. -->
     <string name="setup_difficulty_easy">Easy</string>
     <string name="setup_difficulty_medium">Medium</string>
@@ -876,8 +874,8 @@
     <string name="online_sync_step_leaderboards">Sending leaderboard scores</string>
     <!-- The card read aloud while syncing: %1$s the service, %2$s the gamer name, %3$s the step (online_sync_step_*), %4$d which step it is and %5$d how many there are. -->
     <string name="online_signed_in_syncing_cd">%1$s, signed in as %2$s, %3$s, step %4$d of %5$d</string>
-    <string name="online_sign_in">Sign in</string>
-    <string name="online_sign_out">Sign out</string>
+    <string name="online_sign_in">Sign In</string>
+    <string name="online_sign_out">Sign Out</string>
     <string name="settings_sound">Sound effects</string>
     <string name="settings_vibration">Vibration</string>
     <!-- The "Animations" setting: its label and each level's name. -->
@@ -914,7 +912,7 @@
     <!-- %1$s is the app's name. Importing merges: achievements and scores are added together; for each setting and the saved game, whichever was changed last wins. -->
     <string name="settings_import_progress_message">Choose a file exported from %1$s. Its achievements and scores are added to this device's, and where both have a setting or a saved game, the newer one is kept. This can't be undone.</string>
     <!-- The dialog's button that opens the system's file picker. -->
-    <string name="settings_import_progress_confirm">Choose file</string>
+    <string name="settings_import_progress_confirm">Choose File</string>
     <!-- Under the card's rows once an export or import has finished, in red when it went wrong, until the next starts. %1$s is the app's name. -->
     <string name="settings_progress_exported">Progress exported</string>
     <string name="settings_progress_imported">Progress imported</string>
@@ -1235,7 +1233,7 @@
     <!-- Shown for a moment once the purchase completes. -->
     <string name="styles_all_unlocked">All styles unlocked</string>
     <!-- The dialog Unlock All opens, before the store's own purchase sheet (which shows the price). Two paragraphs; %1$s is the app's name. -->
-    <string name="styles_unlock_all_dialog_title">Unlock all styles</string>
+    <string name="styles_unlock_all_dialog_title">Unlock All</string>
     <string name="styles_unlock_all_dialog_message">Unlock every style instantly, without needing to earn achievements. Includes all dice, dice cups, mats, backgrounds, frames, and even secret colours.\n\nAll styles can also be earned for free through gameplay, and this app will never lock anything behind a purchase. This is purely an optional shortcut and a way to support %1$s!</string>
     <!-- Goes on to the store's purchase sheet: nothing is bought yet. -->
     <string name="styles_unlock_all_continue">Continue</string>
@@ -1289,16 +1287,16 @@
     <string name="stats_sort_descending">Selected, descending</string>
     <!-- TalkBack's name for tapping the sort option already in use. -->
     <string name="stats_sort_reverse_action">Reverse order</string>
-    <string name="stats_empty">No stats yet - play a game!</string>
+    <string name="stats_empty">No statistics yet - play a game!</string>
     <!-- The page's drop-down, at the top: a page for each game mode, then every mode's games together (common_combined). -->
     <string name="stats_page_label">Statistics</string>
-    <string name="stats_page_empty">No stats in %1$s yet</string>
-    <string name="stats_delete_title">Delete stats?</string>
+    <string name="stats_page_empty">No statistics in %1$s yet</string>
+    <string name="stats_delete_title">Delete statistics?</string>
     <!-- %1$s is the player's name. -->
-    <string name="stats_delete_message">Would you like to delete %1$s's stats in every game mode? Their leaderboard scores will not be affected.</string>
+    <string name="stats_delete_message">Would you like to delete %1$s's statistics in every game mode? Their leaderboard scores will not be affected.</string>
     <string name="stats_delete_confirm">Delete</string>
     <!-- TalkBack's name for a long press on a player's card. -->
-    <string name="stats_delete_action">Delete %1$s's stats</string>
+    <string name="stats_delete_action">Delete %1$s's statistics</string>
     <string name="stats_expanded_spoken">Expanded</string>
     <string name="stats_collapsed_spoken">Collapsed</string>
     <!-- A player's card read aloud: sentences joined with common_sentences_join. Collapsed it is just this one. -->
@@ -1372,7 +1370,7 @@
     <string name="achievements_earned_count_short">%1$d of %2$d</string>
     <string name="achievements_earned_percent">%1$d%</string>
     <string name="achievements_category_count">%1$d/%2$d</string>
-    <string name="achievements_all_unlocked">Everything's unlocked. Nothing left to chase!</string>
+    <string name="achievements_all_unlocked">Everything's earned. Nothing left to chase!</string>
     <string name="achievements_unearned_only">Unearned</string>
     <!-- The arrows on a category's header, which jump to the neighbouring one. -->
     <string name="achievements_previous_category_cd">Previous category</string>
@@ -1380,7 +1378,7 @@
     <!-- Stands in for the description of a hidden achievement until it is earned. -->
     <string name="achievements_hidden_description">???</string>
     <!-- %1$s is a date and time. -->
-    <string name="achievements_unlocked_at">Unlocked %1$s</string>
+    <string name="achievements_unlocked_at">Earned %1$s</string>
     <!-- Progress towards an achievement: "250 of 1,000". Numbers come grouped. -->
     <string name="achievements_progress">%1$s of %2$s</string>
     <!-- TalkBack's names for tapping an achievement banner, which holds it on screen or lets it go. -->
@@ -1390,9 +1388,9 @@
     <string name="achievements_banner_paused_spoken">Paused</string>
     <string name="achievements_banner_resumed_spoken">Resumed</string>
     <!-- An unlock banner read aloud: its title, then its description. -->
-    <string name="achievements_banner_unlocked_spoken">Achievement unlocked: %1$s. %2$s</string>
+    <string name="achievements_banner_unlocked_spoken">Achievement earned: %1$s. %2$s</string>
     <!-- The same, for an achievement that also unlocks a style. -->
-    <string name="achievements_banner_unlocked_style_spoken">Achievement unlocked: %1$s. %2$s. Unlocks a style</string>
+    <string name="achievements_banner_unlocked_style_spoken">Achievement earned: %1$s. %2$s. Unlocks a style</string>
     <!-- A progress banner read aloud: the title, then how far along. -->
     <string name="achievements_banner_progress_spoken">%1$s: %2$s of %3$s</string>
 
@@ -1406,7 +1404,7 @@
     <string name="rules_how_to_play_4">The game ends once every category is filled.</string>
     <string name="rules_how_to_play_tutorial">Want to see it played? The tutorial takes you through a whole game, one step at a time. Nothing in it counts: no scores, achievements, or saved game.</string>
     <!-- The button under rules_how_to_play_tutorial that starts it. -->
-    <string name="rules_tutorial_start">Start Tutorial</string>
+    <string name="rules_tutorial_start">Play the Tutorial</string>
     <string name="rules_upper_section_title">Scoring: Upper Section</string>
     <!-- A tab: keep it short. -->
     <string name="rules_upper_section_tab">Upper Section</string>
@@ -1615,7 +1613,7 @@
     <!-- The button that starts the app again, beside Report on GitHub. -->
     <string name="common_crash_restart">Restart</string>
     <!-- In the details section, above them: copies them, then says it has. -->
-    <string name="common_crash_copy">Copy details</string>
+    <string name="common_crash_copy">Copy Details</string>
     <string name="common_crash_copied">Copied</string>
     <!-- Opens a new issue on the app's GitHub page with the details filled in, for the player to post. GitHub is a brand name. -->
     <string name="common_crash_report">Report on GitHub</string>

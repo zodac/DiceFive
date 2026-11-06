@@ -373,6 +373,9 @@ private val APP_BAR_EDGE_INSET = 4.dp
 /** The side padding inside a [ScreenScaffold] page's column when it isn't [scrollable][ScreenScaffold]. */
 private val FIXED_PAGE_HORIZONTAL_PADDING = 20.dp
 
+/** How tall a page's full-width main actions stand, whichever page they're on: a Button's own 40dp reads as a form control. */
+val MAIN_ACTION_HEIGHT = 56.dp
+
 /** A [PageColumn]'s side margin, unless the page asks for another. */
 private val PAGE_HORIZONTAL_PADDING = 24.dp
 

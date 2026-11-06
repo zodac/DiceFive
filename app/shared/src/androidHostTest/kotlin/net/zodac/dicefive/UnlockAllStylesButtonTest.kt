@@ -117,7 +117,7 @@ class UnlockAllStylesButtonTest : UiTest() {
         // Nothing bought yet: the dialog says what the purchase is first, word for word.
         assertEquals(0, store.buys)
         compose.onNode(isDialog()).assertExists()
-        compose.onNode(hasText("Unlock all styles") and hasAnyAncestor(isDialog())).assertExists()
+        compose.onNode(hasText("Unlock All") and hasAnyAncestor(isDialog())).assertExists()
         compose.onNodeWithText(DIALOG_MESSAGE).assertExists()
         compose.onNode(hasText("Cancel") and hasClickAction()).assertExists()
         compose.onNode(hasText("Continue") and hasClickAction()).assertExists()

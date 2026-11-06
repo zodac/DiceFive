@@ -178,7 +178,7 @@ class OnlineAccountCardTest : UiTest() {
             listOf("Test Games, Not signed in, couldn't sign in: signIn failed: status 10 (DEVELOPER_ERROR)"),
             compose.onNode(isHeading()).fetchSemanticsNode().config[SemanticsProperties.ContentDescription],
         )
-        compose.onNodeWithText("Sign in").assertIsEnabled()
+        compose.onNodeWithText("Sign In").assertIsEnabled()
     }
 
     @Test
@@ -217,8 +217,8 @@ class OnlineAccountCardTest : UiTest() {
         compose.onNodeWithText("Not signed in", useUnmergedTree = true).assertExists()
         assertEquals(listOf("Test Games, Not signed in"), compose.onNode(isHeading()).fetchSemanticsNode().config[SemanticsProperties.ContentDescription])
         compose.onNode(isToggleable()).assertDoesNotExist()
-        compose.onNodeWithText("Sign out").assertDoesNotExist()
-        compose.onNodeWithText("Sign in").performClick()
+        compose.onNodeWithText("Sign Out").assertDoesNotExist()
+        compose.onNodeWithText("Sign In").performClick()
         compose.waitForIdle()
         assertEquals(1, services.signInCalls)
     }
@@ -250,9 +250,9 @@ class OnlineAccountCardTest : UiTest() {
     fun `signed in offers sign out and nothing else`() = uiTest(SCREEN) {
         val services = FakeGameServices(GameServicesState.SignedIn(OnlineAccount("Ann", null, "k")))
         show(services)
-        compose.onNodeWithText("Sign in").assertDoesNotExist()
+        compose.onNodeWithText("Sign In").assertDoesNotExist()
         compose.onNode(isToggleable()).assertDoesNotExist()
-        compose.onNode(hasText("Sign out") and hasClickAction()).performClick()
+        compose.onNode(hasText("Sign Out") and hasClickAction()).performClick()
         compose.waitForIdle()
         assertEquals(1, services.signOutCalls)
     }
@@ -261,8 +261,8 @@ class OnlineAccountCardTest : UiTest() {
     fun `signing in keeps Sign in - greyed and disabled - and offers no Sign out`() = uiTest(SCREEN) {
         show(FakeGameServices(GameServicesState.SigningIn))
         compose.onNodeWithText("Signing in...", useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("Sign in").assertIsNotEnabled()
-        compose.onNodeWithText("Sign out").assertDoesNotExist()
+        compose.onNodeWithText("Sign In").assertIsNotEnabled()
+        compose.onNodeWithText("Sign Out").assertDoesNotExist()
         compose.onNode(isToggleable()).assertDoesNotExist()
     }
 
@@ -272,11 +272,11 @@ class OnlineAccountCardTest : UiTest() {
         val services = FakeGameServices(GameServicesState.SignedIn(OnlineAccount("Ann", null, "key")))
         compose.setContent { DiceFiveTheme { OnlineAccountCard(services, signInSynced = synced) } }
         compose.onNodeWithText("Ann", useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("Sign in").assertIsNotEnabled().performClick()
-        compose.onNodeWithText("Sign out").assertDoesNotExist()
+        compose.onNodeWithText("Sign In").assertIsNotEnabled().performClick()
+        compose.onNodeWithText("Sign Out").assertDoesNotExist()
         synced = true
-        compose.onNodeWithText("Sign in").assertDoesNotExist()
-        compose.onNodeWithText("Sign out").assertIsEnabled()
+        compose.onNodeWithText("Sign In").assertDoesNotExist()
+        compose.onNodeWithText("Sign Out").assertIsEnabled()
         assertEquals(0, services.signInCalls)
     }
 }

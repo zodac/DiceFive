@@ -69,7 +69,7 @@ class StatisticsPagesTest : UiTest() {
         }
         compose.onNodeWithContentDescription("Tricolour").performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("No stats in Tricolour yet").assertExists()
+        compose.onNodeWithText("No statistics in Tricolour yet").assertExists()
         assertEquals("tricolour", settings.statisticsChoice.first())
 
         // Combined has both players.
@@ -79,7 +79,7 @@ class StatisticsPagesTest : UiTest() {
         compose.waitForIdle()
         compose.onAllNodes(hasContentDescription("Player1.", substring = true)).assertCountEquals(1)
         compose.onAllNodes(hasContentDescription("Player2.", substring = true)).assertCountEquals(1)
-        compose.onAllNodesWithText("No stats", substring = true).assertCountEquals(0)
+        compose.onAllNodesWithText("No statistics", substring = true).assertCountEquals(0)
     }
 
     /** Sam's record, or a failed read while [failing]. */
@@ -116,9 +116,9 @@ class StatisticsPagesTest : UiTest() {
         val viewModel = StatisticsViewModel(ScoreRepository(dao), SettingsRepository(InMemoryPreferences()))
         showcase.show { DiceFiveTheme { StatisticsScreen(viewModel = viewModel, onBack = {}) } }
         compose.waitForIdle()
-        compose.onNodeWithContentDescription("Delete Sam's stats").performClick()
+        compose.onNodeWithContentDescription("Delete Sam's statistics").performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Would you like to delete Sam's stats in every game mode? Their leaderboard scores will not be affected.").assertExists()
+        compose.onNodeWithText("Would you like to delete Sam's statistics in every game mode? Their leaderboard scores will not be affected.").assertExists()
     }
 
     @Test

@@ -88,6 +88,7 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
 | `BrandBackdrop.kt`                      | The app's one scenery, built from colour roles: a surface gradient, a `primary` spotlight and a faint dice watermark. `showDice = false` drops the dice (the game screen).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `ScreenScaffold.kt`                     | The frame for every non-menu page: backdrop plus a transparent M3 top app bar with a back arrow and a bold `primary` title. Its content fades in over `PAGE_CONTENT_FADE_IN_MILLIS` (100ms), so late-arriving content eases in. Takes `horizontalPadding` (24dp default; the scorecard review uses 16), `wide` (see "Landscape pages") and app bar `startActions` (after the arrow) and `actions` (at the end); `onTitleCrowded` says when the actions push the title off-centre or onto two lines (the Styles page's Unlock All then drops its words). `PageTopBar` is its bar on its own (the results page), 48dp tall in landscape. `BackArrow` is every page's back arrow, the game screen's included. |
 | `DiceFiveDialog.kt`                     | The one dialog shape. Its title is Sora, bold, `primary`, `headlineSmall`, as are `PickerDialog`, About and Licences. New dialogs match. Its words scroll when they can't fit (a large font; M3 doesn't scroll them). An icon drawn in code (the purchase's mark) goes in the overload taking a composable, at `DIALOG_ICON_SIZE`.                                                                                                                                                                                                                                                                                                                                                                         |
+| `LargeDialog.kt`                        | The raised reading surface for a lot of text (About, Licences): its content above a filled OK at its bottom end, where a `DiceFiveDialog`'s one button sits.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `AppLogo.kt`                            | The wordmark under a fan of dice and a cup, drawn live in the player's picks.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `FooterPill.kt`                         | The gold pill: over Rules' pages ("2 of 6"), and the last thing on the Settings page (its version). Spoken forms and live regions go on its `modifier`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `UpDownButtons.kt`                      | The up and down arrows that move a long list: Achievements' category headers (their own colour) and a Leaderboard page that scrolls (gold). An arrow with nowhere to go is faded and disabled.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
@@ -118,7 +119,12 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
 
 - **Collect flows** with `collectAsStateWithLifecycle`, never `collectAsState`. A `Flow` needs `initialValue =`.
 - **Use stock M3 components**, themed by the scheme. No hand-built buttons.
-- **One filled button per screen**, tonal for the rest (the menu: filled Play, tonal destinations).
+- **Button labels are Title Case** ("Start Game", "Sign In"); Settings rows and dialog titles are sentence case. English only:
+    a translation keeps its language's own convention.
+- **Full-width main actions stand `MAIN_ACTION_HEIGHT` (56dp)**, on every page: the menu, New Game, Rules, Game Over, and a
+    picker's closing button.
+- **One filled button per screen**, tonal for the rest (the menu: filled Play, tonal destinations; New Game: filled Start
+    Game, tonal tutorial).
     - Game Over is the one exception: filled Play Again, with outlined Main Menu and Review Scorecards. They are exits
         from a results screen over the table art, not destinations, and the outline keeps them quieter than the tonal fill.
 - **The menu's Play button splits when a game is saved** (`MenuScreen.PlayButton`).
@@ -132,15 +138,16 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
         circles.
     - `FittedSegmentedChoiceRow` shrinks the labels together, then switches to `_short` initials.
 - **Pickers** (`ChoicePicker`, `ModifierPicker`) are for long options or ones needing descriptions.
-    - Closed, a picker is one outlined field: headline, supporting line and arrow.
+    - Closed, a picker is one outlined field: headline, supporting line and a gold arrow pointing onward (mirrored right
+        to left), as it opens a page, not a menu.
     - Tapped, it opens a full-screen page: a `Dialog` around `ScreenScaffold`, with `LazyListScrollbar`.
-    - `ChoicePicker` (game mode) uses radio rows; picking one closes it.
+    - `ChoicePicker` (game mode) uses radio rows; picking one closes it, and its Cancel is tonal, as a dialog's is.
     - In `ModifierPicker`, each modifier is a card with a switch row, plus a segmented row, a `ModifierStepper` or a
         `ModifierNumberField`. These show only while the modifier is on, opening beneath the switch over 220ms (none under
         reduced motion). The switch never moves.
     - Changes apply live; Done closes it.
     - **To add a modifier**: a `ModifierSetting` in the setup list, plus a Rules page at the end of the Modifiers group.
-    - TalkBack: the field is a `DropdownList` named by its title, with its value as state; rows are radio buttons or
+    - TalkBack: the field is a button named by its title, as it opens a page, with its value as state; rows are radio buttons or
         switches with collection positions (`ChoicePickerTest`).
 - **An option the form overrides is locked, not hidden** (`ModifierSetting.lockedNote`, `SegmentedChoiceRow`'s
     `enabled`). The layout stays still, and the player's pick is kept for when it applies again.
@@ -531,7 +538,7 @@ Leaderboard's Combined board.
     - Pass `message`, or `body` for a custom layout.
     - The deprecated `rememberPlainTooltipPositionProvider` (no replacement until 1.5.0) is suppressed once, there.
     - `TooltipBox`'s anchor merges its content and drops the role, so put `Role.Button` on the tooltip's modifier too.
-    - For long lists of rarely-pressed rows, use `OnDemandTooltip`: a plain gesture plus a "Show details" action until
+    - For long lists of rarely-pressed rows, use `OnDemandTooltip`: a plain gesture plus a "Show Details" action until
         first use.
 - **No `@Preview`s that build a view model.** Every view model but `ScoresViewModel` takes its repositories as
     required, and the app ships no fakes, so a preview can't make one. Use the `render` skill instead.

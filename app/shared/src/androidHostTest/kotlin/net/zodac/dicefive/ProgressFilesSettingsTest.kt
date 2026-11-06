@@ -171,14 +171,14 @@ class ProgressFilesSettingsTest : UiTest() {
     }
 
     @Test
-    fun `Choose file opens the picker - and each outcome has its line`() = uiTest {
+    fun `Choose File opens the picker - and each outcome has its line`() = uiTest {
         val files = PickerFiles()
         val platform = FilesPlatform(files)
         show(platform)
         fun import(opened: ProgressFileResult): String {
             files.opened = opened
             compose.onNode(hasText("Import progress") and hasClickAction()).performClick()
-            compose.onNodeWithText("Choose file").performClick()
+            compose.onNodeWithText("Choose File").performClick()
             return outcome(platform)
         }
         assertEquals("Progress imported", import(ProgressFileResult.Done(ProgressFileCodec.encode(CloudSave(), files.key))))
@@ -195,7 +195,7 @@ class ProgressFilesSettingsTest : UiTest() {
         val files = PickerFiles(ProgressFileResult.Done(ProgressFileCodec.encode(CloudSave(), ByteArray(32) { 4 })))
         show(FilesPlatform(files))
         compose.onNode(hasText("Import progress") and hasClickAction()).performClick()
-        compose.onNodeWithText("Choose file").performClick()
+        compose.onNodeWithText("Choose File").performClick()
         compose.mainClock.autoAdvance = false
         // The import itself is over in a moment.
         var frames = 0

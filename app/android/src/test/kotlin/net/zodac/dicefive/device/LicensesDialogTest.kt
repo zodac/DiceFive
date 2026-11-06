@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog as isComposeDialog
@@ -157,9 +158,9 @@ class LicensesDialogTest {
     private fun pause() = shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(ViewConfiguration.getDoubleTapTimeout() + 100L))
 
     @Test
-    fun `the dialog is titled and introduced with a named close button - a card a licence - its list scrolling under the title with the dialog's own scrollbar`() {
+    fun `the dialog is titled and introduced with an OK button - a card a licence - its list scrolling under the title with the dialog's own scrollbar`() {
         showDialog()
-        compose.onNodeWithContentDescription("Close licences", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("OK").assertHasClickAction()
         compose.onNodeWithText("Licences").assertExists()
         compose.onNodeWithText("DiceFive is built with the open-source software, fonts, and sounds below, each used under the licence it's listed with.").assertExists()
 
@@ -227,10 +228,10 @@ class LicensesDialogTest {
         // A licence's text is shown and hidden by tapping its toggle - a second tap inside the double-tap window would be
         // the TextView's own double-tap (select a word).
         assertFalse(document.text.contains(APACHE_TEXT))
-        press("Show licence text", card = document)
+        press("Show Licence Text", card = document)
         assertTrue(document.text.contains(APACHE_TEXT))
         pause()
-        press("Hide licence text", card = document)
+        press("Hide Licence Text", card = document)
         assertFalse(document.text.contains(APACHE_TEXT))
 
         // Tapping a link opens it.
@@ -285,7 +286,7 @@ class LicensesDialogTest {
     fun `showing a licence's text restyles no card - each keeps the background it was drawn with`() {
         showDialog()
         val backgrounds = cards().map { it.background }
-        press("Show licence text", card = document)
+        press("Show Licence Text", card = document)
         assertTrue(document.text.contains(APACHE_TEXT))
         cards().zip(backgrounds).forEach { (card, background) -> assertSame(background, card.background) }
     }

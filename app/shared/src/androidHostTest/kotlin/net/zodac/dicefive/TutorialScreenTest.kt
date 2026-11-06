@@ -6,6 +6,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
@@ -30,6 +31,7 @@ import net.zodac.dicefive.game.TutorialScript
 import net.zodac.dicefive.game.TutorialStep
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
+import net.zodac.dicefive.ui.common.MAIN_ACTION_HEIGHT
 import net.zodac.dicefive.ui.game.GameScreen
 import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.game.LeaveGameConfirmation
@@ -203,7 +205,8 @@ class TutorialScreenTest : UiTest() {
             }
         }
         compose.onNodeWithText("How to Play DiceFive").assertExists()
-        compose.onNodeWithText("Start Tutorial").performScrollTo().performClick()
+        // Its gap to the next block stays out of the button, which stands as tall as any page's main action.
+        compose.onNodeWithText("Play the Tutorial").performScrollTo().assertHeightIsEqualTo(MAIN_ACTION_HEIGHT).performClick()
         assertEquals(1, started)
         resetRulesPageMemory()
     }

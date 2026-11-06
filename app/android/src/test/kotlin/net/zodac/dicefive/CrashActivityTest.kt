@@ -51,15 +51,15 @@ class CrashActivityTest {
     @Test
     fun `the page shows the report it was opened with`() {
         compose.onNodeWithText("Something went wrong").assertExists()
-        compose.onNodeWithText("Show details").performScrollTo().performClick()
+        compose.onNodeWithText("Show Details").performScrollTo().performClick()
         compose.onNodeWithText(report.text()).performScrollTo().assertExists()
     }
 
     @Test
-    fun `Copy details puts the report on the clipboard`() {
-        compose.onNodeWithText("Show details").performScrollTo().performClick()
+    fun `Copy Details puts the report on the clipboard`() {
+        compose.onNodeWithText("Show Details").performScrollTo().performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Copy details").performClick()
+        compose.onNodeWithText("Copy Details").performClick()
         compose.waitForIdle()
         val clip = checkNotNull(context.getSystemService(ClipboardManager::class.java).primaryClip)
         assertEquals(report.text(), clip.getItemAt(0).text.toString())

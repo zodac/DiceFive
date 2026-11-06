@@ -52,7 +52,7 @@ import net.zodac.dicefive.ui.icons.Symbols
 /**
  * Shown in place of the app after an error nothing caught stopped it: what has happened, buttons that [onRestart] the
  * app and [onReport] the [details] as a GitHub issue, then the details themselves - the error's report - in a section
- * collapsed until Show details opens it, scrolling in the room below, with a button that [onCopy]s them. Copy details says Copied once it has, which
+ * collapsed until Show Details opens it, scrolling in the room below, with a button that [onCopy]s them. Copy Details says Copied once it has, which
  * TalkBack announces. See [FailurePage].
  */
 @Composable

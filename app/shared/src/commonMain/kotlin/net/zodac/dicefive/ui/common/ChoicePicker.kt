@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -32,6 +33,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -100,7 +102,7 @@ private val PICKER_SCROLLBAR_CLEARANCE = 12.dp
 
 /**
  * The closed state of every picker: an outlined field with a [headline], a [supporting] line under
- * it and a dropdown arrow. One merged node for a screen reader - a dropdown named [title] whose
+ * it and an arrow to the page it opens. One merged node for a screen reader - a button named [title] whose
  * state is the headline and supporting line.
  */
 @Composable
@@ -119,7 +121,7 @@ private fun PickerField(
         modifier = modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) {
-                role = Role.DropdownList
+                role = Role.Button
                 contentDescription = title
                 stateDescription = state
             }
@@ -142,7 +144,8 @@ private fun PickerField(
                 )
                 Text(text = supporting, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
             }
-            Icon(imageVector = Symbols.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            // Pointing onward, not down as a DropdownChoiceField's does: tapped, this opens a page, not a menu. Mirrored right to left.
+            Icon(imageVector = Symbols.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -153,6 +156,7 @@ private fun PickerField(
  * with the list filling the room and one closing button under it. The list scrolls (with the app's
  * scrollbar) once it outgrows the screen. [items] fills the list; [collectionSize] is how many rows
  * it will hold, for a screen reader's "2 of 10". [itemSpacing] is the gap between rows - wider where each is a card.
+ * [closeCancels] says the closing button only backs out, which makes it tonal, as a dialog's Cancel is; otherwise it's filled.
  */
 @Composable
 private fun PickerDialog(
@@ -163,6 +167,7 @@ private fun PickerDialog(
     listState: LazyListState,
     itemSpacing: Dp = 4.dp,
     closeEnabled: Boolean = true,
+    closeCancels: Boolean = false,
     items: LazyListScope.() -> Unit,
 ) {
     Dialog(
@@ -182,7 +187,13 @@ private fun PickerDialog(
                 )
                 LazyListScrollbar(listState)
             }
-            Button(onClick = onDismissRequest, enabled = closeEnabled, modifier = Modifier.fillMaxWidth()) { Text(closeLabel) }
+            val closeModifier = Modifier.fillMaxWidth().heightIn(min = MAIN_ACTION_HEIGHT)
+            val closeText = @Composable { Text(text = closeLabel, style = MaterialTheme.typography.titleMedium) }
+            if (closeCancels) {
+                FilledTonalButton(onClick = onDismissRequest, enabled = closeEnabled, modifier = closeModifier) { closeText() }
+            } else {
+                Button(onClick = onDismissRequest, enabled = closeEnabled, modifier = closeModifier) { closeText() }
+            }
         }
     }
 }
@@ -238,6 +249,7 @@ fun <T> ChoicePicker(
             closeLabel = stringResource(Res.string.common_cancel),
             onDismissRequest = { open = false },
             listState = listState,
+            closeCancels = true,
         ) {
             itemsIndexed(options) { index, option ->
                 // The whole row is the target, and Role.RadioButton says it is one of a group.

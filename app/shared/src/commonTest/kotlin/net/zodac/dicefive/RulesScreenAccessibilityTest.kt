@@ -100,7 +100,7 @@ class RulesScreenAccessibilityTest : UiTest() {
     fun theTabRowsSayHowManyTabsEachHasAndWhereEachTabIsAndEveryPageCanBeReachedByTabSwipeOrChevron() = uiTest {
         showRules()
         // The edge chevrons are not extra TalkBack stops: every clickable node is a tab, the app bar's back arrow or How to
-        // Play's Start Tutorial - the chevrons only repeat what the tabs (and their "1 of 6") already give TalkBack, so
+        // Play's Play the Tutorial - the chevrons only repeat what the tabs (and their "1 of 6") already give TalkBack, so
         // they're kept out of it.
         val tabs = compose.onAllNodes(isTab).fetchSemanticsNodes().size
         assertEquals(tabs + 2, compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.OnClick)).fetchSemanticsNodes().size)

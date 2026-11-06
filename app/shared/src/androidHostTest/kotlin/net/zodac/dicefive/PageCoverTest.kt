@@ -282,7 +282,7 @@ class PageCoverTest : UiTest() {
 
     @Test
     fun `a page asked for is dropped if going back has already left the page it was asked from`() = uiTest {
-        // Rules opens on How to Play, where Start Tutorial is, not wherever an earlier test left it.
+        // Rules opens on How to Play, where Play the Tutorial is, not wherever an earlier test left it.
         resetRulesPageMemory()
         lateinit var nav: NavHostController
         compose.mainClock.autoAdvance = false
@@ -301,11 +301,11 @@ class PageCoverTest : UiTest() {
         repeat(WAIT_FRAMES) { if (nav.currentDestination?.route != Screen.RULES || cover.changing) frame() }
         assertEquals(Screen.RULES, nav.currentDestination?.route)
 
-        // Start Tutorial asked for, then the page's back arrow tapped while Rules is still fading out: the cover takes the
+        // Play the Tutorial asked for, then the page's back arrow tapped while Rules is still fading out: the cover takes the
         // touch.
-        compose.onNodeWithText("Start Tutorial").performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithText("Play the Tutorial").performSemanticsAction(SemanticsActions.OnClick)
         repeat(3) { frame() }
-        assertTrue(cover.changing, "Start Tutorial didn't start a change")
+        assertTrue(cover.changing, "Play the Tutorial didn't start a change")
         compose.onNodeWithContentDescription("Back").performClick()
         frame()
         assertEquals(Screen.RULES, nav.currentDestination?.route, "a tap went through the cover")

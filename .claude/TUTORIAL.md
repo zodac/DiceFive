@@ -10,7 +10,7 @@ A solo game of Standard where every roll's dice and every move are fixed, so it 
 ending on 382). A coach card in place of the player tabs says what to do; only that move works; the control for it is
 outlined in pulsing gold. Nothing in it is kept.
 
-- **Entry points.** Rules → Gameplay → How to Play (a Start Tutorial button), and New Game's "New to the game? Play the
+- **Entry points.** Rules → Gameplay → How to Play (a Play the Tutorial button), and New Game's "New to the game? Play the
     tutorial" (shown only until a first game is finished). Both open the `tutorial` route.
 - **Exit.** Back always asks "Leave the tutorial?", whatever the confirm-before-leaving setting. Its Game Over offers
     Done (back where it was started) and New Game.
@@ -155,7 +155,7 @@ see the test fail. Keep that true for any new gate.
    Add a test per mode that every roll's dice are faces of that mode.
 3. **Mode-specific UI**: anything the mode adds to the board (colour boxes, targets, slots) needs the same treatment as
    the boxes and dice here: an outline when it's the step's control, no tap or TalkBack action otherwise.
-4. **Entry**: a Start Tutorial button on the mode's own Rules page (a `RulesTutorialStart` block), and a route that
+4. **Entry**: a Play the Tutorial button on the mode's own Rules page (a `RulesTutorialStart` block), and a route that
    takes the script (today the `tutorial` route hard-codes `STANDARD`; pass the mode's id as an argument).
 5. **Strings** in all three languages, and the scores they quote checked by the script test.
 6. **Tests**: the three classes above for the new script, and the "nothing kept" run.

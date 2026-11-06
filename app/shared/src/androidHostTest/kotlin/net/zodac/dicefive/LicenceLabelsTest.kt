@@ -55,7 +55,7 @@ class LicenceLabelsTest : UiTest() {
         val labels = labelsFor(report)
         assertUsageLines(labels)
         assertEquals(listOf("Copy link", "Copy text", "Link", "Text", "Link copied", "Text copied"), listOf(labels.copyLink, labels.copyText, labels.linkClip, labels.textClip, labels.linkCopied, labels.textCopied))
-        assertEquals(listOf("Show licence text", "Hide licence text", "Notices"), listOf(labels.showText, labels.hideText, labels.noticesTitle))
+        assertEquals(listOf("Show Licence Text", "Hide Licence Text", "Notices"), listOf(labels.showText, labels.hideText, labels.noticesTitle))
     }
 
     // Like the ordinals, the list follows the strings' language: no German yet, so no "und".

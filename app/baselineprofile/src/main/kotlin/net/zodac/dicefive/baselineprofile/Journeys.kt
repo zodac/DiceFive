@@ -214,8 +214,8 @@ internal fun MacrobenchmarkScope.hasText(text: String): Boolean = device.hasObje
 
 /** The menu's "DiceFive" wordmark (AppLogo): only the menu shows it, so its going says the menu has. */
 private val MENU = By.text("DiceFive")
-private val NOT_THOSE_DICE_BANNER = By.descStartsWith("Achievement unlocked: Not Those Dice!")
-private val ANY_BANNER = By.desc(Pattern.compile("(Achievement unlocked|Styles? unlocked): .*", Pattern.DOTALL))
+private val NOT_THOSE_DICE_BANNER = By.descStartsWith("Achievement earned: Not Those Dice!")
+private val ANY_BANNER = By.desc(Pattern.compile("(Achievement earned|Styles? unlocked): .*", Pattern.DOTALL))
 
 /**
  * Taps the menu's [label] button until the menu has gone. A tap can be dropped - one that lands while
@@ -432,16 +432,16 @@ internal fun MacrobenchmarkScope.visitSettings() {
     setChecked(By.text("Low"), "Low", true)
     setChecked(By.text("High"), "High", true)
 
-    // Each dialog is waited for by its Close button and left by it: the Settings page behind is
+    // Each dialog is waited for by its OK button and left by it: the Settings page behind is
     // itself scrollable and has the same "Licences" text, so neither a scrollable nor a label says
     // the dialog is up, and a back press sent too early would leave Settings altogether.
-    tapTextUntil("Licences") { device.hasObject(By.desc("Close licences")) }
+    tapTextUntil("Licences") { device.hasObject(By.text("OK")) }
     scrollDown(3)
-    closeDialog(By.desc("Close licences"), "the Licences dialog's Close button")
+    closeDialog(By.text("OK"), "the Licences dialog's OK button")
 
-    tapTextUntil("About") { device.hasObject(By.desc("Close about")) }
+    tapTextUntil("About") { device.hasObject(By.text("OK")) }
     scrollDown(1)
-    closeDialog(By.desc("Close about"), "the About dialog's Close button")
+    closeDialog(By.text("OK"), "the About dialog's OK button")
 
     backToMenu()
 }
@@ -716,16 +716,16 @@ internal fun MacrobenchmarkScope.playFinishedGame() {
 }
 
 /**
- * On the setup: the third seat a CPU (on Easy), or a user. Its chip - the lowest "User" or "CPU" on the page -
+ * On the setup: the third seat a CPU (on Easy), or a user. Its chip - the lowest "Player" or "CPU" on the page -
  * names what the seat is now, and a tap turns it into the other, so it is only tapped when it isn't what's
  * wanted (the setup keeps its picks from lap to lap).
  */
 private fun MacrobenchmarkScope.setThirdSeatCpu(cpu: Boolean) {
-    val chip = By.text(Pattern.compile("User|CPU"))
+    val chip = By.text(Pattern.compile("Player|CPU"))
     fun lowestChip(): UiObject2 =
         device.findObjects(chip).maxByOrNull { it.visibleBounds.top }
-            ?: error("Baseline Profile journey: the third seat's User or CPU chip never appeared")
-    await(chip, "the seats' User or CPU chips")
+            ?: error("Baseline Profile journey: the third seat's Player or CPU chip never appeared")
+    await(chip, "the seats' Player or CPU chips")
     if ((lowestChip().text == "CPU") != cpu) tapUntil("the third seat's chip", ::lowestChip) { (lowestChip().text == "CPU") == cpu }
     if (cpu) tapText("Easy")
 }
@@ -846,10 +846,10 @@ private fun MacrobenchmarkScope.playTutorial() {
     // The Rules open on the page last shown while the app has been running, so How to Play is asked for.
     selectTab("Gameplay")
     selectTab("How to Play")
-    val start = By.text("Start Tutorial")
+    val start = By.text("Play the Tutorial")
     // Under the page's text, which a short screen can push below the fold.
     if (!device.wait(Until.hasObject(start), CLOSE_WAIT_MS)) scrollDown(1)
-    startGame("Start Tutorial")
+    startGame("Play the Tutorial")
     roll()
     Thread.sleep(ROLL_SETTLE_MS)
     repeat(TUTORIAL_TURNS) {

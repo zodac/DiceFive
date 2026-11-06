@@ -40,6 +40,7 @@ import net.zodac.dicefive.resources.menu_styles
 import net.zodac.dicefive.ui.common.AppLogo
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.LocalLandscapePage
+import net.zodac.dicefive.ui.common.MAIN_ACTION_HEIGHT
 import net.zodac.dicefive.ui.common.PageColumn
 import net.zodac.dicefive.ui.common.WholeWordsText
 import net.zodac.dicefive.ui.common.isLargeFont
@@ -49,11 +50,10 @@ import net.zodac.dicefive.ui.style.DiceStyles
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /**
- * Taller than a default M3 button (40dp), which reads as a form control rather than a menu
- * destination at this size. Still a stock `Button` in every other respect - shape, colour roles,
- * ripple, state layers and typography all come from the theme.
+ * Still a stock `Button` in every respect but its height - shape, colour roles, ripple, state layers and typography
+ * all come from the theme.
  */
-private val MENU_BUTTON_HEIGHT = 56.dp
+private val MENU_BUTTON_HEIGHT = MAIN_ACTION_HEIGHT
 
 /**
  * The split Play button's dividing line: the page showing through between its two halves, the same

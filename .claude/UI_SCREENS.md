@@ -234,7 +234,7 @@ cloud save.
 **Unlock All** (the purchase, `PURCHASES.md`) is a tonal button at the app bar's end, before the Unlocked switch in
 landscape: the purchase's mark (`UnlockAllStylesIcon`) and "Unlock All". No price: Play's sheet shows it.
 
-- For sale: enabled. A tap opens a dialog first (the mark, "Unlock all styles", what it unlocks, and that every style
+- For sale: enabled. A tap opens a dialog first (the mark, "Unlock All", what it unlocks, and that every style
     can be earned for free, so paying is a shortcut and a way to support DiceFive); its Continue opens Play's sheet,
     Cancel or back nothing. Play not yet answered: disabled. A payment pending: disabled, "Payment
     pending". Owned (bought, cached or a debug build's pretence) or no store: no button.

@@ -38,26 +38,26 @@ class CrashPageTest : UiTest() {
             "DiceFive ran into a problem it couldn't recover from, so it has stopped here.",
             "Your scores, achievements, and settings are kept, but a game in progress may have lost its last move.",
         ).forEach { compose.onNodeWithText(it).assertIsDisplayed() }
-        listOf("If it keeps happening, these details will help when you report it:", "Copy details", details)
+        listOf("If it keeps happening, these details will help when you report it:", "Copy Details", details)
             .forEach { compose.onNodeWithText(it).assertDoesNotExist() }
 
-        compose.onNode(isButton and hasText("Show details")).performScrollTo().performClick()
+        compose.onNode(isButton and hasText("Show Details")).performScrollTo().performClick()
         compose.onNodeWithText("If it keeps happening, these details will help when you report it:").performScrollTo().assertIsDisplayed()
-        compose.onNode(isButton and hasText("Copy details")).performScrollTo().assertIsDisplayed()
+        compose.onNode(isButton and hasText("Copy Details")).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(details).performScrollTo().assertIsDisplayed()
 
-        compose.onNode(isButton and hasText("Hide details")).performScrollTo().performClick()
+        compose.onNode(isButton and hasText("Hide Details")).performScrollTo().performClick()
         compose.onNodeWithText(details).assertDoesNotExist()
     }
 
     @Test
-    fun `opening the details never moves the page - they open below Show details, and scroll in the room left`() = uiTest(SCREEN) {
+    fun `opening the details never moves the page - they open below Show Details, and scroll in the room left`() = uiTest(SCREEN) {
         val details = (1..60).joinToString("\n") { "\tat net.zodac.dicefive.Game.frame$it(Game.kt:$it)" }
         compose.mainClock.autoAdvance = false
         compose.setContent { DiceFiveTheme { CrashPage(details = details, onRestart = {}, onCopy = {}, onReport = {}) } }
         compose.mainClock.advanceTimeBy(1_000)
         val heading = compose.onNode(isHeading and hasText("Something went wrong"))
-        val toggle = compose.onNode(isButton and hasText("Show details"))
+        val toggle = compose.onNode(isButton and hasText("Show Details"))
         val headingTop = heading.getUnclippedBoundsInRoot().top
         val toggleBottom = toggle.getUnclippedBoundsInRoot().bottom
 
@@ -67,7 +67,7 @@ class CrashPageTest : UiTest() {
             compose.mainClock.advanceTimeByFrame()
             assertEquals(headingTop, heading.getUnclippedBoundsInRoot().top)
         }
-        assertEquals(toggleBottom, compose.onNode(isButton and hasText("Hide details")).getUnclippedBoundsInRoot().bottom)
+        assertEquals(toggleBottom, compose.onNode(isButton and hasText("Hide Details")).getUnclippedBoundsInRoot().bottom)
         val explanation = compose.onNodeWithText("If it keeps happening, these details will help when you report it:")
         assertTrue(explanation.getUnclippedBoundsInRoot().top >= toggleBottom)
 
@@ -93,11 +93,11 @@ class CrashPageTest : UiTest() {
     }
 
     @Test
-    fun `Copy details copies them - then says Copied - as a polite live region TalkBack announces`() = uiTest(SCREEN) {
+    fun `Copy Details copies them - then says Copied - as a polite live region TalkBack announces`() = uiTest(SCREEN) {
         var copies = 0
         compose.setContent { DiceFiveTheme { CrashPage(details = "Boom", onRestart = {}, onCopy = { copies++ }, onReport = {}) } }
-        compose.onNode(isButton and hasText("Show details")).performScrollTo().performClick()
-        compose.onNode(isButton and hasText("Copy details")).performScrollTo().performClick()
+        compose.onNode(isButton and hasText("Show Details")).performScrollTo().performClick()
+        compose.onNode(isButton and hasText("Copy Details")).performScrollTo().performClick()
         assertEquals(1, copies)
         compose.onNode(isButton and hasText("Copied") and isPoliteLiveRegion).performScrollTo().assertIsDisplayed()
     }

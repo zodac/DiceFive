@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -16,6 +17,7 @@ import androidx.compose.ui.test.performTextInput
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import net.zodac.dicefive.ui.common.ChoicePicker
+import net.zodac.dicefive.ui.common.MAIN_ACTION_HEIGHT
 import net.zodac.dicefive.ui.common.ModifierCustomValue
 import net.zodac.dicefive.ui.common.ModifierPicker
 import net.zodac.dicefive.ui.common.ModifierSetting
@@ -31,7 +33,7 @@ class ChoicePickerTest : UiTest() {
     private val showcase = Showcase { compose }
 
     @Test
-    fun theClosedFieldIsADropdownShowingOnlyThePickAndTheListOpensToChooseOrCancel() = uiTest {
+    fun theClosedFieldIsAButtonShowingOnlyThePickAndTheListOpensToChooseOrCancel() = uiTest {
         compose.setContent {
             DiceFiveTheme {
                 ChoicePicker(title = "Thing", options = options, selected = picked, onSelect = { picked = it }, label = { it }, description = { "About $it" })
@@ -39,11 +41,11 @@ class ChoicePickerTest : UiTest() {
         }
         compose.onNodeWithText("Option 1", useUnmergedTree = true).assertExists()
         compose.onNodeWithText("Option 2", useUnmergedTree = true).assertDoesNotExist()
-        compose.onNodeWithText("Option 1").assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.DropdownList))
+        compose.onNodeWithText("Option 1").assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
 
-        // Cancel leaves the pick alone.
+        // Cancel leaves the pick alone. It stands as tall as any page's main action.
         compose.onNodeWithText("Option 1").performClick()
-        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Cancel").assertHeightIsEqualTo(MAIN_ACTION_HEIGHT).performClick()
         assertEquals("Option 1", picked)
 
         // Choosing an option closes the list and reports it.

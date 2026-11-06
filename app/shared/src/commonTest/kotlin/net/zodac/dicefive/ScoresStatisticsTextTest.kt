@@ -41,6 +41,6 @@ class ScoresStatisticsTextTest : UiTest() {
         val viewModel = StatisticsViewModel(ScoreRepository(InMemoryScoreDao(emptyList())), SettingsRepository(InMemoryPreferences()))
         showcase.show { DiceFiveTheme { StatisticsScreen(viewModel = viewModel, onBack = {}) } }
         compose.onNodeWithText("Statistics").assertExists()
-        compose.onNodeWithText("No stats yet - play a game!").assertExists()
+        compose.onNodeWithText("No statistics yet - play a game!").assertExists()
     }
 }

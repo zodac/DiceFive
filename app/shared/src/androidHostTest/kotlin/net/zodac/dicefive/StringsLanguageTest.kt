@@ -93,9 +93,9 @@ class StringsLanguageTest : UiTest() {
     @Test
     fun `a name in a right-to-left script is set apart inside an English sentence - one in its own direction left as it is`() = uiTest {
         showcase.show { DiceFiveTheme { PlayerStatsCard(player = player.copy(playerName = "علي"), onDelete = {}) } }
-        compose.onNodeWithContentDescription("Delete \u2068علي\u2069's stats").assertExists()
+        compose.onNodeWithContentDescription("Delete \u2068علي\u2069's statistics").assertExists()
 
         showcase.show { DiceFiveTheme { PlayerStatsCard(player = player, onDelete = {}) } }
-        compose.onNodeWithContentDescription("Delete Ann's stats").assertExists()
+        compose.onNodeWithContentDescription("Delete Ann's statistics").assertExists()
     }
 }

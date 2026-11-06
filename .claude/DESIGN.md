@@ -343,7 +343,7 @@ can't is a page saying so, with the stack trace to report. The app never just cl
             were doing, a table of the details, the last actions, and the trace. The player reads it and posts it
             themselves; the app sends nothing. The link stays within 7,500 characters, under GitHub's limit, by cutting the
             trace from its end and saying so. With no browser, nothing opens.
-        - **Show details** opens the collapsed section (Hide details closes it): what the details are for, **Copy
+        - **Show Details** opens the collapsed section (Hide Details closes it): what the details are for, **Copy
             details** (tonal), then the report. Copy details puts the report on the clipboard, then reads "Copied", a
             polite live region; both labels are laid out, so the button keeps its width. The section opens downward
             under the page, never moving what's above it (`FailurePage`'s `below`): that part is centred as the page first

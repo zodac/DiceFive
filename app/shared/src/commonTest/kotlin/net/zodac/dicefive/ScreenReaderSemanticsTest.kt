@@ -93,7 +93,7 @@ class ScreenReaderSemanticsTest : UiTest() {
         var config = statsCard().fetchSemanticsNode().config
         assertEquals("Ann. Best score 250.", config[SemanticsProperties.ContentDescription].single())
         assertEquals("Collapsed", config[SemanticsProperties.StateDescription])
-        assertEquals("Show details", config[SemanticsActions.OnClick].label)
+        assertEquals("Show Details", config[SemanticsActions.OnClick].label)
         // The best score is drawn in points; it's spoken as "Best score".
         compose.onNodeWithText("250pts", useUnmergedTree = true).assertExists()
         // The long press is gone: deleting is a button of its own, not a hidden gesture or a custom action.
@@ -105,7 +105,7 @@ class ScreenReaderSemanticsTest : UiTest() {
         config = statsCard().fetchSemanticsNode().config
         assertEquals("Ann. Best score 250.", config[SemanticsProperties.ContentDescription].single())
         assertEquals("Expanded", config[SemanticsProperties.StateDescription])
-        assertEquals("Hide details", config[SemanticsActions.OnClick].label)
+        assertEquals("Hide Details", config[SemanticsActions.OnClick].label)
 
         // The page's numbers and the won/lost/solo split, then the rest.
         compose.onNodeWithContentDescription("Played 5, won 3, lost 2. 2 solo games played. Win rate 60%. Average score 200.").assertExists()
@@ -124,7 +124,7 @@ class ScreenReaderSemanticsTest : UiTest() {
         compose.onAllNodesWithText("Mode").assertCountEquals(0)
         compose.onAllNodesWithText("Games").assertCountEquals(0)
 
-        val delete = compose.onNodeWithContentDescription("Delete Ann's stats")
+        val delete = compose.onNodeWithContentDescription("Delete Ann's statistics")
         assertEquals(Role.Button, delete.fetchSemanticsNode().config[SemanticsProperties.Role])
         delete.performSemanticsAction(SemanticsActions.OnClick)
         assertEquals(1, deleted)

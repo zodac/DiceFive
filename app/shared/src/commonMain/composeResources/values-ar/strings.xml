@@ -445,7 +445,6 @@
     </plurals>
     <string name="common_stepper_value_spoken">%1$s، %2$s</string>
     <string name="about_title">حول التطبيق</string>
-    <string name="about_close_cd">إغلاق صفحة حول التطبيق</string>
     <string name="about_author_heading">المطوّر</string>
     <string name="about_author_body">%1$s من تطوير `zodac`.</string>
     <string name="about_author_link">الشيفرة المصدرية على GitHub</string>
@@ -457,7 +456,6 @@
     <string name="about_privacy_body_online">لا تحتفظ %1$s بأي بيانات للمستخدم. تبقى ألعابك ونتائجك وإعداداتك على هذا الجهاز، ما لم تسجّل الدخول إلى %2$s. لا توجد إعلانات ولا تحليلات ولا تتبّع.</string>
     <string name="about_privacy_link">سياسة الخصوصية الكاملة</string>
     <string name="licences_title">التراخيص</string>
-    <string name="licences_close_cd">إغلاق التراخيص</string>
     <string name="licences_intro">بُني %1$s باستخدام البرمجيات والخطوط والأصوات مفتوحة المصدر أدناه، وكلٌّ منها مستخدم بموجب الترخيص المذكور معه.</string>
     <string name="licences_show_text">عرض نص الترخيص</string>
     <string name="licences_hide_text">إخفاء نص الترخيص</string>
@@ -681,7 +679,7 @@
     <string name="setup_modifiers_locked">أنهِ لعبة لفتح المعدّلات</string>
     <string name="setup_tutorial_prompt">جديد في اللعبة؟ العب الدرس التعليمي</string>
     <string name="setup_player_name_cd">اسم اللاعب %1$d</string>
-    <string name="setup_type_user">مستخدم</string>
+    <string name="setup_type_user">لاعب</string>
     <string name="setup_difficulty_easy">سهل</string>
     <string name="setup_difficulty_medium">متوسط</string>
     <string name="setup_difficulty_hard">صعب</string>
@@ -1060,7 +1058,7 @@
     <string name="styles_unlock_all_spoken">فتح كل الأنماط</string>
     <string name="styles_payment_pending">الدفع قيد الانتظار</string>
     <string name="styles_all_unlocked">تم فتح كل الأنماط</string>
-    <string name="styles_unlock_all_dialog_title">فتح كل الأنماط</string>
+    <string name="styles_unlock_all_dialog_title">فتح الكل</string>
     <string name="styles_unlock_all_dialog_message">افتح كل الأنماط فورًا، دون الحاجة إلى كسب الإنجازات. يشمل ذلك كل أنماط النرد وكؤوس النرد والحصائر والخلفيات والإطارات، وحتى الألوان السرية.\n\nيمكن أيضًا كسب كل الأنماط مجانًا من خلال اللعب، ولن يحجب هذا التطبيق أي شيء خلف عملية شراء أبدًا. هذا مجرد اختصار اختياري ووسيلة لدعم %1$s!</string>
     <string name="styles_unlock_all_continue">متابعة</string>
     <string name="styles_unlock_all_failed">تعذّر فتح المتجر. يُرجى المحاولة مرة أخرى لاحقًا.</string>
@@ -1182,19 +1180,19 @@
     <string name="achievements_earned_percent">%1$d%</string>
     <!-- Digits and "/" form one left-to-right run, so the total is written first to read "earned of total" from the right. -->
     <string name="achievements_category_count">%2$d/%1$d</string>
-    <string name="achievements_all_unlocked">كل شيء مفتوح. لم يبقَ شيء تطارده!</string>
-    <string name="achievements_unearned_only">المقفلة</string>
+    <string name="achievements_all_unlocked">تم كسب كل شيء. لم يبقَ شيء تطارده!</string>
+    <string name="achievements_unearned_only">غير المكسوبة</string>
     <string name="achievements_previous_category_cd">الفئة السابقة</string>
     <string name="achievements_next_category_cd">الفئة التالية</string>
     <string name="achievements_hidden_description">؟؟؟</string>
-    <string name="achievements_unlocked_at">فُتح %1$s</string>
+    <string name="achievements_unlocked_at">كُسب %1$s</string>
     <string name="achievements_progress">%1$s من %2$s</string>
     <string name="achievements_banner_pause_action">إيقاف العد التنازلي مؤقتًا</string>
     <string name="achievements_banner_resume_action">استئناف العد التنازلي</string>
     <string name="achievements_banner_paused_spoken">متوقف مؤقتًا</string>
     <string name="achievements_banner_resumed_spoken">تم الاستئناف</string>
-    <string name="achievements_banner_unlocked_spoken">تم فتح إنجاز: %1$s. %2$s</string>
-    <string name="achievements_banner_unlocked_style_spoken">تم فتح إنجاز: %1$s. %2$s. يفتح نمطًا</string>
+    <string name="achievements_banner_unlocked_spoken">تم كسب إنجاز: %1$s. %2$s</string>
+    <string name="achievements_banner_unlocked_style_spoken">تم كسب إنجاز: %1$s. %2$s. يفتح نمطًا</string>
     <string name="achievements_banner_progress_spoken">%1$s: %2$s من %3$s</string>
     <string name="rules_how_to_play_title">كيف تلعب %1$s</string>
     <string name="rules_how_to_play_tab">كيفية اللعب</string>
@@ -1203,7 +1201,7 @@
     <string name="rules_how_to_play_3">عندما ترضى عن الرمية (أو بعد أن ترمي ثلاث مرات)، سجّلها في أي فئة مفتوحة في بطاقة نتائجك.</string>
     <string name="rules_how_to_play_4">تنتهي اللعبة عندما تُملأ كل الفئات.</string>
     <string name="rules_how_to_play_tutorial">هل تريد أن تراها في لعبة؟ يأخذك الدرس التعليمي خلال لعبة كاملة، خطوة بخطوة. لا شيء فيه يُحتسب: لا نتائج ولا إنجازات ولا لعبة محفوظة.</string>
-    <string name="rules_tutorial_start">ابدأ الدرس التعليمي</string>
+    <string name="rules_tutorial_start">العب الدرس التعليمي</string>
     <string name="rules_upper_section_title">التسجيل: القسم العلوي</string>
     <string name="rules_upper_section_tab">القسم العلوي</string>
     <string name="rules_upper_section_1">تسجّل كل فئة في *القسم العلوي*، من `الواحدات` إلى `السداسيات`، مجموع أحجار النرد التي تُظهر ذلك الرقم. مثلًا:</string>

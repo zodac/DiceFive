@@ -17,10 +17,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -107,6 +107,7 @@ import net.zodac.dicefive.ui.common.ChoicePicker
 import net.zodac.dicefive.ui.common.FittedSegmentedChoiceRow
 import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LocalLandscapePage
+import net.zodac.dicefive.ui.common.MAIN_ACTION_HEIGHT
 import net.zodac.dicefive.ui.common.MIN_READABLE_FONT_SIZE
 import net.zodac.dicefive.ui.common.ModifierCustomValue
 import net.zodac.dicefive.ui.common.ModifierNumberField
@@ -179,14 +180,14 @@ fun GameSetupScreen(
 
             // Offered, never required, and only until a first game is finished.
             if (!setup.modesUnlocked) {
-                OutlinedButton(
+                FilledTonalButton(
                     onClick = {
                         focusManager.clearFocus()
                         onTutorial()
                     },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = MAIN_ACTION_HEIGHT),
                 ) {
-                    Text(text = stringResource(Res.string.setup_tutorial_prompt), textAlign = TextAlign.Center)
+                    Text(text = stringResource(Res.string.setup_tutorial_prompt), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
                 }
             }
 
@@ -198,7 +199,7 @@ fun GameSetupScreen(
                     if (viewModel.startGame(defaultName)) onStartGame()
                 },
                 enabled = duplicateNameSlots.isEmpty(),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = MAIN_ACTION_HEIGHT),
             ) {
                 Text(text = stringResource(Res.string.setup_start), style = MaterialTheme.typography.titleMedium)
             }
@@ -444,8 +445,8 @@ private fun PlayerRow(
             }
         }
     }
-    // Grows with the font so "User" and "CPU" fit; player 1's empty space grows with it, so every row still lines up.
-    // ...and with the words: "Usuario" is wider than "User", and a label that doesn't fit its chip would break mid-word, so
+    // Grows with the font so "Player" and "CPU" fit; player 1's empty space grows with it, so every row still lines up.
+    // ...and with the words: "Jugador" is wider than "Player", and a label that doesn't fit its chip would break mid-word, so
     // the chip is as wide as the longer of its two labels needs when that's more than the usual width.
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -462,7 +463,7 @@ private fun PlayerRow(
                 label = {
                     // FilterChip's own Row left-aligns its label rather than centering it, so at a
                     // fixed chip width the leftover space all landed on one side - most visible as
-                    // "CPU" and "User" sitting at different horizontal positions. A label that fills
+                    // "CPU" and "Player" sitting at different horizontal positions. A label that fills
                     // the whole slot and centers its own text isn't subject to that.
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         Text(if (slot.type == PlayerType.AI) cpuLabel else userLabel, fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)

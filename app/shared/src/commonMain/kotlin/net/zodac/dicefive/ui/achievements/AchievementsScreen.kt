@@ -140,7 +140,6 @@ import net.zodac.dicefive.resources.achievements_score_recorded
 import net.zodac.dicefive.resources.achievements_title
 import net.zodac.dicefive.resources.achievements_unearned_only
 import net.zodac.dicefive.resources.achievements_unlocked_at
-import net.zodac.dicefive.resources.common_done
 import net.zodac.dicefive.resources.common_ok
 import net.zodac.dicefive.resources.filter_all
 import net.zodac.dicefive.ui.common.AppTooltip
@@ -246,7 +245,7 @@ internal fun nearestShownAchievementId(all: List<AchievementGroup>, shown: List<
  * past centre on the way to the top, then correcting back). A single scroll straight to an
  * estimated position is one continuous motion instead; being off by a few dp against the row's
  * actual height doesn't undermine "roughly centred" the way a visible direction reversal
- * undermines "smooth". Sized for a typical unlocked row (icon, title, description, "Unlocked at");
+ * undermines "smooth". Sized for a typical unlocked row (icon, title, description, "Earned at");
  * a locked row with a progress bar instead is a little taller, but not by enough to matter here. */
 private val ESTIMATED_ROW_HEIGHT_DP = 88.dp
 
@@ -595,7 +594,7 @@ fun AchievementsScreen(
         },
     ) {
         // Nothing but the title bar until the unlocks and scores are read: drawn any sooner, the
-        // page says "0 of 0 unlocked" and "Everything's unlocked" before the real list arrives. The page cover
+        // page says "0 of 0 earned" and "Everything's earned" before the real list arrives. The page cover
         // is kept up over it meanwhile.
         if (!state.isLoaded) return@ScreenScaffold HoldPageCover()
         val pageColumns = if (LocalLandscapePage.current) LANDSCAPE_COLUMNS else 1
@@ -1017,7 +1016,7 @@ private fun MissingDialog(item: AchievementItem, modeMessage: String?, onDismiss
                 item.missing.size.grouped(),
             ),
         ).joinToString("\n"),
-        confirmLabel = stringResource(Res.string.common_done),
+        confirmLabel = stringResource(Res.string.common_ok),
         onConfirm = onDismiss,
         onDismissRequest = onDismiss,
     ) {

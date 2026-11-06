@@ -31,9 +31,9 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -147,6 +147,7 @@ import net.zodac.dicefive.ui.common.isLargeFont
 import net.zodac.dicefive.ui.common.LOGO_DICE
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.MAIN_ACTION_HEIGHT
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.VerticalScrollbar
@@ -542,9 +543,10 @@ private fun RulesBlockView(block: RulesBlock) {
     when (block) {
         is RulesText -> RulesBodyText(block.text, modifier = Modifier.padding(bottom = BLOCK_GAP))
         RulesIllustration -> RulesIllustrationView(modifier = Modifier.padding(top = 24.dp, bottom = BLOCK_GAP))
-        RulesTutorialStart -> Button(
+        RulesTutorialStart -> FilledTonalButton(
             onClick = LocalStartTutorial.current,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(bottom = BLOCK_GAP),
+            // The gap outside the button's height: inside it, the gap would come out of the button.
+            modifier = Modifier.padding(bottom = BLOCK_GAP).fillMaxWidth().heightIn(min = MAIN_ACTION_HEIGHT),
         ) {
             Text(text = stringResource(Res.string.rules_tutorial_start), style = MaterialTheme.typography.titleMedium)
         }

@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import net.zodac.dicefive.ui.common.ChoicePicker
@@ -52,9 +53,11 @@ class ChromeTextTest : UiTest() {
             }
         }
 
-        // The About dialog says who made the app - and its close button is named.
-        showcase.show { DiceFiveTheme { AboutDialog(onDismissRequest = {}) } }
-        compose.onNodeWithContentDescription("Close about").assertExists()
+        // The About dialog says who made the app - and closes with its OK button.
+        var closed = 0
+        showcase.show { DiceFiveTheme { AboutDialog(onDismissRequest = { closed++ }) } }
+        compose.onNodeWithText("OK").performClick()
+        assertEquals(1, closed)
         compose.onAllNodesWithText("About").assertCountEquals(1)
         listOf("Author", "Inspiration", "Privacy", "Source code on GitHub", "Dice Me Online on Google Play", "Full privacy policy").forEach {
             compose.onNodeWithText(it).assertExists()

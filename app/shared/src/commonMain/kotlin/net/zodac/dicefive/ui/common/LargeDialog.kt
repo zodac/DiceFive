@@ -9,8 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -21,20 +20,20 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import net.zodac.dicefive.ui.icons.Symbols
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_ok
 
-/** The margin inside a [LargeDialog], round its content - the close button's row aside, which sits higher. */
+/** The margin inside a [LargeDialog], round its content. */
 val LARGE_DIALOG_MARGIN = 20.dp
 
 /**
  * A raised reading surface for a lot of text - About, Licences - rather than a [DiceFiveDialog], which asks a question:
- * most of the screen's height, no wider than the app's content, with a close button ([closeContentDescription]) at its
- * top end and [content] under it. [contentModifier] is applied to the column holding both, inside the surface.
+ * most of the screen's height, no wider than the app's content, with [content] above an OK button at its bottom end, as
+ * a [DiceFiveDialog]'s one button sits. [contentModifier] is applied to the column holding both, inside the surface.
  */
 @Composable
 fun LargeDialog(
     onDismissRequest: () -> Unit,
-    closeContentDescription: String,
     modifier: Modifier = Modifier,
     contentModifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
@@ -56,14 +55,12 @@ fun LargeDialog(
                 modifier = Modifier
                     .fillMaxSize()
                     .then(contentModifier)
-                    .padding(top = 4.dp, bottom = LARGE_DIALOG_MARGIN, start = LARGE_DIALOG_MARGIN, end = LARGE_DIALOG_MARGIN),
+                    .padding(LARGE_DIALOG_MARGIN),
             ) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    IconButton(onClick = onDismissRequest) {
-                        Icon(imageVector = Symbols.Close, contentDescription = closeContentDescription)
-                    }
-                }
                 content()
+                Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.End) {
+                    Button(onClick = onDismissRequest) { Text(stringResource(Res.string.common_ok)) }
+                }
             }
         }
     }

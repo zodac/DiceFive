@@ -37,7 +37,6 @@ import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.platform.ThirdPartyNotice
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.app_name
-import net.zodac.dicefive.resources.licences_close_cd
 import net.zodac.dicefive.resources.licences_copy_link
 import net.zodac.dicefive.resources.licences_copy_text
 import net.zodac.dicefive.resources.licences_hide_text
@@ -173,7 +172,6 @@ fun LicensesDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) 
     CompositionLocalProvider(LocalSelectionClearer provides selectionClearer) {
         LargeDialog(
             onDismissRequest = onDismissRequest,
-            closeContentDescription = stringResource(Res.string.licences_close_cd),
             modifier = modifier,
             contentModifier = Modifier.clearSelectionsOnTap(selectionClearer),
         ) {

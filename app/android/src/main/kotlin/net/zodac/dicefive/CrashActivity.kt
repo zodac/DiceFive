@@ -78,7 +78,7 @@ class CrashActivity : ComponentActivity() {
         try {
             startActivity(Intent(Intent.ACTION_VIEW, report.issueUrl().toUri()))
         } catch (_: ActivityNotFoundException) {
-            // Copy details is still there.
+            // Copy Details is still there.
         }
     }
 

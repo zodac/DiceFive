@@ -47,7 +47,6 @@ import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.about_author_body
 import net.zodac.dicefive.resources.about_author_heading
 import net.zodac.dicefive.resources.about_author_link
-import net.zodac.dicefive.resources.about_close_cd
 import net.zodac.dicefive.resources.about_inspiration_body
 import net.zodac.dicefive.resources.about_inspiration_heading
 import net.zodac.dicefive.resources.about_inspiration_link
@@ -145,7 +144,7 @@ fun AboutDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier, deb
     // Null without a service: no Settings card, so nothing to sign in to.
     val serviceName = services.serviceName.takeIf { services.state.collectAsStateWithLifecycle().value != GameServicesState.Unavailable }
 
-    LargeDialog(onDismissRequest = onDismissRequest, closeContentDescription = stringResource(Res.string.about_close_cd), modifier = modifier) {
+    LargeDialog(onDismissRequest = onDismissRequest, modifier = modifier) {
         val scroll = rememberScrollState()
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             Column(modifier = Modifier.fillMaxSize().verticalScroll(scroll)) {

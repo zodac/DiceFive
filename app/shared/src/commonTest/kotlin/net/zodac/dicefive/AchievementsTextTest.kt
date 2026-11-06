@@ -107,7 +107,7 @@ class AchievementsTextTest : UiTest() {
         // An unlock banner is read as the achievement unlocked and its description.
         AchievementEvents.emit(AchievementEvent.Unlocked(Achievement.THE_JOURNEY_BEGINS))
         compose.waitForIdle()
-        compose.onNode(hasContentDescription("Achievement unlocked: The Journey Begins. Start your first game")).assertExists()
+        compose.onNode(hasContentDescription("Achievement earned: The Journey Begins. Start your first game")).assertExists()
         // A progress banner is read as its title and how far along.
         showBannerHost()
         AchievementEvents.emit(AchievementEvent.Progressed(Achievement.GETTING_COMFORTABLE, 4, 5))
@@ -140,7 +140,7 @@ class AchievementsTextTest : UiTest() {
         row.performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
         compose.onNodeWithText("Can only be earned in the 'Standard', 'Tricolour', and 'Third\u00A0Wind' modes\nNumbers with no 5x scored yet (4 left):").assertExists()
-        compose.onNodeWithText("Done").performClick()
+        compose.onNodeWithText("OK").performClick()
         compose.waitForIdle()
         row.performTouchInput { longClick() }
         compose.waitForIdle()
