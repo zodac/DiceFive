@@ -468,10 +468,11 @@ fun AchievementsScreen(
         }
     }
 
-    // Room after the last row so it can scroll up to rest just under the pinned header (and so a
+    // Room after the last row so it can scroll up to rest directly under the pinned header (and so a
     // banner long press can centre the rows at the bottom, instead of leaving them clamped at the
-    // list's end, under the unlock banner). Sized as viewport - pinned header - last row, both
-    // measured once seen; the header/row estimates only cover the first frames.
+    // list's end, under the unlock banner). Sized as viewport - pinned header - last row - the list's
+    // gap before this item, with the header and row measured once seen; their estimates only cover
+    // the first frames.
     var tailSpacePx by remember { mutableIntStateOf(0) }
     LaunchedEffect(listState) {
         var headerPx = headerEstimatePx
@@ -480,7 +481,7 @@ fun AchievementsScreen(
             info.visibleItemsInfo.firstOrNull { it.contentType == HEADER_CONTENT_TYPE }?.let { headerPx = it.size }
             info.visibleItemsInfo.lastOrNull { it.contentType == ROW_CONTENT_TYPE }
                 ?.takeIf { it.index == info.totalItemsCount - 2 }?.let { lastRowPx = it.size }
-            tailSpacePx = (info.viewportSize.height - headerPx - lastRowPx).coerceAtLeast(0)
+            tailSpacePx = (info.viewportSize.height - headerPx - lastRowPx - listSpacingPx).coerceAtLeast(0)
         }
     }
 

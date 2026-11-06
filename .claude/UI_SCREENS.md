@@ -42,7 +42,8 @@ Miscellaneous run in alphabetical order instead, and so do the Easter Eggs, whic
     past its curve like a lip; left uncut, the top of the list cuts them flat in its top corners.
 
 **The list scrolls past its last row, on purpose.** A trailing blank item (`tail-space`, measured as the viewport less
-the header and the last row) lets the final rows reach the middle, so a banner long press can centre them.
+the header, the last row, and the list's gap before it) lets the final rows reach the middle, so a banner long press can
+centre them. At the furthest scroll the last row rests whole, directly under the pinned header (`AchievementsLastRowTest`).
 
 - It's for this page only.
 - It must be an item, not `contentPadding`, which would shift `centeredScrollOffset`.
