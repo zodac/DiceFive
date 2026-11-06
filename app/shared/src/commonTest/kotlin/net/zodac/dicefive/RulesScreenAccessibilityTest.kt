@@ -7,6 +7,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
@@ -31,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import net.zodac.dicefive.ui.style.LocalTricolourMarks
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.common.LocalReduceMotion
@@ -53,9 +57,13 @@ class RulesScreenAccessibilityTest : UiTest() {
     private val showcase = Showcase { compose }
 
     /** A fresh Rules screen - each call starts again on the first page of the first group. */
-    private fun showRules(reduceMotion: Boolean = false) = showcase.show {
+    private fun showRules(reduceMotion: Boolean = false, tricolourMarks: Boolean = false) = showcase.show {
         resetRulesPageMemory()
-        CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices, LocalReduceMotion provides reduceMotion) {
+        CompositionLocalProvider(
+            LocalPlatformServices provides SilentPlatformServices,
+            LocalReduceMotion provides reduceMotion,
+            LocalTricolourMarks provides tricolourMarks,
+        ) {
             DiceFiveTheme { RulesScreen(onBack = {}) }
         }
     }
@@ -152,6 +160,26 @@ class RulesScreenAccessibilityTest : UiTest() {
         compose.waitForIdle()
         compose.onNode(isTab and hasText("Quickfire")).assertIsSelected()
         compose.onNode(isHeading and hasText("Quickfire")).assertIsDisplayed()
+    }
+
+    @Test
+    fun theTricolourShapesSettingMarksThePagesExampleDiceAndLeavesWhatTheySayAsItIs() = uiTest {
+        val spoken = "Example: red 1, red 4, red 6, blue 2, blue"
+        fun exampleDice(marks: Boolean): List<Int> {
+            showRules(reduceMotion = true, tricolourMarks = marks)
+            compose.waitForIdle()
+            openGroup("Modes")
+            openPage("Tricolour")
+            compose.mainClock.advanceTimeBy(3000)
+            val example = compose.onNode(hasContentDescription(spoken, substring = true))
+            example.performScrollTo()
+            compose.waitForIdle()
+            val pixels = example.captureToImage().toPixelMap()
+            return List(pixels.width * pixels.height) { pixels[it % pixels.width, it / pixels.width].toArgb() }
+        }
+        val plain = exampleDice(marks = false)
+        assertEquals(plain, exampleDice(marks = false), "the example draws the same each time, or this comparison says nothing")
+        assertTrue(plain != exampleDice(marks = true), "the setting left the example dice as they were")
     }
 
     @Test

@@ -159,10 +159,6 @@ private const val SHADOW_LENGTH = 0.022f
 private const val SCRAMBLE_INTERVAL_MILLIS = 90L
 private const val CYCLE_INTERVAL_MILLIS = 1_000L
 
-/** How much of a die's side its [DieColourMark] takes, and how far it reaches out over the corner. */
-private const val COLOUR_MARK_SIZE = 0.34f
-private val COLOUR_MARK_OUTSET = 5.dp
-
 /**
  * The dice area: five columns, each always representing the same die index end to end - a fixed
  * "held" slot at the top, and - once the dice have been rolled this turn, or while [rolling] is
@@ -1022,11 +1018,8 @@ private fun DieFace(die: Die, held: Boolean, diceStyles: TrayDiceStyles, modifie
                 modifier = Modifier.matchParentSize(),
             )
         }
-        if (markColour != null) {
-            // Over the die's corner, clear of its pips; inside it when held, as the slot clips what leaves it.
-            val outset = if (held) 0.dp else COLOUR_MARK_OUTSET
-            DieColourMark(markColour, Modifier.align(Alignment.TopEnd).fillMaxSize(COLOUR_MARK_SIZE).offset(x = outset, y = -outset))
-        }
+        // Inside the die when held, as the slot clips what leaves it.
+        if (markColour != null) DieColourMark(markColour, inside = held)
     }
 }
 

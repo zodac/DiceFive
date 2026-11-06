@@ -161,6 +161,7 @@ import net.zodac.dicefive.ui.common.playLogoRoll
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.spokenList
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.game.DieColourMark
 import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 import net.zodac.dicefive.ui.game.CategoryTile
 import net.zodac.dicefive.ui.game.FADED_DIE_ALPHA
@@ -173,6 +174,7 @@ import net.zodac.dicefive.ui.style.ClassicGoldDiceCupStyle
 import net.zodac.dicefive.ui.style.IvoryDiceStyle
 import net.zodac.dicefive.ui.style.PIP_FACES
 import net.zodac.dicefive.ui.style.numberedLike
+import net.zodac.dicefive.ui.style.LocalTricolourMarks
 import net.zodac.dicefive.ui.style.palette
 import org.jetbrains.compose.resources.StringResource
 
@@ -691,16 +693,18 @@ private fun RulesDiceRow(example: RulesDice, modifier: Modifier = Modifier) {
         val plain = if (example.dice.any { it.value > PIP_FACES }) numberedLike(IvoryDiceStyle) else IvoryDiceStyle
         for (die in example.dice) {
             val style = die.colour?.let { plain.recoloured(it.palette) } ?: plain
+            val markColour = die.colour.takeIf { LocalTricolourMarks.current }
             val dieModifier = Modifier
                 .padding(end = 6.dp)
                 .size(EXAMPLE_DIE_SIZE)
                 .graphicsLayer { alpha = if (die.counts || die.locked) 1f else FADED_DIE_ALPHA }
             if (example.isTarget && die.anyPlace) {
                 Box(modifier = dieModifier.drawBehind { drawAnyPlace(anyPlaceColor) })
-            } else if (die.locked) {
+            } else if (die.locked || markColour != null) {
                 Box(modifier = dieModifier) {
                     style.Die(value = die.value, held = false, modifier = Modifier.fillMaxSize())
-                    LockedChains(shape = style.shadowShape(die.value, 0, null), reach = style.lockedChainReach, modifier = Modifier.matchParentSize())
+                    if (die.locked) LockedChains(shape = style.shadowShape(die.value, 0, null), reach = style.lockedChainReach, modifier = Modifier.matchParentSize())
+                    if (markColour != null) DieColourMark(markColour)
                 }
             } else {
                 style.Die(value = die.value, held = false, modifier = dieModifier)
