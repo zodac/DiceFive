@@ -762,6 +762,7 @@
     <string name="settings_orientation_portrait">عمودي</string>
     <string name="settings_orientation_landscape">أفقي</string>
     <string name="settings_confirm_leaving">تأكيد مغادرة اللعبة</string>
+    <string name="settings_tricolour_marks">أشكال ثلاثي الألوان</string>
     <string name="settings_reset_leaderboard">إعادة ضبط لوحة المتصدرين</string>
     <string name="settings_reset_leaderboard_description">احذف كل النتائج المسجّلة</string>
     <string name="settings_reset_action">إعادة ضبط</string>

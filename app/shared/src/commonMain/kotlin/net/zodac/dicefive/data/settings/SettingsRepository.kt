@@ -309,6 +309,11 @@ class SettingsRepository(
 
     suspend fun setVibrationEnabled(enabled: Boolean) = set(VIBRATION_ENABLED_KEY, enabled)
 
+    /** Whether Tricolour's dice and boxes carry a shape for their colour. Off unless the player turns it on. */
+    val tricolourMarksEnabled: Flow<Boolean> = read(TRICOLOUR_MARKS_KEY, default = false)
+
+    suspend fun setTricolourMarksEnabled(enabled: Boolean) = set(TRICOLOUR_MARKS_KEY, enabled)
+
     /** The player's "Animations" level - see [AnimationLevel]. */
     val animationLevel: Flow<AnimationLevel> = read { prefs ->
         prefs[ANIMATION_LEVEL_KEY]?.let { storedIdOf<AnimationLevel>(it) } ?: AnimationLevel.default
@@ -388,6 +393,7 @@ class SettingsRepository(
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
         val SOUND_ENABLED_KEY = booleanPreferencesKey("sound_enabled")
         val VIBRATION_ENABLED_KEY = booleanPreferencesKey("vibration_enabled")
+        val TRICOLOUR_MARKS_KEY = booleanPreferencesKey("tricolour_marks")
         val ANIMATION_LEVEL_KEY = stringPreferencesKey("animation_level")
         val SCREEN_ORIENTATION_KEY = stringPreferencesKey("screen_orientation")
         val PLAYER_COUNT_KEY = intPreferencesKey("player_count")
@@ -448,7 +454,7 @@ class SettingsRepository(
             listOf(PLAYER_COUNT_KEY, ROLLS_PER_TURN_KEY, ROLLS_PER_TURN_LENGTH_KEY, STORED_ROLLS_MAX_KEY, UNLUCKY_ODDS_KEY, UNLUCKY_MAX_DICE_KEY)
                 .mapTo(this) { SyncedKey.Number(it) }
             listOf(
-                STORED_ROLLS_KEY, EXTENDED_SCORES_KEY, UNLUCKY_DICE_KEY, SOUND_ENABLED_KEY, VIBRATION_ENABLED_KEY, CONFIRM_BEFORE_LEAVING_GAME_KEY,
+                STORED_ROLLS_KEY, EXTENDED_SCORES_KEY, UNLUCKY_DICE_KEY, SOUND_ENABLED_KEY, VIBRATION_ENABLED_KEY, TRICOLOUR_MARKS_KEY, CONFIRM_BEFORE_LEAVING_GAME_KEY,
                 FIRST_GAME_COMPLETED_KEY,
             ).mapTo(this) { SyncedKey.Flag(it) }
         }

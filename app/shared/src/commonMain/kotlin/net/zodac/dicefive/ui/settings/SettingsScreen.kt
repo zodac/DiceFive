@@ -54,6 +54,7 @@ import net.zodac.dicefive.resources.settings_animations_medium
 import net.zodac.dicefive.resources.settings_animations_medium_short
 import net.zodac.dicefive.resources.settings_animations_off
 import net.zodac.dicefive.resources.settings_confirm_leaving
+import net.zodac.dicefive.resources.settings_tricolour_marks
 import net.zodac.dicefive.resources.settings_import_progress_confirm
 import net.zodac.dicefive.resources.settings_import_progress_message
 import net.zodac.dicefive.resources.settings_import_progress_title
@@ -318,6 +319,12 @@ fun SettingsScreen(
                     stringResource(Res.string.settings_confirm_leaving),
                     toggles.confirmBeforeLeavingGame,
                     viewModel::setConfirmBeforeLeavingGame,
+                )
+                SwitchSetting(
+                    Symbols.Palette,
+                    stringResource(Res.string.settings_tricolour_marks),
+                    toggles.tricolourMarksEnabled,
+                    viewModel::setTricolourMarksEnabled,
                 )
             }
         }

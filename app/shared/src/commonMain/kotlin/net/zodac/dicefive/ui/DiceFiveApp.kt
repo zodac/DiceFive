@@ -47,6 +47,7 @@ import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.purchases.LocalStore
 import net.zodac.dicefive.purchases.NoStore
 import net.zodac.dicefive.purchases.Store
+import net.zodac.dicefive.ui.style.LocalTricolourMarks
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
 import net.zodac.dicefive.ui.common.DatabaseFailurePage
 import net.zodac.dicefive.ui.common.DriftState
@@ -136,7 +137,9 @@ fun DiceFiveApp(
     // Put one device down and pick another up: the first saves, the second reads.
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { OnlineSyncRequests.request() }
     LifecycleEventEffect(Lifecycle.Event.ON_START) { OnlineSyncRequests.request() }
+    val tricolourMarks by container.settingsRepository.tricolourMarksEnabled.collectAsStateWithLifecycle(initialValue = false)
     CompositionLocalProvider(
+        LocalTricolourMarks provides tricolourMarks,
         LocalReduceMotion provides reduceMotion,
         LocalAnimationLevel provides animationLevel,
         LocalAppContainer provides container,

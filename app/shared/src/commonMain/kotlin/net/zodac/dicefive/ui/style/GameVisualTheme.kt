@@ -215,6 +215,9 @@ data class GameVisualTheme(
 
 val LocalGameVisualTheme = staticCompositionLocalOf { GameVisualTheme() }
 
+/** Whether Tricolour's dice and boxes carry a shape for their colour - the Tricolour shapes setting. Off by default. */
+val LocalTricolourMarks = staticCompositionLocalOf { false }
+
 /**
  * Whether Tricolour's dice/scorecard colours are showing as the Irish flag's green/white/orange
  * right now - true only for [net.zodac.dicefive.model.isLuckOfTheIrish]'s exact condition, provided

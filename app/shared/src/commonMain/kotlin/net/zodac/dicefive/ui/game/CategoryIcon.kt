@@ -46,11 +46,15 @@ import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.style.LocalIrishTricolour
+import net.zodac.dicefive.ui.style.LocalTricolourMarks
 import net.zodac.dicefive.ui.style.PipFace
 import net.zodac.dicefive.ui.style.palette
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 import org.jetbrains.compose.resources.painterResource
+
+/** How much of a colour's box its [BoxColourMark] takes. */
+private const val COLOUR_MARK_SIZE = 0.62f
 
 /**
  * The small glyph shown inside a [CategoryTile]: dice pips for the upper section, and a bespoke
@@ -110,7 +114,10 @@ fun CategoryIcon(
                     .padding(10.dp)
                     .alpha(if (dimmed) 0.4f else 1f)
                     .background(rule.colour.palette(LocalIrishTricolour.current).swatch),
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                if (LocalTricolourMarks.current) BoxColourMark(rule.colour, Modifier.fillMaxSize(COLOUR_MARK_SIZE))
+            }
             // Material has one Stairs glyph, not a short-flight/long-flight pair, so both
             // categories render the same icon - a corner badge carries the run length (4 vs 5)
             // that used to come from the hand-drawn version's step count.

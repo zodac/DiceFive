@@ -2,6 +2,8 @@ package net.zodac.dicefive.data.settings
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -130,5 +132,16 @@ class SettingsRepositoryTest {
         repository.clear()
         runCurrent()
         assertEquals(listOf(false, true, false), saved)
+    }
+
+    @Test
+    fun `the Tricolour shapes setting is off until it's turned on - and keeps what it's set to`() = runTest {
+        val repository = SettingsRepository(InMemoryPreferences())
+        assertFalse(repository.tricolourMarksEnabled.first())
+        repository.setTricolourMarksEnabled(true)
+        assertTrue(repository.tricolourMarksEnabled.first())
+        assertEquals(setOf("tricolour_marks"), repository.cloudSettings().keys.filter { it == "tricolour_marks" }.toSet(), "it syncs")
+        repository.setTricolourMarksEnabled(false)
+        assertFalse(repository.tricolourMarksEnabled.first())
     }
 }

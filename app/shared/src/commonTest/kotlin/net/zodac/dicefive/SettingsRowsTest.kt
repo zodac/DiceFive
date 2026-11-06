@@ -55,7 +55,7 @@ class SettingsRowsTest : UiTest() {
             }
         }
         // The page names every switch - and its version and two links.
-        listOf("Settings", "Sound effects", "Vibration", "Confirm leaving game", "About", "Licences").forEach { compose.onNodeWithText(it).assertExists() }
+        listOf("Settings", "Sound effects", "Vibration", "Confirm leaving game", "Tricolour shapes", "About", "Licences").forEach { compose.onNodeWithText(it).assertExists() }
         compose.onNode(hasText("Version ", substring = true)).assertExists()
         // The two choice rows have no visible title: each icon carries its name for a screen reader.
         listOf("Animations", "Orientation").forEach { compose.onNodeWithContentDescription(it).assertExists() }

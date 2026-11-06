@@ -45,6 +45,7 @@ data class SettingsToggles(
     val animationLevel: AnimationLevel = AnimationLevel.default,
     val confirmBeforeLeavingGame: Boolean = true,
     val screenOrientation: ScreenOrientation = ScreenOrientation.default,
+    val tricolourMarksEnabled: Boolean = false,
 )
 
 class SettingsViewModel(
@@ -74,7 +75,7 @@ class SettingsViewModel(
         settingsRepository.confirmBeforeLeavingGame,
         settingsRepository.screenOrientation,
         ::SettingsToggles,
-    ).stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    ).combine(settingsRepository.tricolourMarksEnabled) { toggles, marks -> toggles.copy(tricolourMarksEnabled = marks) }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     fun setConfirmBeforeLeavingGame(confirm: Boolean) {
         viewModelScope.launch { settingsRepository.setConfirmBeforeLeavingGame(confirm) }
@@ -86,6 +87,10 @@ class SettingsViewModel(
 
     fun setVibrationEnabled(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.setVibrationEnabled(enabled) }
+    }
+
+    fun setTricolourMarksEnabled(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setTricolourMarksEnabled(enabled) }
     }
 
     fun setAnimationLevel(level: AnimationLevel) {

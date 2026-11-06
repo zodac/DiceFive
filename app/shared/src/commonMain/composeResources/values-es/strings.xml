@@ -673,6 +673,7 @@
     <string name="settings_orientation_portrait">Vertical</string>
     <string name="settings_orientation_landscape">Horizontal</string>
     <string name="settings_confirm_leaving">Confirmar al salir de la partida</string>
+    <string name="settings_tricolour_marks">Formas en Tricolor</string>
     <string name="settings_reset_leaderboard">Restablecer clasificación</string>
     <string name="settings_reset_leaderboard_description">Borra todas las puntuaciones registradas</string>
     <string name="settings_reset_action">Restablecer</string>

@@ -894,6 +894,7 @@
     <string name="settings_orientation_portrait">Portrait</string>
     <string name="settings_orientation_landscape">Landscape</string>
     <string name="settings_confirm_leaving">Confirm leaving game</string>
+    <string name="settings_tricolour_marks">Tricolour shapes</string>
     <string name="settings_reset_leaderboard">Reset leaderboard</string>
     <string name="settings_reset_leaderboard_description">Delete all recorded scores</string>
     <!-- What a screen reader says a tap on either reset row does (it opens the "are you sure" dialog), and the red button of both those dialogs. -->

@@ -605,8 +605,12 @@ Each category is two lists in the same order:
 ## Settings
 
 - **Contents.** The online account card (the play app) or the progress files card (the github app), at the top; switches
-    for Sound effects, Vibration and Confirm leaving game; the Animations level; the Orientation; and two resets behind
+    for Sound effects, Vibration, Confirm leaving game, and Tricolour shapes; the Animations level; the Orientation; and two resets behind
     confirmations (achievements, leaderboard).
+- **Tricolour shapes** (`tricolour_marks`, synced, off by default): a triangle, circle, or square for red, yellow, or blue,
+    on a Tricolour die's corner (`DieColourMark`) and in its colour's box (`BoxColourMark`), for telling the dice apart
+    without their colours. Not while a die is tossed, and not spoken, as a die and a box already say their colour.
+    Tests: `ColourMarksTest`.
 - **Orientation** (`ScreenOrientation`): Device (the default: turns as the system allows), Portrait or Landscape. Not
     synced, as a phone and a tablet can want different ones. `DiceFiveApp` hands it to `PlatformServices.lockOrientation`;
     on Android `MainActivity` sets `requestedOrientation` (sensor portrait or landscape, so either way up). The manifest's

@@ -100,6 +100,7 @@ import net.zodac.dicefive.ui.style.LocalDieMotion
 import net.zodac.dicefive.ui.style.LocalDieTumbleMillis
 import net.zodac.dicefive.ui.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.style.LocalIrishTricolour
+import net.zodac.dicefive.ui.style.LocalTricolourMarks
 import net.zodac.dicefive.ui.style.PickUpPath
 import net.zodac.dicefive.ui.style.PIP_FACES
 import net.zodac.dicefive.ui.style.TossPath
@@ -157,6 +158,10 @@ private val LIGHT_Y = (-140).dp
 private const val SHADOW_LENGTH = 0.022f
 private const val SCRAMBLE_INTERVAL_MILLIS = 90L
 private const val CYCLE_INTERVAL_MILLIS = 1_000L
+
+/** How much of a die's side its [DieColourMark] takes, and how far it reaches out over the corner. */
+private const val COLOUR_MARK_SIZE = 0.34f
+private val COLOUR_MARK_OUTSET = 5.dp
 
 /**
  * The dice area: five columns, each always representing the same die index end to end - a fixed
@@ -1001,18 +1006,27 @@ private fun GroundShadow(shape: Shape, lift: Float, modifier: Modifier = Modifie
 @Composable
 private fun DieFace(die: Die, held: Boolean, diceStyles: TrayDiceStyles, modifier: Modifier) {
     val style = diceStyles.forDie(die)
-    if (!die.isUnlucky) {
+    val markColour = die.colour.takeIf { LocalTricolourMarks.current }
+    if (!die.isUnlucky && markColour == null) {
         style.Die(value = die.value, held = held, modifier = modifier)
         return
     }
-    // A die locked by Unlucky Dice: the chains are laid over it, so they follow it wherever it lies.
+    // What's laid over the die goes in a box with it, so it follows the die wherever it lies.
     Box(modifier = modifier) {
         style.Die(value = die.value, held = held, modifier = Modifier.fillMaxSize())
-        LockedChains(
-            shape = style.shadowShape(die.value, LocalDieIndex.current, null),
-            reach = style.lockedChainReach,
-            modifier = Modifier.matchParentSize(),
-        )
+        // A die locked by Unlucky Dice: the chains.
+        if (die.isUnlucky) {
+            LockedChains(
+                shape = style.shadowShape(die.value, LocalDieIndex.current, null),
+                reach = style.lockedChainReach,
+                modifier = Modifier.matchParentSize(),
+            )
+        }
+        if (markColour != null) {
+            // Over the die's corner, clear of its pips; inside it when held, as the slot clips what leaves it.
+            val outset = if (held) 0.dp else COLOUR_MARK_OUTSET
+            DieColourMark(markColour, Modifier.align(Alignment.TopEnd).fillMaxSize(COLOUR_MARK_SIZE).offset(x = outset, y = -outset))
+        }
     }
 }
 
