@@ -1,6 +1,0 @@
-- Added Time played to the Statistics page
-- Added a Tricolour shapes option to Settings, to make dice colours more distinct
-- Pausing animations after 60s idle to save battery
-- The `RGB Halo` cup now shows the correct number of dice
-- A saved game that can't be resumed now opens the crash page
-- Fixed the last row of the Achievements page sliding under the pinned header when scrolled to the end
