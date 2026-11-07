@@ -398,6 +398,8 @@ private fun DevicePullEffect(onPull: (Offset) -> Unit) {
     val currentOnPull = rememberUpdatedState(onPull)
     val accelerometer = remember { platform.createAccelerometer() } ?: return
 
+    // Not on an idle screen either: the pupils are frozen with everything else.
+    if (LocalScreenIdle.current?.idle == true) return
     LifecycleResumeEffect(accelerometer) {
         var pull: Offset? = null
         accelerometer.start(PULL_SAMPLES_PER_SECOND) { x, y, _ ->

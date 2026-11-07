@@ -342,6 +342,23 @@ in Settings, between the switches and the resets.
 - the score tile reads `scorePulse`;
 - both are false under a nested `LocalReduceMotion`, which is how an off-screen Styles tile is held still.
 
+**The idle screen.** After 60s without a touch, every infinite animation freezes mid-motion, at any level, so an untouched
+screen asks for no frames for it (`ScreenIdle`, `ScreenIdleTest`, `ScreenIdleUiTest`).
+
+- `ScreenIdle` is the `InfiniteAnimationPolicy` on the window's recomposer (`MainActivity`): an `InfiniteTransition` or a
+    `withInfiniteAnimationFrameNanos` loop waits there before its next frame. So a new one freezes with no code of its own.
+    A plain `withFrameNanos` loop doesn't ask it, so one that never ends must use the infinite frame.
+- It doesn't touch `ambientMotion` or `scorePulse`: art stays as it was drawn, not in its still pose. On waking, a clock
+    that runs on frame time resumes at the time it has reached, so a cycle can jump to a new phase; the drift caps its step.
+- Any touch in the main window restarts the 60s and sets them off (`wakesScreen`, on the root, taking nothing from
+    what's touched), as do a page opening and the app coming back. Time in the background doesn't count.
+- A touch in a dialog's own window isn't seen, and TalkBack's gestures send no touches, so its users wake it by opening a
+    page. Nothing is lost: the art is decoration, and a good pick's tile stays gold.
+- **What the game does is never frozen.** Finite animations (a toss, a score's flourish) don't ask the policy. `HoldScreenAwake`
+    keeps everything running while a loop the game needs is composed: `cup.rolling` in `DiceCupPanel`, so a CPU's turn plays
+    on, and the turn timer's flash. Any new loop like those needs one.
+- The menu logo's pupils also stop reading the accelerometer (`DevicePullEffect`).
+
 **Frames.**
 
 - `MainActivity` builds the recomposer on `CappedFrameClock` (app/android), which `PlatformServices.capFrameRate` sets

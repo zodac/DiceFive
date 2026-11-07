@@ -20,6 +20,7 @@ import net.zodac.dicefive.data.scores.CloudScores
 import net.zodac.dicefive.data.scores.InMemoryScoreDao
 import net.zodac.dicefive.data.scores.PlayerResult
 import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.game.TieBreakStats
@@ -317,5 +318,80 @@ class CloudSaveSizeAndSkipTest {
 
         online.setScoresResetAt(5L)
         assertNotEquals(afterGame, store.changeStamp())
+    }
+
+    @Test
+    fun `going to the background syncs only with something new to save`() = runTest {
+        val device = SaveDevice(saveOf("phone"))
+        val sync = sync(SaveService(null), device)
+        assertTrue(sync.needsSyncOnLeaving(), "No sync yet")
+        sync.reconcile()
+        assertFalse(sync.needsSyncOnLeaving())
+
+        device.play("game")
+        assertTrue(sync.needsSyncOnLeaving(), "A change here")
+        sync.reconcile()
+        assertFalse(sync.needsSyncOnLeaving())
+    }
+
+    @Test
+    fun `coming back syncs again only 60 seconds after the last sync`() = runTest {
+        var clock = 1_000L
+        val sync = OnlineSync(SaveService(null), InMemoryAchievementStore(AchievementsState()), settings, { LeaderboardTotals() }, { _, _ -> null }, SaveDevice(saveOf("phone")), now = { clock })
+        assertTrue(sync.needsSyncOnReturning(), "No sync yet")
+        sync.reconcile()
+        assertFalse(sync.needsSyncOnReturning())
+
+        clock += 59_999L
+        assertFalse(sync.needsSyncOnReturning())
+        clock += 1L
+        assertTrue(sync.needsSyncOnReturning())
+
+        sync.reconcile()
+        assertFalse(sync.needsSyncOnReturning())
+        clock -= 1L
+        assertTrue(sync.needsSyncOnReturning(), "The phone's clock set back past the sync")
+    }
+
+    @Test
+    fun `a save the service didn't take is tried again on leaving and on coming back`() = runTest {
+        val service = SaveService(null).apply { takesWrites = false }
+        val sync = sync(service, SaveDevice(saveOf("phone")))
+        sync.reconcile()
+        assertTrue(sync.needsSyncOnLeaving())
+        assertTrue(sync.needsSyncOnReturning())
+
+        service.takesWrites = true
+        sync.reconcile()
+        assertFalse(sync.needsSyncOnLeaving())
+        assertFalse(sync.needsSyncOnReturning())
+    }
+
+    @Test
+    fun `a score the service didn't take is tried again on leaving and on coming back`() = runTest {
+        var takesScores = false
+        val service = object : GameServices by SaveService(null) {
+            override suspend fun submitScore(leaderboardKey: String, score: Long): Boolean = takesScores
+        }
+        val unposted = UnpostedScore(score = 200, playedEpochMillis = 500L)
+        val sync = OnlineSync(service, InMemoryAchievementStore(AchievementsState()), settings, { LeaderboardTotals() }, { _, _ -> unposted }, SaveDevice(saveOf("phone")), now = { 1_000L })
+        sync.reconcile()
+        assertTrue(sync.needsSyncOnLeaving())
+        assertTrue(sync.needsSyncOnReturning())
+
+        takesScores = true
+        sync.reconcile()
+        assertFalse(sync.needsSyncOnLeaving())
+        assertFalse(sync.needsSyncOnReturning())
+    }
+
+    @Test
+    fun `another account's sync doesn't stand for the one signed in now`() = runTest {
+        val service = SaveService(null)
+        val sync = sync(service, SaveDevice(saveOf("phone")))
+        sync.reconcile()
+        service.mutableState.value = GameServicesState.SignedIn(OnlineAccount("ann", null, "ann"))
+        assertTrue(sync.needsSyncOnLeaving())
+        assertTrue(sync.needsSyncOnReturning())
     }
 }

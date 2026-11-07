@@ -8,10 +8,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import kotlin.time.Duration.Companion.seconds
@@ -24,6 +26,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.app.Breadcrumbs
 import net.zodac.dicefive.app.LocalAppContainer
@@ -56,7 +59,11 @@ import net.zodac.dicefive.ui.common.LastAnimationLevel
 import net.zodac.dicefive.ui.common.LocalAnimationLevel
 import net.zodac.dicefive.ui.common.LocalDriftState
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.LocalScreenIdle
+import net.zodac.dicefive.ui.common.ScreenIdle
+import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.rememberPageCover
+import net.zodac.dicefive.ui.common.wakesScreen
 import net.zodac.dicefive.ui.game.LeaveGameConfirmation
 import net.zodac.dicefive.ui.game.LeaveGameConfirmationDialog
 import net.zodac.dicefive.ui.game.LocalLeaveGameConfirmation
@@ -77,6 +84,8 @@ fun DiceFiveApp(
     platform: PlatformServices,
     gameServices: GameServices = NoGameServices,
     store: Store = NoStore,
+    /** What freezes the window's infinite animations, where it's the policy its recomposer runs under. */
+    screenIdle: ScreenIdle = remember { ScreenIdle() },
 ) {
     // Held here, above the NavHost, so the menu's drifting dice carry on unbroken across every screen off it.
     val driftState = remember { DriftState() }
@@ -96,8 +105,8 @@ fun DiceFiveApp(
     val leaveConfirmation = remember { LeaveGameConfirmation() }
     // Achievements, scores and the cloud save are synced with the online service on signing in (and at each launch once
     // signed in), after every recorded change (one with no new unlock waits if the game screen is up), a few seconds after
-    // a synced setting changes (a Styles pick), on leaving the game screen, on going to the background and on coming back;
-    // requests made while one runs fold into the next.
+    // a synced setting changes (a Styles pick), on leaving the game screen, on going to the background with something new
+    // to save, and on coming back at least 60 seconds after the last sync; requests made while one runs fold into the next.
     val onlineSync = remember(container, gameServices) {
         OnlineSync(
             gameServices,
@@ -140,9 +149,21 @@ fun DiceFiveApp(
         container.playTime.resume()
         onPauseOrDispose { container.playTime.pause() }
     }
-    // Put one device down and pick another up: the first saves, the second reads.
-    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { OnlineSyncRequests.request() }
-    LifecycleEventEffect(Lifecycle.Event.ON_START) { OnlineSyncRequests.request() }
+    // Put one device down and pick another up: the first saves, the second reads. A check that fails asks for the sync.
+    val appSwitches = rememberCoroutineScope()
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
+        appSwitches.launch { if (orNullOnFailure { onlineSync.needsSyncOnLeaving() } != false) OnlineSyncRequests.request() }
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_START) {
+        appSwitches.launch { if (orNullOnFailure { onlineSync.needsSyncOnReturning() } != false) OnlineSyncRequests.request() }
+    }
+    // Infinite animations freeze after a minute with nobody there, and move on again at the next touch or on coming back.
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(screenIdle, lifecycle) { screenIdle.runTimer(lifecycle::delayWhileResumed) }
+    LifecycleResumeEffect(screenIdle) {
+        screenIdle.wake()
+        onPauseOrDispose { }
+    }
     val tricolourMarks by container.settingsRepository.tricolourMarksEnabled.collectAsStateWithLifecycle(initialValue = false)
     CompositionLocalProvider(
         LocalTricolourMarks provides tricolourMarks,
@@ -154,6 +175,7 @@ fun DiceFiveApp(
         LocalStore provides store,
         LocalOnlineSyncStatus provides onlineSync.status,
         LocalDriftState provides driftState,
+        LocalScreenIdle provides screenIdle,
         LocalLeaveGameConfirmation provides leaveConfirmation,
     ) {
         // Inside the provider above, for the platform it creates its player from.
@@ -162,7 +184,7 @@ fun DiceFiveApp(
             LocalDiceHaptics provides rememberAppHaptics(container.settingsRepository.vibrationEnabled),
         ) {
             DiceFiveTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
+                Surface(modifier = Modifier.fillMaxSize().wakesScreen(screenIdle)) {
                     // Scores that can't be opened stop the app here, saying why, rather than on the first page to read one.
                     val databaseFailure by container.databaseFailure.collectAsStateWithLifecycle()
                     databaseFailure?.let {
@@ -175,10 +197,14 @@ fun DiceFiveApp(
                     val navController = rememberNavController()
                     // Likewise the page cover, so a banner opens its page the way the pages open each other.
                     val pageCover = rememberPageCover()
-                    // Each page opened, for a crash report to say where the player was.
+                    // Each page opened, for a crash report to say where the player was. It wakes the screen too: a screen
+                    // reader's double tap opens a page with no touch for wakesScreen to see.
                     LaunchedEffect(navController) {
                         navController.currentBackStackEntryFlow.map { it.destination.route }.distinctUntilChanged()
-                            .collect { Breadcrumbs.record("Opened $it") } // i18n: not translated - a crash report's breadcrumb
+                            .collect {
+                                Breadcrumbs.record("Opened $it") // i18n: not translated - a crash report's breadcrumb
+                                screenIdle.wake()
+                            }
                     }
                     // What can wait for the game to end does: leaving its screen, below, asks for the sync anyway.
                     LaunchedEffect(navController) {

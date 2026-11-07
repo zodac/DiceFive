@@ -19,6 +19,7 @@ import net.zodac.dicefive.device.OrientationLock
 import net.zodac.dicefive.device.activityOrientation
 import net.zodac.dicefive.device.preferRefreshRateFor
 import net.zodac.dicefive.ui.DiceFiveApp
+import net.zodac.dicefive.ui.common.ScreenIdle
 import net.zodac.dicefive.ui.common.stringsLanguageConfiguration
 
 class MainActivity : ComponentActivity() {
@@ -45,11 +46,13 @@ class MainActivity : ComponentActivity() {
         val store = Distribution.store(this)
         // The window's recomposer, built as Compose would build it itself, but on a frame clock that can be capped
         // for the player's "Animations" level - see CappedFrameClock. setContent's ComposeView finds it on the
-        // decor view, its parent, and composes with it instead of making its own.
+        // decor view, its parent, and composes with it instead of making its own. Its effects run under screenIdle, which
+        // freezes infinite animations on a screen nobody's touching.
+        val screenIdle = ScreenIdle()
         if (useCappedFrameClock) {
             val ui = AndroidUiDispatcher.CurrentThread
             val frameClock = CappedFrameClock(checkNotNull(ui[MonotonicFrameClock]) { "The UI dispatcher has no frame clock" })
-            window.decorView.compositionContext = window.decorView.createLifecycleAwareWindowRecomposer(ui + frameClock, lifecycle)
+            window.decorView.compositionContext = window.decorView.createLifecycleAwareWindowRecomposer(ui + frameClock + screenIdle, lifecycle)
         }
         // And a capped level asks the screen for 60Hz where it can drop to it, rather than only skipping its refreshes.
         lifecycleScope.launch {
@@ -60,7 +63,7 @@ class MainActivity : ComponentActivity() {
             OrientationLock.changes.collect { requestedOrientation = it.activityOrientation }
         }
         setContent {
-            DiceFiveApp(container = container, platform = platform, gameServices = gameServices, store = store)
+            DiceFiveApp(container = container, platform = platform, gameServices = gameServices, store = store, screenIdle = screenIdle)
         }
     }
 

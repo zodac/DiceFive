@@ -36,7 +36,9 @@ app/android/src/play/.../online/  PlayGamesServices, PlayGamesIds, PlayGamesAchi
     or sideloaded app behaves as if Play didn't exist. Every call has a timeout, and errors go into `state`.
 - **Mirroring is idempotent, not a queue.** `OnlineSync.reconcile()` compares local state with the service and sends
     the difference, so a failed send is retried next time. Triggers: sign-in, app start, after a game, leaving a game
-    part-way, 5s after a synced-setting change, `ON_STOP` and `ON_START`. No polling.
+    part-way, 5s after a synced-setting change, `ON_STOP` with something new to save (`needsSyncOnLeaving`), and `ON_START`
+    60 seconds or more after the last sync (`needsSyncOnReturning`). Either runs anyway after a sync that didn't get
+    everything through. No polling.
 - **The engine and `GameMode` never learn the network exists.** Per-mode data is a field (`onlineLeaderboardKey`).
 - **The play app only.** Play Games is the `play` flavour's (`DESIGN.md`, "Distribution"): the SDK, the manifest's
     `APP_ID`, Sidekick and the disabled init provider are all in `src/play`. The github APK (`net.zodac.dicefive.github`)
@@ -148,6 +150,9 @@ Always on while signed in, with no switch and no prompt. Every sync merges; noth
 - **When.** A new unlock syncs at once, as Play announces it. An update with only counters or progress waits while the
     game screen is up (`OnlineSyncRequests.requestOutsideGame`): a finished game, leaving the screen, and going to the
     background each ask for a sync anyway.
+- **An app switch with nothing to do makes no calls**, as even an empty sync reads the save from the service. Coming back
+    under 60 seconds after a sync doesn't read it, so another device's progress can take that long to arrive here, or until
+    this device's next sync. The wait is on the wall clock: a monotonic one stops while the phone sleeps.
 
 ## Settings card
 

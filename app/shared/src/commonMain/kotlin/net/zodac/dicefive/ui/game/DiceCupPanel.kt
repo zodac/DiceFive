@@ -59,6 +59,7 @@ import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.game_cup_cd
 import net.zodac.dicefive.resources.game_cup_roll_action
 import net.zodac.dicefive.resources.game_cup_rolls_left
+import net.zodac.dicefive.ui.common.HoldScreenAwake
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.delayWhileResumed
@@ -409,6 +410,8 @@ internal fun DiceCup(
                 // The exception is a Flowerpot that's grown its sunflower, which keeps its colour
                 // and, once it's poured, stands back up so its bloom is seen in full - it still
                 // can't be rolled.
+                // A roll plays out on an idle screen too: a CPU's turn needs no touch.
+                if (cup.rolling) HoldScreenAwake()
                 val outOfRolls = cup.rollsRemaining <= 0 && !cup.rolling
                 val showingOff = outOfRolls && visualTheme.diceCupStyle.showsOffWhenSpent(cup.flowerpotGrowth)
                 val depleted = outOfRolls && !showingOff

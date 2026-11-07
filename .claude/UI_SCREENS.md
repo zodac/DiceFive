@@ -359,6 +359,7 @@ none.
 - It skips a 120Hz screen's every other refresh (60 redraws a second; `DriftState.onFrame`) without changing speed,
     and never redraws under 60 where the screen can: 90Hz stays at 90. `DriftState.run` sleeps 7ms after each move, so
     the refresh it would skip doesn't wake the app (`DriftFrameRateTest`).
+- It holds where it is on an idle screen, as all ambient decoration does (`ScreenIdle`; `UI.md`, "Reduced motion").
 
 **`AppLogo` is live Compose art**, drawn in the player's own dice and cup picks (`MenuViewModel.logoStyles`). It's not
 a copy of the launcher icon.

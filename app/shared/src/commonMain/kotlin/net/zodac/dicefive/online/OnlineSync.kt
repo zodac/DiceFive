@@ -125,6 +125,7 @@ class OnlineSync(
      */
     suspend fun reconcile(showProgress: Boolean = false): Int = lock.withLock {
         val account = (services.state.value as? GameServicesState.SignedIn)?.account
+        settled = null
         try {
             if (account == null || settings.mirroringBlocked.first()) {
                 mutableMirroring.value = false
@@ -139,6 +140,33 @@ class OnlineSync(
             if (showProgress && account != null) mutableSignInSynced.value = account.accountKey
         }
     }
+
+    /**
+     * Whether going to the background has a sync to make: not if the last [reconcile] got everything through, for this
+     * account, and this device's side of the save hasn't changed since ([CloudSaveStore.changeStamp]). The time played
+     * alone doesn't count: it goes with the next save that has something else to send.
+     */
+    suspend fun needsSyncOnLeaving(): Boolean = lock.withLock {
+        val store = cloudSave ?: return true
+        settledForAccount() == null || synced?.stamp != store.changeStamp()
+    }
+
+    /**
+     * Whether coming back has a sync to make: not if the last [reconcile] got everything through, for this account, under
+     * [RETURN_SYNC_INTERVAL_MILLIS] ago. On the wall clock, as a monotonic one stops while the phone sleeps; one set back
+     * past that sync makes it due.
+     */
+    suspend fun needsSyncOnReturning(): Boolean = lock.withLock {
+        val since = settledForAccount()?.let { now() - it.atEpochMillis } ?: return true
+        since !in 0 until RETURN_SYNC_INTERVAL_MILLIS
+    }
+
+    /** [settled], if it's the account signed in now. */
+    private fun settledForAccount(): SettledSync? =
+        settled?.takeIf { it.accountKey == (services.state.value as? GameServicesState.SignedIn)?.account?.accountKey }
+
+    /** The last [reconcile], if it got everything through; null while one runs, and after one that didn't. */
+    private var settled: SettledSync? = null
 
     private suspend fun reconcile(account: OnlineAccount): Int {
         step(SyncStep.DOWNLOADING)
@@ -184,12 +212,13 @@ class OnlineSync(
         val state = store.current()
         mutableMirroring.value = true
         val totals = leaderboardTotals()
+        var allSent = true
         for (achievement in Achievement.entries) {
             when {
                 state.isUnlocked(achievement) -> if (achievement.id !in remote) services.unlock(achievement.id)
                 achievement.progressStyle == ProgressStyle.CUMULATIVE -> {
                     val progress = AchievementEngine.progressOf(achievement, state.counters, totals)
-                    if (progress > 0) sendProgress(account.accountKey, achievement, progress)
+                    if (progress > 0 && !sendProgress(account.accountKey, achievement, progress)) allSent = false
                 }
             }
         }
@@ -201,8 +230,9 @@ class OnlineSync(
             else -> saveToCloud(cloudSave, account.accountKey, found, remoteSave)
         }
         step(SyncStep.LEADERBOARDS)
-        postScores(account.accountKey)
+        if (!postScores(account.accountKey)) allSent = false
         mutableUnreachable.value = !saved
+        if (saved && allSent) settled = SettledSync(account.accountKey, now())
         return restored.size
     }
 
@@ -215,10 +245,11 @@ class OnlineSync(
      */
     private val progressSent = mutableMapOf<String, MutableMap<Achievement, Int>>()
 
-    private suspend fun sendProgress(accountKey: String, achievement: Achievement, progress: Int) {
+    /** False if the service didn't take it. */
+    private suspend fun sendProgress(accountKey: String, achievement: Achievement, progress: Int): Boolean {
         val sent = progressSent.getOrPut(accountKey) { mutableMapOf() }
-        if (sent[achievement] == progress) return
-        if (services.setProgress(achievement.id, progress)) sent[achievement] = progress
+        if (sent[achievement] == progress) return true
+        return services.setProgress(achievement.id, progress).also { if (it) sent[achievement] = progress }
     }
 
     /** Where the last [saveToCloud] left the save and this device, until another device's write or a change here moves on. */
@@ -275,14 +306,27 @@ class OnlineSync(
         return CloudSaveCodec.encode(CloudSaveMerge.merge(ours, theirs))
     }
 
-    private suspend fun postScores(accountKey: String) {
+    /** False if the service didn't take one of them. */
+    private suspend fun postScores(accountKey: String): Boolean {
+        var allPosted = true
         for (mode in GameMode.entries) {
             val key = mode.onlineLeaderboardKey
             val best = unpostedScore(mode, settings.scoresPostedThrough(accountKey, key) ?: Long.MIN_VALUE) ?: continue
-            if (services.submitScore(key, best.score.toLong())) settings.setScoresPostedThrough(accountKey, key, best.playedEpochMillis)
+            if (services.submitScore(key, best.score.toLong())) {
+                settings.setScoresPostedThrough(accountKey, key, best.playedEpochMillis)
+            } else {
+                allPosted = false
+            }
         }
+        return allPosted
     }
 }
+
+/** How long after a sync that got everything through coming back to the app doesn't sync again: 60 seconds. */
+private const val RETURN_SYNC_INTERVAL_MILLIS = 60_000L
+
+/** A [OnlineSync.reconcile] that got everything through: the account, and when it ended. */
+private class SettledSync(val accountKey: String, val atEpochMillis: Long)
 
 /**
  * Where a change asks for a [OnlineSync.reconcile]: every recorded achievement update and every finished game raises

@@ -83,6 +83,7 @@ import net.zodac.dicefive.ui.common.BackArrow
 import net.zodac.dicefive.ui.common.BackHandler
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.HoldPageCover
+import net.zodac.dicefive.ui.common.HoldScreenAwake
 import net.zodac.dicefive.ui.common.LocalPageCover
 import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.LocalAnimationLevel
@@ -929,6 +930,8 @@ private fun RunningTurnTimer(secondsRemaining: () -> Int?) {
 /** [TurnTimerBadge]'s flash: the error red and back to [mutedColor], round and round. */
 @Composable
 private fun rememberFlashColor(mutedColor: Color): Color {
+    // A warning of the turn running out, so it flashes on an idle screen too.
+    HoldScreenAwake()
     val flashColor by rememberInfiniteTransition(label = "turnTimerFlash").animateColor( // i18n: not translated - an animation label, not shown
         initialValue = MaterialTheme.colorScheme.error,
         targetValue = mutedColor,
