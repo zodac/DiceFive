@@ -500,6 +500,8 @@ jobs:
       - name: Upgrade over a game in progress
         timeout-minutes: 40
         run: |
+          # adb for the script below: ci_emulator.sh puts platform-tools on its own PATH, not this step's.
+          export PATH="$ANDROID_HOME/platform-tools:$PATH"
           for attempt in 1 2 3; do
             if ! .github/scripts/ci_emulator.sh start; then
               .github/scripts/ci_emulator.sh stop
