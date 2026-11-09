@@ -8,8 +8,8 @@ name: Play release
 # The tag is typed, not picked: a choice input's options are fixed in this file. Left blank, it's the newest android-v
 # release. A versionCode Play has had once is never accepted again, so a tag can go to Play only once.
 #
-# The release's "What's new" (en-GB, Play's 500 characters) is the GitHub release's URL, then as many of its bullets as
-# fit whole, then "..." for the rest (scripts/play-release-notes.sh).
+# The release's "What's new" (en-GB, Play's 500 characters) is the GitHub release's URL, then as many of the maintainer's
+# bullets as fit whole (the commit list below them is left out), then "..." for the rest (scripts/play-release-notes.sh).
 #
 # With `publish` on (the default) the commit sends the edit for review with Play's default, which "send[s] all the
 # changes for publishing" - whether that includes store listing changes saved in Play Console isn't confirmed yet. With

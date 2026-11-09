@@ -19,13 +19,13 @@ check() {
     fi
 }
 
+# No maintainer notes: the commit list is what the notes are made of.
 body='A summary paragraph, which is not a bullet.
-
-- A maintainer bullet
 
 ## Changes since 1.4.0
 
 ### Achievements
+- A maintainer bullet
 - [[e840c835]](https://github.com/zodac/DiceFive/commit/e840c835) Easter Eggs count
 - [[9bd81417]](https://github.com/zodac/DiceFive/commit/9bd81417) Well Rolled takes 50,000 dice
 
@@ -70,6 +70,28 @@ check "a later shorter bullet isn't pulled forward past one that didn't fit" "${
 
 ..." "$(PLAY_NOTES_LIMIT=70 "${script}" "${url}" <<< "- A bullet far too long to fit in what is left
 - Short")"
+
+# The backticks are text, not a command substitution.
+# shellcheck disable=SC2016
+notes_body='- Added Time played
+- The `RGB Halo` cup is right
+
+## Changes since 1.4.0
+
+### Statistics
+- [[e840c835]](https://github.com/zodac/DiceFive/commit/e840c835) Dice rolled on every page'
+
+# The commit list that follows is the GitHub release's: it doesn't make the notes end in "...".
+check "maintainer bullets only, with no ... for the commit list" "${url}
+
+• Added Time played
+• The \`RGB Halo\` cup is right" "$("${script}" "${url}" <<< "${notes_body}")"
+
+# Too long for the maintainer bullets, so "..." is for them.
+check "maintainer bullets that don't fit still end in ..." "${url}
+
+• Added Time played
+..." "$(PLAY_NOTES_LIMIT=100 "${script}" "${url}" <<< "${notes_body}")"
 
 check "no bullets, just the link" "${url}" "$("${script}" "${url}" <<< "Only prose here.")"
 
