@@ -1037,6 +1037,10 @@
         <item quantity="one">%1$d 5x anotado.</item>
         <item quantity="other">%1$d 5x anotados.</item>
     </plurals>
+    <plurals name="stats_spoken_dice_rolled">
+        <item quantity="one">%1$d dado tirado.</item>
+        <item quantity="other">%1$d dados tirados.</item>
+    </plurals>
     <plurals name="stats_spoken_solo">
         <item quantity="one">%1$d partida en solitario jugada.</item>
         <item quantity="other">%1$d partidas en solitario jugadas.</item>
@@ -1065,6 +1069,7 @@
     <string name="stats_win_streak">Racha de victorias</string>
     <string name="stats_win_streak_value">%1$d (mejor %2$d)</string>
     <string name="stats_fives_scored">5x anotados</string>
+    <string name="stats_dice_rolled">Dados tirados</string>
     <string name="stats_total_points">Puntos totales</string>
     <string name="stats_mode">Modo</string>
     <string name="stats_win">Vict.</string>

@@ -103,6 +103,11 @@ class GameStateJsonTest {
         assertEquals(lastRoll, roundTripped(GameState(players = listOf(human.copy(lastRoll = lastRoll)))).players.single().lastRoll)
         roundTripped(GameState(players = listOf(human.copy(lastScoredCategory = ScoreCategory.FULL_HOUSE))))
         roundTripped(GameState(players = listOf(human.copy(rollCount = 27), PlayerState(name = "Player 2", type = PlayerType.AI, rollCount = 25))))
+        roundTripped(GameState(players = listOf(human.copy(diceRolled = 93), PlayerState(name = "Player 2", type = PlayerType.AI, diceRolled = 88))))
+        // A game saved before dice were counted resumes counting from none.
+        val beforeCounting = GameStateJson.encode(GameState(players = listOf(human.copy(diceRolled = 93)))).replace(Regex(""""diceRolled"\s*:\s*93,?"""), "")
+        assertFalse("diceRolled" in beforeCounting)
+        assertEquals(0, GameStateJson.decode(beforeCounting).players.single().diceRolled)
         val coloured = GameState(players = listOf(PlayerState(name = "A", type = PlayerType.HUMAN, colour = PlayerColour.LIME), PlayerState(name = "B", type = PlayerType.HUMAN, colour = PlayerColour.PINK)))
         assertEquals(listOf(PlayerColour.LIME, PlayerColour.PINK), roundTripped(coloured).players.map { it.colour })
         assertTrue(roundTripped(GameState(players = listOf(human.copy(fiveOfAKindFlashed = true)))).players.single().fiveOfAKindFlashed)

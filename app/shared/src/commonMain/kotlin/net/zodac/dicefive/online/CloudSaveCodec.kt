@@ -149,8 +149,8 @@ object CloudSaveCodec {
      * The scores, in far less than an object per row: `names` and `modes` hold each player name and mode id once, and
      * `table` is one string of rows, split by [ROW_SEPARATOR], each row's fields by [FIELD_SEPARATOR]: its uuid as 32 hex
      * digits, its name's and mode's places in those lists, score, time since the row before, flags ([FLAG_PRIMARY_PLAYER]
-     * and the rest), then 5x count, zeroed categories, upper section, Chance, 3x, and 4x. Fields are only added at a row's
-     * end. A row's [ScoreEntry.playerKey] and [ScoreEntry.onLeaderboard] are worked out again on reading.
+     * and the rest), then 5x count, zeroed categories, upper section, Chance, 3x, 4x, and dice rolled. Fields are only added
+     * at a row's end, and a row without one (written before it was added) reads it as 0. A row's [ScoreEntry.playerKey] and [ScoreEntry.onLeaderboard] are worked out again on reading.
      */
     private fun encodeScores(save: CloudSave): JsonObject {
         val rows = save.scores.rows
@@ -170,6 +170,7 @@ object CloudSaveCodec {
             listOf(
                 row.uuid.toHexString(), names.getValue(row.playerName), modes.getValue(row.gameModeId), row.score, row.timestampEpochMillis - previousTime, flags,
                 row.fiveOfAKindCount, row.zeroedCategoryCount, row.upperSectionTotal, row.chanceScore, row.threeOfAKindScore, row.fourOfAKindScore,
+                row.diceRolled,
             ).joinTo(table, FIELD_SEPARATOR.toString())
             previousTime = row.timestampEpochMillis
         }
@@ -212,6 +213,7 @@ object CloudSaveCodec {
                 chanceScore = fields[9].toInt(),
                 threeOfAKindScore = fields[10].toInt(),
                 fourOfAKindScore = fields[11].toInt(),
+                diceRolled = fields.getOrNull(12)?.toInt() ?: 0,
             )
         }
     }

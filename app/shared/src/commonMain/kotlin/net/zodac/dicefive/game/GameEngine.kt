@@ -99,7 +99,7 @@ object GameEngine {
             }
         }.let { dice -> state.unluckyDice?.let { curse(dice, state.dice, it, random) } ?: dice }
         val players = state.players.mapIndexed { index, player ->
-            if (index == state.currentPlayerIndex) player.copy(rollCount = player.rollCount + 1) else player
+            if (index == state.currentPlayerIndex) player.copy(rollCount = player.rollCount + 1, diceRolled = player.diceRolled + state.dice.count { !it.isHeld }) else player
         }
         return state.copy(
             players = players,

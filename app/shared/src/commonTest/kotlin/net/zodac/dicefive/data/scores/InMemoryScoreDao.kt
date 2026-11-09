@@ -70,6 +70,7 @@ class InMemoryScoreDao(initial: List<ScoreEntry> = emptyList()) : ScoreDao {
                     totalScore = games.sumOf { it.score },
                     fiveOfAKindCount = games.sumOf { it.fiveOfAKindCount },
                     firstPlayedEpochMillis = games.minOf { it.timestampEpochMillis },
+                    diceRolled = games.sumOf { it.diceRolled },
                 )
             }
 

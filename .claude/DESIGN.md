@@ -225,8 +225,10 @@ will map to Play Games.
     - Room, `dicefive.db`, `AppDatabase`, with each version's schema exported to `app/shared/schemas/`.
     - Tables:
         - `scores` (`ScoreEntry`): name, score, time, `won` (null for a solo game), `isPrimaryPlayer`, the tie-break stats,
-            `gameModeId`, `playedUnmodified`, `onLeaderboard`, `playerKey` and a random `uuid`. Every column but `won` is NOT
-            NULL.
+            `gameModeId`, `playedUnmodified`, `onLeaderboard`, `playerKey`, `diceRolled`, and a random `uuid`. Every column
+            but `won` is NOT NULL. `diceRolled` (`PlayerState.diceRolled`: each roll's unheld dice, saved with the game)
+            came in database version 6; older games have 0, and the cloud save's rows add it at the end, read as 0
+            when missing.
         - `dismissed_player_stats`: name, when it was dismissed, and `playerKey` (the primary key: one dismissal a player).
     - **`uuid` is the primary key**, a row's id on every device and in the cloud save. It is a `kotlin.uuid.Uuid`, stored
         as its 16 bytes (`UuidConverters`) and written to the cloud save as 32 hex digits. There is no device-local id.
@@ -400,8 +402,8 @@ they open on, then **Combined**, every mode's games together, last (a divider af
     - Closed, a card is the name and the page's best score ("1,287pts", the unit at 0.75 of the number's size). Its
         header opens it.
     - **Open**: games, win rate and average (in points), then a won/lost/solo bar with its key, then the current and
-        best win streak, 5x scored, total points and first played (date and time), all of the page's games. On Combined,
-        a table follows: a row per mode played, in mode order (games, win rate, solo games and best score, the name in the
+        best win streak, 5x scored, dice rolled, total points, and first played (date and time), all of the page's games.
+        On Combined, a table follows: a row per mode played, in mode order (games, win rate, solo games and best score, the name in the
         mode's colour). Its total points are the player's (by name); Professional Roller's are seat 1's.
     - **Open by default** when every card fits on screen opened (the list is laid out with every card open under the page cover, which
         builds only the cards on screen, and they fit if it has nothing to scroll; more than 12

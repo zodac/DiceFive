@@ -925,6 +925,7 @@ class GameViewModel(
                 won = state.wonBy(index),
                 // Index 0 is always the primary player ("You") - see AchievementEngine's class doc.
                 isPrimaryPlayer = index == 0,
+                diceRolled = player.diceRolled,
             )
         }
         // Every human's row in one write.

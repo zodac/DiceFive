@@ -66,6 +66,25 @@ class GameEngineTest {
     }
 
     @Test
+    fun `each roll counts the dice it rolled for the player rolling - held dice not - and scoring keeps them`() {
+        val game = GameEngine.newGame(twoPlayers)
+        val rolled = GameEngine.rollDice(game)
+        val held = GameEngine.toggleHold(GameEngine.toggleHold(rolled, dieIndex = 0), dieIndex = 1)
+        val rerolled = GameEngine.rollDice(held)
+        assertEquals(listOf(5, 8), listOf(rolled, rerolled).map { it.players[0].diceRolled })
+        assertEquals(0, rerolled.players[1].diceRolled)
+        // Every held: nothing rolls, so nothing counts.
+        val allHeld = (2 until rerolled.dice.size).fold(rerolled) { state, index -> GameEngine.toggleHold(state, dieIndex = index) }
+        assertEquals(8, GameEngine.rollDice(allHeld).players[0].diceRolled)
+
+        val scored = scoreNow(rerolled)
+        assertEquals(listOf(8, 0), scored.players.map { it.diceRolled })
+        // The next player's own count; 7 Dice Stud's turn rolls all seven.
+        assertEquals(listOf(8, 5), GameEngine.rollDice(scored).players.map { it.diceRolled })
+        assertEquals(7, GameEngine.rollDice(GameEngine.newGame(onePlayer, GameMode.STUD)).players[0].diceRolled)
+    }
+
+    @Test
     fun `newGame - its players - mode and timer and every modifier taking it off the Leaderboard`() {
         assertFailsWith<IllegalArgumentException> { GameEngine.newGame(emptyList()) }
         val fourPlayers = (1..GameState.MAX_PLAYERS).map { PlayerConfig(slot = it, type = PlayerType.HUMAN, name = "Player $it") }

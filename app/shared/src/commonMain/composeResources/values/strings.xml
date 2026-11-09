@@ -1333,6 +1333,11 @@
         <item quantity="one">%1$d 5x scored.</item>
         <item quantity="other">%1$d 5x scored.</item>
     </plurals>
+    <!-- Spoken after stats_spoken_fives; chosen by the number of dice (%1$d). -->
+    <plurals name="stats_spoken_dice_rolled">
+        <item quantity="one">%1$d die rolled.</item>
+        <item quantity="other">%1$d dice rolled.</item>
+    </plurals>
     <!-- Chosen by the number of solo games (%1$d). -->
     <plurals name="stats_spoken_solo">
         <item quantity="one">%1$d solo game played.</item>
@@ -1369,6 +1374,7 @@
     <!-- %1$d is the current win streak, %2$d the longest. -->
     <string name="stats_win_streak_value">%1$d (best %2$d)</string>
     <string name="stats_fives_scored">5x scored</string>
+    <string name="stats_dice_rolled">Dice rolled</string>
     <string name="stats_total_points">Total points</string>
     <!-- The Combined page's mode table's column headings; the rows under Win are win rates, under Best each mode's best score. -->
     <string name="stats_mode">Mode</string>

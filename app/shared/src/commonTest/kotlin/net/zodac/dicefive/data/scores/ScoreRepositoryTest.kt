@@ -20,6 +20,7 @@ private suspend fun ScoreRepository.record(
     fiveOfAKindCount: Int = 0,
     gameMode: GameMode = GameMode.STANDARD,
     playedUnmodified: Boolean = true,
+    diceRolled: Int = 0,
 ) = recordGame(
     listOf(
         PlayerResult(
@@ -36,6 +37,7 @@ private suspend fun ScoreRepository.record(
             ),
             won = won,
             isPrimaryPlayer = isPrimaryPlayer,
+            diceRolled = diceRolled,
         ),
     ),
     gameMode = gameMode,
@@ -194,6 +196,20 @@ class ScoreRepositoryTest {
         // No Standard game, no card on its page; on Stud's and Combined, Bob's card.
         assertEquals(null, bob.forMode(GameMode.STANDARD))
         assertEquals(900, bob.forMode(GameMode.STUD)!!.maxScore)
+    }
+
+    @Test
+    fun `Statistics - dice rolled - each mode's page its own games' - Combined every mode's - and a game with a modifier on none`() = runTest {
+        val repository = ScoreRepository(InMemoryScoreDao())
+        repository.record("Sam", 120, gameMode = GameMode.STANDARD, diceRolled = 140)
+        repository.record("Sam", 150, gameMode = GameMode.STANDARD, diceRolled = 131)
+        repository.record("Sam", 300, gameMode = GameMode.TRICOLOUR, diceRolled = 180)
+        repository.record("Sam", 90, gameMode = GameMode.STANDARD, playedUnmodified = false, diceRolled = 500)
+        val sam = repository.playerStatistics().single()
+        assertEquals(451, sam.diceRolled)
+        assertEquals(271, sam.forMode(GameMode.STANDARD)!!.diceRolled)
+        assertEquals(180, sam.forMode(GameMode.TRICOLOUR)!!.diceRolled)
+        assertEquals(listOf(271, 180), sam.modes.map { it.diceRolled })
     }
 
     @Test

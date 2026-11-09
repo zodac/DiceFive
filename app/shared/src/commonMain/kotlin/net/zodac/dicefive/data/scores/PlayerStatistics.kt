@@ -20,6 +20,8 @@ data class PlayerStatistics(
     val totalScore: Int,
     /** How many 5x this player has scored. */
     val fiveOfAKindCount: Int,
+    /** How many dice this player has rolled; games recorded before dice were counted add none. */
+    val diceRolled: Int = 0,
     /** Games with nobody to beat - the ones recorded with a null outcome, so counted in [gamesPlayed] only. */
     val soloGames: Int,
     /** The player's games in each mode, in [GameMode.entries] order; a mode never played is absent. */
@@ -47,6 +49,7 @@ data class PlayerStatistics(
             maxScore = inMode.maxScore,
             totalScore = inMode.totalScore,
             fiveOfAKindCount = inMode.fiveOfAKindCount,
+            diceRolled = inMode.diceRolled,
             soloGames = inMode.soloGames,
             modes = listOf(inMode),
         )
@@ -65,6 +68,8 @@ data class ModeStatistics(
     /** Every point scored in the mode's games. */
     val totalScore: Int = 0,
     val fiveOfAKindCount: Int = 0,
+    /** How many dice were rolled in the mode's games. */
+    val diceRolled: Int = 0,
     /** When the player's first game in the mode was played. */
     val firstPlayedEpochMillis: Long = 0L,
     /** The win streaks of the mode's games alone. */
@@ -105,6 +110,7 @@ data class PlayerModeTotals(
     val totalScore: Int,
     val fiveOfAKindCount: Int,
     val firstPlayedEpochMillis: Long,
+    val diceRolled: Int = 0,
 )
 
 /** The spelling of a player's latest game, by [ScoreEntry.playerKey] - [ScoreDao.latestPlayerNames]'s row. */

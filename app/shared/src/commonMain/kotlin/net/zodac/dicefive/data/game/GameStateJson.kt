@@ -223,6 +223,7 @@ object GameStateJson {
             )
         }
         put("rollCount", player.rollCount)
+        put("diceRolled", player.diceRolled)
         if (player.storedRolls > 0) put("storedRolls", player.storedRolls)
         if (player.wasBehindAfterARound) put("wasBehindAfterARound", true)
         player.firstTurnScore?.let { put("firstTurnScore", it) }
@@ -273,6 +274,8 @@ object GameStateJson {
             lastScoredCategory = obj.stringOrNull("lastScoredCategory")?.takeIf { it.isNotEmpty() }
                 ?.let { id -> categories.firstOrNull { it.id == id } },
             rollCount = obj.int("rollCount"),
+            // Not in a game saved before dice were counted: those rolled before then aren't.
+            diceRolled = if ("diceRolled" in obj) obj.int("diceRolled") else 0,
             storedRolls = if ("storedRolls" in obj) obj.int("storedRolls") else 0,
             // Left out by encode until the player ends a round behind.
             wasBehindAfterARound = obj.booleanOrNull("wasBehindAfterARound") == true,

@@ -149,7 +149,7 @@ class CloudSaveCodecTest {
         val rows = listOf(
             cloudRow("", at = 1_790_000_000_000L, name = "Sam; \"the, dice\"", score = 1_575).copy(
                 uuid = Uuid.random(), won = true, isPrimaryPlayer = true, fiveOfAKindCount = 3, zeroedCategoryCount = 1, upperSectionTotal = 84,
-                chanceScore = 27, threeOfAKindScore = 24, fourOfAKindScore = 26, gameModeId = "tricolour", playedUnmodified = false,
+                chanceScore = 27, threeOfAKindScore = 24, fourOfAKindScore = 26, gameModeId = "tricolour", playedUnmodified = false, diceRolled = 141,
             ),
             cloudRow("", at = 1_790_000_000_500L, name = "Ada", score = 90).copy(uuid = Uuid.random(), won = false, isPrimaryPlayer = false),
             // Earlier than the row before: a device's own rows aren't in time order until they're merged.
@@ -159,6 +159,15 @@ class CloudSaveCodecTest {
         assertEquals(rows, read.scores.rows)
         assertEquals(rows.map { it.playerKey }, read.scores.rows.map { it.playerKey })
         assertEquals(rows.map { it.onLeaderboard }, read.scores.rows.map { it.onLeaderboard })
+    }
+
+    @Test
+    fun `a row written before dice were counted reads as none rolled`() {
+        val row = cloudRow("", at = 1_790_000_000_000L, name = "Sam", score = 200).copy(uuid = Uuid.random(), diceRolled = 141)
+        val text = inflated(CloudSaveCodec.encode(CloudSave(scores = CloudScores(rows = listOf(row)))))
+        assertTrue(",141\"" in text, text)
+        val older = text.replace(",141\"", "\"")
+        assertEquals(listOf(row.copy(diceRolled = 0)), CloudSaveCodec.decode(gzip(older))?.scores?.rows)
     }
 
     @Test
@@ -181,6 +190,7 @@ class CloudSaveCodecTest {
             cloudRow("", at = 1_790_000_000_000L + index * 431_017L, name = "Player ${index % 4}", score = 90 + (index * 7919) % 330).copy(
                 uuid = Uuid.random(), won = index % 3 == 0, fiveOfAKindCount = index % 3, zeroedCategoryCount = (index * 31) % 6,
                 upperSectionTotal = 30 + (index * 17) % 70, chanceScore = 5 + (index * 13) % 25, threeOfAKindScore = (index * 11) % 25, fourOfAKindScore = (index * 3) % 25,
+                diceRolled = 100 + (index * 37) % 90,
             )
         }
         val bytes = CloudSaveCodec.encode(CloudSave(scores = CloudScores(rows = rows)))

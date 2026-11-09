@@ -50,6 +50,9 @@ data class PlayerState(
     /** How many times this player has rolled so far this game, every turn's rolls added up - what
      * the Flowerpot cup's plant grows by (see [flowerpotGrowthStage]). */
     val rollCount: Int = 0,
+    /** How many dice this player has rolled so far this game: every roll's unheld dice, added up. Recorded with their score
+     * ([net.zodac.dicefive.data.scores.ScoreEntry.diceRolled]) for Statistics. */
+    val diceRolled: Int = 0,
     /** Whether this player has finished any round so far this game behind another player's total (a tie isn't behind). Saved
      * with the game, and taken back with an undo (see [net.zodac.dicefive.model.Achievement.FRONT_RUNNER]). */
     val wasBehindAfterARound: Boolean = false,

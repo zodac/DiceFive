@@ -190,4 +190,28 @@ class ScoreDatabaseMigrationTest {
             SQLiteDatabase.deleteDatabase(file)
         }
     }
+
+    @Test
+    fun `version 5 opens as version 6 - every score kept - none with dice rolled - and a new one adds its own`() = runTest {
+        createAt(5) {
+            execSQL(
+                "INSERT INTO scores (uuid, playerName, score, timestampEpochMillis, won, isPrimaryPlayer, fiveOfAKindCount, zeroedCategoryCount, " +
+                    "upperSectionTotal, chanceScore, threeOfAKindScore, fourOfAKindScore, gameModeId, playedUnmodified, playerKey, onLeaderboard) " +
+                    "VALUES (?, 'Sam', 150, 1000, 1, 1, 0, 0, 0, 0, 0, 0, ?, 1, 'sam', 1)",
+                arrayOf<Any>(Uuid.random().toByteArray(), GameMode.STANDARD.id),
+            )
+        }
+        val database = Room.databaseBuilder<AppDatabase>(context, file.absolutePath).buildAppDatabase()
+        try {
+            val dao = database.scoreDao()
+            assertEquals(listOf(0), dao.allScores().map { it.diceRolled })
+            dao.insertGame(listOf(ScoreEntry(playerName = "Sam", score = 200, timestampEpochMillis = 2_000L, won = false, isPrimaryPlayer = true,
+                fiveOfAKindCount = 0, zeroedCategoryCount = 0, upperSectionTotal = 0, chanceScore = 0, threeOfAKindScore = 0, fourOfAKindScore = 0,
+                diceRolled = 137)))
+            assertEquals(137, dao.playerRecords().single().modes.single().diceRolled)
+        } finally {
+            database.close()
+            SQLiteDatabase.deleteDatabase(file)
+        }
+    }
 }

@@ -24,6 +24,8 @@ data class PlayerResult(
     val stats: TieBreakStats,
     val won: Boolean?,
     val isPrimaryPlayer: Boolean,
+    /** How many dice the player rolled in the game. */
+    val diceRolled: Int = 0,
 )
 
 /** The scores part of the cloud save: every row, and when each dismissed Statistics card was dismissed, by name. */
@@ -82,6 +84,7 @@ class ScoreRepository(
                     fourOfAKindScore = result.stats.fourOfAKind,
                     gameModeId = gameMode.id,
                     playedUnmodified = playedUnmodified,
+                    diceRolled = result.diceRolled,
                 )
             },
         )
@@ -192,6 +195,7 @@ class ScoreRepository(
             maxScore = modes.maxOf { it.maxScore },
             totalScore = modes.sumOf { it.totalScore },
             fiveOfAKindCount = modes.sumOf { it.fiveOfAKindCount },
+            diceRolled = modes.sumOf { it.diceRolled },
             soloGames = modes.sumOf { it.soloGames },
             // In mode order; a mode this build doesn't know still counts above, but has no row of its own.
             modes = GameMode.entries.mapNotNull { mode ->
@@ -206,6 +210,7 @@ class ScoreRepository(
                         maxScore = inMode.maxScore,
                         totalScore = inMode.totalScore,
                         fiveOfAKindCount = inMode.fiveOfAKindCount,
+                        diceRolled = inMode.diceRolled,
                         firstPlayedEpochMillis = inMode.firstPlayedEpochMillis,
                         currentWinStreak = modeStreaks.current,
                         bestWinStreak = modeStreaks.best,

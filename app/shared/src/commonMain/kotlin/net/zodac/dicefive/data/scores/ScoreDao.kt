@@ -172,7 +172,7 @@ interface ScoreDao {
         """
         SELECT playerKey, gameModeId, COUNT(*) AS gamesPlayed, SUM(won IS 1) AS gamesWon, SUM(won IS 0) AS gamesLost,
             SUM(won IS NULL) AS soloGames, MAX(score) AS maxScore, SUM(score) AS totalScore,
-            SUM(fiveOfAKindCount) AS fiveOfAKindCount, MIN(timestampEpochMillis) AS firstPlayedEpochMillis
+            SUM(fiveOfAKindCount) AS fiveOfAKindCount, MIN(timestampEpochMillis) AS firstPlayedEpochMillis, SUM(diceRolled) AS diceRolled
         FROM scores
         WHERE +playedUnmodified = 1 AND playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
         GROUP BY playerKey, gameModeId

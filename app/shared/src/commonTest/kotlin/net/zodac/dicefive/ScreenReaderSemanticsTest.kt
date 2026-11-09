@@ -51,6 +51,7 @@ class ScreenReaderSemanticsTest : UiTest() {
         maxScore = 250,
         totalScore = 1_001,
         fiveOfAKindCount = 4,
+        diceRolled = 1_234,
         soloGames = 2,
         modes = listOf(
             ModeStatistics(GameMode.STANDARD, gamesPlayed = 3, gamesWon = 2, gamesLost = 1, soloGames = 0, maxScore = 250, totalScore = 600),
@@ -111,7 +112,7 @@ class ScreenReaderSemanticsTest : UiTest() {
         compose.onNodeWithContentDescription("Played 5, won 3, lost 2. 2 solo games played. Win rate 60%. Average score 200.").assertExists()
         val details = compose.onNodeWithContentDescription("Win streak 1", substring = true).fetchSemanticsNode()
             .config[SemanticsProperties.ContentDescription].single()
-        assertTrue(details.startsWith("Win streak 1, best win streak 2. 4 5x scored. Total points scored: 1,001. First played "), details)
+        assertTrue(details.startsWith("Win streak 1, best win streak 2. 4 5x scored. 1234 dice rolled. Total points scored: 1,001. First played "), details)
 
         // A mode's page has no table of modes: no mode's row to hear.
         compose.onAllNodes(hasContentDescription("Standard. Best score", substring = true)).assertCountEquals(0)
@@ -129,8 +130,12 @@ class ScreenReaderSemanticsTest : UiTest() {
         delete.performSemanticsAction(SemanticsActions.OnClick)
         assertEquals(1, deleted)
 
-        // One solo game is said as game - not games - and only solo games leave no win rate.
-        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player.copy(gamesWon = 0, gamesLost = 0, soloGames = 1, currentWinStreak = 0, bestWinStreak = 0), onDelete = {}) } }
+        // One solo game is said as game - not games - one die as die, and only solo games leave no win rate.
+        showcase.show {
+            DiceFiveTheme {
+                PlayerStatsCard(player = player.copy(gamesWon = 0, gamesLost = 0, soloGames = 1, currentWinStreak = 0, bestWinStreak = 0, diceRolled = 1), onDelete = {})
+            }
+        }
         statsCard().performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
         compose.onNodeWithContentDescription("Played 5, won 0, lost 0. 1 solo game played. Average score 200.").assertExists()
@@ -138,7 +143,7 @@ class ScreenReaderSemanticsTest : UiTest() {
         compose.onAllNodesWithText("-", useUnmergedTree = true).assertCountEquals(2)
         val noStreak = compose.onNodeWithContentDescription("4 5x scored", substring = true).fetchSemanticsNode()
             .config[SemanticsProperties.ContentDescription].single()
-        assertTrue(noStreak.startsWith("4 5x scored. Total points scored: 1,001. First played "), noStreak)
+        assertTrue(noStreak.startsWith("4 5x scored. 1 die rolled. Total points scored: 1,001. First played "), noStreak)
     }
 
     @Test

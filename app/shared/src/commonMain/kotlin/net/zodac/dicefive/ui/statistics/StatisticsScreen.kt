@@ -89,6 +89,7 @@ import net.zodac.dicefive.resources.stats_delete_action
 import net.zodac.dicefive.resources.stats_delete_confirm
 import net.zodac.dicefive.resources.stats_delete_message
 import net.zodac.dicefive.resources.stats_delete_title
+import net.zodac.dicefive.resources.stats_dice_rolled
 import net.zodac.dicefive.resources.stats_empty
 import net.zodac.dicefive.resources.stats_expanded_spoken
 import net.zodac.dicefive.resources.stats_first_played
@@ -111,6 +112,7 @@ import net.zodac.dicefive.resources.stats_sort_descending
 import net.zodac.dicefive.resources.stats_sort_reverse_action
 import net.zodac.dicefive.resources.stats_spoken_average
 import net.zodac.dicefive.resources.stats_spoken_best
+import net.zodac.dicefive.resources.stats_spoken_dice_rolled
 import net.zodac.dicefive.resources.stats_spoken_first_played
 import net.zodac.dicefive.resources.stats_spoken_fives
 import net.zodac.dicefive.resources.stats_spoken_games
@@ -536,7 +538,7 @@ internal const val BUILT_AHEAD_TAG = "statsBuiltAhead"
 
 /**
  * The player's games on the page: games, win rate and average large; the won/lost/solo split as a bar with its key; then
- * the win streak, 5x scored, total points and when they first played. Two stops for TalkBack: the numbers with the split,
+ * the win streak, 5x scored, dice rolled, total points and when they first played. Two stops for TalkBack: the numbers with the split,
  * then the rest.
  */
 @Composable
@@ -551,6 +553,7 @@ private fun RecordStats(player: PlayerStatistics) {
     val details = buildList {
         if (player.bestWinStreak > 0) add(stringResource(Res.string.stats_spoken_streaks, player.currentWinStreak, player.bestWinStreak))
         add(pluralStringResource(Res.plurals.stats_spoken_fives, player.fiveOfAKindCount, player.fiveOfAKindCount))
+        add(pluralStringResource(Res.plurals.stats_spoken_dice_rolled, player.diceRolled, player.diceRolled))
         add(stringResource(Res.string.stats_spoken_total_points, player.totalScore.grouped()))
         add(stringResource(Res.string.stats_spoken_first_played, firstPlayed))
     }
@@ -584,6 +587,7 @@ private fun RecordStats(player: PlayerStatistics) {
             },
         )
         DetailLine(label = stringResource(Res.string.stats_fives_scored), value = player.fiveOfAKindCount.grouped())
+        DetailLine(label = stringResource(Res.string.stats_dice_rolled), value = player.diceRolled.grouped())
         DetailLine(label = stringResource(Res.string.stats_total_points), value = player.totalScore.grouped())
         DetailLine(label = stringResource(Res.string.stats_first_played), value = firstPlayed)
     }

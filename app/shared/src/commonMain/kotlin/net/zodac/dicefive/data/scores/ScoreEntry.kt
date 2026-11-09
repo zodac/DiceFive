@@ -1,5 +1,6 @@
 package net.zodac.dicefive.data.scores
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.Index.Order.ASC
@@ -49,7 +50,7 @@ import net.zodac.dicefive.model.playerNameKey
         // outcomes of one mode's games, with their times, for the win streaks.
         Index(
             name = "index_scores_player_mode_totals",
-            value = ["playerKey", "gameModeId", "won", "score", "fiveOfAKindCount", "timestampEpochMillis", "playedUnmodified"],
+            value = ["playerKey", "gameModeId", "won", "score", "fiveOfAKindCount", "timestampEpochMillis", "playedUnmodified", "diceRolled"],
         ),
         // Statistics: a player's games newest first - their latest name.
         Index(
@@ -109,6 +110,12 @@ data class ScoreEntry(
      * as a game with a modifier on counts for no achievement. The rest are kept, for the cloud save.
      */
     val playedUnmodified: Boolean = true,
+    /**
+     * How many dice this player rolled in the game ([net.zodac.dicefive.model.PlayerState.diceRolled]), for Statistics. 0 for
+     * a game recorded before dice were counted (database version 6), and for one resumed from a save made before then
+     * counts only the dice rolled after it.
+     */
+    @ColumnInfo(defaultValue = "0") val diceRolled: Int = 0,
 ) {
 
     /**
