@@ -935,6 +935,7 @@
     <string name="style_family_casino">Casino</string>
     <string name="style_family_cauldron">Cauldron</string>
     <string name="style_family_celtic">Celtic</string>
+    <string name="style_family_chalkboard">Chalkboard</string>
     <string name="style_family_chicken">Chicken</string>
     <string name="style_family_christmas">Christmas</string>
     <string name="style_family_circuit">Circuit</string>
@@ -970,6 +971,7 @@
     <string name="style_family_nautical">Nautical</string>
     <string name="style_family_marquee">Marquee</string>
     <string name="style_family_ocean">Ocean</string>
+    <string name="style_family_paper">Paper</string>
     <string name="style_family_world">World</string>
     <string name="style_family_numeral">Numeral</string>
     <string name="style_family_obsidian">Obsidian</string>
@@ -996,16 +998,22 @@
     <string name="style_family_wood">Wood</string>
     <string name="style_family_wreath">Wreath</string>
     <string name="style_colour_amber">Amber</string>
+    <string name="style_colour_amethyst">Amethyst</string>
     <string name="style_colour_arabic">Arabic</string>
     <string name="style_colour_arabic_green">Arabic Green</string>
+    <string name="style_colour_arcade">Arcade</string>
     <string name="style_colour_barrel">Barrel</string>
     <string name="style_colour_clownfish">Clownfish</string>
     <string name="style_colour_deep">Deep</string>
+    <string name="style_colour_graph">Graph</string>
     <string name="style_colour_lagoon">Lagoon</string>
+    <string name="style_colour_notepad">Notepad</string>
     <string name="style_colour_rope">Rope</string>
     <string name="style_colour_chain">Chain</string>
     <string name="style_colour_bulbs">Bulbs</string>
     <string name="style_colour_diamonds">Diamonds</string>
+    <string name="style_colour_ruby">Ruby</string>
+    <string name="style_colour_sapphire">Sapphire</string>
     <string name="style_colour_stars">Stars</string>
     <string name="style_colour_sparkles">Sparkles</string>
     <string name="style_colour_constellation">Constellation</string>
@@ -1109,6 +1117,7 @@
     <string name="style_colour_sunflower">Sunflower</string>
     <string name="style_colour_swirl">Swirl</string>
     <string name="style_colour_tan">Tan</string>
+    <string name="style_colour_teal">Teal</string>
     <string name="style_colour_teal_plain">Teal Plain</string>
     <string name="style_colour_terracotta">Terracotta</string>
     <string name="style_colour_tricolour">Tricolour</string>
@@ -1135,6 +1144,7 @@
     <string name="style_noun_background">background</string>
     <string name="style_noun_mat">mat</string>
     <string name="style_noun_frame">frame</string>
+    <string name="style_noun_box">box</string>
     <!-- "Choose Frosted colour": most families vary by colour... -->
     <string name="style_variant_colour">colour</string>
     <!-- ...but the frames differ in shape. -->
@@ -1207,12 +1217,13 @@
 
     <!-- Styles screen (ui/styles/StylesScreen.kt) -->
     <string name="styles_title">Styles</string>
-    <!-- The five categories of table art: the titles of the cards, and what a gallery switch is called. -->
+    <!-- The six categories of table art: the titles of the cards, and what a gallery switch is called. -->
     <string name="styles_category_dice">Dice</string>
     <string name="styles_category_dice_cup">Dice Cup</string>
     <string name="styles_category_mat">Mat</string>
     <string name="styles_category_background">Background</string>
     <string name="styles_category_frame">Frame</string>
+    <string name="styles_category_box">Boxes</string>
     <!-- The name on the sample player tab each frame is shown on. -->
     <string name="styles_frame_preview_name">You</string>
     <!-- A switch at the end of a category's title: on, every tile of the category shows at once. %1$s is the category. -->

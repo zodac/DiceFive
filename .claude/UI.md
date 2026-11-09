@@ -333,7 +333,7 @@ in Settings, between the switches and the resets.
 
 **Ambient decoration** is anything that keeps an idle screen redrawing:
 
-- the menu's drift, `FloatingDiceBackground`, `TwinkleClock`/`rememberArtSeconds` art, the RGB Halo's rings,
+- the menu's drift, `FloatingDiceBackground`, `TwinkleClock`/`rememberArtSeconds` art (RGB and Neon boxes included), the RGB Halo's rings,
     `rememberAmbientCycle` cups, and googly pupils;
 - each reads `ambientMotion` (`ui/common/ReduceMotion.kt`), which is true only at High. Below High it holds its
     reduced-motion pose, so no new art is needed;

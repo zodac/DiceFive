@@ -82,6 +82,7 @@ Unlock over 200 styles as you earn achievements:
 - **Dice mats** - leather, wood, casino felt, stone, a sunlit lagoon, circuit boards, honeycomb, and more
 - **Backgrounds** - wooden planks, rolling ocean waves, a river meadow, stone, circuit boards, neon grids, and more
 - **Scorecard frames** - floral, laurel wreaths, Celtic knots, rope and chain, marquee lights, starry skies, pixel art, and neon
+- **Scorecard boxes** - a paper scorepad, wood, chalkboard, gemstones, marble, pixel art, neon, and RGB lighting
 
 ## Track every game
 

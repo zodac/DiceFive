@@ -4,8 +4,10 @@ import net.zodac.dicefive.game.style.StyleUnlock.AchievementCount
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.style_colour_amber
+import net.zodac.dicefive.resources.style_colour_amethyst
 import net.zodac.dicefive.resources.style_colour_arabic
 import net.zodac.dicefive.resources.style_colour_arabic_green
+import net.zodac.dicefive.resources.style_colour_arcade
 import net.zodac.dicefive.resources.style_colour_barrel
 import net.zodac.dicefive.resources.style_colour_basalt
 import net.zodac.dicefive.resources.style_colour_baubles
@@ -41,6 +43,7 @@ import net.zodac.dicefive.resources.style_colour_forestry
 import net.zodac.dicefive.resources.style_colour_gift
 import net.zodac.dicefive.resources.style_colour_gold
 import net.zodac.dicefive.resources.style_colour_granite
+import net.zodac.dicefive.resources.style_colour_graph
 import net.zodac.dicefive.resources.style_colour_green
 import net.zodac.dicefive.resources.style_colour_green_and_purple
 import net.zodac.dicefive.resources.style_colour_green_mono
@@ -74,6 +77,7 @@ import net.zodac.dicefive.resources.style_colour_mixed
 import net.zodac.dicefive.resources.style_colour_navy
 import net.zodac.dicefive.resources.style_colour_neon
 import net.zodac.dicefive.resources.style_colour_night
+import net.zodac.dicefive.resources.style_colour_notepad
 import net.zodac.dicefive.resources.style_colour_oak
 import net.zodac.dicefive.resources.style_colour_oil_drum
 import net.zodac.dicefive.resources.style_colour_olive
@@ -99,7 +103,9 @@ import net.zodac.dicefive.resources.style_colour_roman_blue
 import net.zodac.dicefive.resources.style_colour_rope
 import net.zodac.dicefive.resources.style_colour_rose
 import net.zodac.dicefive.resources.style_colour_rose_gold
+import net.zodac.dicefive.resources.style_colour_ruby
 import net.zodac.dicefive.resources.style_colour_sandstone
+import net.zodac.dicefive.resources.style_colour_sapphire
 import net.zodac.dicefive.resources.style_colour_screen
 import net.zodac.dicefive.resources.style_colour_seedling
 import net.zodac.dicefive.resources.style_colour_shipping
@@ -117,6 +123,7 @@ import net.zodac.dicefive.resources.style_colour_strawberry
 import net.zodac.dicefive.resources.style_colour_sunflower
 import net.zodac.dicefive.resources.style_colour_swirl
 import net.zodac.dicefive.resources.style_colour_tan
+import net.zodac.dicefive.resources.style_colour_teal
 import net.zodac.dicefive.resources.style_colour_teal_plain
 import net.zodac.dicefive.resources.style_colour_terracotta
 import net.zodac.dicefive.resources.style_colour_tricolour
@@ -144,6 +151,7 @@ import net.zodac.dicefive.resources.style_family_cake
 import net.zodac.dicefive.resources.style_family_casino
 import net.zodac.dicefive.resources.style_family_cauldron
 import net.zodac.dicefive.resources.style_family_celtic
+import net.zodac.dicefive.resources.style_family_chalkboard
 import net.zodac.dicefive.resources.style_family_chicken
 import net.zodac.dicefive.resources.style_family_christmas
 import net.zodac.dicefive.resources.style_family_circuit
@@ -181,6 +189,7 @@ import net.zodac.dicefive.resources.style_family_neon
 import net.zodac.dicefive.resources.style_family_numeral
 import net.zodac.dicefive.resources.style_family_obsidian
 import net.zodac.dicefive.resources.style_family_ocean
+import net.zodac.dicefive.resources.style_family_paper
 import net.zodac.dicefive.resources.style_family_picnic
 import net.zodac.dicefive.resources.style_family_pinstripe
 import net.zodac.dicefive.resources.style_family_pixel
@@ -205,6 +214,7 @@ import net.zodac.dicefive.resources.style_family_wood
 import net.zodac.dicefive.resources.style_family_world
 import net.zodac.dicefive.resources.style_family_wreath
 import net.zodac.dicefive.resources.style_noun_background
+import net.zodac.dicefive.resources.style_noun_box
 import net.zodac.dicefive.resources.style_noun_dice
 import net.zodac.dicefive.resources.style_noun_dice_cup
 import net.zodac.dicefive.resources.style_noun_frame
@@ -1137,4 +1147,90 @@ object ScoreFrameRegistry : StyleRegistry(
         ),
     ),
     variantNoun = Res.string.style_variant_design,
+)
+
+/**
+ * The scorecard's box styles: every family, in the Styles screen's order, and what unlocks it. Their art is
+ * `ui.style.ScoreBoxes`. A family that shares a name with a dice style opens with it.
+ */
+object ScoreBoxRegistry : StyleRegistry(
+    Res.string.style_noun_box,
+    listOf(
+        StyleGroup(
+            Res.string.style_family_classic,
+            listOf(
+                StyleVariant("classic_teal", Res.string.style_colour_teal),
+            ),
+        ),
+        StyleGroup(
+            Res.string.style_family_paper,
+            listOf(
+                StyleVariant("paper_notepad", Res.string.style_colour_notepad),
+                StyleVariant("paper_graph", Res.string.style_colour_graph),
+            ),
+            unlock = AchievementCount(5),
+        ),
+        StyleGroup(
+            Res.string.style_family_wood,
+            listOf(
+                StyleVariant("wood_oak", Res.string.style_colour_oak),
+                StyleVariant("wood_walnut", Res.string.style_colour_walnut),
+                StyleVariant("wood_maple", Res.string.style_colour_maple),
+            ),
+            unlock = AchievementCount(10),
+        ),
+        StyleGroup(
+            Res.string.style_family_chalkboard,
+            listOf(
+                StyleVariant("chalkboard_black", Res.string.style_colour_black),
+                StyleVariant("chalkboard_green", Res.string.style_colour_green),
+            ),
+            unlock = AchievementCount(20),
+        ),
+        StyleGroup(
+            Res.string.style_family_gems,
+            listOf(
+                StyleVariant("gems_ruby", Res.string.style_colour_ruby),
+                StyleVariant("gems_sapphire", Res.string.style_colour_sapphire),
+                StyleVariant("gems_emerald", Res.string.style_colour_emerald),
+                StyleVariant("gems_amethyst", Res.string.style_colour_amethyst),
+            ),
+            unlock = AchievementCount(65),
+        ),
+        StyleGroup(
+            Res.string.style_family_stone,
+            listOf(
+                StyleVariant("stone_white_marble", Res.string.style_colour_white_marble),
+                StyleVariant("stone_black_marble", Res.string.style_colour_black_marble),
+                StyleVariant("stone_granite", Res.string.style_colour_granite),
+            ),
+            unlock = AchievementCount(65),
+        ),
+        StyleGroup(
+            Res.string.style_family_pixel,
+            listOf(
+                StyleVariant("pixel_retro", Res.string.style_colour_retro),
+                StyleVariant("pixel_arcade", Res.string.style_colour_arcade),
+            ),
+            unlock = AchievementCount(75),
+        ),
+        StyleGroup(
+            Res.string.style_family_neon,
+            listOf(
+                StyleVariant("neon_pink", Res.string.style_colour_pink),
+                StyleVariant("neon_cyan", Res.string.style_colour_cyan),
+            ),
+            unlock = AchievementCount(100),
+        ),
+        StyleGroup(
+            Res.string.style_family_rgb,
+            listOf(
+                StyleVariant("rgb_rainbow", Res.string.style_colour_rainbow),
+                StyleVariant("rgb_wave", Res.string.style_colour_wave),
+                StyleVariant("rgb_white_rainbow", Res.string.style_colour_white_rainbow),
+                StyleVariant("rgb_white_wave", Res.string.style_colour_white_wave),
+            ),
+            unlock = AchievementCount(100),
+        ),
+    ),
 )

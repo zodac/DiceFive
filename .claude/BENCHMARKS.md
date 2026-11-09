@@ -199,6 +199,18 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
 A debug build on a phone is several times slower than any of this. Judge on a release build (R8 plus the Baseline
 Profile).
 
+- **Box styles** (2026-11-10, the board alone at 411dp, idle, 80 frames after 10, p95 draw incl. a ~17ms capture floor):
+    Classic 19.6, Paper 19.2, Wood 22.2, Neon 25.0, RGB Rainbow 23.2 and Wave 24.3 on Standard's card; 20.2-22.6 for all
+    on D20's. Within the run's noise. RGB adds 0.4-0.6ms of composition a frame: a `rememberArtSeconds` clock per open
+    box. A clock shared by the board was tried and saved nothing: the cost is re-recording each box's `BoundedArt` node
+    (four ring strokes) a tick, in line with the RGB dice (seven at rest ~1.5 over Classic). Neon's pulse is `PulsingArt`:
+    the glow recorded once and only faded.
+    - A board's opening frame (compose and layout, then the board's capture; Standard and D20, ten styles): the first
+        board of the run costs ~450-500 compose whatever its style, Classic included, and later first openings fall in
+        run order, not by style (checked by reversing the order). Warm, every style opens within noise of Classic
+        (compose 10-21, draw 23-33) and a roll's frame too. Box styles paint no cached surfaces, so `GameWarmUp` composing
+        the board in the player's box style is all a game needs; nothing to preload on a pick, and no longer cover.
+
 ## Still on the table
 
 - **The tumble.** ~5-6ms with no face layers drawn; drawing them is the other 6-10. Untried: snapshot each face to an

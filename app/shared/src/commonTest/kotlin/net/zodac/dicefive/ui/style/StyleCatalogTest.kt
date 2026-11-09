@@ -10,7 +10,7 @@ import net.zodac.dicefive.model.Achievement
 
 class StyleCatalogTest {
 
-    private val catalogs = listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds, ScoreFrames)
+    private val catalogs = listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds, ScoreFrames, ScoreBoxes)
 
     @Test
     fun `every category's art matches its registry one for one - and every id resolves to its own art`() {

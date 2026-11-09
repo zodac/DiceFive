@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 
 /**
  * One swappable piece of table art in one colour - a [DiceStyle], [DiceCupStyle], [TableBackground],
- * [DiceMat] or [ScoreFrame]. [id] is what the player's pick is saved as, so it must never change once shipped. It is
+ * [DiceMat], [ScoreFrame] or [ScoreBoxStyle]. [id] is what the player's pick is saved as, so it must never change once shipped. It is
  * its family's name then its colour's, from their string keys - `classic_gold` - which `StyleCatalogTest` holds it to.
  */
 interface TableArt {
@@ -211,6 +211,7 @@ data class GameVisualTheme(
     val background: TableBackground = TableBackgrounds.default,
     val mat: DiceMat = DiceMats.default,
     val frame: ScoreFrame = ScoreFrames.default,
+    val box: ScoreBoxStyle = ScoreBoxes.default,
 )
 
 val LocalGameVisualTheme = staticCompositionLocalOf { GameVisualTheme() }

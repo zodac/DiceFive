@@ -792,6 +792,7 @@
     <string name="style_family_casino">كازينو</string>
     <string name="style_family_cauldron">مرجل</string>
     <string name="style_family_celtic">سلتي</string>
+    <string name="style_family_chalkboard">سبورة</string>
     <string name="style_family_chicken">دجاجة</string>
     <string name="style_family_christmas">عيد الميلاد</string>
     <string name="style_family_circuit">دارة إلكترونية</string>
@@ -827,6 +828,7 @@
     <string name="style_family_nautical">بحري</string>
     <string name="style_family_marquee">لافتة مضيئة</string>
     <string name="style_family_ocean">محيط</string>
+    <string name="style_family_paper">ورق</string>
     <string name="style_family_world">عالم</string>
     <string name="style_family_numeral">أرقام</string>
     <string name="style_family_obsidian">سبج</string>
@@ -853,16 +855,22 @@
     <string name="style_family_wood">خشب</string>
     <string name="style_family_wreath">إكليل</string>
     <string name="style_colour_amber">عنبري</string>
+    <string name="style_colour_amethyst">جمشت</string>
     <string name="style_colour_arabic">عربي</string>
     <string name="style_colour_arabic_green">أخضر عربي</string>
+    <string name="style_colour_arcade">أركيد</string>
     <string name="style_colour_barrel">برميل</string>
     <string name="style_colour_clownfish">سمكة مهرج</string>
     <string name="style_colour_deep">أعماق</string>
+    <string name="style_colour_graph">مربعات</string>
     <string name="style_colour_lagoon">بحيرة</string>
+    <string name="style_colour_notepad">مفكرة</string>
     <string name="style_colour_rope">حبل</string>
     <string name="style_colour_chain">سلسلة</string>
     <string name="style_colour_bulbs">مصابيح</string>
     <string name="style_colour_diamonds">ألماس</string>
+    <string name="style_colour_ruby">ياقوت أحمر</string>
+    <string name="style_colour_sapphire">ياقوت أزرق</string>
     <string name="style_colour_stars">نجوم</string>
     <string name="style_colour_sparkles">بريق</string>
     <string name="style_colour_constellation">كوكبة</string>
@@ -966,6 +974,7 @@
     <string name="style_colour_sunflower">عباد الشمس</string>
     <string name="style_colour_swirl">دوامة</string>
     <string name="style_colour_tan">أسمر فاتح</string>
+    <string name="style_colour_teal">أزرق مخضر</string>
     <string name="style_colour_teal_plain">أزرق مخضر سادة</string>
     <string name="style_colour_terracotta">طين مشوي</string>
     <string name="style_colour_tricolour">ثلاثي الألوان</string>
@@ -990,6 +999,7 @@
     <string name="style_noun_background">خلفية</string>
     <string name="style_noun_mat">حصيرة</string>
     <string name="style_noun_frame">إطار</string>
+    <string name="style_noun_box">خانات</string>
     <string name="style_variant_colour">لون</string>
     <string name="style_variant_design">تصميم</string>
     <string name="styles_reward_style">نمط %2$s «%1$s»</string>
@@ -1047,6 +1057,7 @@
     <string name="styles_category_mat">الحصيرة</string>
     <string name="styles_category_background">الخلفية</string>
     <string name="styles_category_frame">الإطار</string>
+    <string name="styles_category_box">الخانات</string>
     <string name="styles_frame_preview_name">أنت</string>
     <string name="styles_gallery_cd">معرض %1$s</string>
     <string name="styles_unlocked_count">%1$d من %2$d مفتوحة</string>

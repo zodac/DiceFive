@@ -77,7 +77,7 @@ class StylesPageFitTest : UiTest() {
     }
 
     @Test
-    fun `a page a little too tall for its screen opens shrunk just enough to fit`() = uiTest(TestScreen(393, 820)) {
+    fun `a page a little too tall for its screen opens shrunk just enough to fit`() = uiTest(TestScreen(393, 1000)) {
         val (dieTile, lowest) = openAfterWarmUp()
         assertTrue(dieTile < 72f && dieTile >= 72f * 0.7f, "dice tile $dieTile")
         val height = compose.onRoot().fetchSemanticsNode().size.height
@@ -85,7 +85,7 @@ class StylesPageFitTest : UiTest() {
     }
 
     @Test
-    fun `a page that fits opens full size`() = uiTest(TestScreen(393, 1200)) {
+    fun `a page that fits opens full size`() = uiTest(TestScreen(393, 1500)) {
         assertEquals(72f, openAfterWarmUp().first, 0.5f)
     }
 
@@ -95,7 +95,7 @@ class StylesPageFitTest : UiTest() {
     }
 
     @Test
-    fun `a page opened about a second after the menu, before the tiles are warmed, is already sized to fit`() = uiTest(TestScreen(393, 820)) {
+    fun `a page opened about a second after the menu, before the tiles are warmed, is already sized to fit`() = uiTest(TestScreen(393, 1000)) {
         // 600ms of waiting, then the measures, then the tiles: these frames end long before the tiles do.
         val (dieTile, _) = openAfterWarmUp(frames = 60)
         assertTrue(dieTile < 72f && dieTile >= 72f * 0.7f, "dice tile $dieTile")

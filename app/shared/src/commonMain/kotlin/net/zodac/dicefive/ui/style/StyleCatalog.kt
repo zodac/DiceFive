@@ -7,6 +7,7 @@ import net.zodac.dicefive.data.settings.DefaultStyleIds
 import net.zodac.dicefive.game.style.DiceCupStyleRegistry
 import net.zodac.dicefive.game.style.DiceMatRegistry
 import net.zodac.dicefive.game.style.DiceStyleRegistry
+import net.zodac.dicefive.game.style.ScoreBoxRegistry
 import net.zodac.dicefive.game.style.ScoreFrameRegistry
 import net.zodac.dicefive.game.style.StyleAccess
 import net.zodac.dicefive.game.style.StyleCategory
@@ -772,6 +773,28 @@ object ScoreFrames : StyleCatalog<ScoreFrame>(
 
 /** A frame's variant: its swatch is the colour its tile shows it in, as every variant is drawn in the player's colour. */
 private fun frame(style: ScoreFrame): StyleArt<ScoreFrame> = StyleArt(ScoreFramePreviewColour, style)
+
+/**
+ * The scorecard's boxes. Each colour gives an open box, D20's two halves, and a scored box their own fills - see
+ * [ScoreBoxStyle].
+ */
+object ScoreBoxes : StyleCatalog<ScoreBoxStyle>(
+    ScoreBoxRegistry,
+    listOf(
+        listOf(box(ScoreBoxArt.classicTeal)),
+        listOf(box(ScoreBoxArt.paperNotepad), box(ScoreBoxArt.paperGraph)),
+        listOf(box(ScoreBoxArt.woodOak), box(ScoreBoxArt.woodWalnut), box(ScoreBoxArt.woodMaple)),
+        listOf(box(ScoreBoxArt.chalkboardBlack), box(ScoreBoxArt.chalkboardGreen)),
+        listOf(box(ScoreBoxArt.gemsRuby), box(ScoreBoxArt.gemsSapphire), box(ScoreBoxArt.gemsEmerald), box(ScoreBoxArt.gemsAmethyst)),
+        listOf(box(ScoreBoxArt.stoneWhiteMarble), box(ScoreBoxArt.stoneBlackMarble), box(ScoreBoxArt.stoneGranite)),
+        listOf(box(ScoreBoxArt.pixelRetro), box(ScoreBoxArt.pixelArcade)),
+        listOf(box(ScoreBoxArt.neonPink), box(ScoreBoxArt.neonCyan)),
+        listOf(box(ScoreBoxArt.rgbRainbow), box(ScoreBoxArt.rgbWave), box(ScoreBoxArt.rgbWhiteRainbow), box(ScoreBoxArt.rgbWhiteWave)),
+    ),
+)
+
+/** A box style's variant, its dot the colour of an open box. */
+private fun box(style: ScoreBoxStyle): StyleArt<ScoreBoxStyle> = StyleArt(style.swatch, style)
 
 // The Egg dice's shells - each also the other's pips.
 private val EggWhiteShell = Color(0xFFFBF8F1)

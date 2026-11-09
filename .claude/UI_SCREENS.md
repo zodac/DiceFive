@@ -280,7 +280,8 @@ tile at once (`GalleryGrid`).
     - Sides are `TILES_SIDE_PADDING` (8dp).
     - On a 360dp phone this fits four dice or cups, three mats or four backgrounds (`StylesGalleryTest`).
 - **Tile sizes.** Mats are 97x65dp (the tray's shape, cut 10% so three fit). Backgrounds are 72x80dp (the board's
-    shape). The cups "Treasure Chest" and "Picnic Basket" were renamed "Treasure" and "Picnic" so their names fit.
+    shape). Boxes are 97x76dp like frames, a corner of a scorecard at 62% of compact boxes (`BoxPreview`). The cups
+    "Treasure Chest" and "Picnic Basket" were renamed "Treasure" and "Picnic" so their names fit.
 - **Rejected on review**: shrunk tiles, an even grid, and a `FlowRow` (which left an empty column).
 - **Behaviour.**
     - The toggle is no taller than the title line.

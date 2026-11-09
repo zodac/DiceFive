@@ -18,6 +18,7 @@ val SavedStyles.visualTheme: GameVisualTheme
         background = TableBackgrounds.unlockedById(tableBackgroundId, access),
         mat = DiceMats.unlockedById(diceMatId, access),
         frame = ScoreFrames.unlockedById(scoreFrameId, access),
+        box = ScoreBoxes.unlockedById(scoreBoxId, access),
     )
 
 /** What [this] reward is called in a sentence, in the player's language. */

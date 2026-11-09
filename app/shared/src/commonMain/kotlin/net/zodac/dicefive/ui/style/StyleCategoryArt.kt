@@ -10,4 +10,5 @@ val StyleCategory.catalog: StyleCatalog<*>
         StyleCategory.MAT -> DiceMats
         StyleCategory.BACKGROUND -> TableBackgrounds
         StyleCategory.FRAME -> ScoreFrames
+        StyleCategory.BOX -> ScoreBoxes
     }

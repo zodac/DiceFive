@@ -127,11 +127,13 @@ import net.zodac.dicefive.game.style.StyleCategory
 import net.zodac.dicefive.game.style.StyleUnlock
 import net.zodac.dicefive.game.style.UnlockCount
 import net.zodac.dicefive.game.style.access
+import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.navigation.StyleScrollRequest
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_ok
 import net.zodac.dicefive.resources.style_variant_colour
 import net.zodac.dicefive.resources.styles_category_background
+import net.zodac.dicefive.resources.styles_category_box
 import net.zodac.dicefive.resources.styles_category_count
 import net.zodac.dicefive.resources.styles_category_dice
 import net.zodac.dicefive.resources.styles_category_dice_cup
@@ -178,6 +180,7 @@ import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.tooltipMarkup
+import net.zodac.dicefive.ui.game.CategoryTile
 import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 import net.zodac.dicefive.ui.icons.Symbols
 import net.zodac.dicefive.ui.style.CupDice
@@ -186,8 +189,12 @@ import net.zodac.dicefive.ui.style.DiceMats
 import net.zodac.dicefive.ui.style.DiceStyle
 import net.zodac.dicefive.ui.style.DiceStyles
 import net.zodac.dicefive.ui.style.DieMotion
+import net.zodac.dicefive.ui.style.GameVisualTheme
 import net.zodac.dicefive.ui.style.LocalCupDice
 import net.zodac.dicefive.ui.style.LocalDieMotion
+import net.zodac.dicefive.ui.style.LocalGameVisualTheme
+import net.zodac.dicefive.ui.style.ScoreBoxes
+import net.zodac.dicefive.ui.style.ScoreBoxStyle
 import net.zodac.dicefive.ui.style.ScoreFrame
 import net.zodac.dicefive.ui.style.ScoreFramePreviewColour
 import net.zodac.dicefive.ui.style.ScoreFrames
@@ -202,7 +209,7 @@ import net.zodac.dicefive.ui.style.visualTheme
 import net.zodac.dicefive.ui.theme.GoldAccent
 import org.jetbrains.compose.resources.StringResource
 
-// Kept small enough that the categories (Dice, Dice Cup, Mat, Background, Frame) fit on one screen
+// Kept small enough that the categories (Dice, Dice Cup, Mat, Background, Frame, Boxes) fit on one screen
 // without needing to scroll - see StylesScreen's doc comment.
 private val DICE_PREVIEW_SIZE = 72.dp
 private val DIE_ART_SIZE = 44.dp
@@ -226,6 +233,17 @@ private val FRAME_PREVIEW_HEIGHT = 76.dp
 private val FRAME_TAB_WIDTH = 84.dp
 private val FRAME_TAB_HEIGHT = 56.dp
 private val FRAME_TAB_TOP = 5.dp
+// A box style's corner of a scorecard (BoxPreview): the frame's tile size, its boxes drawn at this fraction of a game's
+// compact ones, this far apart (before scaling), and this far below the tile's top.
+private val BOX_PREVIEW_WIDTH = 97.dp
+private val BOX_PREVIEW_HEIGHT = 76.dp
+private const val BOX_PREVIEW_SCALE = 0.62f
+private val BOX_PREVIEW_GAP = 4.dp
+private val BOX_PREVIEW_TOP = 5.dp
+private val BOX_PREVIEW_ROWS = listOf(
+    listOf(ScoreCategory.THREES, ScoreCategory.THREE_OF_A_KIND, ScoreCategory.FULL_HOUSE),
+    listOf(ScoreCategory.D20_7, ScoreCategory.D20_14, ScoreCategory.CHANCE),
+)
 private val COLOUR_DOT_SIZE = 7.dp
 private val COLOUR_DOT_SIZE_MORE_BEYOND = 4.dp
 // More colours than this and the tile's dots show a window of them; the pop-up still lists every one.
@@ -473,6 +491,24 @@ internal fun StyleCategorySection(
                 FramePreview(frame, modifier = Modifier.align(Alignment.TopCenter))
             }
         }
+
+        StyleCategory.BOX -> CategoryCard(title = stringResource(Res.string.styles_category_box)) {
+            StyleFamilyTiles(
+                catalog = ScoreBoxes,
+                selectedId = picks.scoreBoxId,
+                access = access,
+                onSelect = onSelect,
+                previewSize = DpSize(BOX_PREVIEW_WIDTH, BOX_PREVIEW_HEIGHT),
+                backgroundBrush = { picks.visualTheme.background.scoreAreaBrush },
+                gallery = gallery,
+                warmUp = warmUp,
+                buildStagger = category.ordinal,
+                focus = focus,
+                unlockedOnly = unlockedOnly,
+            ) { box ->
+                BoxPreview(box, modifier = Modifier.align(Alignment.TopCenter))
+            }
+        }
     }
 }
 
@@ -647,6 +683,29 @@ private fun FramePreview(frame: ScoreFrame, modifier: Modifier = Modifier) {
     ) {
         Text(text = stringResource(Res.string.styles_frame_preview_name), color = colour, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, maxLines = 1)
         Text(text = "24", color = colour, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, maxLines = 1)
+    }
+}
+
+/**
+ * A box style's tile: a corner of a scorecard in it, at [BOX_PREVIEW_SCALE] of a game's compact boxes - 3s, 3x and a scored
+ * Full House over D20's 7 and 14 (one in each half) and Chance - on the player's own background. Silent to a screen
+ * reader: the tile says which style it is.
+ */
+@Composable
+private fun BoxPreview(box: ScoreBoxStyle, modifier: Modifier = Modifier) {
+    val density = LocalDensity.current
+    val scaled = remember(density) { Density(density.density * BOX_PREVIEW_SCALE, density.fontScale) }
+    CompositionLocalProvider(LocalGameVisualTheme provides GameVisualTheme(box = box), LocalDensity provides scaled) {
+        Column(
+            modifier = modifier.padding(top = BOX_PREVIEW_TOP / BOX_PREVIEW_SCALE),
+            verticalArrangement = Arrangement.spacedBy(BOX_PREVIEW_GAP),
+        ) {
+            for (row in BOX_PREVIEW_ROWS) {
+                Row(horizontalArrangement = Arrangement.spacedBy(BOX_PREVIEW_GAP)) {
+                    for (category in row) CategoryTile(category = category, highlighted = false, compact = true, scored = category == ScoreCategory.FULL_HOUSE)
+                }
+            }
+        }
     }
 }
 

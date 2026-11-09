@@ -16,9 +16,9 @@ class StyleCategoryTest {
 
     @Test
     fun `the categories are the registries in the Styles screen's order - each reading its own pick`() {
-        assertEquals(listOf(DiceStyleRegistry, DiceCupStyleRegistry, DiceMatRegistry, TableBackgroundRegistry, ScoreFrameRegistry), StyleCategory.entries.map { it.registry })
-        val picks = SavedStyles("dice", "cup", "background", "mat", AchievementsState(), scoreFrameId = "frame")
-        assertEquals(listOf("dice", "cup", "mat", "background", "frame"), StyleCategory.entries.map { it.pickIn(picks) })
+        assertEquals(listOf(DiceStyleRegistry, DiceCupStyleRegistry, DiceMatRegistry, TableBackgroundRegistry, ScoreFrameRegistry, ScoreBoxRegistry), StyleCategory.entries.map { it.registry })
+        val picks = SavedStyles("dice", "cup", "background", "mat", AchievementsState(), scoreFrameId = "frame", scoreBoxId = "box")
+        assertEquals(listOf("dice", "cup", "mat", "background", "frame", "box"), StyleCategory.entries.map { it.pickIn(picks) })
     }
 
     @Test

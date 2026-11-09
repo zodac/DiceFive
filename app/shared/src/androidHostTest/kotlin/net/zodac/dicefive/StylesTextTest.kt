@@ -33,6 +33,7 @@ import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DiceMats
 import net.zodac.dicefive.ui.style.DiceStyles
+import net.zodac.dicefive.ui.style.ScoreBoxes
 import net.zodac.dicefive.ui.style.ScoreFrames
 import net.zodac.dicefive.ui.style.TableBackgrounds
 import net.zodac.dicefive.ui.styles.StylesScreen
@@ -65,7 +66,7 @@ class StylesTextTest : UiTest() {
     fun `the page is titled Styles with a card and gallery switch a category - a locked style and one in several colours named and their taps`() = uiTest {
         show(AchievementsState())
         compose.onNodeWithText("Styles").assertExists()
-        listOf("Dice", "Dice Cup", "Mat", "Background", "Frame").forEach { compose.onNodeWithContentDescription("$it gallery").assertExists() }
+        listOf("Dice", "Dice Cup", "Mat", "Background", "Frame", "Boxes").forEach { compose.onNodeWithContentDescription("$it gallery").assertExists() }
         // A locked style says Locked - and its tap is called Show how to unlock.
         val frosted = compose.onAllNodesWithContentDescription("Frosted").onFirst().fetchSemanticsNode().config
         assertEquals("Locked", frosted[SemanticsProperties.StateDescription])
@@ -93,7 +94,7 @@ class StylesTextTest : UiTest() {
         val achievements = AchievementsState(unlockedAt = mapOf(Achievement.NAT_20 to 0L))
         show(achievements)
         val counts = listOf(
-            "Dice" to DiceStyles, "Dice Cup" to DiceCupStyles, "Mat" to DiceMats, "Background" to TableBackgrounds, "Frame" to ScoreFrames,
+            "Dice" to DiceStyles, "Dice Cup" to DiceCupStyles, "Mat" to DiceMats, "Background" to TableBackgrounds, "Frame" to ScoreFrames, "Boxes" to ScoreBoxes,
         ).map { (title, catalog) -> title to catalog.unlockCount(StyleAccess(achievements)) }
         val total = counts.map { it.second }.reduce(UnlockCount::plus)
         compose.onNodeWithText("${total.unlocked} of ${total.total} unlocked").assertExists()

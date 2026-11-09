@@ -5,7 +5,7 @@ import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
 
 /**
- * The five kinds of table art a player picks on the Styles screen, in its order: each one's [registry] and where its
+ * The six kinds of table art a player picks on the Styles screen, in its order: each one's [registry] and where its
  * pick is saved. For code that does the same to every category - resetting locked picks, checking for a non-default
  * table - rather than one line per category. Its art is `ui.style`'s `catalog`.
  */
@@ -23,6 +23,7 @@ enum class StyleCategory(
     MAT(DiceMatRegistry, SettingsRepository::diceMatId, SettingsRepository::setDiceMatId, SavedStyles::diceMatId),
     BACKGROUND(TableBackgroundRegistry, SettingsRepository::tableBackgroundId, SettingsRepository::setTableBackgroundId, SavedStyles::tableBackgroundId),
     FRAME(ScoreFrameRegistry, SettingsRepository::scoreFrameId, SettingsRepository::setScoreFrameId, SavedStyles::scoreFrameId),
+    BOX(ScoreBoxRegistry, SettingsRepository::scoreBoxId, SettingsRepository::setScoreBoxId, SavedStyles::scoreBoxId),
 }
 
 /** Whether any of [this] picks draws something other than its category's default - a locked one draws the default. */

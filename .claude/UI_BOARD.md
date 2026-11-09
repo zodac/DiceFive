@@ -69,7 +69,8 @@ indexes), not summed on the 5x tile.
     - The cup is centred under columns 2-3 over rows 5-6, with Totals and Undo centred under it in row 7. The board
         grows (about 407dp) so those two rows hold the whole `CUP_SIZE`.
     - Each column is a traversal group, so TalkBack reads a half's boxes in order, then the cup and buttons.
-    - Tiles are number badges: 1st half sky blue (`TileSky*`), 2nd half indigo (`TileIndigo*`). The colour repeats the
+    - Tiles are number badges in the box style's two half colours (Classic: 1st half sky blue `TileSky*`, 2nd half
+        indigo `TileIndigo*`; see `DESIGN.md`, "Table art"). The colour repeats the
         number, so it needs no spoken twin.
     - The Totals popup shows each half against its target ("95 / 150", gold once reached, wildcard included) plus the
         Bonus. The glyph lights its top half for the 1st bonus and its bottom half for the 2nd (`litHalves`). Spoken: "1st
@@ -242,7 +243,7 @@ Renders cover 1280x800, 960x600, 891x411 and 800x360 in every mode, and 360x640 
 ## A disabled scorecard box
 
 Quickfire's off boxes (`PlayerState.disabledCategories`) stay on the board, so the layout never moves. Every other
-state is a filled tile (teal open, gold good pick, grey scored), so a disabled box is **only an outline**:
+state is a filled tile (the box style's open fill, gold good pick, its scored fill), so a disabled box is **only an outline**:
 
 - a dashed border, the glyph at 30% with a slash through it, and the word **Off** (`CategoryTile(disabled)`);
 - never a fill or a solid border, which would read as "scored";

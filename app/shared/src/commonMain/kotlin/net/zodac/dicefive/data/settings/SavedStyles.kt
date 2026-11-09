@@ -7,7 +7,7 @@ import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
 
 /**
- * The five saved Styles picks, as ids, with the achievements and the purchase that decide which of them are unlocked -
+ * The six saved Styles picks, as ids, with the achievements and the purchase that decide which of them are unlocked -
  * everything the menu's logo and the Styles screen need to draw a player's picks. Ids rather than
  * the styles themselves, as in [SettingsRepository]: resolving them is the UI's job.
  */
@@ -19,6 +19,8 @@ data class SavedStyles(
     val achievements: AchievementsState,
     // Last, with the default frame's id, as it came after the other four.
     val scoreFrameId: String = DefaultStyleIds.SCORE_FRAME,
+    // After the frame, with the default box style's id, as it came after the other five.
+    val scoreBoxId: String = DefaultStyleIds.SCORE_BOX,
     /** The size the Styles page's cards fit its screen at, as the Styles screen saved it - null until it's measured. */
     val stylesPageFit: String? = null,
     /** Whether the "Unlock all styles" purchase unlocks every style ([net.zodac.dicefive.app.AppContainer.ownsAllStyles]). */
@@ -40,5 +42,6 @@ fun savedStylesFlow(settings: SettingsRepository, achievements: AchievementStore
     ) { diceId, cupId, backgroundId, matId, achievementsState ->
         SavedStyles(diceId, cupId, backgroundId, matId, achievementsState)
     }.combine(settings.scoreFrameId) { styles, frameId -> styles.copy(scoreFrameId = frameId) }
+        .combine(settings.scoreBoxId) { styles, boxId -> styles.copy(scoreBoxId = boxId) }
         .combine(settings.stylesPageFit) { styles, fit -> styles.copy(stylesPageFit = fit) }
         .combine(ownsAllStyles) { styles, owns -> styles.copy(ownsAllStyles = owns) }

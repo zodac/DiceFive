@@ -18,7 +18,7 @@ class CategoryHeaderTextTest {
 
     @Test
     fun `every category header is in the brand font's character set`() {
-        assertEquals(5, styleCategoryKeys.size, "Styles categories: $styleCategoryKeys")
+        assertEquals(6, styleCategoryKeys.size, "Styles categories: $styleCategoryKeys")
 
         // Sora only holds ASCII and Latin-1 - anything else would draw in a second face.
         val outside = locales.filterKeys { it !in StringChecks.localesOutsideSora }.flatMap { (locale, strings) ->

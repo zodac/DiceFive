@@ -83,7 +83,7 @@ private const val NEON_CORNER_PERCENT = 12
 private data class NeonTube(val value: Int, val colour: Color)
 
 // A neon tube's slow pulse: a full swell and fade every NEON_PULSE_SECONDS, never dimmer than NEON_PULSE_FLOOR.
-private const val NEON_PULSE_SECONDS = 1.8f
+internal const val NEON_PULSE_SECONDS = 1.8f
 private const val NEON_PULSE_FLOOR = 0.7f
 
 /**

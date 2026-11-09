@@ -512,13 +512,14 @@ they open on, then **Combined**, every mode's games together, last (a divider af
 
 ## Table art (Styles)
 
-There are five independently saved categories (`ui/style/`), bundled as `GameVisualTheme`:
+There are six independently saved categories (`ui/style/`), bundled as `GameVisualTheme`:
 
 - dice (`DiceStyle`)
 - cups (`DiceCupStyle`)
 - mats (`DiceMat`)
 - backgrounds (`TableBackground`)
 - frames (`ScoreFrame`, around the active player's tab)
+- boxes (`ScoreBoxStyle`, the scorecard's boxes and its Totals and Undo buttons)
 
 **Frames** are drawn in the active player's own colour behind their tab (`ScoreFrames.kt`, in dp), and stay 1.5dp off the
 text (`ScoreFrameClearanceTest`). One made of many parts (the wreaths, Starry, Nautical, Marquee) is `painted`: drawn once
@@ -526,6 +527,17 @@ per colour and tab size, then stamped, as the tab redraws every frame while a sc
 way round the tab, thinning its inward leaves beside the name, and `FrameCoverageTest` holds those frames to filling the
 band along every edge. Unlocks run from Floral at 10 to Marquee at 100, with Nautical at 15 as part of the water set and
 Starry at 45, which opens by count and not with the Starry dice, mat and background (Rolling The Midnight Dice).
+
+**Boxes** (`ScoreBoxes.kt`) colour the scorecard: an open box, D20's two halves (`BoxTone`), and a scored box, each a
+`BoxPaint` (fill, rim, and the ink its glyph takes), with an optional mark font, shape, and texture. What a box *means*
+stays the same in every style: the gold of a good pick, the last scored box's outline, a disabled box's dashed outline,
+and the dark discs of the run and 5x badges. A lit glyph on a light style (Paper, White Marble) takes a darker gold
+(`goldOn`). Totals and Undo are drawn as open boxes (`boxSurface`). `ScoreBoxesTest` holds every style to readable
+marks (3:1 on both ends of each fill), halves that differ, and a scored box unlike an open one. Families named like a dice
+style open with it (Wood 10, Gems and Stone 65, Neon and RGB 100); Paper 5, Chalkboard 20, Pixel 75. RGB's strip is lit on
+the RGB dice's clock, D20's second half half a turn of the hues from the first, and goes out once scored. Neon's glow
+pulses on the Neon dice's beat, each box on its own, its core steady. Both move only at High, like their dice
+(`MovingBoxArt`; `BoxStylesMotionTest`).
 
 Each category is two lists in the same order:
 

@@ -11,4 +11,5 @@ object DefaultStyleIds {
     const val TABLE_BACKGROUND = "classic_navy"
     const val DICE_MAT = "classic_blue"
     const val SCORE_FRAME = "classic_ring"
+    const val SCORE_BOX = "classic_teal"
 }

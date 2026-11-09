@@ -27,7 +27,7 @@ class StyleRegistryTest {
     @Test
     fun `each category's default is the id a new player starts with - and an unknown id draws it`() {
         assertEquals(
-            listOf(DefaultStyleIds.DICE, DefaultStyleIds.DICE_CUP, DefaultStyleIds.DICE_MAT, DefaultStyleIds.TABLE_BACKGROUND, DefaultStyleIds.SCORE_FRAME),
+            listOf(DefaultStyleIds.DICE, DefaultStyleIds.DICE_CUP, DefaultStyleIds.DICE_MAT, DefaultStyleIds.TABLE_BACKGROUND, DefaultStyleIds.SCORE_FRAME, DefaultStyleIds.SCORE_BOX),
             registries.map { it.defaultId },
         )
         val everything = StyleAccess(AchievementsState(Achievement.entries.associateWith { 0L }))
@@ -71,14 +71,17 @@ class StyleRegistryTest {
     }
 
     @Test
-    fun `a style that goes with another of the same name is unlocked by the same thing - in dice - cups - mats and backgrounds`() {
-        val unlocks = listOf(DiceStyleRegistry, DiceCupStyleRegistry, DiceMatRegistry, TableBackgroundRegistry)
+    fun `a style that goes with another of the same name is unlocked by the same thing - in dice - cups - mats - backgrounds and boxes`() {
+        val unlocks = listOf(DiceStyleRegistry, DiceCupStyleRegistry, DiceMatRegistry, TableBackgroundRegistry, ScoreBoxRegistry)
             .flatMap { registry -> registry.groups.map { it.name.key to it.unlock } }
             .groupBy({ it.first }, { it.second })
         for ((family, locks) in unlocks) assertEquals(1, locks.distinct().size, "$family is unlocked by ${locks.distinct()}")
         // The ones that go together by name, so a new background can't quietly miss its dice or mat.
         for (family in listOf("stone", "circuit", "neon", "meadow", "leather", "gingham", "christmas", "glitter", "rgb")) {
             assertTrue(TableBackgroundRegistry.groups.any { it.name.key == "style_family_$family" }, "no $family background")
+        }
+        for (family in listOf("wood", "gems", "stone", "neon", "rgb")) {
+            assertTrue(ScoreBoxRegistry.groups.any { it.name.key == "style_family_$family" }, "no $family box style")
         }
     }
 

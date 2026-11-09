@@ -21,11 +21,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,14 +37,20 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.ceil
@@ -54,24 +62,15 @@ import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.PulsingArt
 import net.zodac.dicefive.ui.common.scorePulse
+import net.zodac.dicefive.ui.style.BoxTone
+import net.zodac.dicefive.ui.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.style.palette
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileHighlightBottom
 import net.zodac.dicefive.ui.theme.TileHighlightTop
 import net.zodac.dicefive.ui.theme.TileIconColor
-import net.zodac.dicefive.ui.theme.TileIndigoBorder
-import net.zodac.dicefive.ui.theme.TileIndigoBottom
-import net.zodac.dicefive.ui.theme.TileIndigoTop
-import net.zodac.dicefive.ui.theme.TileScoredBorder
-import net.zodac.dicefive.ui.theme.TileScoredBottom
-import net.zodac.dicefive.ui.theme.TileScoredTop
 import net.zodac.dicefive.ui.theme.TileTealBottom
-import net.zodac.dicefive.ui.theme.TileTealBorder
-import net.zodac.dicefive.ui.theme.TileTealTop
-import net.zodac.dicefive.ui.theme.TileSkyBorder
-import net.zodac.dicefive.ui.theme.TileSkyBottom
-import net.zodac.dicefive.ui.theme.TileSkyTop
 
 /** Fixed intrinsic sizes - deliberately NOT derived from ambient row height/aspectRatio, which
  * blew up unpredictably (the 5x tile filling the screen, the grid starving its score text).
@@ -125,7 +124,6 @@ fun CategoryTile(
 ) {
     val irishTricolour = LocalIrishTricolour.current
     val cornerRadius = if (squareSize != null) 16.dp else 10.dp
-    val shape = RoundedCornerShape(cornerRadius)
     val interactionSource = remember { MutableInteractionSource() }
     if (onPressChange != null) {
         val pressed by interactionSource.collectIsPressedAsState()
@@ -134,29 +132,34 @@ fun CategoryTile(
         // A tile that goes (scored, or the turn moves on) with a finger on it never sees the lift.
         DisposableEffect(Unit) { onDispose { currentOnPressChange(false) } }
     }
-    // D20's halves are indigo (11-20) and sky blue (1-10) where every other open tile is teal.
-    val firstHalf = category.section == ScoreSection.FIRST_HALF
-    val secondHalf = category.section == ScoreSection.SECOND_HALF
+    // The player's box style (Styles): D20's halves (1-10, 11-20) take its two half fills, every other open box its open one.
+    val boxStyle = LocalGameVisualTheme.current.box
+    val tone = when (category.section) {
+        ScoreSection.FIRST_HALF -> BoxTone.FIRST_HALF
+        ScoreSection.SECOND_HALF -> BoxTone.SECOND_HALF
+        else -> BoxTone.OPEN
+    }
+    val paint = if (scored) boxStyle.scored else boxStyle.paint(tone)
+    val shape = boxStyle.shape(cornerRadius)
     val tileSize = squareSize ?: if (compact) COMPACT_TILE_SIZE else REGULAR_TILE_SIZE
     // Three distinct looks, never overlapping in practice (a scored category is never a legal,
-    // highlightable choice): gold glow for "score this now", flat grey for "already used", teal
-    // otherwise. Without the grey state a scored tile looked identical to an ordinary open one -
-    // only the (small, low-contrast) score text beside it showed anything had happened.
+    // highlightable choice): gold glow for "score this now", the style's spent fill (Classic's flat grey)
+    // for "already used", its open fill otherwise. Without the spent state a scored tile looked identical
+    // to an ordinary open one - only the (small, low-contrast) score text beside it showed anything had
+    // happened. The gold is the same in every style.
     val backgroundColors = when {
         disabled -> listOf(Color.Transparent, Color.Transparent)
         highlighted -> listOf(TileHighlightTop, TileHighlightBottom)
-        scored -> listOf(TileScoredTop, TileScoredBottom)
-        secondHalf -> listOf(TileIndigoTop, TileIndigoBottom)
-        firstHalf -> listOf(TileSkyTop, TileSkyBottom)
-        else -> listOf(TileTealTop, TileTealBottom)
+        else -> paint.fill
     }
+    // What a glyph is drawn in on this fill: the style's ink, or the light ink on the gold and on a disabled outline.
+    val ink = if (highlighted || disabled) TileIconColor else paint.ink
     // A highlighted tile's pulsing gold border is drawn by GlowBorder instead, over the content.
-    val borderColor = if (scored) TileScoredBorder else if (secondHalf) TileIndigoBorder else if (firstHalf) TileSkyBorder else TileTealBorder
     val iconColor = when {
         disabled -> TileIconColor.copy(alpha = DISABLED_ICON_ALPHA)
         highlighted -> GoldAccent
-        scored -> TileIconColor.copy(alpha = 0.4f)
-        else -> TileIconColor
+        scored -> paint.ink.copy(alpha = 0.4f)
+        else -> paint.ink
     }
 
     // Gold in and out over the same 400 ms as an achievement row's flash; straight on and off under reduced motion.
@@ -174,6 +177,16 @@ fun CategoryTile(
             .clip(shape)
             .background(Brush.linearGradient(flashedColors))
             .then(
+                // The style's pattern, on its own fills only: never on the gold, nor while it flashes.
+                if (!disabled && !highlighted && flash == 0f) {
+                    Modifier.drawBehind {
+                        with(boxStyle) { drawTexture(paint, seed = category.ordinal, lit = !scored, cornerPx = cornerRadius.toPx()) }
+                    }
+                } else {
+                    Modifier
+                },
+            )
+            .then(
                 if (category == ScoreCategory.COLOURED_HOUSE) {
                     Modifier.drawBehind { drawColourStripes(alpha = if (scored) SCORED_STRIPE_ALPHA else 1f, irish = irishTricolour) }
                 } else {
@@ -185,33 +198,45 @@ fun CategoryTile(
                     disabled -> Modifier.drawBehind { drawDashedOutline() }
                     highlighted -> Modifier
                     outlineColor != null -> Modifier.border(width = 2.dp, color = outlineColor, shape = shape)
-                    else -> Modifier.border(width = 1.dp, color = borderColor, shape = shape)
+                    boxStyle.rimWidth > 0.dp -> Modifier.border(width = boxStyle.rimWidth, color = paint.border, shape = shape)
+                    else -> Modifier
                 },
             )
             .then(if (onClick != null) Modifier.clickable(interactionSource = interactionSource, indication = LocalIndication.current, role = Role.Button, onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
-        CategoryIcon(
-            category = category,
-            color = flashedIconColor,
-            modifier = Modifier.fillMaxSize(),
-            labelFontSize = when {
-                squareSize != null -> 36.sp
-                wide -> if (compact) 20.sp else 24.sp
-                compact -> 16.sp
-                else -> 18.sp
-            },
-            dimmed = scored || disabled,
-            fiveOfAKindBonusCount = fiveOfAKindBonusCount,
-            target = target,
-            matches = matches,
-        )
+        // A style's moving art (RGB's lights, Neon's pulse) - on an open box only: the gold, a scored box and a disabled one
+        // don't light up.
+        if (!disabled && !highlighted && !scored && flash == 0f) MovingBoxArt(boxStyle, paint, tone, category.ordinal, cornerRadius)
+        CompositionLocalProvider(LocalBoxInk provides ink, LocalBoxMarkFont provides boxStyle.markFont) {
+            CategoryIcon(
+                category = category,
+                color = flashedIconColor,
+                modifier = Modifier.fillMaxSize(),
+                labelFontSize = when {
+                    squareSize != null -> 36.sp
+                    wide -> if (compact) 20.sp else 24.sp
+                    compact -> 16.sp
+                    else -> 18.sp
+                },
+                dimmed = scored || disabled,
+                fiveOfAKindBonusCount = fiveOfAKindBonusCount,
+                target = target,
+                matches = matches,
+            )
+        }
         if (disabled) Box(modifier = Modifier.matchParentSize().drawBehind { drawSlash() })
-        if (highlighted) GlowBorder(cornerRadius)
+        if (highlighted) GlowBorder(cornerRadius, shape)
     }
 }
 
 private const val FLASH_TRANSITION_MILLIS = 400
+
+/** The ink a box's glyph is drawn in on its fill, at full strength - for a part of the glyph that keeps its own colour (a Hit List place). */
+internal val LocalBoxInk = staticCompositionLocalOf { TileIconColor }
+
+/** The typeface of a box's text marks, from the box style - null for the brand font. */
+internal val LocalBoxMarkFont = staticCompositionLocalOf<FontFamily?> { null }
 
 /** How faint a disabled tile's glyph, dashes and slash are - the glyph stays readable, but unmistakably not in play. */
 private const val DISABLED_ICON_ALPHA = 0.3f
@@ -257,11 +282,11 @@ private const val DISABLED_CORNER_RADIUS_FRACTION = 0.2f
  * whole grid every frame for the entire game, highlighted or not.
  */
 @Composable
-private fun BoxScope.GlowBorder(cornerRadius: Dp) {
+private fun BoxScope.GlowBorder(cornerRadius: Dp, shape: Shape) {
     // At the Low and Off animation levels (and under reduced motion), just a plain gold border at full strength -
     // no pulse, and no layer for one: still the gold that marks a good pick.
     if (!scorePulse) {
-        Box(modifier = Modifier.matchParentSize().border(width = GLOW_WIDTH, color = GoldAccent, shape = RoundedCornerShape(cornerRadius)))
+        Box(modifier = Modifier.matchParentSize().border(width = GLOW_WIDTH, color = GoldAccent, shape = shape))
         return
     }
     val glowAlpha = rememberInfiniteTransition(label = "tileGlow").animateFloat( // i18n: not translated - an animation label, not shown
@@ -270,7 +295,28 @@ private fun BoxScope.GlowBorder(cornerRadius: Dp) {
         animationSpec = infiniteRepeatable(animation = tween(900, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
         label = "tileGlowAlpha", // i18n: not translated - an animation label, not shown
     )
-    PulsingArt(alpha = glowAlpha, modifier = Modifier.matchParentSize()) { alpha -> drawGlowRing(cornerRadius, alpha) }
+    if (shape is RoundedCornerShape) {
+        PulsingArt(alpha = glowAlpha, modifier = Modifier.matchParentSize()) { alpha -> drawGlowRing(cornerRadius, alpha) }
+    } else {
+        // A box style's own outline (Pixel's stepped corners): made once for the tile's size, not on every pulse.
+        val outline = remember(shape) { OutlineCache(shape) }
+        PulsingArt(alpha = glowAlpha, modifier = Modifier.matchParentSize()) { alpha ->
+            // Twice as wide, centred on the edge: the tile's clip leaves the inner half, as the steady border draws it.
+            drawOutline(outline.of(size, layoutDirection, this), GoldAccent, alpha = alpha, style = Stroke(ceil(GLOW_WIDTH.toPx()) * 2))
+        }
+    }
+}
+
+/** [shape]'s outline at the last size asked for, kept until the size changes. */
+private class OutlineCache(private val shape: Shape) {
+    private var size: Size? = null
+    private var outline: Outline? = null
+
+    fun of(size: Size, layoutDirection: LayoutDirection, density: Density): Outline =
+        outline?.takeIf { size == this.size } ?: shape.createOutline(size, layoutDirection, density).also {
+            this.size = size
+            outline = it
+        }
 }
 
 private val GLOW_WIDTH = 2.dp

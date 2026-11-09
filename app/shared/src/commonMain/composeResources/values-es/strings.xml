@@ -703,6 +703,7 @@
     <string name="style_family_casino">Casino</string>
     <string name="style_family_cauldron">Caldero</string>
     <string name="style_family_celtic">Celta</string>
+    <string name="style_family_chalkboard">Pizarra</string>
     <string name="style_family_chicken">Gallina</string>
     <string name="style_family_christmas">Navidad</string>
     <string name="style_family_circuit">Circuito</string>
@@ -738,6 +739,7 @@
     <string name="style_family_nautical">Náutico</string>
     <string name="style_family_marquee">Marquesina</string>
     <string name="style_family_ocean">Océano</string>
+    <string name="style_family_paper">Papel</string>
     <string name="style_family_world">Mundo</string>
     <string name="style_family_numeral">Numeral</string>
     <string name="style_family_obsidian">Obsidiana</string>
@@ -764,16 +766,22 @@
     <string name="style_family_wood">Madera</string>
     <string name="style_family_wreath">Corona</string>
     <string name="style_colour_amber">Ámbar</string>
+    <string name="style_colour_amethyst">Amatista</string>
     <string name="style_colour_arabic">Árabe</string>
     <string name="style_colour_arabic_green">Verde árabe</string>
+    <string name="style_colour_arcade">Recreativa</string>
     <string name="style_colour_barrel">Barril</string>
     <string name="style_colour_clownfish">Pez payaso</string>
     <string name="style_colour_deep">Profundo</string>
+    <string name="style_colour_graph">Cuadriculado</string>
     <string name="style_colour_lagoon">Laguna</string>
+    <string name="style_colour_notepad">Bloc de notas</string>
     <string name="style_colour_rope">Cuerda</string>
     <string name="style_colour_chain">Cadena</string>
     <string name="style_colour_bulbs">Bombillas</string>
     <string name="style_colour_diamonds">Diamantes</string>
+    <string name="style_colour_ruby">Rubí</string>
+    <string name="style_colour_sapphire">Zafiro</string>
     <string name="style_colour_stars">Estrellas</string>
     <string name="style_colour_sparkles">Destellos</string>
     <string name="style_colour_constellation">Constelación</string>
@@ -877,6 +885,7 @@
     <string name="style_colour_sunflower">Girasol</string>
     <string name="style_colour_swirl">Remolino</string>
     <string name="style_colour_tan">Beige</string>
+    <string name="style_colour_teal">Verde azulado</string>
     <string name="style_colour_teal_plain">Verde azulado liso</string>
     <string name="style_colour_terracotta">Terracota</string>
     <string name="style_colour_tricolour">Tricolor</string>
@@ -901,6 +910,7 @@
     <string name="style_noun_background">fondo</string>
     <string name="style_noun_mat">tapete</string>
     <string name="style_noun_frame">marco</string>
+    <string name="style_noun_box">casillas</string>
     <string name="style_variant_colour">color</string>
     <string name="style_variant_design">diseño</string>
     <string name="styles_reward_style">el estilo de %2$s '%1$s'</string>
@@ -946,6 +956,7 @@
     <string name="styles_category_mat">Tapete</string>
     <string name="styles_category_background">Fondo</string>
     <string name="styles_category_frame">Marco</string>
+    <string name="styles_category_box">Casillas</string>
     <string name="styles_frame_preview_name">Tú</string>
     <string name="styles_gallery_cd">Galería de %1$s</string>
     <string name="styles_unlocked_count">%1$d de %2$d desbloqueados</string>

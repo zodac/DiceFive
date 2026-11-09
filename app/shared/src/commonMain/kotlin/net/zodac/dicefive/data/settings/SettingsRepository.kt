@@ -352,6 +352,11 @@ class SettingsRepository(
 
     suspend fun setScoreFrameId(id: String) = set(SCORE_FRAME_ID_KEY, id)
 
+    // The look of the scorecard's boxes.
+    val scoreBoxId: Flow<String> = read(SCORE_BOX_ID_KEY, default = DefaultStyleIds.SCORE_BOX)
+
+    suspend fun setScoreBoxId(id: String) = set(SCORE_BOX_ID_KEY, id)
+
     // The Styles page's fitted size for the screen it was measured on, as the Styles screen writes it -
     // opaque here. Null until it's first measured.
     val stylesPageFit: Flow<String?> = read { prefs -> prefs[STYLES_PAGE_FIT_KEY] }
@@ -414,6 +419,7 @@ class SettingsRepository(
         val TABLE_BACKGROUND_ID_KEY = stringPreferencesKey("table_background_id")
         val DICE_MAT_ID_KEY = stringPreferencesKey("dice_mat_id")
         val SCORE_FRAME_ID_KEY = stringPreferencesKey("score_frame_id")
+        val SCORE_BOX_ID_KEY = stringPreferencesKey("score_box_id")
         val STYLES_PAGE_FIT_KEY = stringPreferencesKey("styles_page_fit")
         /** The Combined Statistics page's sort - the only page there was until 1.5.0, when it held every mode's games. */
         val STATISTICS_SORT_KEY = stringPreferencesKey("statistics_sort")
@@ -436,7 +442,7 @@ class SettingsRepository(
         /** How many player slots the setup form remembers: one a seat. */
         private const val PLAYER_SLOTS = GameState.MAX_PLAYERS
 
-        val STYLE_KEYS = listOf(DICE_STYLE_ID_KEY, DICE_CUP_STYLE_ID_KEY, TABLE_BACKGROUND_ID_KEY, DICE_MAT_ID_KEY, SCORE_FRAME_ID_KEY)
+        val STYLE_KEYS = listOf(DICE_STYLE_ID_KEY, DICE_CUP_STYLE_ID_KEY, TABLE_BACKGROUND_ID_KEY, DICE_MAT_ID_KEY, SCORE_FRAME_ID_KEY, SCORE_BOX_ID_KEY)
 
         /**
          * What the cloud save carries: everything but the Animations level ([ANIMATION_LEVEL_KEY]), chosen for what this

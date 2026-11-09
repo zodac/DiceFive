@@ -3,8 +3,6 @@ package net.zodac.dicefive.ui.game
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,8 +24,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
@@ -74,11 +69,9 @@ import net.zodac.dicefive.ui.common.rememberAppTooltipState
 import net.zodac.dicefive.ui.common.scorePulse
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.icons.Symbols
+import net.zodac.dicefive.ui.style.BoxTone
+import net.zodac.dicefive.ui.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.GoldAccent
-import net.zodac.dicefive.ui.theme.TileIconColor
-import net.zodac.dicefive.ui.theme.TileTealBorder
-import net.zodac.dicefive.ui.theme.TileTealBottom
-import net.zodac.dicefive.ui.theme.TileTealTop
 
 /**
  * The scorecard's section totals - Upper, the upper bonus and Lower - behind an icon-only Σ button,
@@ -231,8 +224,12 @@ private fun TotalsButton(
     val scope = rememberCoroutineScope()
     val totalsName = stringResource(Res.string.game_totals_cd)
     val showTotalsLabel = stringResource(Res.string.game_totals_show_action)
-    val color = if (highlighted) GoldAccent else TileIconColor
-    val shape = RoundedCornerShape(10.dp)
+    // An open box of the player's box style, as the boxes beside it are, its gold darker on a light one.
+    val boxStyle = LocalGameVisualTheme.current.box
+    val boxPaint = boxStyle.paint(BoxTone.OPEN)
+    val gold = goldOn(boxPaint)
+    val color = if (highlighted) gold else boxPaint.ink
+    val shape = boxStyle.shape(TOTALS_CORNER)
     // In the tutorial, the button only opens the totals at the step that asks for them - outlined then - and opening
     // them moves it on.
     val tutorial = LocalTutorialGuide.current
@@ -304,19 +301,20 @@ private fun TotalsButton(
                     }
                     // M3's 48dp minimum touch target, which the glyph alone (when a large font drops the label) is short of.
                     .sizeIn(minWidth = minSize, minHeight = minSize)
-                    .clip(shape)
-                    .background(Brush.linearGradient(listOf(TileTealTop, TileTealBottom)))
-                    .border(1.dp, TileTealBorder, shape)
+                    .boxSurface(boxStyle, shape, TOTALS_CORNER)
                     .clickable(enabled = opens, role = Role.Button) { toggle() }
                     .padding(horizontal = 6.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center,
             ) {
+                BoxSurfaceLights(boxStyle, TOTALS_CORNER)
                 // Decorative: the button's own semantics, above, name it and say the totals.
-                BoardButtonIcon(imageVector = Symbols.Functions, contentDescription = null, tint = color, litHalves = litHalves)
+                BoardButtonIcon(imageVector = Symbols.Functions, contentDescription = null, tint = color, litHalves = litHalves, litColor = gold)
             }
         }
     }
 }
+
+private val TOTALS_CORNER = 10.dp
 
 /** What a screen reader hears for [TotalsButton]: every total, the bonus said to be earned once it is. */
 @Composable

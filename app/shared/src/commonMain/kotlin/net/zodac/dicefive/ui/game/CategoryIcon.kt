@@ -184,13 +184,15 @@ private fun TargetIcon(target: HitTarget, matches: List<PlaceMatch>?, color: Col
         val placeSize = density.dpToSp(maxWidth * TARGET_PLACE_TEXT_FRACTION)
         val pointsSize = density.dpToSp(maxWidth * TARGET_POINTS_TEXT_FRACTION)
         val placeWidth = maxWidth * TARGET_PLACE_WIDTH_FRACTION
+        val ink = LocalBoxInk.current
+        val font = LocalBoxMarkFont.current ?: SoraFontFamily
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Row {
                 target.places.forEachIndexed { index, value ->
                     val match = matches?.getOrNull(index)
                     val barColor = when (match) {
                         PlaceMatch.IN_PLACE -> GoldAccent
-                        PlaceMatch.ROLLED -> TileIconColor
+                        PlaceMatch.ROLLED -> ink
                         else -> null
                     }
                     Text(
@@ -198,13 +200,13 @@ private fun TargetIcon(target: HitTarget, matches: List<PlaceMatch>?, color: Col
                         color = when {
                             value == null -> color.copy(alpha = color.alpha * ANY_PLACE_ALPHA)
                             match == PlaceMatch.IN_PLACE -> GoldAccent
-                            match == PlaceMatch.ROLLED -> TileIconColor
+                            match == PlaceMatch.ROLLED -> ink
                             // Not the tile's own colour, which is gold on a lit tile - a number the dice don't show
                             // would read as one in place.
-                            match == PlaceMatch.MISSING -> TileIconColor.copy(alpha = MISSING_PLACE_ALPHA)
+                            match == PlaceMatch.MISSING -> ink.copy(alpha = MISSING_PLACE_ALPHA)
                             else -> color
                         },
-                        style = TextStyle(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold, fontSize = placeSize, lineHeight = placeSize, textAlign = TextAlign.Center),
+                        style = TextStyle(fontFamily = font, fontWeight = FontWeight.Bold, fontSize = placeSize, lineHeight = placeSize, textAlign = TextAlign.Center),
                         maxLines = 1,
                         softWrap = false,
                         modifier = Modifier
@@ -226,7 +228,7 @@ private fun TargetIcon(target: HitTarget, matches: List<PlaceMatch>?, color: Col
             Text(
                 text = target.points.localised(),
                 color = color.copy(alpha = color.alpha * TARGET_POINTS_ALPHA),
-                style = TextStyle(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold, fontSize = pointsSize, lineHeight = pointsSize, textAlign = TextAlign.Center),
+                style = TextStyle(fontFamily = font, fontWeight = FontWeight.Bold, fontSize = pointsSize, lineHeight = pointsSize, textAlign = TextAlign.Center),
                 maxLines = 1,
                 softWrap = false,
             )
@@ -268,7 +270,7 @@ private const val BADGE_LABEL_SHRINK_STEP = 0.96f
  */
 @Composable
 private fun BadgeLabel(text: String, color: Color, fontSize: TextUnit, modifier: Modifier = Modifier) {
-    val style = TextStyle(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold, fontSize = fontSize, textAlign = TextAlign.Center)
+    val style = TextStyle(fontFamily = LocalBoxMarkFont.current ?: SoraFontFamily, fontWeight = FontWeight.Bold, fontSize = fontSize, textAlign = TextAlign.Center)
     val measurer = rememberTextMeasurer()
     BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
         val room = constraints.maxWidth - with(LocalDensity.current) { (BADGE_LABEL_INSET * 2).roundToPx() }
@@ -291,7 +293,8 @@ private fun BadgeLabel(text: String, color: Color, fontSize: TextUnit, modifier:
 /**
  * The "5x" badge, plus - once a player has rolled more than one 5x this game - a small corner
  * badge showing the total count. Unlike the straight run-length badge, this one can safely share
- * [color] with the main glyph: it only ever appears once the box is already scored (the bonus
+ * [color]'s fade with the main glyph (in the light ink of its dark disc, whatever the box style's
+ * own): it only ever appears once the box is already scored (the bonus
  * requires a genuine 50 already on the card - see ScoreCalculator.awardsFiveOfAKindBonus), a stable
  * state for the rest of the game, not one that flips between two categories independently the way
  * highlighted/scored does for Small vs Large Straight.
@@ -309,7 +312,8 @@ private fun FiveOfAKindIcon(color: Color, fontSize: TextUnit, bonusCount: Int) {
                 // Total 5x, not just the bonus count: the first one (the 50 itself) counts
                 // too.
                 count = bonusCount + 1,
-                color = color,
+                // The badge is a dark disc on any box style, so its digits stay light, faded as the glyph is.
+                color = TileIconColor.copy(alpha = color.alpha),
                 // Top-left, matching the Small/Large Straight run-length badge's position (see
                 // StairsWithRunBadge) - same proportional clearance off the tile edge.
                 modifier = Modifier
