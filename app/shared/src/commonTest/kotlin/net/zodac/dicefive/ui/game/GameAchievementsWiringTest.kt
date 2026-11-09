@@ -33,6 +33,7 @@ import net.zodac.dicefive.data.scores.InMemoryScoreDao
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
+import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
 import net.zodac.dicefive.model.GameMode
@@ -185,6 +186,11 @@ class GameAchievementsWiringTest {
             assertEquals(emptySet(), table.unlocked, name)
             assertEquals(emptyMap(), table.store.state.first().counters.filterValues { it != 0 }, name)
             assertEquals(emptyList(), ScoreRepository(dao).playerStatistics(), name)
+            // Well Rolled's dice and Professional Roller's career points, as the Achievements screen reads them.
+            val totals = ScoreRepository(dao).leaderboardTotals()
+            for (achievement in listOf(Achievement.WELL_ROLLED, Achievement.PROFESSIONAL_ROLLER)) {
+                assertEquals(0, AchievementEngine.progressOf(achievement, table.store.state.first().counters, totals), "$achievement, $name")
+            }
         }
         // The same game with none earns them.
         val unmodified = started(dice = LoadedDice(6))
