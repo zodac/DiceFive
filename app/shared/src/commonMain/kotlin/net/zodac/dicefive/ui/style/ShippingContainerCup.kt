@@ -5,7 +5,6 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -23,6 +22,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.PacedEffect
 
 // The container, in grid units (SQUAT, 76 x 66), as a box in its own space: x along its length (its
 // door end negative, on the left), y up from the table, z forward. It's long and low, so it lies along
@@ -72,7 +72,7 @@ class ShippingContainerDiceCupStyle(override val id: String, private val palette
         val open = tilted && !rolling
         // A continued game's container starts with its doors open; anything else starts shut.
         val doors = remember { Animatable(if (open) 1f else 0f) }
-        LaunchedEffect(open) {
+        PacedEffect(open) {
             // Under reduced motion the doors are simply shut or open, with no swing between.
             when {
                 reduceMotion -> doors.snapTo(if (open) 1f else 0f)

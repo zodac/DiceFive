@@ -133,7 +133,7 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
     - It is not a "Resume?" dialog. It isn't M3's split button (an action plus a menu) or segmented buttons (choices).
         It's closest to Expressive's connected button group, whose press morph waits for `ButtonGroup` (1.5.0).
 - **Segmented buttons** are for small exclusive sets on one line: player count, AI difficulty, turn timer, the
-    Animations level.
+    Animations level, and the Advanced settings' frame rates.
     - The end segments' labels are inset `SEGMENT_CAP_INSET` (4dp) on the outer side, because those ends are half
         circles.
     - `FittedSegmentedChoiceRow` shrinks the labels together, then switches to `_short` initials.
@@ -316,31 +316,68 @@ file read three times (after 1s, 3s and 5s) and then stops, which nothing a play
 
 ## Reduced motion
 
-**The player's Animations level** (`AnimationLevel`, `SettingsRepository.animationLevel`) is a `SegmentedSetting` card
-in Settings, between the switches and the resets.
+**The player's Animations level** (`AnimationLevel`, `SettingsRepository.animationLevel`) is on the **Graphics** page
+(Settings' Graphics row), under its title and below the Orientation, in one card (`GraphicsScreen.TitledChoice`).
 
 - It runs Off to High from the start edge, so it's mirrored in Arabic. It uses `FittedSegmentedChoiceRow`, with Off as
     a crossed-out motion icon.
-- It has no description, by the maintainer's choice.
+- It has no description, by the maintainer's choice. While the Advanced settings match none of its levels
+    (`AnimationLevel.matching`), no level is picked, and nothing says "Custom" (the maintainer's choice).
 - It isn't inside a `ListItem`, whose intrinsic measuring throws on `BoxWithConstraints`.
 
-| Level              | Ambient decoration | Gameplay motion                                      | Score tile pulse | Frames            |
-|--------------------|--------------------|------------------------------------------------------|------------------|-------------------|
-| **High** (default) | moves              | plays                                                | pulses           | the screen's rate |
-| **Medium**         | still              | plays                                                | pulses           | ≤60               |
-| **Low**            | still              | dice flick through faces in place (`simpleDiceRoll`) | steady           | ≤30               |
-| **Off**            | still              | none (`LocalReduceMotion`)                           | steady           | ≤30               |
+**The Advanced settings** (`MotionSettings`, `SettingsRepository.motionSettings`) are below it: their own heading
+("Advanced settings", in the page's text colour, not gold), then three cards (`CollapsibleCard`), each closed each time
+the page opens. A card's title row (also in the text colour), an arrow at its end, is its full width and runs to its top edge, so the press ripple
+fills it; it opens and closes the card over 220ms (at once under reduced motion), and TalkBack hears "Gameplay,
+Collapsed, heading", a button. Off, 30fps, 60fps or Max (spoken "Off", "30 frames a second", "60 frames a second",
+"Maximum") for each `MotionGroup`.
+Gameplay's and Miscellaneous' rows are in their names' English alphabetical order (a translation keeps it, so the Dice
+roll frame rate stays under the Dice roll), Styles' in the Styles page's:
+
+- **Gameplay**, what moves on the game screen: Cup shake (the cup's shake and pour; Off, it stands still, then is
+    simply tipped); the Dice roll (Off, In place, or Tossed; Off, the dice snap to their results), and under it the
+    Dice roll frame rate, which has no Off (the roll's own is its off) and is locked, its pick kept, while the roll is
+    off; Score glow; and Scores;
+- **Styles**: each style's own decoration (`MotionGroup.decoration`), named as the Styles page names them: Dice, Dice
+    Cup, Mat, Background (the menu's drift too), and Boxes. Score frames have no moving art, so no row;
+- **Miscellaneous**: Achievement banners (the unlock, style, and progress banners, on every screen), Celebrations (the
+    results page), and Menus & pages.
+
+- Each level is a preset of them (the table below). They're the level's until one is changed; that saves them all
+    (`motion_<MotionGroup.key>` and `motion_roll_style`, beside `animation_level`), and picking a level clears them
+    back to its preset. While they match no level, no level is picked.
+- Menus & pages Off is the app's reduced motion (`LocalReduceMotion`) everywhere but the other groups, which each follow
+    their own setting: `GroupMotion(group)` provides a group's own reduced motion (`groupReduceMotion`) as
+    `LocalReduceMotion`, and its pace, round the dice (`DiceTray`), the cup (`DiceCup`), the banners
+    (`AchievementBannerHost`), and the fireworks (`GameOverScreen`); a player tab's count-up reads the Scores group's
+    directly.
+- **What each covers.** Achievement banners: the banners (their slide, fade, and progress count). Scores: the player
+    tabs' count-up. Celebrations: the Game Over fireworks. Menus & pages: everything else that moves without a row of its
+    own - a page's content fade-in, a list gliding to a spot, a picker opening, the turn timer's flash, the tutorial's
+    outline pulse, and the sync progress bar. The totals' bonus pop is Score glow's (Low has always dropped it while
+    counting scores up), and the locked chains' slam the dice's.
+
+| Level              | Each style's decoration | The game's own            | Score glow   | Cup shake | Dice roll                                            | Window frames     |
+|--------------------|-------------------------|---------------------------|--------------|-----------|------------------------------------------------------|-------------------|
+| **High** (default) | Max (moves)             | Max                       | Max (pulses) | Max       | Max, tossed                                          | the screen's rate |
+| **Medium**         | Off (still)             | 60                        | 60           | 60        | 60, tossed                                           | ≤60               |
+| **Low**            | Off (still)             | 30                        | Off (steady) | 30        | 30, in place (flick through faces, `simpleDiceRoll`) | ≤30               |
+| **Off**            | Off (still)             | Off (`LocalReduceMotion`) | Off (steady) | Off       | Off (snap to the result)                             | ≤30               |
 
 **Ambient decoration** is anything that keeps an idle screen redrawing:
 
 - the menu's drift, `FloatingDiceBackground`, `TwinkleClock`/`rememberArtSeconds` art (RGB and Neon boxes included), the RGB Halo's rings,
     `rememberAmbientCycle` cups, and googly pupils;
-- each reads `ambientMotion` (`ui/common/ReduceMotion.kt`), which is true only at High. Below High it holds its
-    reduced-motion pose, so no new art is needed;
+- each reads `ambientMotion(group)` (`ui/common/ReduceMotion.kt`) for its style's group (`TwinkleClock` and
+    `rememberArtSeconds` are handed it), true only while that group moves (at High, of the levels). Otherwise it holds
+    its reduced-motion pose, so no new art is needed. **New moving art** names its style's group, and runs at its pace
+    (`LocalFramePaces.current.of(group)`);
 - a cup whose ambient art travels (the Fishbowl's fish) holds where it was when its cycle stops, the cup spent, and
     sets off from there next turn (`HeldLap`), rather than snapping to its resting pose;
 - the score tile reads `scorePulse`;
-- both are false under a nested `LocalReduceMotion`, which is how an off-screen Styles tile is held still.
+- both are false under `LocalHoldStill` (how an off-screen Styles tile is held still, beside a `LocalReduceMotion` of
+    its own), and under a `LocalReduceMotion` provided further down while Menus & pages moves (a test's). Menus &
+    pages' own Off doesn't touch them.
 
 **The idle screen.** After 60s without a touch, every infinite animation freezes mid-motion, at any level, so an untouched
 screen asks for no frames for it (`ScreenIdle`, `ScreenIdleTest`, `ScreenIdleUiTest`).
@@ -362,16 +399,29 @@ screen asks for no frames for it (`ScreenIdle`, `ScreenIdleTest`, `ScreenIdleUiT
 **Frames.**
 
 - `MainActivity` builds the recomposer on `CappedFrameClock` (app/android), which `PlatformServices.capFrameRate` sets
-    from the level.
+    to the fastest moving group's rate (`MotionSettings.maxFramesPerSecond`: uncapped if one is at Max, 30 with all Off).
+- **Each group runs at its own rate** below that: `FramePace` (`ui/common/FramePace.kt`), one per group
+    (`LocalFramePaces`), hands on only its rate's frames to what runs inside `FramePace.run` - so a group at 30 skips whole
+    refreshes of a window at 60 or more.
+    - `LocalFramePace` is the Menus & pages group's at the root, and a group's own inside its `GroupMotion`.
+    - `PacedEffect` is a `LaunchedEffect` at `LocalFramePace`; `rememberPacedLoop` stands in for an
+        `InfiniteTransition`'s `animateFloat` (which can't be paced). Decoration and Score glow pass their pace
+        explicitly (`LocalFramePaces.current.of(group)`, `.scoreGlow`).
+    - **A new animation** runs in one of these, at its group's pace. What can't be paced runs at the window's rate:
+        `animate*AsState` (a shake's fade-in, the cup's slosh), Compose's own transitions, and the page cover, whose
+        settling is measured on the window's frames.
 - The cap skips whole refreshes: a 60 cap gives 45 on 90Hz. So a capped level also asks the window for the lowest
     refresh rate of at least 60Hz (`preferRefreshRateFor`, `RefreshRateTest`). Never below 60Hz, so touch stays
     responsive.
-- Only the player's level caps frames. The one exception, agreed by the maintainer: the menu's drift skips a 120Hz
+- Only the player's settings cap frames. The one exception, agreed by the maintainer: the menu's drift skips a 120Hz
     screen's every other refresh, never going under 60 (`UI_SCREENS.md`).
-- **The 60fps floor holds for High and Medium**; 30fps happens only when the player picks Low or Off.
+- **The 60fps floor holds for High and Medium**; 30fps happens only when the player picks Low or Off, or 30fps for a
+    group.
 
-**Two sources, one switch.** `LocalReduceMotion` (provided once in `DiceFiveApp`, beside `LocalAnimationLevel`) is
-true when the system asks for less motion **or** the level is Off.
+**Two sources, one switch.** `LocalReduceMotion` (provided once in `DiceFiveApp`, beside `LocalMotionSettings`) is
+true when the system asks for less motion **or** Menus & pages is Off (the level Off, or the Advanced settings). The system's
+setting turns every group off (`LocalMotionSettings` is then the Off preset). Inside a `GroupMotion` it's that group's
+own (`groupReduceMotion`).
 
 - The system setting also sets Compose's `MotionDurationScale`, which the app's Off can't. Under the app's Off,
     ripples, switch thumbs and flings still run, at the 30fps cap.
@@ -409,7 +459,7 @@ Examples:
 (~490ms) are timed to the `CUP_SHAKE_MILLIS` window, and for a TalkBack user they *are* the roll.
 
 - `cupShakeMillis` (`ui/game/CupShake.kt`) keeps the full window whenever sound or vibration is on. With both off it
-    shrinks to 100ms (not 0, so `isRolling` is seen changing).
+    shrinks to 100ms (not 0, so `isRolling` is seen changing), but only while neither the cup nor the dice move in it.
 - **Never shorten the window without re-checking the clips and `HapticEffect.SHAKE_BUZZ.millis`.**
 - The CPU's following pauses (`ROLL_GAP_MS`, `AI_STEP_DELAY_MS`, `AI_REACTION_DELAY_MS`) never change. Only its
     animation waits go: `GamePacing.diceTossMillis`, `RELEASE_GAP_MS`, and the one-die-at-a-time hold steps (`AI_HOLD_STEP_MS`,

@@ -15,6 +15,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.ui.theme.GoldAccent
 
 private const val RGB_CORNER_PERCENT = 14
@@ -65,7 +66,7 @@ class RgbDiceStyle(
 
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) {
-        val seconds = rememberArtSeconds()
+        val seconds = rememberArtSeconds(MotionGroup.DICE)
         StyledDie(
             value = value,
             held = held,

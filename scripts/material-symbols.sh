@@ -77,6 +77,7 @@ KeyboardArrowRight keyboard_arrow_right mirror
 KeyboardArrowUp keyboard_arrow_up
 KeyboardDoubleArrowUp keyboard_double_arrow_up
 Landslide landslide
+LocalCafe local_cafe
 Lock lock
 LockOpen lock_open
 Logout logout mirror
@@ -126,6 +127,7 @@ Style style
 Sync sync
 SyncAlt sync_alt
 Target target
+Texture texture
 ThumbUp thumb_up
 Timer timer
 TravelExplore travel_explore
@@ -135,6 +137,7 @@ Undo undo mirror
 Upgrade upgrade
 Vibration vibration
 VolumeUp volume_up mirror
+Wallpaper wallpaper
 WavingHand waving_hand
 WorkspacePremium workspace_premium
 """

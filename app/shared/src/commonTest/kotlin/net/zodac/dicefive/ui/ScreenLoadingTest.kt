@@ -39,6 +39,8 @@ import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
 import net.zodac.dicefive.ui.scores.ScoresViewModel
+import net.zodac.dicefive.ui.settings.GraphicsSettings
+import net.zodac.dicefive.ui.settings.GraphicsViewModel
 import net.zodac.dicefive.ui.settings.SettingsToggles
 import net.zodac.dicefive.ui.settings.SettingsViewModel
 import net.zodac.dicefive.ui.settings.settingsViewModel
@@ -125,11 +127,28 @@ class ScreenLoadingTest {
         val expected = SettingsToggles(
             soundEnabled = false,
             vibrationEnabled = true,
-            animationLevel = AnimationLevel.LOW,
             confirmBeforeLeavingGame = true,
-            screenOrientation = ScreenOrientation.LANDSCAPE,
         )
         assertEquals(listOf(expected), shown)
+    }
+
+    @Test
+    fun `the Graphics page's settings arrive together with their saved values and never as defaults`() = runTest(testDispatcher) {
+        val repository = SettingsRepository(LoadingPreferencesStore())
+        repository.setAnimationLevel(AnimationLevel.LOW)
+        repository.setScreenOrientation(ScreenOrientation.LANDSCAPE)
+        val viewModel = GraphicsViewModel(repository)
+        assertNull(viewModel.settings.value)
+
+        val shown = mutableListOf<GraphicsSettings>()
+        backgroundScope.launch(testDispatcher) {
+            viewModel.settings.collect { settings -> if (settings != null) shown += settings }
+        }
+        advanceUntilIdle()
+        runCurrent()
+
+        assertEquals(listOf(GraphicsSettings(ScreenOrientation.LANDSCAPE, AnimationLevel.LOW.motion)), shown)
+        assertEquals(AnimationLevel.LOW, shown.single().level)
     }
 
     @Test

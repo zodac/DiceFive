@@ -16,6 +16,7 @@ import kotlin.math.PI
 import kotlin.math.floor
 import kotlin.math.sin
 import kotlin.random.Random
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.ui.theme.GoldAccent
 
 /**
@@ -115,7 +116,7 @@ class GlitterDiceStyle(
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) {
         val seed = naturalPatternSeed(value)
-        val seconds = rememberArtSeconds()
+        val seconds = rememberArtSeconds(MotionGroup.DICE)
         val colour = colours[value]
         StyledDie(
             value = value,

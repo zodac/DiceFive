@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -21,6 +20,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.PacedEffect
 
 /**
  * A hen's colours: [feather] her body ([light] where it's lit, [dark] in shadow), [tail] her tail
@@ -79,10 +79,10 @@ class ChickenDiceCupStyle(override val id: String, private val palette: HenPalet
         // 1 is at rest: she only flaps when the dice are poured, never on first appearing.
         val flap = remember { Animatable(1f) }
         val firstLaid = remember { booleanArrayOf(true) }
-        LaunchedEffect(laid) {
+        PacedEffect(laid) {
             val first = firstLaid[0]
             firstLaid[0] = false
-            if (!laid || reduceMotion || first && tilted) return@LaunchedEffect
+            if (!laid || reduceMotion || first && tilted) return@PacedEffect
             flap.snapTo(0f)
             flap.animateTo(1f, tween(FLAP_MILLIS, easing = LinearEasing))
         }

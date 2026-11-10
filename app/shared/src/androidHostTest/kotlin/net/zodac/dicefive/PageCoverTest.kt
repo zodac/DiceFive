@@ -40,7 +40,7 @@ import net.zodac.dicefive.navigation.Screen
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.common.HoldPageCover
-import net.zodac.dicefive.ui.common.LocalAnimationLevel
+import net.zodac.dicefive.ui.common.LocalMotionSettings
 import net.zodac.dicefive.ui.common.LocalPageCover
 import net.zodac.dicefive.ui.common.PageCover
 import net.zodac.dicefive.ui.common.PageCoverOverlay
@@ -73,7 +73,7 @@ class PageCoverTest : UiTest() {
         compose.mainClock.autoAdvance = false
         compose.setContent {
             // Still dice, so a drawn difference on the cover is the spinner's alone.
-            CompositionLocalProvider(LocalAnimationLevel provides if (reduceMotion) AnimationLevel.OFF else AnimationLevel.MEDIUM) {
+            CompositionLocalProvider(LocalMotionSettings provides (if (reduceMotion) AnimationLevel.OFF else AnimationLevel.MEDIUM).motion) {
                 DiceFiveTheme {
                     cover = rememberPageCover()
                     Box(Modifier.fillMaxSize()) {
@@ -128,7 +128,7 @@ class PageCoverTest : UiTest() {
         var revealed: PageCover? = null
         compose.mainClock.autoAdvance = false
         compose.setContent {
-            CompositionLocalProvider(LocalAnimationLevel provides AnimationLevel.MEDIUM) {
+            CompositionLocalProvider(LocalMotionSettings provides AnimationLevel.MEDIUM.motion) {
                 DiceFiveTheme {
                     RevealedPage {
                         revealed = LocalPageCover.current

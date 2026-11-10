@@ -20,6 +20,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
+import net.zodac.dicefive.data.settings.MotionGroup
 
 // Backgrounds that go with a dice, cup or mat style of the same name, and are unlocked with it. Each is kept faint - the
 // scorecard sits on top and has to stay the thing that reads - and painted once, unless it moves.
@@ -82,7 +83,7 @@ class NeonGridBackground(override val id: String, private val palette: Backgroun
 
     @Composable
     override fun Animate() {
-        TwinkleClock { seconds = it }
+        TwinkleClock(MotionGroup.BACKGROUND) { seconds = it }
     }
 
     override fun DrawScope.drawScoreAreaDecoration() {

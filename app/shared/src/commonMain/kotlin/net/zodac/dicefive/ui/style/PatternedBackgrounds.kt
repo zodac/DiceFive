@@ -20,6 +20,7 @@ import kotlin.math.hypot
 import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
+import net.zodac.dicefive.data.settings.MotionGroup
 
 /**
  * A background's colours: [top] and [bottom] of its gradient (the centre and edge, for a radial
@@ -114,7 +115,7 @@ class StarryBackground(override val id: String, private val palette: BackgroundP
 
     @Composable
     override fun Animate() {
-        TwinkleClock { seconds = it }
+        TwinkleClock(MotionGroup.BACKGROUND) { seconds = it }
     }
 
     override fun DrawScope.drawScoreAreaDecoration() {

@@ -2,9 +2,7 @@ package net.zodac.dicefive.ui.style
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.shape.GenericShape
@@ -30,7 +28,10 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
+import net.zodac.dicefive.data.settings.MotionGroup
+import net.zodac.dicefive.ui.common.LocalFramePaces
 import net.zodac.dicefive.ui.common.ambientMotion
+import net.zodac.dicefive.ui.common.rememberPacedLoop
 import net.zodac.dicefive.ui.game.DICE_TOSS_MILLIS
 import net.zodac.dicefive.ui.theme.GoldAccent
 
@@ -137,13 +138,14 @@ class EggDiceStyle(
         val dieIndex = LocalDieIndex.current
         val tilt = eggTilt(dieIndex, LocalDieTumbleMillis.current)
         val seed = naturalPatternSeed(value)
-        // The golden egg's sparkle: its size, read only while drawing. Ambient, so still below the High animation
-        // level, and a plain egg never starts the clock.
-        val sparkleScale: State<Float> = if (sparkle && ambientMotion) {
-            rememberInfiniteTransition(label = "goldenEggSparkle").animateFloat( // i18n: not translated - an animation label, not shown
+        // The golden egg's sparkle: its size, read only while drawing. Ambient, so still while Dice decoration is off (below
+        // the High level), and a plain egg never starts the clock.
+        val sparkleScale: State<Float> = if (sparkle && ambientMotion(MotionGroup.DICE)) {
+            rememberPacedLoop(
                 initialValue = SPARKLE_MIN_SCALE,
                 targetValue = 1f,
                 animationSpec = infiniteRepeatable(tween(SPARKLE_MILLIS, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                pace = LocalFramePaces.current.of(MotionGroup.DICE),
             )
         } else {
             remember { mutableFloatStateOf(1f) }

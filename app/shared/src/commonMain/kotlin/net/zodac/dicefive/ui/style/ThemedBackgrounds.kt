@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import kotlin.math.floor
 import kotlin.random.Random
+import net.zodac.dicefive.data.settings.MotionGroup
 
 /** A brick wall - to go with the Neon dice - lit faintly from above by a sign in [BackgroundPalette.detail]. */
 class BrickWallBackground(override val id: String, private val palette: BackgroundPalette) : TableBackground {
@@ -42,7 +43,7 @@ class GlitchBackground(override val id: String, private val palette: BackgroundP
 
     @Composable
     override fun Animate() {
-        TwinkleClock { seconds = it }
+        TwinkleClock(MotionGroup.BACKGROUND) { seconds = it }
     }
 
     override fun DrawScope.drawScoreAreaDecoration() {
@@ -109,7 +110,7 @@ class GlitterBackground(override val id: String, private val palette: Background
 
     @Composable
     override fun Animate() {
-        TwinkleClock { seconds = it }
+        TwinkleClock(MotionGroup.BACKGROUND) { seconds = it }
     }
 
     override fun DrawScope.drawScoreAreaDecoration() {

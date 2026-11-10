@@ -41,6 +41,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.game.TieBreak
 import net.zodac.dicefive.game.TieBreakCriterion
 import net.zodac.dicefive.model.GameState
@@ -57,14 +58,16 @@ import net.zodac.dicefive.resources.gameover_tutorial_done
 import net.zodac.dicefive.resources.gameover_tutorial_new_game
 import net.zodac.dicefive.resources.gameover_winner
 import net.zodac.dicefive.ui.common.BrandBackdrop
+import net.zodac.dicefive.ui.common.GroupMotion
 import net.zodac.dicefive.ui.common.LandscapePage
 import net.zodac.dicefive.ui.common.LocalLandscapePage
-import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.MAIN_ACTION_HEIGHT
+import net.zodac.dicefive.ui.common.PacedEffect
 import net.zodac.dicefive.ui.common.PageColumn
 import net.zodac.dicefive.ui.common.PageTopBar
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.TwoPanes
+import net.zodac.dicefive.ui.common.groupReduceMotion
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.stringResource
@@ -120,8 +123,9 @@ fun GameOverScreen(
 
     BrandBackdrop(modifier = modifier, driftingDice = true) {
         // The fanfare (its own sound setting) still plays; the sparks are what reduced motion drops.
-        if (celebrateNow && humanWon && !LocalReduceMotion.current) {
-            GoldFireworks(durationMillis = CELEBRATION_MILLIS, modifier = Modifier.fillMaxSize())
+        if (celebrateNow && humanWon && !groupReduceMotion(MotionGroup.CELEBRATIONS)) {
+            // At the Celebrations group's pace, not Menus & pages'.
+            GroupMotion(MotionGroup.CELEBRATIONS) { GoldFireworks(durationMillis = CELEBRATION_MILLIS, modifier = Modifier.fillMaxSize()) }
         }
 
         // The same app bar as every other page (so "Game Over" sits where their titles do), but no
@@ -378,7 +382,7 @@ private fun randomBursts(random: Random): List<FireworkBurst> = List(BURST_COUNT
 private fun GoldFireworks(durationMillis: Int, modifier: Modifier = Modifier) {
     val progress = remember { Animatable(0f) }
     val bursts = remember { randomBursts(Random.Default) }
-    LaunchedEffect(Unit) {
+    PacedEffect(Unit) {
         progress.animateTo(1f, animationSpec = tween(durationMillis = durationMillis, easing = LinearEasing))
     }
     Canvas(modifier = modifier) {

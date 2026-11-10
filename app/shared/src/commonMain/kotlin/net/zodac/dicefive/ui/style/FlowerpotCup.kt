@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -27,6 +26,7 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 import net.zodac.dicefive.model.FLOWERPOT_FULL_BLOOM
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.PacedEffect
 import net.zodac.dicefive.ui.theme.FlowerpotLeaf
 import net.zodac.dicefive.ui.theme.FlowerpotLeafDark
 import net.zodac.dicefive.ui.theme.FlowerpotStem
@@ -91,7 +91,7 @@ class FlowerpotDiceCupStyle(
         val plant = remember(growth.grower) { Animatable(stage.toFloat()) }
         // Under reduced motion it's simply at its new stage, with no growing into it.
         val reduceMotion = LocalReduceMotion.current
-        LaunchedEffect(plant, stage) {
+        PacedEffect(plant, stage) {
             if (reduceMotion) plant.snapTo(stage.toFloat()) else plant.animateTo(stage.toFloat(), tween(PLANT_GROW_MILLIS, easing = FastOutSlowInEasing))
         }
         CupCanvas(rolling, tilted, modifier, shape) {

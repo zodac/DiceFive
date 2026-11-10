@@ -6,34 +6,23 @@ import net.zodac.dicefive.model.StoredId
  * The player's "Animations" setting: how much of the app moves, and how fast it's drawn. A step down trades
  * smoothness and decoration for less work a frame (an older phone, a longer battery), never what the game does.
  *
- * - [ambientMotion]: decoration that moves on its own while nothing is happening - the menu's drifting dice, a
- *   background's floating dice or twinkling stars, a cup's steam or bubbles, the Neon, RGB and Glitch art, sparkles,
- *   the googly dice's pupils. Off, each holds the still pose it has under reduced motion. These are what keep a
- *   frame drawn every refresh of an idle screen, so they're the first thing to go.
- * - [gameplayMotion]: everything that answers what's happening - the cup's shake and pour, the dice's toss, banners,
- *   page fades, score count-ups, fireworks. Off only at [OFF], which is the app's reduced motion (`LocalReduceMotion`).
- * - [simpleDiceRoll]: whether the dice stay where they lie and flick through faces while the cup shakes, instead of
- *   being swept into it and tossed back. The cup still shakes; the dice are at rest the moment it lands.
- * - [scorePulse]: whether a scoring tile's gold glow pulses or is steady.
- * - [maxFramesPerSecond]: the frame rate asked for, or null for whatever the screen does (90 or 120Hz on many phones).
+ * Each level is a preset of [MotionSettings] ([motion]), which the Graphics page's Advanced settings show and the
+ * player can change group by group; settings matching no level leave none picked ([matching] is null).
  *
  * Saved by [id]. [HIGH] is the default; a player who had the old "Remove animations" switch on starts at [OFF].
  */
-enum class AnimationLevel(
-    override val id: String,
-    val ambientMotion: Boolean,
-    val gameplayMotion: Boolean,
-    val scorePulse: Boolean,
-    val simpleDiceRoll: Boolean,
-    val maxFramesPerSecond: Int?,
-) : StoredId {
-    HIGH("HIGH", ambientMotion = true, gameplayMotion = true, scorePulse = true, simpleDiceRoll = false, maxFramesPerSecond = null),
-    MEDIUM("MEDIUM", ambientMotion = false, gameplayMotion = true, scorePulse = true, simpleDiceRoll = false, maxFramesPerSecond = 60),
-    LOW("LOW", ambientMotion = false, gameplayMotion = true, scorePulse = false, simpleDiceRoll = true, maxFramesPerSecond = 30),
-    OFF("OFF", ambientMotion = false, gameplayMotion = false, scorePulse = false, simpleDiceRoll = false, maxFramesPerSecond = 30),
+enum class AnimationLevel(override val id: String, val motion: MotionSettings) : StoredId {
+    HIGH("HIGH", MotionSettings.of(decoration = FrameRate.MAX, gameplay = FrameRate.MAX, scoreGlow = FrameRate.MAX, cupShake = FrameRate.MAX, diceRoll = FrameRate.MAX, rollStyle = DiceRollStyle.TOSSED)),
+    MEDIUM("MEDIUM", MotionSettings.of(decoration = FrameRate.OFF, gameplay = FrameRate.FPS_60, scoreGlow = FrameRate.FPS_60, cupShake = FrameRate.FPS_60, diceRoll = FrameRate.FPS_60, rollStyle = DiceRollStyle.TOSSED)),
+    LOW("LOW", MotionSettings.of(decoration = FrameRate.OFF, gameplay = FrameRate.FPS_30, scoreGlow = FrameRate.OFF, cupShake = FrameRate.FPS_30, diceRoll = FrameRate.FPS_30, rollStyle = DiceRollStyle.IN_PLACE)),
+    // The dice's roll off by its style, rather than its rate, which is never off (MotionGroup.DICE_ROLL).
+    OFF("OFF", MotionSettings.of(decoration = FrameRate.OFF, gameplay = FrameRate.OFF, scoreGlow = FrameRate.OFF, cupShake = FrameRate.OFF, diceRoll = FrameRate.FPS_30, rollStyle = DiceRollStyle.OFF)),
     ;
 
     companion object {
         val default = HIGH
+
+        /** The level whose preset [motion] is - the dice's roll's rate aside while the roll is off - or null for none. */
+        fun matching(motion: MotionSettings): AnimationLevel? = entries.firstOrNull { it.motion.sameAs(motion) }
     }
 }

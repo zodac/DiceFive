@@ -55,9 +55,12 @@ import net.zodac.dicefive.ui.style.LocalTricolourMarks
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
 import net.zodac.dicefive.ui.common.DatabaseFailurePage
 import net.zodac.dicefive.ui.common.DriftState
-import net.zodac.dicefive.ui.common.LastAnimationLevel
-import net.zodac.dicefive.ui.common.LocalAnimationLevel
+import net.zodac.dicefive.ui.common.FramePaces
+import net.zodac.dicefive.ui.common.LastMotionSettings
 import net.zodac.dicefive.ui.common.LocalDriftState
+import net.zodac.dicefive.ui.common.LocalFramePace
+import net.zodac.dicefive.ui.common.LocalFramePaces
+import net.zodac.dicefive.ui.common.LocalMotionSettings
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.LocalScreenIdle
 import net.zodac.dicefive.ui.common.ScreenIdle
@@ -91,17 +94,19 @@ fun DiceFiveApp(
     val driftState = remember { DriftState() }
     // Lifecycle-aware, so the system-settings observer behind it is only registered while the app is in front.
     val systemReduceMotion by remember(platform) { platform.reduceMotion() }.collectAsStateWithLifecycle(initialValue = false)
-    // The player's own "Animations" level: Off asks for the same as the system's reduced motion, and every level
-    // below High caps the frame rate of whatever moves - see PlatformServices.capFrameRate. Only the player's
-    // choice caps it: the system's reduced motion stops the motion, not the frames.
-    val savedLevel by container.settingsRepository.animationLevel.collectAsStateWithLifecycle(initialValue = AnimationLevel.default)
-    LaunchedEffect(platform, savedLevel) { platform.capFrameRate(savedLevel.maxFramesPerSecond) }
+    // The player's own motion (the "Animations" level, or its Advanced settings): Menus & pages Off asks for the same as the
+    // system's reduced motion, and the window's frames are capped at the fastest group's rate - see
+    // PlatformServices.capFrameRate. Only the player's choice caps it: the system's reduced motion stops the motion,
+    // not the frames.
+    val savedMotion by container.settingsRepository.motionSettings.collectAsStateWithLifecycle(initialValue = AnimationLevel.default.motion)
+    LaunchedEffect(platform, savedMotion) { platform.capFrameRate(savedMotion.maxFramesPerSecond) }
     // Null until read, so a saved lock isn't first undone for a frame by the default.
     val orientation by container.settingsRepository.screenOrientation.collectAsStateWithLifecycle(initialValue = null)
     LaunchedEffect(platform, orientation) { orientation?.let(platform::lockOrientation) }
-    val animationLevel = if (systemReduceMotion) AnimationLevel.OFF else savedLevel
-    val reduceMotion = !animationLevel.gameplayMotion
-    SideEffect { LastAnimationLevel.value = animationLevel }
+    val motion = if (systemReduceMotion) AnimationLevel.OFF.motion else savedMotion
+    val reduceMotion = !motion.menusMotion
+    val framePaces = remember(motion) { FramePaces(motion) }
+    SideEffect { LastMotionSettings.value = motion }
     val leaveConfirmation = remember { LeaveGameConfirmation() }
     // Achievements, scores and the cloud save are synced with the online service on signing in (and at each launch once
     // signed in), after every recorded change (one with no new unlock waits if the game screen is up), a few seconds after
@@ -168,7 +173,9 @@ fun DiceFiveApp(
     CompositionLocalProvider(
         LocalTricolourMarks provides tricolourMarks,
         LocalReduceMotion provides reduceMotion,
-        LocalAnimationLevel provides animationLevel,
+        LocalMotionSettings provides motion,
+        LocalFramePaces provides framePaces,
+        LocalFramePace provides framePaces.menus,
         LocalAppContainer provides container,
         LocalPlatformServices provides platform,
         LocalGameServices provides gameServices,

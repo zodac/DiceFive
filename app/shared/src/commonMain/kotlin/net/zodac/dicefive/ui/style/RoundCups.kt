@@ -1,9 +1,7 @@
 package net.zodac.dicefive.ui.style
 
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -27,7 +25,10 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.tan
+import net.zodac.dicefive.data.settings.MotionGroup
+import net.zodac.dicefive.ui.common.LocalFramePaces
 import net.zodac.dicefive.ui.common.ambientMotion
+import net.zodac.dicefive.ui.common.rememberPacedLoop
 
 // Shared geometry for round cups - everything that isn't the faceted prism or the bulging barrel.
 // All of it is on the 58 x 84 cup grid and seen from the same raised angle (CUP_VIEW_SQUASH), so a
@@ -245,12 +246,12 @@ private fun CupDrawScope.drawSteamLines(
  */
 @Composable
 internal fun rememberAmbientCycle(millis: Int): State<Float>? {
-    if (!LocalCupAnimated.current || !ambientMotion) return null
-    return rememberInfiniteTransition(label = "cupAmbient").animateFloat( // i18n: not translated - an animation label, not shown
+    if (!LocalCupAnimated.current || !ambientMotion(MotionGroup.DICE_CUP)) return null
+    return rememberPacedLoop(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(millis, easing = LinearEasing)),
-        label = "cupAmbientCycle", // i18n: not translated - an animation label, not shown
+        pace = LocalFramePaces.current.of(MotionGroup.DICE_CUP),
     )
 }
 

@@ -637,13 +637,21 @@ Each category is two lists in the same order:
     - Scoring and the next roll both wait for the dice to land.
     - Each die casts one shadow from a fixed light.
 - **Animations setting** (`AnimationLevel`): High (uncapped), Medium (60fps, ambient decoration still), Low (30fps,
-    simple roll) or Off. The system's remove-animations setting counts as Off. Details are in `UI.md`, "Reduced motion".
+    simple roll) or Off, each a preset of the Graphics page's **Advanced settings** (`MotionSettings`): Off, 30fps, 60fps
+    or Max for each style's decoration (Dice, Dice Cup, Mat, Background, and Boxes), Menus & pages, Banners, Scores, Celebrations, Score glow, the cup's
+    shake, and the dice's roll (no Off), and the dice's roll itself (Off, In place, or Tossed). The system's
+    remove-animations setting counts as Off. Details are in `UI.md`, "Reduced motion".
 
 ## Settings
 
 - **Contents.** The online account card (the play app) or the progress files card (the github app), at the top; switches
-    for Sound effects, Vibration, Confirm leaving game, and Tricolour shapes; the Animations level; the Orientation; and two resets behind
-    confirmations (achievements, leaderboard).
+    for Sound effects, Vibration, Confirm leaving game, and Tricolour shapes; the **Graphics** row; and the leaderboard
+    reset behind a confirmation.
+- **Graphics** (`GraphicsScreen`, `GraphicsViewModel`, route `settings/graphics`): a page of its own, opened by a button
+    row with an onward arrow. The Orientation, then the Animations level, each under its title, in one card; then the
+    Advanced settings, under their own heading in three cards, each collapsed until opened (`UI.md`, "Reduced motion").
+    Neither is synced: they're about this device. Tests:
+    `GraphicsScreenTest`, `AnimationLevelSettingTest`, `MotionSettingsTest`.
 - **Tricolour shapes** (`tricolour_marks`, synced, off by default): a triangle, circle, or square for red, yellow, or
     blue, on a Tricolour die's corner (`DieColourMark`), in the game and the Rules page's examples, and in its
     colour's box (`BoxColourMark`), for telling the dice apart without their colours. Not while a die is tossed, and
@@ -652,7 +660,7 @@ Each category is two lists in the same order:
     synced, as a phone and a tablet can want different ones. `DiceFiveApp` hands it to `PlatformServices.lockOrientation`;
     on Android `MainActivity` sets `requestedOrientation` (sensor portrait or landscape, so either way up). The manifest's
     `android:appCategory="game"` is what lets the lock hold on a large screen: Android 16+ ignores it there otherwise.
-    Tests: `ScreenOrientationSettingTest`, `OrientationLockTest`, `SettingsRowsTest`.
+    Tests: `ScreenOrientationSettingTest`, `OrientationLockTest`, `GraphicsScreenTest`.
 - **Foot of the page.** The version pill is the last thing on the page (not pinned), after About and **Licences**: every
   library, font and sound, with its licence
     text, generated at build time (`app/licensing/README.md`).

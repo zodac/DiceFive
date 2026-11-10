@@ -4,13 +4,10 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -39,6 +36,8 @@ import kotlin.random.Random
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.ui.common.BoundedArt
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.PacedEffect
+import net.zodac.dicefive.ui.common.rememberPacedLoop
 
 /** A volcano's colours: its rock, light to dark, the lava it pours, crust to white-hot core, and its ash. */
 class VolcanoPalette(
@@ -110,7 +109,7 @@ class VolcanoDiceCupStyle(override val id: String, private val palette: VolcanoP
         // The burst, 0 to 1 - 1 once it's over, and where it starts.
         val burst = remember { Animatable(1f) }
         var eruptionSeed by remember { mutableIntStateOf(0) }
-        LaunchedEffect(erupted) {
+        PacedEffect(erupted) {
             if (!erupted) {
                 // Under reduced motion it's simply cold again, with no cooling between.
                 if (reduceMotion) heat.snapTo(0f) else heat.animateTo(0f, tween(COOL_MILLIS))
@@ -516,9 +515,8 @@ class VolcanoDiceCupStyle(override val id: String, private val palette: VolcanoP
 private const val BOMB_GRAVITY = 95f
 
 @Composable
-private fun rememberRumbleLoop(): State<Float> = rememberInfiniteTransition(label = "volcanoRumble").animateFloat( // i18n: not translated - an animation label, not shown
+private fun rememberRumbleLoop(): State<Float> = rememberPacedLoop(
     initialValue = 0f,
     targetValue = 1f,
     animationSpec = infiniteRepeatable(tween(RUMBLE_LOOP_MILLIS, easing = LinearEasing), RepeatMode.Restart),
-    label = "volcanoRumbleLoop", // i18n: not translated - an animation label, not shown
 )

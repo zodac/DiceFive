@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.sin
 import kotlin.random.Random
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.ui.common.BoundedArt
 
 /**
@@ -54,7 +55,7 @@ abstract class PatternedDiceMat(final override val id: String, protected val pal
     final override fun DiceTrayDecoration(modifier: Modifier) {
         var seconds by remember { mutableFloatStateOf(0f) }
         if (animated) {
-            TwinkleClock { seconds = it }
+            TwinkleClock(MotionGroup.MAT) { seconds = it }
             BoundedArt(modifier = modifier) { drawPattern(seconds) }
         } else {
             Canvas(modifier = modifier) { drawPattern(seconds) }

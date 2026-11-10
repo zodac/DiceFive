@@ -41,6 +41,7 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.random.Random
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 import net.zodac.dicefive.resources.Res
@@ -235,11 +236,12 @@ fun AppLogo(
     // Not under reduced motion: pupils sliding about with the device are motion too, so they stay put.
     val reduceMotion = LocalReduceMotion.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    val travel = diceStyle.pupilTravel?.takeIf { pupilsFollowDevice && ambientMotion }
+    val travel = diceStyle.pupilTravel?.takeIf { pupilsFollowDevice && ambientMotion(MotionGroup.DICE) }
     val motions = travel?.let {
         remember(it) { LOGO_DICE.mapIndexed { i, die -> DieMotion(seed = i, travel = it).apply { moveTo(Offset.Zero, die.tilt) } } }
     }
     if (motions != null) {
+        val pace = LocalFramePaces.current.of(MotionGroup.DICE)
         DevicePullEffect { gees -> motions.forEach { it.feel(gees) } }
         for (motion in motions) {
             // Acts on the value it was keyed on, not a fresh read: the sensor can wake the pupils in
@@ -248,7 +250,7 @@ fun AppLogo(
             // as it's cancelled would leave nothing following at all.
             val awake = motion.awake
             LaunchedEffect(motion, awake) {
-                if (awake) motion.follow()
+                if (awake) pace.run { motion.follow() }
             }
         }
     }

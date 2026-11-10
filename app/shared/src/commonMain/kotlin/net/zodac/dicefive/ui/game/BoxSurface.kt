@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.ui.common.BoundedArt
 import net.zodac.dicefive.ui.common.PulsingArt
 import net.zodac.dicefive.ui.style.BoxPaint
@@ -56,7 +57,7 @@ internal fun Modifier.boxSurface(style: ScoreBoxStyle, shape: Shape, corner: Dp)
 @Composable
 internal fun BoxScope.MovingBoxArt(style: ScoreBoxStyle, paint: BoxPaint, tone: BoxTone, seed: Int, corner: Dp) {
     if (!style.animated && !style.pulses) return
-    val seconds = rememberArtSeconds()
+    val seconds = rememberArtSeconds(MotionGroup.SCORE_BOX)
     if (style.animated) {
         BoundedArt(modifier = Modifier.matchParentSize()) {
             with(style) { drawLights(paint, tone, seed = seed, seconds = seconds.value, cornerPx = corner.toPx()) }

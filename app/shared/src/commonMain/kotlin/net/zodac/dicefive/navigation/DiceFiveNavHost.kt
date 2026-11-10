@@ -48,6 +48,8 @@ import net.zodac.dicefive.ui.rules.RulesScreen
 import net.zodac.dicefive.ui.scores.ScoresScreen
 import net.zodac.dicefive.ui.scores.ScoresWarmUp
 import net.zodac.dicefive.ui.scores.ScoresViewModel
+import net.zodac.dicefive.ui.settings.GraphicsScreen
+import net.zodac.dicefive.ui.settings.GraphicsViewModel
 import net.zodac.dicefive.ui.settings.SettingsScreen
 import net.zodac.dicefive.ui.settings.SettingsViewModel
 import net.zodac.dicefive.ui.setup.GameSetupScreen
@@ -196,6 +198,13 @@ private fun NavGraphBuilder.pages(navController: NavHostController, container: A
     composable(Screen.SETTINGS) {
         SettingsScreen(
             viewModel = viewModel(factory = SettingsViewModel.factory(container)),
+            onBack = navigateUp,
+            onGraphics = { navigate(Screen.GRAPHICS) },
+        )
+    }
+    composable(Screen.GRAPHICS) {
+        GraphicsScreen(
+            viewModel = viewModel(factory = GraphicsViewModel.factory(container)),
             onBack = navigateUp,
         )
     }

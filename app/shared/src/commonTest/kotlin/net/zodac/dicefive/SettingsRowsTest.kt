@@ -8,21 +8,18 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isToggleable
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.platform.LocalPlatformServices
@@ -37,28 +34,27 @@ private val SCREEN = TestScreen(360, 800)
 
 /**
  * Each on/off setting is one toggle the width of its row - its label and switch a single target, for
- * a tap and for a screen reader - rather than a lone switch beside an unconnected label; the Animations
- * level is a segmented row of its four levels, and the Orientation one of its three.
+ * a tap and for a screen reader - rather than a lone switch beside an unconnected label; Graphics is a
+ * button row opening a page of its own (GraphicsScreenTest).
  */
 class SettingsRowsTest : UiTest() {
 
     @Test
-    fun `every setting is named - an on-off one a single toggle - Animations four levels - Orientation three - each reset a button row confirming what it will do`() = uiTest(SCREEN) {
+    fun `every setting is named - an on-off one a single toggle - Graphics a button opening its page - each reset a button row confirming what it will do`() = uiTest(SCREEN) {
         val viewModel = settingsViewModel()
+        var graphicsOpened = 0
         compose.setContent {
             // Only for the version line at the foot of the page.
             CompositionLocalProvider(
                 LocalAppContainer provides inMemoryAppContainer(),
                 LocalPlatformServices provides SilentPlatformServices,
             ) {
-                DiceFiveTheme { SettingsScreen(viewModel = viewModel, onBack = {}) }
+                DiceFiveTheme { SettingsScreen(viewModel = viewModel, onBack = {}, onGraphics = { graphicsOpened++ }) }
             }
         }
         // The page names every switch - and its version and two links.
         listOf("Settings", "Sound effects", "Vibration", "Confirm leaving game", "Tricolour shapes", "About", "Licences").forEach { compose.onNodeWithText(it).assertExists() }
         compose.onNode(hasText("Version ", substring = true)).assertExists()
-        // The two choice rows have no visible title: each icon carries its name for a screen reader.
-        listOf("Animations", "Orientation").forEach { compose.onNodeWithContentDescription(it).assertExists() }
 
         // Compact rows: a switch row is the 48dp touch target's height, a reset (label and a line under it) under M3's
         // 56dp one-line list item, where a ListItem would make it 72dp.
@@ -72,25 +68,17 @@ class SettingsRowsTest : UiTest() {
         vibration.performClick()
         vibration.assertIsOff()
 
-        // Animations is a row of four levels, the current one selected.
-        val level = { name: String -> compose.onNode(hasText(name) and isSelectable()) }
-        level("High").assertIsSelected()
-        listOf("Medium", "Low", "Off").forEach { level(it).assertIsNotSelected() }
-        level("Low").performClick()
-        level("Low").assertIsSelected()
-        level("High").assertIsNotSelected()
-
-        // Orientation is a row of three, turning with the device until another is picked - shown selected once it's saved.
-        val orientation = { name: String -> compose.onNode(hasText(name) and isSelectable()) }
-        orientation("Device").performScrollTo().assertIsSelected()
-        listOf("Portrait", "Landscape").forEach { orientation(it).assertIsNotSelected() }
-        orientation("Landscape").performClick()
-        orientation("Landscape").assertIsSelected()
-        orientation("Device").assertIsNotSelected()
+        // Graphics - the Orientation, Animations and Advanced settings - is one button row, the 48dp touch target's height,
+        // opening its page; none of those settings is on this one.
+        val isButton = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
+        val graphics = compose.onNode(hasText("Graphics") and hasClickAction() and isButton)
+        graphics.performScrollTo().assertHeightIsEqualTo(48.dp)
+        graphics.performClick()
+        assertEquals(1, graphicsOpened)
+        listOf("Animations", "Orientation", "Advanced settings").forEach { compose.onNodeWithText(it).assertDoesNotExist() }
 
         // The reset is one button row - one node carrying the name and what it does, a single TalkBack stop - below the
         // fold on the test's small screen.
-        val isButton = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
         // TalkBack says what a tap does: "double-tap to reset".
         val saysReset = SemanticsMatcher("double-tap to reset") { it.config[SemanticsActions.OnClick].label == "Reset" }
         compose.onNodeWithText("Reset achievements").assertDoesNotExist()

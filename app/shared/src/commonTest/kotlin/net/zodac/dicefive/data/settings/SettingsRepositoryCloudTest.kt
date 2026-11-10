@@ -95,6 +95,7 @@ class SettingsRepositoryCloudTest {
                 "extended_scores_modifier" to Stamped(SettingValue.Number(1), 150L),
                 "vibration_enabled" to Stamped(SettingValue.Flag(false), 150L),
                 "animation_level" to Stamped(SettingValue.Text(AnimationLevel.OFF.id), 150L),
+                "motion_background" to Stamped(SettingValue.Text(FrameRate.OFF.id), 150L),
                 "future_setting" to Stamped(SettingValue.Flag(true), 150L),
             ),
         )
@@ -103,6 +104,7 @@ class SettingsRepositoryCloudTest {
         assertEquals(false, repository.extendedScores.first())
         assertEquals(false, repository.vibrationEnabled.first())
         assertEquals(AnimationLevel.default, repository.animationLevel.first())
+        assertEquals(AnimationLevel.default.motion, repository.motionSettings.first())
         assertEquals(
             mapOf(
                 "dice_style_id" to Stamped(SettingValue.Text("gold"), 150L),
@@ -114,10 +116,12 @@ class SettingsRepositoryCloudTest {
     }
 
     @Test
-    fun `wiping forgets every synced setting - and keeps the Animations level - Orientation and list filters`() = runTest {
+    fun `wiping forgets every synced setting - and keeps the Animations level and its Advanced settings - Orientation and list filters`() = runTest {
         repository.setDiceStyleId("ocean")
         repository.setSoundEnabled(false)
         repository.setAnimationLevel(AnimationLevel.OFF)
+        val custom = AnimationLevel.OFF.motion.with(MotionGroup.BACKGROUND, FrameRate.FPS_30)
+        repository.setMotionSettings(custom)
         repository.setScreenOrientation(ScreenOrientation.PORTRAIT)
         repository.setLockedOnlyAchievements(true)
         repository.setUnlockedOnlyStyles(true)
@@ -127,6 +131,7 @@ class SettingsRepositoryCloudTest {
         assertEquals(DefaultStyleIds.DICE, repository.diceStyleId.first())
         assertEquals(true, repository.soundEnabled.first())
         assertEquals(AnimationLevel.OFF, repository.animationLevel.first())
+        assertEquals(custom, repository.motionSettings.first())
         assertEquals(ScreenOrientation.PORTRAIT, repository.screenOrientation.first())
         assertEquals(true, repository.lockedOnlyAchievements.first())
         assertEquals(true, repository.unlockedOnlyStyles.first())

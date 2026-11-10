@@ -1,9 +1,7 @@
 package net.zodac.dicefive.ui.game
 
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -18,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.game.TutorialStep
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.rememberPacedLoop
 import net.zodac.dicefive.ui.theme.GoldAccent
 
 /**
@@ -49,8 +48,7 @@ internal val LocalTutorialGuide = staticCompositionLocalOf<TutorialGuide?> { nul
 @Composable
 internal fun rememberTutorialPulse(): () -> Float {
     if (LocalReduceMotion.current) return { 1f }
-    val alpha = rememberInfiniteTransition(label = "tutorialPulse") // i18n: not translated - an animation label, not shown
-        .animateFloat(PULSE_LOW, 1f, infiniteRepeatable(tween(PULSE_MILLIS), RepeatMode.Reverse), label = "tutorialPulseAlpha") // i18n: not translated - an animation label, not shown
+    val alpha = rememberPacedLoop(PULSE_LOW, 1f, infiniteRepeatable(tween(PULSE_MILLIS), RepeatMode.Reverse))
     return { alpha.value }
 }
 

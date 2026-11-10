@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.ui.style.drawPips
 
 /**
@@ -67,10 +68,11 @@ fun BrandBackdrop(
     // the last screen left them; a backdrop of its own otherwise.
     val shared = LocalDriftState.current
     val drift = if (driftingDice && showDice) shared ?: remember { DriftState() } else null
-    // Still, where they are, below the High animation level - a watermark rather than a drift.
-    if (drift != null && ambientMotion) {
+    // Still, where they are, while Background decoration is off (below the High level) - a watermark rather than a drift.
+    if (drift != null && ambientMotion(MotionGroup.BACKGROUND)) {
         val lifecycle = LocalLifecycleOwner.current.lifecycle
-        LaunchedEffect(drift, lifecycle) { drift.run(sleep = lifecycle::delayWhileResumed) }
+        val pace = LocalFramePaces.current.of(MotionGroup.BACKGROUND)
+        LaunchedEffect(drift, lifecycle, pace) { pace.run { drift.run(sleep = lifecycle::delayWhileResumed) } }
     }
 
     Box(

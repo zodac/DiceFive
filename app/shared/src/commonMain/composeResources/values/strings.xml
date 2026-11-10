@@ -900,6 +900,41 @@
     <string name="settings_orientation_device">Device</string>
     <string name="settings_orientation_portrait">Portrait</string>
     <string name="settings_orientation_landscape">Landscape</string>
+    <!-- The Graphics page (ui/settings/GraphicsScreen.kt), opened from its row in Settings: its title, and that row's name. -->
+    <string name="settings_graphics">Graphics</string>
+    <!-- The card under Animations giving each part of the app's motion a frame rate of its own, and the parts' names (the styles' own decoration is named by styles_category_*). -->
+    <string name="settings_advanced">Advanced settings</string>
+    <!-- The Advanced settings' cards: Gameplay, what moves on the game screen, first; the styles' (styles_title); then Miscellaneous, the rest (menus and pages, banners, celebrations). -->
+    <string name="settings_advanced_gameplay">Gameplay</string>
+    <string name="settings_advanced_misc">Miscellaneous</string>
+    <!-- Everything that moves without a setting of its own: pages fading in, lists gliding, pickers opening, the turn timer's flash. -->
+    <string name="settings_motion_menus">Menus &amp; pages</string>
+    <!-- The achievement banners sliding in and out. -->
+    <string name="settings_motion_banners">Achievement banners</string>
+    <!-- The players' scores counting up to a new total. -->
+    <string name="settings_motion_scores">Scores</string>
+    <!-- The fireworks for a win. -->
+    <string name="settings_motion_celebrations">Celebrations</string>
+    <!-- The pulsing gold glow round a good box to score in. -->
+    <string name="settings_motion_score_glow">Score glow</string>
+    <!-- How the dice roll: not at all, the dice simply showing their results (Off, settings_animations_off), flicking through their faces where they lie (In place), or thrown out of the cup (Tossed). -->
+    <string name="settings_motion_dice_roll">Dice roll</string>
+    <!-- The cup's shake and pour, apart from the dice. -->
+    <string name="settings_motion_cup_shake">Cup shake</string>
+    <!-- How fast the dice's roll is drawn, under the Dice roll setting (settings_motion_dice_roll) itself. -->
+    <string name="settings_motion_dice_roll_rate">Dice roll frame rate</string>
+    <string name="settings_roll_tossed">Tossed</string>
+    <string name="settings_roll_in_place">In place</string>
+    <!-- A frame rate's label: %1$d frames a second. The unit is the translation's. -->
+    <string name="settings_frame_rate">%1$dfps</string>
+    <!-- What a screen reader says for a frame rate: %1$d frames a second. -->
+    <plurals name="settings_frame_rate_spoken">
+        <item quantity="one">%1$d frame a second</item>
+        <item quantity="other">%1$d frames a second</item>
+    </plurals>
+    <!-- The fastest frame rate: as fast as the screen draws. Drawn, then spoken. -->
+    <string name="settings_frame_rate_max">Max</string>
+    <string name="settings_frame_rate_max_spoken">Maximum</string>
     <string name="settings_confirm_leaving">Confirm leaving game</string>
     <string name="settings_tricolour_marks">Tricolour shapes</string>
     <string name="settings_reset_leaderboard">Reset leaderboard</string>

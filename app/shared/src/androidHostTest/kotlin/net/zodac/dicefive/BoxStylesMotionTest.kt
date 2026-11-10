@@ -17,8 +17,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import net.zodac.dicefive.data.settings.AnimationLevel
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.model.ScoreCategory
-import net.zodac.dicefive.ui.common.LocalAnimationLevel
+import net.zodac.dicefive.ui.common.LocalMotionSettings
 import net.zodac.dicefive.ui.game.CategoryTile
 import net.zodac.dicefive.ui.style.GameVisualTheme
 import net.zodac.dicefive.ui.style.LocalGameVisualTheme
@@ -39,7 +40,7 @@ class BoxStylesMotionTest : UiTest() {
     private fun setUp() {
         compose.mainClock.autoAdvance = false
         compose.setContent {
-            CompositionLocalProvider(LocalAnimationLevel provides level, LocalGameVisualTheme provides GameVisualTheme(box = style)) {
+            CompositionLocalProvider(LocalMotionSettings provides level.motion, LocalGameVisualTheme provides GameVisualTheme(box = style)) {
                 Row(Modifier.testTag("boxes"), horizontalArrangement = Arrangement.spacedBy(GAP_DP.dp)) {
                     // Open boxes, D20's two halves included: the boxes that light up.
                     for (category in BOXES) CategoryTile(category = category, highlighted = false)
@@ -71,7 +72,7 @@ class BoxStylesMotionTest : UiTest() {
     fun `every box style holds still below the high animation level`() = uiTest {
         setUp()
         val moving = ScoreBoxes.all.filter { box ->
-            AnimationLevel.entries.filter { !it.ambientMotion }.any { at ->
+            AnimationLevel.entries.filter { !it.motion.moves(MotionGroup.SCORE_BOX) }.any { at ->
                 show(box, at)
                 !holdsStill()
             }

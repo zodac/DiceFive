@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.pow
 import kotlin.math.sin
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.ui.theme.GoldAccent
 
 /** Each number's own colour, 1 to 6, for a style that gives every face a different one. */
@@ -106,7 +107,7 @@ class NeonDiceStyle(
 
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) {
-        val seconds = rememberArtSeconds()
+        val seconds = rememberArtSeconds(MotionGroup.DICE)
         val phase = LocalDieIndex.current * 1.7f
         StyledDie(
             value = value,

@@ -15,7 +15,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -28,6 +27,7 @@ import net.zodac.dicefive.resources.online_sync_step_game
 import net.zodac.dicefive.resources.online_sync_step_scores
 import net.zodac.dicefive.resources.online_sync_step_settings
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.PacedEffect
 import net.zodac.dicefive.ui.common.spToDp
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.icons.Symbols
@@ -67,7 +67,7 @@ internal fun StepProgress(step: String, number: Int, total: Int, modifier: Modif
         val target = (number - 0.5f) / total
         val reduceMotion = LocalReduceMotion.current
         val shown = remember { Animatable(0f) }
-        LaunchedEffect(target, reduceMotion) {
+        PacedEffect(target, reduceMotion) {
             if (reduceMotion) shown.snapTo(target) else shown.animateTo(target, tween(STEP_BAR_MILLIS, easing = FastOutSlowInEasing))
         }
         LinearProgressIndicator(

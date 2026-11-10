@@ -20,7 +20,8 @@ import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import net.zodac.dicefive.data.settings.AnimationLevel
-import net.zodac.dicefive.ui.common.LocalAnimationLevel
+import net.zodac.dicefive.data.settings.MotionGroup
+import net.zodac.dicefive.ui.common.LocalMotionSettings
 import net.zodac.dicefive.ui.style.DiceStyle
 import net.zodac.dicefive.ui.style.DiceStyles
 import net.zodac.dicefive.ui.style.GoldenEggDiceStyle
@@ -39,7 +40,7 @@ class RestingDiceStillTest : UiTest() {
     private fun setUp() {
         compose.mainClock.autoAdvance = false
         compose.setContent {
-            CompositionLocalProvider(LocalAnimationLevel provides level) {
+            CompositionLocalProvider(LocalMotionSettings provides level.motion) {
                 Row(Modifier.testTag("dice")) {
                     for (value in 1..6) {
                         Box(Modifier.padding(GAP_DP.dp).size(FACE_DP.dp)) { style.Die(value = value, held = false, modifier = Modifier.fillMaxSize()) }
@@ -74,7 +75,7 @@ class RestingDiceStillTest : UiTest() {
     fun `every dice style holds still on the mat below the high animation level`() = uiTest {
         setUp()
         val moving = DiceStyles.all.filter { dice ->
-            AnimationLevel.entries.filter { !it.ambientMotion }.any { at ->
+            AnimationLevel.entries.filter { !it.motion.moves(MotionGroup.DICE) }.any { at ->
                 show(dice, at)
                 !holdsStill()
             }

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -46,7 +45,9 @@ import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.PacedEffect
 
 // The RGB cup, mat and background - to go with the RGB dice, and lit on the same clock (RGB_CYCLE_SECONDS),
 // so a table of them changes colour together. Each comes as Rainbow (all one colour at a time) or Wave (the
@@ -73,7 +74,7 @@ private fun rememberRgbShake(rolling: Boolean): Pair<State<Float>, State<Float>>
     )
     val seconds = remember { mutableFloatStateOf(0f) }
     if (strength.value > 0f) {
-        LaunchedEffect(Unit) {
+        PacedEffect(Unit) {
             var last = -1L
             while (true) {
                 withInfiniteAnimationFrameNanos { now ->
@@ -179,7 +180,7 @@ class RgbHaloDiceCupStyle(override val id: String, private val body: CupPalette,
 
     @Composable
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
-        val seconds = rememberArtSeconds()
+        val seconds = rememberArtSeconds(MotionGroup.DICE_CUP)
         val (shakeSeconds, shake) = rememberRgbShake(rolling)
         val dice = LocalCupDice.current
         val pile = remember(dice.count) { haloDicePile(dice.count) }
@@ -349,7 +350,7 @@ class RgbLanternDiceCupStyle(override val id: String, private val body: CupPalet
 
     @Composable
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
-        val seconds = rememberArtSeconds()
+        val seconds = rememberArtSeconds(MotionGroup.DICE_CUP)
         val (shakeSeconds, shake) = rememberRgbShake(rolling)
         CupCanvas(rolling, tilted, modifier) {
             val phase = seconds.value / RGB_CYCLE_SECONDS
@@ -576,7 +577,7 @@ class RgbLightBackground(override val id: String, private val palette: Backgroun
 
     @Composable
     override fun Animate() {
-        TwinkleClock { seconds = it }
+        TwinkleClock(MotionGroup.BACKGROUND) { seconds = it }
     }
 
     override fun DrawScope.drawScoreAreaDecoration() {

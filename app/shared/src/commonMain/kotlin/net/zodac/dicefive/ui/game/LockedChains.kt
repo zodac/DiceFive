@@ -5,7 +5,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -24,6 +23,7 @@ import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.hypot
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.PacedEffect
 
 /** The chains' red, and the darker red edging them so they read against a die of any colour. */
 private val CHAIN_RED = Color(0xFFE53935)
@@ -47,7 +47,7 @@ private const val LINKS_PER_CHAIN = 5
 internal fun LockedChains(shape: Shape, reach: Float, modifier: Modifier = Modifier) {
     val reduceMotion = LocalReduceMotion.current
     val slam = remember { Animatable(if (reduceMotion) 1f else 0f) }
-    LaunchedEffect(reduceMotion) {
+    PacedEffect(reduceMotion) {
         if (!reduceMotion && slam.value < 1f) slam.animateTo(1f, tween(SLAM_MILLIS, easing = FastOutSlowInEasing))
     }
     Canvas(

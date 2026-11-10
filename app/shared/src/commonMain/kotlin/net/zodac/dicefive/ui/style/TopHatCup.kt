@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -25,6 +24,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.PacedEffect
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.theme.RabbitEye
 import net.zodac.dicefive.ui.theme.RabbitFur
@@ -104,19 +104,19 @@ class TopHatDiceCupStyle(
         val lifecycle = LocalLifecycleOwner.current.lifecycle
         val onRabbitSeen by rememberUpdatedState(LocalOnRabbitSeen.current)
         val reduceMotion = LocalReduceMotion.current
-        LaunchedEffect(tilted, rolling, activity, reduceMotion) {
-            if (rabbitAlwaysOut) return@LaunchedEffect
+        PacedEffect(tilted, rolling, activity, reduceMotion) {
+            if (rabbitAlwaysOut) return@PacedEffect
             // Under reduced motion the rabbit still peeks (its sighting is an achievement), but simply appears and
             // is gone again for the same time out, with no rising, sinking or ear twitches.
             if (reduceMotion) peek.snapTo(0f) else peek.animateTo(0f, tween(RABBIT_RISE_MILLIS / 2))
-            if (!tilted || rolling) return@LaunchedEffect
+            if (!tilted || rolling) return@PacedEffect
             lifecycle.delayWhileResumed(Random.nextLong(RABBIT_IDLE_MILLIS.first, RABBIT_IDLE_MILLIS.last + 1))
             onRabbitSeen()
             if (reduceMotion) {
                 peek.snapTo(1f)
                 lifecycle.delayWhileResumed(RABBIT_PEEK_MILLIS)
                 peek.snapTo(0f)
-                return@LaunchedEffect
+                return@PacedEffect
             }
             val rise = tween<Float>(RABBIT_RISE_MILLIS, easing = FastOutSlowInEasing)
             peek.animateTo(1f, rise)

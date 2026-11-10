@@ -86,10 +86,14 @@ import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.ConfigureOverlayDialogWindow
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import androidx.compose.ui.platform.LocalDensity
+import net.zodac.dicefive.data.settings.MotionGroup
+import net.zodac.dicefive.ui.common.GroupMotion
+import net.zodac.dicefive.ui.common.PacedEffect
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.ShrinkToLinesText
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.delayWhileResumed
+import net.zodac.dicefive.ui.common.groupReduceMotion
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.isLargeFont
 import net.zodac.dicefive.ui.common.stringResource
@@ -205,8 +209,8 @@ fun AchievementBannerHost(
     val holdMillis = recommendedHoldMillis()
 
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    // Under reduced motion a burst isn't dealt out one at a time: every banner that fits is there at once.
-    val reduceMotion by rememberUpdatedState(LocalReduceMotion.current)
+    // Under reduced motion (the Banners group's) a burst isn't dealt out one at a time: every banner that fits is there at once.
+    val reduceMotion by rememberUpdatedState(groupReduceMotion(MotionGroup.BANNERS))
     LaunchedEffect(Unit) {
         var nextKey = 0L
         AchievementEvents.events.collect { event ->
@@ -258,31 +262,34 @@ fun AchievementBannerHost(
                         .navigationBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 16.dp),
                     content = {
-                        displayOrder.forEachIndexed { index, item ->
-                            // 0 for the front (frontmost, drawn last so it's on top), climbing for each
-                            // one further back in the stack.
-                            val depthFromFront = displayOrder.lastIndex - index
-                            key(item.key) {
-                                BannerSlot(
-                                    item = item,
-                                    interactive = depthFromFront == 0,
-                                    holdMillis = holdMillis,
-                                    paused = leaveConfirmation.isShowing,
-                                    onDismissed = { banners.remove(item) },
-                                    onLongPress = {
-                                        val open: () -> Unit = when (val event = item.event) {
-                                            is AchievementEvent.Unlocked -> ({ onAchievementSelected(event.achievement) })
-                                            is AchievementEvent.Progressed -> ({ onAchievementSelected(event.achievement) })
-                                            is AchievementEvent.StylesUnlocked -> ({ onStylesSelected(event.styles) })
-                                        }
-                                        if (isOnGameScreen() && hasInProgressGame && confirmBeforeLeavingGame) {
-                                            leaveConfirmation.request(onLeave = open)
-                                        } else {
-                                            open()
-                                        }
-                                    },
-                                    modifier = Modifier.zIndex(index.toFloat()),
-                                )
+                        // Each banner moves as the Banners group says, not Menus & pages.
+                        GroupMotion(MotionGroup.BANNERS) {
+                            displayOrder.forEachIndexed { index, item ->
+                                // 0 for the front (frontmost, drawn last so it's on top), climbing for each
+                                // one further back in the stack.
+                                val depthFromFront = displayOrder.lastIndex - index
+                                key(item.key) {
+                                    BannerSlot(
+                                        item = item,
+                                        interactive = depthFromFront == 0,
+                                        holdMillis = holdMillis,
+                                        paused = leaveConfirmation.isShowing,
+                                        onDismissed = { banners.remove(item) },
+                                        onLongPress = {
+                                            val open: () -> Unit = when (val event = item.event) {
+                                                is AchievementEvent.Unlocked -> ({ onAchievementSelected(event.achievement) })
+                                                is AchievementEvent.Progressed -> ({ onAchievementSelected(event.achievement) })
+                                                is AchievementEvent.StylesUnlocked -> ({ onStylesSelected(event.styles) })
+                                            }
+                                            if (isOnGameScreen() && hasInProgressGame && confirmBeforeLeavingGame) {
+                                                leaveConfirmation.request(onLeave = open)
+                                            } else {
+                                                open()
+                                            }
+                                        },
+                                        modifier = Modifier.zIndex(index.toFloat()),
+                                    )
+                                }
                             }
                         }
                     },
@@ -377,8 +384,8 @@ private fun BannerSlot(
     // The pause/play glyph is a child of the banner, so it shares the banner's own alpha: if the
     // banner is fading out (under a second left when resumed) the glyph goes with it, and never
     // outlives it.
-    LaunchedEffect(indicatorTick) {
-        if (indicatorTick == 0) return@LaunchedEffect
+    PacedEffect(indicatorTick) {
+        if (indicatorTick == 0) return@PacedEffect
         indicatorAlpha.snapTo(1f)
         lifecycle.delayWhileResumed(HOLD_INDICATOR_MILLIS)
         indicatorAlpha.moveTo(0f, HOLD_INDICATOR_FADE_MILLIS, reduceMotion)
@@ -387,7 +394,7 @@ private fun BannerSlot(
     // Fades in as soon as it's placed in the stack, whether or not it's the front banner yet -
     // every banner in a burst should be visible right away, even the ones peeking out behind the
     // front one that aren't counting down yet.
-    LaunchedEffect(Unit) {
+    PacedEffect(Unit) {
         alpha.moveTo(1f, FADE_IN_MILLIS, reduceMotion)
     }
 
@@ -395,17 +402,17 @@ private fun BannerSlot(
     // leave-game confirmation opens/closes: becoming the front banner is what starts its hold
     // countdown in the first place, and losing that status (shouldn't normally happen, but is
     // handled the same way for safety) or the confirmation opening cancels whatever was left of it
-    // (the `return@LaunchedEffect` below). The confirmation closing starts a fresh full-length
+    // (the `return@PacedEffect` below). The confirmation closing starts a fresh full-length
     // hold rather than resuming a partial one. A finger on it does the same - pausing it while
     // it's down, and a fresh hold once it lifts - and brings it back to full opacity if it had
     // already started fading, so a slow swipe or a press to keep it can't lose it mid-gesture.
-    LaunchedEffect(interactive, swipedAway, paused, touched, held) {
-        if (!interactive || swipedAway || paused) return@LaunchedEffect
+    PacedEffect(interactive, swipedAway, paused, touched, held) {
+        if (!interactive || swipedAway || paused) return@PacedEffect
         if (touched) {
             alpha.moveTo(1f, FADE_IN_MILLIS, reduceMotion)
-            return@LaunchedEffect
+            return@PacedEffect
         }
-        if (held) return@LaunchedEffect
+        if (held) return@PacedEffect
         // Not while the app is in the background: a banner shouldn't clear itself unseen.
         val holdStarted = TimeSource.Monotonic.markNow()
         try {
@@ -718,8 +725,8 @@ private fun ProgressBanner(achievement: Achievement, previous: Int, current: Int
     val animatedProgress = remember { Animatable(previous.toFloat()) }
     // Under reduced motion it doesn't climb: the new count is simply there once this banner is at the front.
     val reduceMotion = LocalReduceMotion.current
-    LaunchedEffect(interactive) {
-        if (!interactive) return@LaunchedEffect
+    PacedEffect(interactive) {
+        if (!interactive) return@PacedEffect
         if (reduceMotion) {
             animatedProgress.snapTo(current.toFloat())
         } else {

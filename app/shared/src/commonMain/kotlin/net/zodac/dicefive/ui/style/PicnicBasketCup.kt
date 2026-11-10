@@ -4,14 +4,11 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +36,8 @@ import kotlin.random.Random
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.ui.common.BoundedArt
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.PacedEffect
+import net.zodac.dicefive.ui.common.rememberPacedLoop
 
 /**
  * A picnic basket's colours: its wicker, light to dark, with the dark of the gaps in the weave; the
@@ -122,7 +121,7 @@ class PicnicBasketDiceCupStyle(override val id: String, private val palette: Bas
         val flaps = remember { Animatable(if (open) 1f else 0f) }
         val spill = remember { Animatable(1f) }
         var spills by remember { mutableStateOf(if (open) basketSpill(Random.nextInt()) else emptyList()) }
-        LaunchedEffect(open) {
+        PacedEffect(open) {
             // Under reduced motion the lids are simply shut or open, with no swing between.
             if (!open) {
                 if (reduceMotion) flaps.snapTo(0f) else flaps.animateTo(0f, tween(FLAP_CLOSE_MILLIS))
@@ -720,11 +719,10 @@ private fun basketPivot(size: Size): Offset =
 private fun basketLift(t: Float): Float = (1f - cos(8f * t)) / 2f
 
 @Composable
-private fun rememberBasketShakeLoop(): State<Float> = rememberInfiniteTransition(label = "basketShake").animateFloat( // i18n: not translated - an animation label, not shown
+private fun rememberBasketShakeLoop(): State<Float> = rememberPacedLoop(
     initialValue = 0f,
     targetValue = 1f,
     animationSpec = infiniteRepeatable(tween(BASKET_SHAKE_LOOP_MILLIS, easing = LinearEasing), RepeatMode.Restart),
-    label = "basketShakeLoop", // i18n: not translated - an animation label, not shown
 )
 
 private val BasketYawSin = sin(BASKET_YAW_DEGREES * PI.toFloat() / 180f)

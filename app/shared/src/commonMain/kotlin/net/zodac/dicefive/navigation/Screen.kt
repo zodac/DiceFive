@@ -16,6 +16,10 @@ object Screen {
     const val STATISTICS = "statistics"
     const val ACHIEVEMENTS = "achievements"
     const val SETTINGS = "settings"
+
+    /** The Graphics page, opened from its row in Settings. */
+    const val GRAPHICS = "settings/graphics"
+
     const val STYLES = "styles"
 
     /** A Styles category's own page, opened from its field on the Styles page: "styles/dice_cup". */

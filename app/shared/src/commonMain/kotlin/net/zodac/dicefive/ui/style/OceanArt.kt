@@ -18,6 +18,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.ui.theme.GoldAccent
 
 // The water set: the Ocean dice, mat and backgrounds, which share their waves and caustics.
@@ -161,7 +162,7 @@ class OceanWavesBackground(override val id: String, private val palette: Backgro
 
     @Composable
     override fun Animate() {
-        TwinkleClock { seconds = it }
+        TwinkleClock(MotionGroup.BACKGROUND) { seconds = it }
     }
 
     override fun DrawScope.drawScoreAreaDecoration() {

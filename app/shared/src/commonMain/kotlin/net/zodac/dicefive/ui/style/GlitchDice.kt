@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.unit.dp
 import kotlin.math.floor
 import kotlin.random.Random
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.ui.common.BoundedArt
 import net.zodac.dicefive.ui.theme.GoldAccent
 
@@ -97,7 +98,7 @@ class GlitchDiceStyle(
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) {
         val dieIndex = LocalDieIndex.current
-        val seconds = rememberArtSeconds()
+        val seconds = rememberArtSeconds(MotionGroup.DICE)
         // Frozen (tumbling), it's held at its clean face - never stuck mid-burst.
         val frozen = LocalArtFrozen.current
         BoundedArt(modifier = modifier.dieShadow(RoundedCornerShape(GLITCH_CORNER_PERCENT)), overflow = GLITCH_ART_OVERFLOW) {

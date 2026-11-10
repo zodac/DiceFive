@@ -413,16 +413,22 @@ private fun MacrobenchmarkScope.cancelLeaving() {
     }
 }
 
-/** Settings, flipping one switch (and flipping it back), picking an animation level (and back) and opening the Licences and About dialogs. */
+/**
+ * Settings, flipping one switch (and flipping it back), then its Graphics page, picking an animation level (and back),
+ * and back to Settings to open the Licences and About dialogs.
+ */
 internal fun MacrobenchmarkScope.visitSettings() {
     openFromMenu("Settings")
     val sound = By.text("Sound effects")
     val soundOn = isChecked("Sound effects")
     setChecked(sound, "Sound effects", !soundOn)
     setChecked(sound, "Sound effects", soundOn)
+    tapTextUntil("Graphics") { device.hasObject(By.text("Advanced settings")) }
     // Back to High: the journeys after this one are profiling the full animations.
     setChecked(By.text("Low"), "Low", true)
     setChecked(By.text("High"), "High", true)
+    back()
+    await(By.text("Sound effects"), "Settings after the Graphics page")
 
     // Each dialog is waited for by its OK button and left by it: the Settings page behind is
     // itself scrollable and has the same "Licences" text, so neither a scrollable nor a label says

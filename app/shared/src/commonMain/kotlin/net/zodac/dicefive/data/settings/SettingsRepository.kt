@@ -36,10 +36,10 @@ import net.zodac.dicefive.model.TurnTimer
  * - the Achievements page's Locked only switch and the Styles page's Unlocked only switch;
  * - the Statistics screen's page (Combined or a game mode) and each page's sort;
  * - the Leaderboard's board (Combined or a game mode);
- * - sound, vibration, the Animations level and whether leaving a game in progress asks first;
+ * - sound, vibration, the Animations level and its Advanced settings, and whether leaving a game in progress asks first;
  * - whether a game has ever been finished here, which unlocks the New Game form's game modes and modifiers.
  *
- * Every setting but the Animations level, the Orientation and the list filters goes in the cloud save ([SYNCED_KEYS]):
+ * Every setting but the Animations level (and its Advanced settings), the Orientation, and the list filters goes in the cloud save ([SYNCED_KEYS]):
  * those are about this device - what it can draw, how it's held, and how this player likes to browse. Each synced key is stamped with when its value last changed
  * ([stampKey]), and the cloud save keeps whichever device set it last. A key with no stamp, as an older version's
  * achievements reset left the Styles picks, is stamped 0: it loses to any later change, but beats a device that never set one.
@@ -337,7 +337,29 @@ class SettingsRepository(
         prefs[ANIMATION_LEVEL_KEY]?.let { storedIdOf<AnimationLevel>(it) } ?: AnimationLevel.default
     }
 
-    suspend fun setAnimationLevel(level: AnimationLevel) = set(ANIMATION_LEVEL_KEY, level.id)
+    /** Sets the "Animations" level, putting every group of the Advanced settings back to its preset. */
+    suspend fun setAnimationLevel(level: AnimationLevel) = edit { prefs ->
+        prefs[ANIMATION_LEVEL_KEY] = level.id
+        MOTION_KEYS.forEach { prefs.remove(it) }
+    }
+
+    /**
+     * How the app moves: the Advanced settings the player last set, or the [animationLevel]'s preset where they haven't
+     * (since it was last picked). A group saved with an id nothing recognises is the level's.
+     */
+    val motionSettings: Flow<MotionSettings> = read { prefs ->
+        val preset = (prefs[ANIMATION_LEVEL_KEY]?.let { storedIdOf<AnimationLevel>(it) } ?: AnimationLevel.default).motion
+        MotionSettings(
+            MotionGroup.entries.associateWith { group -> prefs[motionKey(group)]?.let { storedIdOf<FrameRate>(it) } ?: preset.rate(group) },
+            prefs[MOTION_ROLL_STYLE_KEY]?.let { storedIdOf<DiceRollStyle>(it) } ?: preset.rollStyle,
+        )
+    }
+
+    /** Sets every group of the Advanced settings, leaving the saved [animationLevel] for them to fall back to. */
+    suspend fun setMotionSettings(motion: MotionSettings) = edit { prefs ->
+        MotionGroup.entries.forEach { prefs[motionKey(it)] = motion.rate(it).id }
+        prefs[MOTION_ROLL_STYLE_KEY] = motion.rollStyle.id
+    }
 
     /** The player's "Orientation" - see [ScreenOrientation]. */
     val screenOrientation: Flow<ScreenOrientation> = read { prefs ->
@@ -413,6 +435,11 @@ class SettingsRepository(
         val TRICOLOUR_MARKS_KEY = booleanPreferencesKey("tricolour_marks")
         val ANIMATION_LEVEL_KEY = stringPreferencesKey("animation_level")
         val SCREEN_ORIENTATION_KEY = stringPreferencesKey("screen_orientation")
+
+        // The Advanced settings' groups and roll style, each set only once the player changes one (setMotionSettings).
+        fun motionKey(group: MotionGroup) = stringPreferencesKey("motion_${group.key}")
+        val MOTION_ROLL_STYLE_KEY = stringPreferencesKey("motion_roll_style")
+        val MOTION_KEYS = MotionGroup.entries.map(::motionKey) + MOTION_ROLL_STYLE_KEY
         val PLAYER_COUNT_KEY = intPreferencesKey("player_count")
         val TURN_TIMER_KEY = stringPreferencesKey("turn_timer")
         val TURN_TIMER_LENGTH_KEY = stringPreferencesKey("turn_timer_length")
@@ -463,7 +490,7 @@ class SettingsRepository(
         val STYLE_KEYS = listOf(DICE_STYLE_ID_KEY, DICE_CUP_STYLE_ID_KEY, TABLE_BACKGROUND_ID_KEY, DICE_MAT_ID_KEY, SCORE_FRAME_ID_KEY, SCORE_BOX_ID_KEY)
 
         /**
-         * What the cloud save carries: everything but the Animations level ([ANIMATION_LEVEL_KEY]), chosen for what this
+         * What the cloud save carries: everything but the Animations level ([ANIMATION_LEVEL_KEY], [MOTION_KEYS]), chosen for what this
          * device can draw, the Orientation ([SCREEN_ORIENTATION_KEY]), chosen for how it's held, and the two list filters
          * ([LOCKED_ONLY_ACHIEVEMENTS_KEY], [UNLOCKED_ONLY_STYLES_KEY]), a way of browsing.
          */

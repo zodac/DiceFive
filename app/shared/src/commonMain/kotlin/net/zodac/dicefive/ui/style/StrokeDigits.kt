@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
+import net.zodac.dicefive.data.settings.MotionGroup
 
 /**
  * One run of a digit's centreline: through [points] (in a unit box, y down), as a smooth curve when
@@ -146,14 +147,14 @@ private var latestArtSeconds = 0f
 /**
  * The time in seconds, ticking every frame for as long as it's composed - for art that moves on its
  * own (a neon tube's pulse, glitter's sparkles). Read it inside a draw block, not during composition,
- * so a tick only redraws. Stands still at 0 below the High animation level (see [TwinkleClock]), and holds still
+ * so a tick only redraws. Stands still while [group]'s decoration is (see [TwinkleClock]), and holds still
  * at the time it was made while [LocalArtFrozen] is true.
  */
 @Composable
-internal fun rememberArtSeconds(): State<Float> {
+internal fun rememberArtSeconds(group: MotionGroup): State<Float> {
     val frozen = rememberUpdatedState(LocalArtFrozen.current)
     val seconds = remember { mutableFloatStateOf(latestArtSeconds) }
-    TwinkleClock {
+    TwinkleClock(group) {
         latestArtSeconds = it
         if (!frozen.value) seconds.floatValue = it
     }

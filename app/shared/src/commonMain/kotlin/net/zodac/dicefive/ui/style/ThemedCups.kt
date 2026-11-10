@@ -2,10 +2,8 @@ package net.zodac.dicefive.ui.style
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
@@ -27,7 +25,9 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.rememberPacedLoop
 
 // The Glitter cup's sides: a gentle taper from its lip to its base.
 private const val GLITTER_CUP_TOP_RADIUS = 21f
@@ -45,7 +45,7 @@ class GlitterDiceCupStyle(override val id: String, private val glitter: Color, p
 
     @Composable
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
-        val seconds = rememberArtSeconds()
+        val seconds = rememberArtSeconds(MotionGroup.DICE_CUP)
         CupCanvas(rolling, tilted, modifier) {
             drawContactShadow(GLITTER_CUP_BASE_RADIUS, GLITTER_CUP_BASE_Y)
             val body = roundSection(GLITTER_CUP_TOP_RADIUS, GLITTER_CUP_TOP_Y, GLITTER_CUP_BASE_RADIUS, GLITTER_CUP_BASE_Y)
@@ -94,11 +94,10 @@ private const val GIFT_LID_RATTLE = 1.6f
 
 /** The lid's rattle while the box is shaken: 0 (sitting on the box) to 1 (bounced up), and back, quickly. */
 @Composable
-private fun rememberLidRattle(): State<Float> = rememberInfiniteTransition(label = "giftLidRattle").animateFloat( // i18n: not translated - an animation label, not shown
+private fun rememberLidRattle(): State<Float> = rememberPacedLoop(
     initialValue = 0f,
     targetValue = 1f,
     animationSpec = infiniteRepeatable(tween(70, easing = LinearEasing), RepeatMode.Reverse),
-    label = "giftLidRattleLift", // i18n: not translated - an animation label, not shown
 )
 
 private data class GlitterCupSurface(val id: String, val colour: Color)
@@ -118,7 +117,7 @@ class NeonDiceCupStyle(override val id: String, private val body: CupPalette, pr
 
     @Composable
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
-        val seconds = rememberArtSeconds()
+        val seconds = rememberArtSeconds(MotionGroup.DICE_CUP)
         CupCanvas(rolling, tilted, modifier) {
             val swell = 0.5f + 0.5f * sin(2f * PI.toFloat() * seconds.value / NEON_CUP_PULSE_SECONDS)
             drawContactShadow(NEON_CUP_RADIUS, 76f)

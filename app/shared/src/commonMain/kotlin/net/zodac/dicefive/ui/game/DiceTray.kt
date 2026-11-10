@@ -65,6 +65,7 @@ import kotlin.random.Random
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.game.ProjectedHand
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
@@ -81,8 +82,11 @@ import net.zodac.dicefive.resources.game_die_spoken
 import net.zodac.dicefive.resources.game_slot_empty_spoken
 import net.zodac.dicefive.resources.game_slot_held_spoken
 import net.zodac.dicefive.resources.game_slot_spoken
-import net.zodac.dicefive.ui.common.LocalAnimationLevel
+import net.zodac.dicefive.ui.common.GroupMotion
+import net.zodac.dicefive.ui.common.LocalFramePaces
+import net.zodac.dicefive.ui.common.LocalMotionSettings
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.PacedEffect
 import net.zodac.dicefive.ui.common.ambientMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.redrawsAlone
@@ -192,6 +196,24 @@ fun DiceTray(
     // a given die not being held) here just means that column is never eligible to cycle.
     superuserModeActive: Boolean = false,
     onCycleValue: (Int) -> Unit = {},
+) {
+    // The dice move as the Dice roll group says, not Menus & pages.
+    GroupMotion(MotionGroup.DICE_ROLL) {
+        DiceTrayContent(dice, gameMode, enabled, showDice, rolling, onToggleHold, modifier, superuserModeActive, onCycleValue)
+    }
+}
+
+@Composable
+private fun DiceTrayContent(
+    dice: List<Die>,
+    gameMode: GameMode,
+    enabled: Boolean,
+    showDice: Boolean,
+    rolling: Boolean,
+    onToggleHold: (Int) -> Unit,
+    modifier: Modifier,
+    superuserModeActive: Boolean,
+    onCycleValue: (Int) -> Unit,
 ) {
     val visualTheme = LocalGameVisualTheme.current
 
@@ -654,11 +676,12 @@ private fun DiceColumn(
  */
 @Composable
 private fun rememberDieMotion(seed: Int, diceStyles: TrayDiceStyles): DieMotion? {
-    val motion = diceStyles.plain.pupilTravel?.takeIf { ambientMotion }
+    val motion = diceStyles.plain.pupilTravel?.takeIf { ambientMotion(MotionGroup.DICE) }
         ?.let { travel -> remember(travel) { DieMotion(seed, travel) } }
     if (motion != null) {
+        val pace = LocalFramePaces.current.of(MotionGroup.DICE)
         LaunchedEffect(motion, motion.awake) {
-            if (motion.awake) motion.follow()
+            if (motion.awake) pace.run { motion.follow() }
         }
     }
     return motion
@@ -791,7 +814,7 @@ private fun ScatterArea(
     // Under reduced motion there's no pick-up or toss: the die stays where it lies until it snaps to its result.
     // At the Low animation level it stays too, but flicks through faces while rolling instead (the simple roll).
     val reduceMotion = LocalReduceMotion.current
-    val flicker = LocalAnimationLevel.current.simpleDiceRoll && !reduceMotion
+    val flicker = LocalMotionSettings.current.simpleDiceRoll && !reduceMotion
     val simple = reduceMotion || flicker
     var scrambleTick by remember { mutableIntStateOf(0) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -804,11 +827,11 @@ private fun ScatterArea(
     val tracker = remember { RollTracker(rolling) }
     tracker.update(rolling)
     val pickUp = remember(tracker.starts) { Animatable(if (tracker.starts == 0 || simple) 1f else 0f) }
-    LaunchedEffect(tracker.starts) {
+    PacedEffect(tracker.starts) {
         if (pickUp.value < 1f) pickUp.animateTo(1f, tween(PICK_UP_MILLIS, easing = LinearEasing))
     }
     val toss = remember(tracker.landings) { Animatable(if (tracker.landings == 0 || simple) 1f else 0f) }
-    LaunchedEffect(tracker.landings) {
+    PacedEffect(tracker.landings) {
         if (toss.value < 1f) toss.animateTo(1f, tween(DICE_TOSS_MILLIS, easing = LinearEasing))
     }
     // The face the die was picked up showing, for the throw to start from - noted while it's being

@@ -62,6 +62,7 @@ import net.zodac.dicefive.resources.game_totals_upper
 import net.zodac.dicefive.resources.game_totals_upper_progress_spoken
 import net.zodac.dicefive.resources.game_totals_upper_spoken
 import net.zodac.dicefive.ui.common.AppTooltip
+import net.zodac.dicefive.ui.common.LocalFramePaces
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.joinClauses
@@ -250,10 +251,11 @@ private fun TotalsButton(
     // Medium and High only: Low and Off (and reduced motion) never pop.
     val popAllowed = scorePulse
     var shownEarned by remember { mutableIntStateOf(earned) }
+    val popPace = LocalFramePaces.current.scoreGlow
     LaunchedEffect(earned) {
         val rose = bonusJustEarned(shownEarned, earned)
         shownEarned = earned
-        if (rose && flourish && popAllowed) {
+        if (rose && flourish && popAllowed) popPace.run {
             pop.animateTo(BONUS_POP_SCALE, tween(BONUS_POP_MILLIS / 2, easing = FastOutSlowInEasing))
             pop.animateTo(1f, tween(BONUS_POP_MILLIS / 2, easing = FastOutSlowInEasing))
         }

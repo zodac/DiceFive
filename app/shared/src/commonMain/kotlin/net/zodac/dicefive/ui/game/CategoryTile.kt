@@ -3,9 +3,7 @@ package net.zodac.dicefive.ui.game
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -59,8 +57,10 @@ import net.zodac.dicefive.model.HitTarget
 import net.zodac.dicefive.model.PlaceMatch
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
+import net.zodac.dicefive.ui.common.LocalFramePaces
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.PulsingArt
+import net.zodac.dicefive.ui.common.rememberPacedLoop
 import net.zodac.dicefive.ui.common.scorePulse
 import net.zodac.dicefive.ui.style.BoxTone
 import net.zodac.dicefive.ui.style.LocalGameVisualTheme
@@ -289,11 +289,11 @@ private fun BoxScope.GlowBorder(cornerRadius: Dp, shape: Shape) {
         Box(modifier = Modifier.matchParentSize().border(width = GLOW_WIDTH, color = GoldAccent, shape = shape))
         return
     }
-    val glowAlpha = rememberInfiniteTransition(label = "tileGlow").animateFloat( // i18n: not translated - an animation label, not shown
+    val glowAlpha = rememberPacedLoop(
         initialValue = 0.55f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(animation = tween(900, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-        label = "tileGlowAlpha", // i18n: not translated - an animation label, not shown
+        pace = LocalFramePaces.current.scoreGlow,
     )
     if (shape is RoundedCornerShape) {
         PulsingArt(alpha = glowAlpha, modifier = Modifier.matchParentSize()) { alpha -> drawGlowRing(cornerRadius, alpha) }

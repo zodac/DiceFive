@@ -386,7 +386,7 @@ private fun DrawScope.drawNeonGlow(paint: BoxPaint, cornerPx: Float, alpha: Floa
 
 /**
  * Neon: a lit tube round a dark box, its glow pulsing gently on the Neon dice's beat ([NEON_PULSE_SECONDS]), each box on
- * its own, and steady below the High animation level. Scored, the tube goes out.
+ * its own, and steady while Boxes decoration is off (below the High level). Scored, the tube goes out.
  */
 private class NeonScoreBox(
     override val id: String,

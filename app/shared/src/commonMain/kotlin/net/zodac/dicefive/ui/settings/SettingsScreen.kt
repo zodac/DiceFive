@@ -33,8 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.flowOf
 import net.zodac.dicefive.app.LocalAppContainer
-import net.zodac.dicefive.data.settings.AnimationLevel
-import net.zodac.dicefive.data.settings.ScreenOrientation
 import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.online.LocalOnlineSyncStatus
@@ -45,23 +43,12 @@ import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.resources.common_cancel
 import net.zodac.dicefive.resources.licences_title
 import net.zodac.dicefive.resources.settings_already_developer
-import net.zodac.dicefive.resources.settings_animations
-import net.zodac.dicefive.resources.settings_animations_high
-import net.zodac.dicefive.resources.settings_animations_high_short
-import net.zodac.dicefive.resources.settings_animations_low
-import net.zodac.dicefive.resources.settings_animations_low_short
-import net.zodac.dicefive.resources.settings_animations_medium
-import net.zodac.dicefive.resources.settings_animations_medium_short
-import net.zodac.dicefive.resources.settings_animations_off
 import net.zodac.dicefive.resources.settings_confirm_leaving
+import net.zodac.dicefive.resources.settings_graphics
 import net.zodac.dicefive.resources.settings_tricolour_marks
 import net.zodac.dicefive.resources.settings_import_progress_confirm
 import net.zodac.dicefive.resources.settings_import_progress_message
 import net.zodac.dicefive.resources.settings_import_progress_title
-import net.zodac.dicefive.resources.settings_orientation
-import net.zodac.dicefive.resources.settings_orientation_device
-import net.zodac.dicefive.resources.settings_orientation_landscape
-import net.zodac.dicefive.resources.settings_orientation_portrait
 import net.zodac.dicefive.resources.settings_reset_action
 import net.zodac.dicefive.resources.settings_reset_leaderboard
 import net.zodac.dicefive.resources.settings_reset_leaderboard_description
@@ -74,7 +61,6 @@ import net.zodac.dicefive.resources.settings_title
 import net.zodac.dicefive.resources.settings_version
 import net.zodac.dicefive.resources.settings_vibration
 import net.zodac.dicefive.ui.common.DiceFiveDialog
-import net.zodac.dicefive.ui.common.FittedSegmentedChoiceRow
 import net.zodac.dicefive.ui.common.FooterPill
 import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.LocalLandscapePage
@@ -176,76 +162,17 @@ private fun ResetSetting(icon: ImageVector, label: String, description: String, 
 }
 
 /**
- * One pick-one setting from a few options: icon and label as a [SwitchSetting] has them, with a segmented row of the
- * options under the label (as the New Game screen's AI difficulty is chosen - [FittedSegmentedChoiceRow], so the
- * labels shrink together and then go [compactLabel]/[compactGlyph] on a narrow screen). TalkBack hears the label, then
- * each option as a selectable button ("Medium, selected").
+ * A row that opens a page of its own - the Graphics page: its icon and label, and a gold arrow pointing onward
+ * (mirrored right to left), as a picker field has. The whole row is the button, named by its label.
  */
 @Composable
-private fun <T> SegmentedSetting(
-    icon: ImageVector,
-    label: String,
-    options: List<T>,
-    selected: T,
-    onSelect: (T) -> Unit,
-    optionLabel: @Composable (T) -> String,
-    compactLabel: @Composable (T) -> String,
-    compactGlyph: (T) -> ImageVector?,
-) {
-    // No visible label: the icon names the setting and the options sit beside it. The icon carries the label for a
-    // screen reader, which hears it before the options. The 40dp segmented control sits in a 48dp tap target, so 9dp
-    // each side puts it 13dp from the card's edge, as a [SwitchSetting]'s 30dp switch track is in its 56dp row.
-    Row(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Icon(imageVector = icon, contentDescription = label)
-        FittedSegmentedChoiceRow(
-            options = options,
-            selected = selected,
-            onSelect = onSelect,
-            label = optionLabel,
-            modifier = Modifier.weight(1f),
-            compactLabel = compactLabel,
-            compactGlyph = compactGlyph,
-        )
-    }
-}
-
-@Composable
-private fun animationLevelLabel(level: AnimationLevel): String = stringResource(
-    when (level) {
-        AnimationLevel.HIGH -> Res.string.settings_animations_high
-        AnimationLevel.MEDIUM -> Res.string.settings_animations_medium
-        AnimationLevel.LOW -> Res.string.settings_animations_low
-        AnimationLevel.OFF -> Res.string.settings_animations_off
-    },
-)
-
-@Composable
-private fun orientationLabel(orientation: ScreenOrientation): String = stringResource(
-    when (orientation) {
-        ScreenOrientation.DEVICE -> Res.string.settings_orientation_device
-        ScreenOrientation.PORTRAIT -> Res.string.settings_orientation_portrait
-        ScreenOrientation.LANDSCAPE -> Res.string.settings_orientation_landscape
-    },
-)
-
-/** Each orientation as a phone turned that way (or turning), for a narrow screen: an initial would mean nothing. */
-private fun orientationGlyph(orientation: ScreenOrientation): ImageVector = when (orientation) {
-    ScreenOrientation.DEVICE -> Symbols.ScreenRotation
-    ScreenOrientation.PORTRAIT -> Symbols.StayCurrentPortrait
-    ScreenOrientation.LANDSCAPE -> Symbols.StayCurrentLandscape
-}
-
-/** The level's initial for a narrow screen - its own string, as a translation's initials can collide. Off is a glyph. */
-@Composable
-private fun animationLevelShortLabel(level: AnimationLevel): String = when (level) {
-    AnimationLevel.HIGH -> stringResource(Res.string.settings_animations_high_short)
-    AnimationLevel.MEDIUM -> stringResource(Res.string.settings_animations_medium_short)
-    AnimationLevel.LOW -> stringResource(Res.string.settings_animations_low_short)
-    AnimationLevel.OFF -> animationLevelLabel(level)
+private fun PageLinkSetting(icon: ImageVector, label: String, onClick: () -> Unit) {
+    SettingRow(
+        icon = icon,
+        headline = { SettingLabel(label) },
+        trailing = { Icon(imageVector = Symbols.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+        modifier = Modifier.clickable(role = Role.Button, onClick = onClick),
+    )
 }
 
 @Composable
@@ -253,6 +180,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onGraphics: () -> Unit = {},
 ) {
     val loadedToggles by viewModel.toggles.collectAsStateWithLifecycle()
     // Saveable: a rotation mid-confirmation shouldn't silently drop the question.
@@ -328,31 +256,10 @@ fun SettingsScreen(
                 )
             }
         }
-        // A card of their own: a row of choices under its label isn't the same shape as the switch rows.
-        val choicesCard = @Composable {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                SegmentedSetting(
-                    icon = Symbols.AutoAwesome,
-                    label = stringResource(Res.string.settings_animations),
-                    // Least to most, Off first: from the start edge, so left to right here and mirrored in a right-to-left language.
-                    options = AnimationLevel.entries.reversed(),
-                    selected = toggles.animationLevel,
-                    onSelect = viewModel::setAnimationLevel,
-                    optionLabel = { animationLevelLabel(it) },
-                    compactLabel = { animationLevelShortLabel(it) },
-                    // "Off" as a symbol when there's no room for words: an initial would be "O", or a translation's own.
-                    compactGlyph = { if (it == AnimationLevel.OFF) Symbols.MotionPhotosOff else null },
-                )
-                SegmentedSetting(
-                    icon = Symbols.ScreenRotation,
-                    label = stringResource(Res.string.settings_orientation),
-                    options = ScreenOrientation.entries,
-                    selected = toggles.screenOrientation,
-                    onSelect = viewModel::setScreenOrientation,
-                    optionLabel = { orientationLabel(it) },
-                    compactLabel = { orientationLabel(it) },
-                    compactGlyph = ::orientationGlyph,
-                )
+        // The Orientation, the Animations level and its Advanced settings, on a page of their own.
+        val graphicsCard = @Composable {
+            CompactSettingsCard {
+                PageLinkSetting(Symbols.AutoAwesome, stringResource(Res.string.settings_graphics), onGraphics)
             }
         }
         val resetsCard = @Composable {
@@ -395,7 +302,7 @@ fun SettingsScreen(
         }
 
         if (LocalLandscapePage.current) {
-            // Side by side: the account, the switches, the resets and About; then the pick-one settings and Licences.
+            // Side by side: the account, the switches, the resets, and About; then the Graphics row and Licences.
             TwoPanes(
                 start = {
                     onlineCard()
@@ -405,7 +312,7 @@ fun SettingsScreen(
                     aboutLink(Modifier.fillMaxWidth())
                 },
                 end = {
-                    choicesCard()
+                    graphicsCard()
                     licencesLink(Modifier.fillMaxWidth())
                 },
             )
@@ -413,7 +320,7 @@ fun SettingsScreen(
             onlineCard()
             progressCard()
             switchesCard()
-            choicesCard()
+            graphicsCard()
             resetsCard()
             // Side by side, each taking half the width, so a label that wraps at a large font stays inside its half.
             // Raised into the page's gap above it: a button's 48dp touch target has air round its text, which the gap

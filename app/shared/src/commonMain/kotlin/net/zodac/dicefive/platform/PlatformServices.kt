@@ -35,7 +35,7 @@ interface PlatformServices {
 
     /**
      * The most animation frames a second to draw, or null for as many as the screen shows - from the player's
-     * "Animations" level (`AnimationLevel.maxFramesPerSecond`). A platform that can't cap them ignores this.
+     * motion settings (`MotionSettings.maxFramesPerSecond`: the fastest group's rate). A platform that can't cap them ignores this.
      */
     fun capFrameRate(maxFramesPerSecond: Int?) {}
 

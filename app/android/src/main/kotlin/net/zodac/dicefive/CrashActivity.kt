@@ -16,11 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import net.zodac.dicefive.data.settings.AnimationLevel
+import net.zodac.dicefive.data.settings.MotionSettings
 import net.zodac.dicefive.device.CrashHandler
 import net.zodac.dicefive.device.CrashReport
 import net.zodac.dicefive.ui.common.CrashPage
-import net.zodac.dicefive.ui.common.LastAnimationLevel
-import net.zodac.dicefive.ui.common.LocalAnimationLevel
+import net.zodac.dicefive.ui.common.FramePaces
+import net.zodac.dicefive.ui.common.LastMotionSettings
+import net.zodac.dicefive.ui.common.LocalFramePaces
+import net.zodac.dicefive.ui.common.LocalMotionSettings
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.RevealedPage
 import net.zodac.dicefive.ui.common.stringsLanguageConfiguration
@@ -46,10 +49,14 @@ class CrashActivity : ComponentActivity() {
         val report = CrashReport.from(intent.getBundleExtra(EXTRA_REPORT))
         val details = report.text()
         val gameRemoved = intent.getBooleanExtra(EXTRA_GAME_REMOVED, false)
-        // The level the app was drawn at, as DiceFiveApp provides it: this process doesn't read the settings.
-        val animationLevel = AnimationLevel.entries.firstOrNull { it.id == intent.getStringExtra(EXTRA_ANIMATION_LEVEL) } ?: AnimationLevel.default
+        // The motion the app was drawn with, as DiceFiveApp provides it: this process doesn't read the settings.
+        val motion = intent.getStringArrayExtra(EXTRA_MOTION)?.let { MotionSettings.fromIds(it.toList()) } ?: AnimationLevel.default.motion
         setContent {
-            CompositionLocalProvider(LocalAnimationLevel provides animationLevel, LocalReduceMotion provides !animationLevel.gameplayMotion) {
+            CompositionLocalProvider(
+                LocalMotionSettings provides motion,
+                LocalFramePaces provides FramePaces(motion),
+                LocalReduceMotion provides !motion.menusMotion,
+            ) {
                 DiceFiveTheme {
                     Surface(modifier = Modifier.fillMaxSize()) {
                         // Faded in as a page opened from the menu is: Android's own window animation is off (intent).
@@ -85,7 +92,7 @@ class CrashActivity : ComponentActivity() {
 
     companion object {
         private const val EXTRA_REPORT = "net.zodac.dicefive.CRASH_REPORT"
-        private const val EXTRA_ANIMATION_LEVEL = "net.zodac.dicefive.ANIMATION_LEVEL"
+        private const val EXTRA_MOTION = "net.zodac.dicefive.MOTION"
         private const val EXTRA_GAME_REMOVED = "net.zodac.dicefive.GAME_REMOVED"
 
         /** What the clipboard says it holds. */
@@ -107,19 +114,19 @@ class CrashActivity : ComponentActivity() {
         }
 
         /**
-         * Opens the page with [report], in a task of its own in place of the app's, drawn at [animationLevel] (the app's
+         * Opens the page with [report], in a task of its own in place of the app's, drawn with [motion] (the app's
          * last), saying the saved game goes if [gameRemoved]. Without Android's window animation: the page fades in as the
          * app's own pages do.
          */
         internal fun intent(
             context: Context,
             report: CrashReport,
-            animationLevel: AnimationLevel = LastAnimationLevel.value,
+            motion: MotionSettings = LastMotionSettings.value,
             gameRemoved: Boolean = false,
         ): Intent =
             Intent(context, CrashActivity::class.java)
                 .putExtra(EXTRA_REPORT, report.toBundle())
-                .putExtra(EXTRA_ANIMATION_LEVEL, animationLevel.id)
+                .putExtra(EXTRA_MOTION, motion.ids().toTypedArray())
                 .putExtra(EXTRA_GAME_REMOVED, gameRemoved)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
     }

@@ -23,7 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
@@ -59,8 +59,10 @@ import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.game_cup_cd
 import net.zodac.dicefive.resources.game_cup_roll_action
 import net.zodac.dicefive.resources.game_cup_rolls_left
+import net.zodac.dicefive.ui.common.GroupMotion
 import net.zodac.dicefive.ui.common.HoldScreenAwake
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.PacedEffect
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.pluralStringResource
@@ -319,6 +321,12 @@ internal fun DiceCup(
     // that puts it nearest a right thumb.
     countFirst: Boolean = false,
 ) {
+    // The cup moves as the Cup shake group says, not Menus & pages.
+    GroupMotion(MotionGroup.CUP_SHAKE) { DiceCupContent(cup, dice, modifier, countFirst) }
+}
+
+@Composable
+private fun DiceCupContent(cup: CupPanelState?, dice: List<Die>, modifier: Modifier, countFirst: Boolean) {
     val visualTheme = LocalGameVisualTheme.current
     val cupInteractionSource = remember { MutableInteractionSource() }
     // Resolved here, in composition: the semantics block below can't read resources itself.
@@ -417,7 +425,7 @@ internal fun DiceCup(
                 val depleted = outOfRolls && !showingOff
                 val lifecycle = LocalLifecycleOwner.current.lifecycle
                 var standingForBloom by remember { mutableStateOf(false) }
-                LaunchedEffect(showingOff) {
+                PacedEffect(showingOff) {
                     standingForBloom = false
                     if (showingOff) {
                         lifecycle.delayWhileResumed(BLOOM_STAND_UP_MILLIS)

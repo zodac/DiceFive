@@ -22,8 +22,6 @@ import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.app.ProgressResets
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.scores.ScoreRepository
-import net.zodac.dicefive.data.settings.AnimationLevel
-import net.zodac.dicefive.data.settings.ScreenOrientation
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
@@ -38,13 +36,11 @@ import net.zodac.dicefive.platform.ProgressFileResult
 import net.zodac.dicefive.platform.ProgressFiles
 import net.zodac.dicefive.ui.common.formatTimestamp
 
-/** The Settings screen's switches, its animation level and its orientation, as saved. */
+/** The Settings screen's switches, as saved. */
 data class SettingsToggles(
     val soundEnabled: Boolean = true,
     val vibrationEnabled: Boolean = true,
-    val animationLevel: AnimationLevel = AnimationLevel.default,
     val confirmBeforeLeavingGame: Boolean = true,
-    val screenOrientation: ScreenOrientation = ScreenOrientation.default,
     val tricolourMarksEnabled: Boolean = false,
 )
 
@@ -71,11 +67,10 @@ class SettingsViewModel(
     val toggles: StateFlow<SettingsToggles?> = combine(
         settingsRepository.soundEnabled,
         settingsRepository.vibrationEnabled,
-        settingsRepository.animationLevel,
         settingsRepository.confirmBeforeLeavingGame,
-        settingsRepository.screenOrientation,
+        settingsRepository.tricolourMarksEnabled,
         ::SettingsToggles,
-    ).combine(settingsRepository.tricolourMarksEnabled) { toggles, marks -> toggles.copy(tricolourMarksEnabled = marks) }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    ).stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     fun setConfirmBeforeLeavingGame(confirm: Boolean) {
         viewModelScope.launch { settingsRepository.setConfirmBeforeLeavingGame(confirm) }
@@ -92,15 +87,6 @@ class SettingsViewModel(
     fun setTricolourMarksEnabled(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.setTricolourMarksEnabled(enabled) }
     }
-
-    fun setAnimationLevel(level: AnimationLevel) {
-        viewModelScope.launch { settingsRepository.setAnimationLevel(level) }
-    }
-
-    fun setScreenOrientation(orientation: ScreenOrientation) {
-        viewModelScope.launch { settingsRepository.setScreenOrientation(orientation) }
-    }
-
 
     /** Backs the one achievement this screen itself can earn - opening the About dialog
      * ("Who Made This?"). Same fire-and-check-once pattern as

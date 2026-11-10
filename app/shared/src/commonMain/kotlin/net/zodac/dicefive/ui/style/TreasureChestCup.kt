@@ -4,15 +4,12 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +53,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.zodac.dicefive.ui.common.BoundedArt
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.PacedEffect
+import net.zodac.dicefive.ui.common.rememberPacedLoop
 
 /** A treasure chest's colours: its wood, the gold of its fittings, its dark inside and its velvet lining. */
 class ChestPalette(
@@ -138,7 +137,7 @@ class TreasureChestDiceCupStyle(override val id: String, private val palette: Ch
         val flourish = remember { Animatable(1f) }
         // What spills out this time: a fresh handful every time the lid opens.
         var spills by remember { mutableStateOf(emptyList<Spill>()) }
-        LaunchedEffect(open) {
+        PacedEffect(open) {
             // Under reduced motion the lid is simply shut or open, with no swing between, and no burst of gold.
             if (!open) {
                 if (reduceMotion) lid.snapTo(0f) else lid.animateTo(0f, tween(LID_CLOSE_MILLIS))
@@ -198,11 +197,10 @@ private fun chestPivot(size: Size): Offset =
 private fun shakeLift(t: Float): Float = (1f - cos(8f * t)) / 2f
 
 @Composable
-private fun rememberShakeLoop(): State<Float> = rememberInfiniteTransition(label = "chestShake").animateFloat( // i18n: not translated - an animation label, not shown
+private fun rememberShakeLoop(): State<Float> = rememberPacedLoop(
     initialValue = 0f,
     targetValue = 1f,
     animationSpec = infiniteRepeatable(tween(SHAKE_LOOP_MILLIS, easing = LinearEasing), RepeatMode.Restart),
-    label = "chestShakeLoop", // i18n: not translated - an animation label, not shown
 )
 
 private val YawSin = sin(CHEST_YAW_DEGREES * PI.toFloat() / 180f)

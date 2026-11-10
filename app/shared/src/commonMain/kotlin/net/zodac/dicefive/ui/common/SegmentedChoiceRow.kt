@@ -134,7 +134,8 @@ private fun PaddingValues.withCapInset(startCap: Boolean, endCap: Boolean, direc
  * only if even that is too wide - a narrow screen, a long translation - every option becomes its compact form at
  * that size: [compactGlyph]'s icon where it gives one (the animation level's "Off"), otherwise [compactLabel] - the
  * label's initial ("E / M / H") unless a translation needs its own, where two initials would be the same letter. A
- * screen reader still hears the full label. [labelPadding] is each segment's side padding.
+ * screen reader still hears the full label, or [spokenLabel] where the label is a shortened one ("30fps"). [labelPadding]
+ * is each segment's side padding; [enabled] is [SegmentedChoiceRow]'s.
  */
 @Composable
 fun <T> FittedSegmentedChoiceRow(
@@ -147,11 +148,14 @@ fun <T> FittedSegmentedChoiceRow(
     labelPadding: Dp = 4.dp,
     compactGlyph: (T) -> ImageVector? = { null },
     compactLabel: @Composable (T) -> String = { label(it).take(1) },
+    spokenLabel: @Composable (T) -> String = label,
+    enabled: Boolean = true,
 ) {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val labels = options.associateWith { label(it) }
     val compactLabels = options.associateWith { compactLabel(it) }
+    val spokenLabels = options.associateWith { spokenLabel(it) }
     BoxWithConstraints(modifier = modifier) {
         val textStyle = MaterialTheme.typography.labelLarge
         val fit = remember(constraints.maxWidth, textStyle, density, labels) {
@@ -178,8 +182,9 @@ fun <T> FittedSegmentedChoiceRow(
             selected = selected,
             onSelect = onSelect,
             label = { if (fit.wraps && compactGlyph(it) == null) compactLabels.getValue(it) else labels.getValue(it) },
-            spokenLabel = { labels.getValue(it) },
+            spokenLabel = { spokenLabels.getValue(it) },
             modifier = Modifier.fillMaxWidth(),
+            enabled = enabled,
             labelStyle = textStyle.copy(fontSize = fit.size),
             glyph = { if (fit.wraps) compactGlyph(it) else null },
             contentPadding = PaddingValues(horizontal = labelPadding),

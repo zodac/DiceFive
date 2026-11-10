@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.game.Standing
 import net.zodac.dicefive.game.standings
 import net.zodac.dicefive.model.PlayerState
@@ -67,7 +68,7 @@ import net.zodac.dicefive.resources.game_tab_new_leaderboard_score
 import net.zodac.dicefive.resources.game_tab_view_action
 import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.FontFit
-import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.LocalFramePaces
 import net.zodac.dicefive.ui.common.MIN_READABLE_FONT_SIZE
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.SoraFontFamily
@@ -77,6 +78,7 @@ import net.zodac.dicefive.ui.common.joinClauses
 import net.zodac.dicefive.ui.common.ordinal
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.dpToSp
+import net.zodac.dicefive.ui.common.groupReduceMotion
 import net.zodac.dicefive.ui.common.isLargeFont
 import net.zodac.dicefive.ui.common.sizeAtNormalFont
 import net.zodac.dicefive.ui.common.textScale
@@ -401,7 +403,9 @@ private fun Modifier.dashedBorder(width: Dp, color: Color, cornerRadius: Dp): Mo
 @Composable
 private fun rememberRisingScore(score: Int): State<Int> {
     val shown = remember { Animatable(score.toFloat()) }
-    val reduceMotion = LocalReduceMotion.current
+    // The Scores group's, not Menus & pages'.
+    val reduceMotion = groupReduceMotion(MotionGroup.SCORES)
+    val pace = LocalFramePaces.current.of(MotionGroup.SCORES)
     // The last total this tab was told about - where an interrupted rise was heading.
     var lastTarget by remember { mutableIntStateOf(score) }
     // Keyed on score, so a new total cancels the rise still running before this starts.
@@ -414,10 +418,12 @@ private fun rememberRisingScore(score: Int): State<Int> {
             shown.snapTo(score.toFloat())
             return@LaunchedEffect
         }
-        shown.animateTo(
-            targetValue = score.toFloat(),
-            animationSpec = tween(durationMillis = scoreRiseMillis(score - from), easing = LinearOutSlowInEasing),
-        )
+        pace.run {
+            shown.animateTo(
+                targetValue = score.toFloat(),
+                animationSpec = tween(durationMillis = scoreRiseMillis(score - from), easing = LinearOutSlowInEasing),
+            )
+        }
     }
     return remember(shown) { derivedStateOf { shown.value.roundToInt() } }
 }

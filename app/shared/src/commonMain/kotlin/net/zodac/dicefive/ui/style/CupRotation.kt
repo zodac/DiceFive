@@ -3,10 +3,8 @@ package net.zodac.dicefive.ui.style
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -26,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.common.BoundedArt
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.rememberPacedLoop
 
 private const val SHAKE_AMPLITUDE_DEGREES = 7f
 private const val SNAP_TO_STANDING_MILLIS = 150
@@ -308,14 +307,13 @@ private fun Slosh(rotation: State<Float>, into: SloshState) {
 /** The shake's back-and-forth, in degrees - see [rememberCupRotation] for when it runs. */
 @Composable
 private fun rememberShakeWobble(): State<Float> {
-    val shakeWobble = rememberInfiniteTransition(label = "cupShake").animateFloat( // i18n: not translated - an animation label, not shown
+    // At the Dice roll's pace (LocalFramePace, round the cup).
+    return rememberPacedLoop(
         initialValue = -SHAKE_AMPLITUDE_DEGREES,
         targetValue = SHAKE_AMPLITUDE_DEGREES,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 90, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse,
         ),
-        label = "cupWobble", // i18n: not translated - an animation label, not shown
     )
-    return shakeWobble
 }

@@ -22,6 +22,8 @@ import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
+import net.zodac.dicefive.data.settings.MotionGroup
+import net.zodac.dicefive.ui.common.LocalFramePaces
 import net.zodac.dicefive.ui.common.ambientMotion
 
 // Pattern painters shared by more than one piece of table art. Each takes a fixed seed rather than
@@ -121,13 +123,16 @@ private const val TWINKLE_DEPTH = 0.55f
  * where one's in force, as in UI tests, it stops rather than keeping Compose busy forever.
  */
 @Composable
-internal fun TwinkleClock(onTick: (Float) -> Unit) {
-    // No clock at all below the High animation level: the art stays as it was drawn.
-    if (!ambientMotion) return
-    LaunchedEffect(Unit) {
-        while (true) {
-            // Wrapped so the float stays precise however long the app has been up.
-            withInfiniteAnimationFrameNanos { onTick((it / 1_000_000L % 3_600_000L) / 1000f) }
+internal fun TwinkleClock(group: MotionGroup, onTick: (Float) -> Unit) {
+    // No clock at all while [group]'s decoration is still: the art stays as it was drawn.
+    if (!ambientMotion(group)) return
+    val pace = LocalFramePaces.current.of(group)
+    LaunchedEffect(pace) {
+        pace.run {
+            while (true) {
+                // Wrapped so the float stays precise however long the app has been up.
+                withInfiniteAnimationFrameNanos { onTick((it / 1_000_000L % 3_600_000L) / 1000f) }
+            }
         }
     }
 }

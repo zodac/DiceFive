@@ -1,10 +1,8 @@
 package net.zodac.dicefive.ui.game
 
-import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -84,13 +83,16 @@ import net.zodac.dicefive.ui.common.BackHandler
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.HoldPageCover
 import net.zodac.dicefive.ui.common.HoldScreenAwake
+import net.zodac.dicefive.ui.common.LocalMotionSettings
 import net.zodac.dicefive.ui.common.LocalPageCover
 import net.zodac.dicefive.ui.common.VerticalScrollbar
-import net.zodac.dicefive.ui.common.LocalAnimationLevel
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.OffscreenWarmUp
+import net.zodac.dicefive.ui.common.cupReduceMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.pluralStringResource
+import net.zodac.dicefive.ui.common.rememberPacedLoop
+import net.zodac.dicefive.ui.common.rollReduceMotion
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.textScale
 import net.zodac.dicefive.ui.style.ChickenDiceCupStyle
@@ -197,11 +199,14 @@ fun GameScreen(
     val tableSettings = table ?: return BrandBackdrop(modifier = modifier, showDice = false) { HoldPageCover() }
     val soundEnabled = tableSettings.soundEnabled
     val vibrationEnabled = tableSettings.vibrationEnabled
-    val reduceMotion = LocalReduceMotion.current
-    // One length for a human's tap and a CPU's roll, kept in step with the shake sound and buzz - see cupShakeMillis.
-    val cupShakeMillis = cupShakeMillis(reduceMotion, soundEnabled, vibrationEnabled)
-    // Under reduced motion, or the Low level's simple roll, the dice snap to their result, so a CPU has no toss to wait for.
-    val simpleRoll = LocalAnimationLevel.current.simpleDiceRoll
+    // The dice's own: the Dice roll group, whatever Menus & pages is.
+    val reduceMotion = rollReduceMotion
+    // One length for a human's tap and a CPU's roll, kept in step with the shake sound and buzz - see cupShakeMillis. It
+    // only shortens with nothing moving in it: neither the cup shaking nor the dice being swept up or flicking.
+    val cupShakeMillis = cupShakeMillis(reduceMotion && cupReduceMotion, soundEnabled, vibrationEnabled)
+    // With the dice's roll off (or reduced motion), or rolled in place, the dice snap to their result, so a CPU has no
+    // toss to wait for.
+    val simpleRoll = LocalMotionSettings.current.simpleDiceRoll
     SideEffect { viewModel.setPacing(GamePacing(cupShakeMillis = cupShakeMillis, diceAnimated = !reduceMotion && !simpleRoll)) }
     // In the tutorial, what its step points the board's pieces to - and nothing at all in a real game.
     val tutorialPulse = if (viewModel.isTutorial) rememberTutorialPulse() else null
@@ -510,7 +515,7 @@ private fun InProgressGame(
     // A turn's first dice are still in the cup until they're thrown - there are no dice on the mat to
     // gather up yet - so they appear as the roll lands. Under reduced motion there's no toss: the dice
     // simply appear on their result then, and a later roll's dice stay put until they snap to theirs.
-    val reduceMotion = LocalReduceMotion.current
+    val reduceMotion = rollReduceMotion
     val showDice = state.phase == TurnPhase.ROLLED
 
     // The dice are still tumbling to a stop for a moment after the roll lands (see DiceTray), and
@@ -932,14 +937,14 @@ private fun RunningTurnTimer(secondsRemaining: () -> Int?) {
 private fun rememberFlashColor(mutedColor: Color): Color {
     // A warning of the turn running out, so it flashes on an idle screen too.
     HoldScreenAwake()
-    val flashColor by rememberInfiniteTransition(label = "turnTimerFlash").animateColor( // i18n: not translated - an animation label, not shown
-        initialValue = MaterialTheme.colorScheme.error,
-        targetValue = mutedColor,
+    // At the Menus & pages group's pace (LocalFramePace), from the error red (0) to mutedColor (1).
+    val flash by rememberPacedLoop(
+        initialValue = 0f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = TURN_TIMER_FLASH_PERIOD_MILLIS, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse,
         ),
-        label = "turnTimerFlashColor", // i18n: not translated - an animation label, not shown
     )
-    return flashColor
+    return lerp(MaterialTheme.colorScheme.error, mutedColor, flash)
 }

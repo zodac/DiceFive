@@ -35,7 +35,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -197,7 +196,7 @@ fun ScreenScaffold(
                 // Under reduced motion it's simply there.
                 val reduceMotion = LocalReduceMotion.current
                 val contentAlpha = remember { Animatable(if (reduceMotion) 1f else 0f) }
-                LaunchedEffect(Unit) { contentAlpha.animateTo(1f, tween(PAGE_CONTENT_FADE_IN_MILLIS)) }
+                PacedEffect(Unit) { contentAlpha.animateTo(1f, tween(PAGE_CONTENT_FADE_IN_MILLIS)) }
                 Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = contentAlpha.value }) {
                     if (scrollable) {
                         // The content goes straight into PageColumn's viewport-tall column rather than a

@@ -7,7 +7,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.ui.common.DriftState
+import net.zodac.dicefive.ui.common.LocalFramePaces
 import net.zodac.dicefive.ui.common.ambientMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.drawDiceWatermark
@@ -40,11 +42,12 @@ object FloatingDiceBackground : TableBackground {
 
     @Composable
     override fun Animate() {
-        // Still, where they are, below the High animation level - as the menu's own backdrop dice are. (This
+        // Still, where they are, while Background decoration is off (below the High level) - as the menu's own backdrop dice are. (This
         // is also how a Styles tile that isn't on screen is held still.)
-        if (!ambientMotion) return
+        if (!ambientMotion(MotionGroup.BACKGROUND)) return
         val lifecycle = LocalLifecycleOwner.current.lifecycle
-        LaunchedEffect(lifecycle) { drift.run(sleep = lifecycle::delayWhileResumed) }
+        val pace = LocalFramePaces.current.of(MotionGroup.BACKGROUND)
+        LaunchedEffect(lifecycle, pace) { pace.run { drift.run(sleep = lifecycle::delayWhileResumed) } }
     }
 
     override fun DrawScope.drawScoreAreaDecoration() {

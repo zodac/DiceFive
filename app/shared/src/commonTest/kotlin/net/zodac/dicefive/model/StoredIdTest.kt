@@ -4,6 +4,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import net.zodac.dicefive.data.settings.AnimationLevel
+import net.zodac.dicefive.data.settings.DiceRollStyle
+import net.zodac.dicefive.data.settings.FrameRate
+import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.data.settings.ScreenOrientation
 import net.zodac.dicefive.ui.statistics.StatisticsSort
 
@@ -24,6 +27,10 @@ class StoredIdTest {
         assertEquals(listOf("AWAITING_ROLL", "ROLLED"), ids(TurnPhase.entries))
         assertEquals(listOf("HIGH", "MEDIUM", "LOW", "OFF"), ids(AnimationLevel.entries))
         assertEquals(listOf("DEVICE", "PORTRAIT", "LANDSCAPE"), ids(ScreenOrientation.entries))
+        assertEquals(listOf("OFF", "30", "60", "MAX"), ids(FrameRate.entries))
+        assertEquals(listOf("OFF", "IN_PLACE", "TOSSED"), ids(DiceRollStyle.entries))
+        // Each group's saved setting is motion_<key>.
+        assertEquals(listOf("dice", "cup", "mat", "background", "score_box", "menus", "banners", "scores", "celebrations", "score_glow", "cup_shake", "dice_roll"), MotionGroup.entries.map { it.key })
         assertEquals(listOf("standard", "tricolour", "third_wind", "stud", "d20", "hit_list", "quickfire"), ids(GameMode.entries))
         assertEquals(listOf("name", "first_played", "highest_score", "highest_average", "most_games"), ids(StatisticsSort.entries))
         // Achievement ids are each the constant's name in lower case - AchievementEngineTest pins that.
