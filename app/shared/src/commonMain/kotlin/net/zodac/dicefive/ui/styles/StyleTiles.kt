@@ -46,6 +46,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
@@ -93,6 +95,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.math.PI
+import kotlin.math.ceil
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlinx.coroutines.CoroutineScope
@@ -109,7 +112,6 @@ import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.navigation.StyleScrollRequest
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_ok
-import net.zodac.dicefive.resources.style_variant_colour
 import net.zodac.dicefive.resources.styles_choose_variant_action
 import net.zodac.dicefive.resources.styles_family_colour_cd
 import net.zodac.dicefive.resources.styles_frame_preview_name
@@ -143,7 +145,9 @@ import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.parseInlineMarkup
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
+import net.zodac.dicefive.ui.common.fillTemplate
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.common.stringsLanguage
 import net.zodac.dicefive.ui.common.tooltipMarkup
 import net.zodac.dicefive.ui.game.CategoryTile
 import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
@@ -172,13 +176,13 @@ import net.zodac.dicefive.ui.style.TableBackgrounds
 import net.zodac.dicefive.ui.style.catalog
 import net.zodac.dicefive.ui.style.visualTheme
 import net.zodac.dicefive.ui.theme.GoldAccent
-import org.jetbrains.compose.resources.StringResource
 
 // Each category's tile size on its page, and the shape its pick's preview is scaled from on the Styles page.
 private val DICE_PREVIEW_SIZE = 72.dp
 private val DIE_ART_SIZE = 44.dp
 private val CUP_PREVIEW_WIDTH = 72.dp
-private val CUP_PREVIEW_HEIGHT = 96.dp
+// No taller than this, so the Dice Cup page's five lines fit a 360 x 800dp phone under its status bar (96dp scrolled it).
+private val CUP_PREVIEW_HEIGHT = 88.dp
 // The cup previews at this fraction of their in-game size, whatever their shape (tall: 42 x 60dp).
 private const val CUP_ART_SCALE = 60f / 84f
 // The dice tray's wide shape. Small enough for three across a gallery on a ~376dp phone (3 x 97dp
@@ -238,6 +242,12 @@ private fun <T : TableArt> StyleCatalog<T>.shownFamilies(access: StyleAccess): P
     val (unlocked, locked) = families.partition { it.unlock.isMet(access) }
     return unlocked to locked.filterNot { it.unlock.hiddenWhileLocked }
 }
+
+/**
+ * Scrolls the category page at once so the tile laid out at the given coordinates is centred on it - for a banner's style
+ * on a page just opened ([StyleCategoryScaffold]). Null outside that page: the tile is slid into view instead.
+ */
+internal val LocalStyleTileJump = compositionLocalOf<((LayoutCoordinates) -> Unit)?> { null }
 
 /** The page's measurer for tiles' names - see [TileLabel] - or null to lay each one out afresh as a plain [Text]. */
 internal val LocalTileLabelMeasurer = compositionLocalOf<TextMeasurer?> { null }
@@ -688,15 +698,28 @@ private fun <T : TableArt> StyleFamilyTiles(
     val allFamilies = remember(unlocked, allLocked) { unlocked + allLocked }
     val shownCount = if (unlockedOnly) unlocked.size else allFamilies.size
 
+    // The words every tile says alike, looked up once for the page rather than once a tile.
+    val words = TileWords(
+        select = stringResource(Res.string.styles_select_action),
+        locked = stringResource(Res.string.styles_locked_spoken),
+        variantNoun = stringResource(catalog.variantNoun),
+        chooseVariant = stringResource(Res.string.styles_choose_variant_action),
+        familyColour = stringResource(Res.string.styles_family_colour_cd),
+        showUnlock = stringResource(Res.string.styles_show_unlock_action),
+        language = stringsLanguage(),
+    )
+
     @Composable
     fun Tile(index: Int) {
         if (index < unlocked.size) {
             StyleFamilyTile(
+                words = words,
                 unlocked[index], access, shownSelectedId, onSelect, previewSize, backgroundBrush, preview, index,
-                flashing = flashing && unlocked[index].name.key in focusNames, flashOverArt = flashOverArt, variantNoun = catalog.variantNoun,
+                flashing = flashing && unlocked[index].name.key in focusNames, jumpToFlash = focus?.animate == false,
+                flashOverArt = flashOverArt,
             )
         } else {
-            LockedStyleFamilyTile(allLocked[index - unlocked.size], access, previewSize, backgroundBrush, preview, index)
+            LockedStyleFamilyTile(allLocked[index - unlocked.size], access, previewSize, backgroundBrush, preview, index, words)
         }
     }
 
@@ -735,7 +758,7 @@ private fun <T : TableArt> StyleFamilyTiles(
                 modifier = Modifier
                     .fillMaxWidth()
                     .semantics { collectionInfo = CollectionInfo(rowCount = 1, columnCount = shownCount) }
-                    .padding(start = TILES_SIDE_PADDING, top = 12.dp, end = TILES_SIDE_PADDING, bottom = 12.dp),
+                    .padding(start = TILES_SIDE_PADDING, top = TILES_END_PADDING, end = TILES_SIDE_PADDING, bottom = TILES_END_PADDING),
             ) {
                 for (index in 0 until shownCount) {
                     slots[index] { Tile(index) }
@@ -750,6 +773,28 @@ private fun <T : TableArt> StyleFamilyTiles(
             }
         }
     }
+}
+
+/**
+ * The words every tile of a page says alike, looked up once for the page: its tap ("Select"), a locked tile's state
+ * ("Locked"), the category's word for a colour, and the templates each tile fills with its own names ([fillTemplate],
+ * in the strings' [language]) - "Choose %1$s %2$s", "%1$s, %2$s" and "Show how to unlock %1$s".
+ */
+@Immutable
+private class TileWords(
+    val select: String,
+    val locked: String,
+    val variantNoun: String,
+    private val chooseVariant: String,
+    private val familyColour: String,
+    private val showUnlock: String,
+    private val language: String,
+) {
+    fun chooseVariant(family: String): String = fillTemplate(chooseVariant, arrayOf(family, variantNoun), language)
+
+    fun familyColour(family: String, colour: String): String = fillTemplate(familyColour, arrayOf(family, colour), language)
+
+    fun showUnlock(family: String): String = fillTemplate(showUnlock, arrayOf(family), language)
 }
 
 /**
@@ -818,6 +863,54 @@ private val GALLERY_MIN_TILE_SPACING = 4.dp
 // enough for the longest name to spill into.
 private val TILES_SIDE_PADDING = 8.dp
 
+// The room above a category's first line of tiles and below its last.
+private val TILES_END_PADDING = 12.dp
+
+// Between a tile's preview and its name (StyleFamilyTile's column).
+private val TILE_LABEL_GAP = 4.dp
+
+/** The smallest a category page's tiles are drawn to fit its screen ([fittedTileScale]): a cup's 88dp at 64dp. */
+internal const val MIN_TILE_FIT_SCALE = 64f / 88f
+
+// No tile smaller than this either way, the touch-target minimum: a mat's 65dp height stops it above MIN_TILE_FIT_SCALE.
+private val MIN_TILE_TOUCH_SIZE = 48.dp
+
+/** The smallest [category]'s tiles are drawn: [MIN_TILE_FIT_SCALE], or larger where that would make a tile too small to touch. */
+internal fun StyleCategory.minTileFitScale(): Float =
+    maxOf(MIN_TILE_FIT_SCALE, MIN_TILE_TOUCH_SIZE / minOf(previewSize.width, previewSize.height))
+
+/**
+ * The scale a category page's [count] tiles of [category] are drawn at so they fit [height] px of page, [width] px wide,
+ * without scrolling, at a larger display size or font (the caller's to decide - see [StyleCategoryScaffold]): 1 where
+ * they fit as they are, else the largest that fits, down to [minTileFitScale]; and 1 again where even that doesn't, the
+ * page scrolling instead of every tile getting tiny. The tiles, their gaps and the card's padding scale (smaller dp); their names, [labelHeight] px a
+ * line, don't (the same sp). Columns are worked out as the page's own are ([TileSpacing]), so a smaller tile can gain one.
+ */
+internal fun fittedTileScale(category: StyleCategory, count: Int, width: Int, height: Int, density: Float, labelHeight: Float): Float {
+    if (count == 0 || height <= 0) return 1f
+    val preview = category.previewSize
+    fun contentHeight(scale: Float): Float {
+        val dp = density * scale
+        val columns = ((width - TILES_SIDE_PADDING.value * dp * 2 + GALLERY_MIN_TILE_SPACING.value * dp) /
+            ((preview.width.value + GALLERY_MIN_TILE_SPACING.value) * dp)).toInt().coerceIn(1, count)
+        val lines = (count + columns - 1) / columns
+        // Each part rounded up to whole pixels, as the layout places them, so their rounding can't add up past the room.
+        val line = ceil(preview.height.value * dp) + ceil(TILE_LABEL_GAP.value * dp) + ceil(labelHeight)
+        return ceil(TILES_END_PADDING.value * dp) * 2 + lines * line + (lines - 1) * ceil(TILE_SPACING.value * dp)
+    }
+    if (contentHeight(1f) <= height) return 1f
+    val floor = category.minTileFitScale()
+    var scale = 1f
+    while (scale > floor) {
+        scale = maxOf(scale - TILE_FIT_STEP, floor)
+        if (contentHeight(scale) <= height) return scale
+    }
+    return 1f
+}
+
+// How finely fittedTileScale steps down: a pixel or so of a tile at a time.
+private const val TILE_FIT_STEP = 0.005f
+
 /** One built tile on a category's page, held still - as under reduced motion - while it isn't on screen. */
 @Composable
 private fun TileSlot(tile: @Composable () -> Unit) {
@@ -843,6 +936,7 @@ private fun TileSlot(tile: @Composable () -> Unit) {
  */
 @Composable
 private fun <T : TableArt> StyleFamilyTile(
+    words: TileWords,
     family: StyleFamily<T>,
     access: StyleAccess,
     selectedId: String,
@@ -852,17 +946,17 @@ private fun <T : TableArt> StyleFamilyTile(
     preview: @Composable BoxScope.(T) -> Unit,
     position: Int,
     flashing: Boolean = false,
+    jumpToFlash: Boolean = false,
     flashOverArt: Boolean = false,
-    variantNoun: StringResource = Res.string.style_variant_colour,
 ) {
     val colours = family.colours
     val familyName = stringResource(family.name)
-    val selectLabel = stringResource(Res.string.styles_select_action)
-    val chooseVariantLabel = stringResource(Res.string.styles_choose_variant_action, familyName, stringResource(variantNoun))
+    val selectLabel = words.select
+    val chooseVariantLabel = words.chooseVariant(familyName)
     val picked = colours.firstOrNull { it.style.id == selectedId }
     val shown = picked ?: colours.firstOrNull { it.isAvailable(access) } ?: colours.first()
     val hasColours = colours.size > 1
-    val shownDescription = if (hasColours) stringResource(Res.string.styles_family_colour_cd, familyName, stringResource(shown.name)) else familyName
+    val shownDescription = if (hasColours) words.familyColour(familyName, stringResource(shown.name)) else familyName
     var choosingColour by remember { mutableStateOf(false) }
     var lockedVariantRequirement by remember { mutableStateOf<String?>(null) }
 
@@ -873,14 +967,21 @@ private fun <T : TableArt> StyleFamilyTile(
         onSelect(id)
         scope.launch { bringIntoView.bringIntoView() }
     }
-    // A banner's style, flashed: scrolled into view, wherever the page opened.
+    // A banner's style, flashed: brought into view - slid there on a page that was already open, or, [jumpToFlash], on
+    // one just opened, put there at once ([LocalStyleTileJump]), so the page opens already in place.
+    val jump = LocalStyleTileJump.current
+    val placed = remember { arrayOfNulls<LayoutCoordinates>(1) }
     LaunchedEffect(flashing) {
-        if (flashing) bringIntoView.bringIntoView()
+        if (!flashing) return@LaunchedEffect
+        // A frame on, so the tile has been laid out where it is.
+        withFrameNanos { }
+        val coordinates = placed[0]
+        if (jumpToFlash && jump != null && coordinates != null) jump(coordinates) else bringIntoView.bringIntoView()
     }
     Column(
-        modifier = Modifier.bringIntoViewRequester(bringIntoView),
+        modifier = Modifier.bringIntoViewRequester(bringIntoView).onGloballyPositioned { placed[0] = it },
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(TILE_LABEL_GAP),
     ) {
         // The pop-up's anchor: DropdownMenu positions itself against its parent, so the preview and
         // the pop-up share this Box rather than the pop-up hanging off the label below.
@@ -1018,16 +1119,17 @@ private fun <T : TableArt> LockedStyleFamilyTile(
     backgroundBrush: @Composable (T) -> Brush,
     preview: @Composable BoxScope.(T) -> Unit,
     position: Int,
+    words: TileWords,
 ) {
     var showingRequirement by remember { mutableStateOf(false) }
     val tooltipState = rememberAppTooltipState()
     val scope = rememberCoroutineScope()
     val familyName = stringResource(family.name)
-    val lockedText = stringResource(Res.string.styles_locked_spoken)
-    val showUnlockLabel = stringResource(Res.string.styles_show_unlock_action, familyName)
+    val lockedText = words.locked
+    val showUnlockLabel = words.showUnlock(familyName)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(TILE_LABEL_GAP),
     ) {
         // Not the tooltip's own long press (enabled = false): that opens the dialog, and a tap shows the tooltip.
         AppTooltip(message = tooltipMarkup(shortRequirement(family)), state = tooltipState, enabled = false) {
@@ -1070,7 +1172,7 @@ private fun <T : TableArt> LockedStyleFamilyTile(
                 }
             }
         }
-        TileLabel(stringResource(family.name), previewSize.width)
+        TileLabel(familyName, previewSize.width)
     }
 
     if (showingRequirement) {

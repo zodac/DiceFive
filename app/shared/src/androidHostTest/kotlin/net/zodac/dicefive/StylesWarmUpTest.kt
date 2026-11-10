@@ -1,16 +1,26 @@
 package net.zodac.dicefive
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.performSemanticsAction
+import net.zodac.dicefive.ui.styles.StylesScreen
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SavedStyles
+import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.style.DiceCupStyles
 import net.zodac.dicefive.ui.style.DiceMats
 import net.zodac.dicefive.ui.style.DiceStyles
@@ -40,9 +50,11 @@ class StylesWarmUpTest : UiTest() {
         compose.mainClock.autoAdvance = false
         compose.setContent {
             DiceFiveTheme {
-                Box {
-                    if (onMenu) StylesWarmUp(picks = picks, width = 360.dp)
-                    if (onStyles) StyleCategoriesWarmUp(picks = picks, width = 360.dp)
+                CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {
+                    Box {
+                        if (onMenu) StylesWarmUp(picks = picks, width = 360.dp)
+                        if (onStyles) StyleCategoriesWarmUp(picks = picks, width = 360.dp)
+                    }
                 }
             }
         }
@@ -70,5 +82,25 @@ class StylesWarmUpTest : UiTest() {
         assertTrue(categoryWarmUpDone >= stoppedAt, "went back to $categoryWarmUpDone")
         frames(total * 3)
         assertEquals(total, categoryWarmUpDone)
+    }
+
+    @Test
+    fun `tapping a field on the Styles page stops its warm-up there - for the page cover's fade`() = uiTest(TestScreen(360, 800)) {
+        categoryWarmUpDone = 0
+        val viewModel = stylesViewModel(kotlinx.coroutines.flow.MutableStateFlow<SavedStyles?>(picks))
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            DiceFiveTheme {
+                CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { StylesScreen(viewModel, onBack = {}, onOpenCategory = {}) }
+            }
+        }
+        repeat(60) { compose.mainClock.advanceTimeByFrame() }
+        val before = categoryWarmUpDone
+        assertTrue(before in 1 until categoryWarmUpPasses(picks).size, "warmed $before")
+        compose.onNode(hasContentDescription("Dice") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+            .performSemanticsAction(SemanticsActions.OnClick)
+        repeat(60) { compose.mainClock.advanceTimeByFrame() }
+        // At most the pass it was drawing as the tap came.
+        assertTrue(categoryWarmUpDone <= before + 1, "went on from $before to $categoryWarmUpDone")
     }
 }

@@ -37,6 +37,21 @@ private fun <T> TestScope.emissions(flow: Flow<T>): List<T> =
 class SettingsRepositoryTest {
 
     @Test
+    fun `a retired setting an older version left is removed at launch - and the others are kept`() = runTest {
+        val store = InMemoryPreferences()
+        store.edit { it[stringPreferencesKey("styles_page_fit")] = "1080x2400:2.9375:1.0=0.757" }
+        val repository = SettingsRepository(store)
+        repository.setDiceStyleId("marble")
+        repository.forgetRetired()
+        assertEquals(null, store.data.first()[stringPreferencesKey("styles_page_fit")])
+        assertEquals("marble", repository.diceStyleId.first())
+        // Nothing left to remove: run again, nothing changes.
+        val before = store.data.first()
+        repository.forgetRetired()
+        assertEquals(before, store.data.first())
+    }
+
+    @Test
     fun `a snapshot reads every setting as its flow does - the defaults with nothing saved`() = runTest {
         val repository = SettingsRepository(InMemoryPreferences())
         val empty = repository.snapshot()

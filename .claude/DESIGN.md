@@ -268,7 +268,8 @@ will map to Play Games.
     the coroutine that asked. A failed read is retried three times, after 1s, 3s and 5s, and a retry that reads the file
     gives it to the collector; after the third, it stops.
     - `settings`. Every key but the Animations level, the Orientation, and the two list filters is synced
-        (`SettingsRepository.SYNCED_KEYS`) and stamped `synced_at:<key>` when it changes.
+        (`SettingsRepository.SYNCED_KEYS`) and stamped `synced_at:<key>` when it changes. A key no version reads any more is listed in
+        `RETIRED_KEYS` and removed at launch (`forgetRetired`).
     - `achievements`: unlock times and counters, plus the cloud save's counter shares (this file's own share id and the
         others' counts) and the streak's stamp.
     - `in_progress_game`, stamped `saved_at` on every save and clear.

@@ -5,6 +5,7 @@ import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.util.DisplayMetrics
 import android.widget.Toast
 import androidx.annotation.RawRes
 import androidx.compose.runtime.Composable
@@ -72,6 +73,10 @@ class AndroidPlatformServices(context: Context, override val progressFiles: Prog
     private var transientMessage: Toast? = null
 
     /** Replaces the one still showing, so a run of messages (the version taps) doesn't queue up behind each other. */
+    // The density the device ships at, before the display size setting changes it.
+    override val defaultDensity: Float
+        get() = DisplayMetrics.DENSITY_DEVICE_STABLE.toFloat() / DisplayMetrics.DENSITY_DEFAULT
+
     override fun showTransientMessage(message: String) {
         transientMessage?.cancel()
         transientMessage = Toast.makeText(appContext, message, Toast.LENGTH_SHORT).also { it.show() }

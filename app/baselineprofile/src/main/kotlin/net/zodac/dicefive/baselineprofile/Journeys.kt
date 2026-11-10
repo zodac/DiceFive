@@ -984,6 +984,9 @@ private val CATEGORY_HEADER = By.desc(Pattern.compile("(${CATEGORIES.joinToStrin
  */
 internal fun MacrobenchmarkScope.visitStyles() {
     openFromMenu("Styles")
+    // Long enough on the Styles page for its warm-up of the category pages (StyleCategoriesWarmUp) to run to the end -
+    // a tap on a field stops it - so its code is in the profile too.
+    Thread.sleep(STYLES_WARM_UP_MS)
     for (category in STYLE_CATEGORIES) {
         // Each field is a button named for its category; its page has the category as its title instead.
         tapDesc(category)
@@ -997,6 +1000,9 @@ internal fun MacrobenchmarkScope.visitStyles() {
     }
     backToMenu()
 }
+
+// The Styles page's warm-up: 600ms to start, then about 45 passes of two frames each, with room for a slow emulator.
+private const val STYLES_WARM_UP_MS = 6_000L
 
 /** The Styles page's fields, by their spoken names. */
 private val STYLE_CATEGORIES = listOf("Dice", "Dice Cup", "Mat", "Background", "Frame", "Boxes")

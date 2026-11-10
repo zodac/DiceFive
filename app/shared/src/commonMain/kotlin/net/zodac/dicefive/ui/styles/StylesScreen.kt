@@ -41,6 +41,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.LayoutCoordinates
 import net.zodac.dicefive.ui.common.isLargeFont
 import androidx.compose.foundation.layout.height
 import net.zodac.dicefive.ui.common.sizeAtNormalFont
@@ -73,6 +76,7 @@ import net.zodac.dicefive.game.style.access
 import net.zodac.dicefive.navigation.StyleScrollRequest
 import net.zodac.dicefive.navigation.StyleScrollRequests
 import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.platform.isDisplayZoomed
 import net.zodac.dicefive.purchases.LocalStore
 import net.zodac.dicefive.purchases.StoreState
 import net.zodac.dicefive.resources.Res
@@ -166,11 +170,14 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, onOpenCategory:
             before = state
         }
     }
+    // Set as a field is tapped: the warm-up stops there, so the page cover's fade isn't fighting it (it carries on, from
+    // the pass it reached, the next time this page is open).
+    var leaving by remember { mutableStateOf(false) }
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         // Under the page, which is opaque: draws the category pages once while this one is open, so opening one isn't the
         // first time its tiles' art runs - see StyleCategoriesWarmUp. Never what the page cover waits on.
         CompositionLocalProvider(LocalPageCover provides null) {
-            StyleCategoriesWarmUp(picks = saved, width = maxWidth)
+            StyleCategoriesWarmUp(picks = saved.takeUnless { leaving }, width = maxWidth)
         }
         StylesScaffold(
             picks = saved,
@@ -180,6 +187,7 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, onOpenCategory:
             onBuy = { if (!store.buy()) platform.showTransientMessage(buyFailed) },
             onBack = onBack,
             onOpenCategory = { category ->
+                leaving = true
                 CategoryFocus.next = focus?.takeIf { request -> request.styles.any { it.categoryNoun.key == category.catalog.noun.key } }
                 onOpenCategory(category)
             },
@@ -261,19 +269,23 @@ private fun ColumnScope.StyleFields(picks: SavedStyles, focus: StyleScrollReques
     val headingStyle = MaterialTheme.typography.titleSmall
     val measurer = rememberTextMeasurer()
     val access = picks.access
+    val counts = remember(access) { StyleCategory.entries.associateWith { it.catalog.unlockCount(access) } }
     val headings = StyleCategory.entries.associateWith { category ->
-        val count = remember(access) { category.catalog.unlockCount(access) }
+        val count = counts.getValue(category)
         stringResource(category.title) to stringResource(Res.string.styles_category_count, count.unlocked, count.total)
     }
     BoxWithConstraints(modifier = Modifier.fillMaxWidth().weight(1f)) {
         // A row's headings stack their counts under their titles if any one of them doesn't fit on a line, so the row's
         // fields stay level.
         val headingWidth = with(density) { ((maxWidth - FIELD_SPACING * (columns - 1)) / columns - FIELD_PADDING * 2 - HEADING_PADDING * 2).roundToPx() }
-        val stackedRows = rows.map { row ->
-            row.any { category ->
-                val (title, count) = headings.getValue(category)
-                measurer.measure(title, headingStyle, maxLines = 1).size.width + measurer.measure(count, headingStyle, maxLines = 1).size.width +
-                    with(density) { HEADING_GAP.roundToPx() } > headingWidth
+        // Kept for the life of the process (HeadingFits), so reopening the page lays none of the headings out again.
+        val stackedRows = HeadingFits.getOrPut(HeadingFitKey(headings.values.toList(), headingStyle, headingWidth, density.density, density.textScale, columns)) {
+            rows.map { row ->
+                row.any { category ->
+                    val (title, count) = headings.getValue(category)
+                    measurer.measure(title, headingStyle, maxLines = 1).size.width + measurer.measure(count, headingStyle, maxLines = 1).size.width +
+                        with(density) { HEADING_GAP.roundToPx() } > headingWidth
+                }
             }
         }
         // At a large font, no field shorter than its words and a usable preview need: the page scrolls instead.
@@ -300,6 +312,7 @@ private fun ColumnScope.StyleFields(picks: SavedStyles, focus: StyleScrollReques
                         StyleCategoryField(
                             category = category,
                             picks = picks,
+                            count = counts.getValue(category),
                             heading = headings.getValue(category),
                             stackedHeading = stackedRows[index],
                             focus = focus.takeIf { category.catalog.noun.key in focusNouns },
@@ -316,6 +329,19 @@ private fun ColumnScope.StyleFields(picks: SavedStyles, focus: StyleScrollReques
         }
     }
 }
+
+/** What decides whether a Styles page row's headings stack (see [StyleFields]): their words, style and room, and the screen. */
+private data class HeadingFitKey(
+    val headings: List<Pair<String, String>>,
+    val style: TextStyle,
+    val width: Int,
+    val density: Float,
+    val fontScale: Float,
+    val columns: Int,
+)
+
+/** Which Styles page rows stack their headings, by [HeadingFitKey], for the life of the process. Main thread only. */
+private val HeadingFits = HashMap<HeadingFitKey, List<Boolean>>()
 
 /** Every category's unlocked count in [this], added up, each colour counted as one - see [net.zodac.dicefive.ui.style.StyleCatalog.unlockCount]. */
 @Composable
@@ -337,6 +363,7 @@ private fun SavedStyles.totalCount(): UnlockCount {
 private fun StyleCategoryField(
     category: StyleCategory,
     picks: SavedStyles,
+    count: UnlockCount,
     heading: Pair<String, String>,
     stackedHeading: Boolean,
     focus: StyleScrollRequest?,
@@ -344,8 +371,6 @@ private fun StyleCategoryField(
     modifier: Modifier = Modifier,
 ) {
     val (title, countText) = heading
-    val access = picks.access
-    val count = remember(access) { category.catalog.unlockCount(access) }
     val (name, colour) = stylePickNames(category, picks)
     val spokenPick = colour?.let { stringResource(Res.string.styles_family_colour_cd, name, it) } ?: name
     val spokenState = stringResource(Res.string.common_picker_state_spoken, spokenPick, stringResource(Res.string.styles_unlocked_count, count.unlocked, count.total))
@@ -363,7 +388,8 @@ private fun StyleCategoryField(
             .clip(CardDefaults.shape)
             .drawWithContent {
                 drawContent()
-                drawRect(GoldAccent, alpha = flash() * FIELD_FLASH_ALPHA)
+                val alpha = flash() * FIELD_FLASH_ALPHA
+                if (alpha > 0f) drawRect(GoldAccent, alpha = alpha)
             }
             .clickable(onClickLabel = stringResource(Res.string.common_picker_choose_action, title), onClick = onOpen),
     ) {
@@ -420,16 +446,20 @@ private fun FieldPreview(category: StyleCategory, picks: SavedStyles, modifier: 
 private fun FieldNames(name: String, colour: String?, modifier: Modifier = Modifier) {
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
-            // At a large font, shrunk as far as its size at 100% to fit, rather than cut off.
-            val nameStyle = MaterialTheme.typography.titleSmall.copy(fontFamily = SoraFontFamily)
-            ShrinkThenWrapText(
-                text = name,
-                style = nameStyle,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                minFontSize = LocalDensity.current.sizeAtNormalFont(nameStyle.fontSize),
-                wrappedMaxLines = 1,
-            )
+            val nameStyle = MaterialTheme.typography.titleSmall.copy(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold)
+            if (LocalDensity.current.isLargeFont) {
+                // Shrunk as far as its size at 100% to fit, rather than cut off.
+                ShrinkThenWrapText(
+                    text = name,
+                    style = nameStyle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    minFontSize = LocalDensity.current.sizeAtNormalFont(nameStyle.fontSize),
+                    wrappedMaxLines = 1,
+                )
+            } else {
+                // Nothing to shrink to at 100%, so a plain line: measuring it to fit cost each opening for nothing.
+                Text(text = name, style = nameStyle, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
             Text(
                 text = colour.orEmpty(),
                 style = MaterialTheme.typography.bodySmall,
@@ -581,11 +611,40 @@ internal fun StyleCategoryScaffold(
         // One text measurer for every tile's name, kept across openings - see rememberTileLabelMeasurer.
         val labelMeasurer = rememberTileLabelMeasurer()
         val pageScroll = rememberScrollState()
-        CompositionLocalProvider(LocalTileLabelMeasurer provides labelMeasurer) {
-            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+        // The page's viewport, for a banner's style to be put in the middle of at once (LocalStyleTileJump).
+        val viewport = remember { arrayOfNulls<LayoutCoordinates>(1) }
+        val jump = remember(pageScroll) {
+            { tile: LayoutCoordinates ->
+                val page = viewport[0]
+                if (page != null && page.isAttached && tile.isAttached) {
+                    val bounds = page.localBoundingBoxOf(tile, clipBounds = false)
+                    pageScroll.dispatchRawDelta(bounds.center.y - page.size.height / 2f)
+                }
+            }
+        }
+        CompositionLocalProvider(LocalTileLabelMeasurer provides labelMeasurer, LocalStyleTileJump provides jump) {
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth().weight(1f).onGloballyPositioned { viewport[0] = it }) {
+                // At a larger font or display size, smaller tiles where that fits them all on the page (fittedTileScale):
+                // smaller dp, the same sp, so the names keep their size. Never at the device's own sizes, where a long
+                // category scrolls at full size. Worked out for every tile, shown or not, so the Unlocked switch never
+                // resizes them.
+                val density = LocalDensity.current
+                val fits = density.isLargeFont || LocalPlatformServices.current.isDisplayZoomed(density.density)
+                // A name's line as it's drawn, measured: taller than the style's line height at a large font.
+                val labelStyle = MaterialTheme.typography.labelSmall
+                val labelHeight = remember(labelMeasurer, labelStyle) { labelMeasurer.measure(LABEL_SAMPLE, labelStyle).size.height.toFloat() }
+                val tileCount = remember(loaded.access) { category.tileCount(loaded.access) }
+                val scale = remember(fits, category, tileCount, constraints.maxWidth, constraints.maxHeight, density, labelHeight) {
+                    if (fits) fittedTileScale(category, tileCount, constraints.maxWidth, constraints.maxHeight, density.density, labelHeight) else 1f
+                }
+                val tilesDensity = remember(density, scale) {
+                    if (scale == 1f) density else Density(density.density * scale, density.textScale / scale)
+                }
                 Column(modifier = Modifier.verticalScroll(pageScroll)) {
                     Card(modifier = Modifier.fillMaxWidth()) {
-                        StyleCategoryTiles(category = category, picks = loaded, onSelect = onSelect, focus = focus, unlockedOnly = unlockedOnly)
+                        CompositionLocalProvider(LocalDensity provides tilesDensity) {
+                            StyleCategoryTiles(category = category, picks = loaded, onSelect = onSelect, focus = focus, unlockedOnly = unlockedOnly)
+                        }
                     }
                 }
                 // In the page's right-hand margin, beside the tiles rather than over them - see VerticalScrollbar.
@@ -700,6 +759,9 @@ private fun UnlockedOnlySwitch(unlockedOnly: Boolean, enabled: Boolean, onChange
     }
 }
 
+
+// Text as tall as any tile's name, to measure a name's line by (not shown).
+private const val LABEL_SAMPLE = "Ág" // i18n: not translated - measured, never shown
 
 /** Fields to a row on the Styles page: portrait, and landscape. */
 private const val PORTRAIT_COLUMNS = 2

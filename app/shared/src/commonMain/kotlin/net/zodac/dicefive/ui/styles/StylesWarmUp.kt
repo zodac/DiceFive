@@ -51,9 +51,10 @@ fun StylesWarmUp(picks: SavedStyles?, width: Dp, modifier: Modifier = Modifier) 
 private enum class StylesPass { FRAME, PAGE }
 
 /**
- * Draws every category's page once, out of sight, while the Styles page is open, so opening one isn't the first time its
- * tiles' art runs (see [StylesWarmUp]): every tile [WARM_UP_TILES_PER_PASS] at a time, a category at a time, then each
- * category's whole page ([StyleCategoryScaffold]). Placed under the Styles page, which is opaque, in a 1dp clipped box.
+ * Draws every category's tiles once, out of sight, while the Styles page is open, so opening one isn't the first time
+ * its tiles' art runs (see [StylesWarmUp]): [WARM_UP_TILES_PER_PASS] at a time, a category at a time, then one
+ * category's whole page ([StyleCategoryScaffold]) for the page's own code - every page's is the same, and each whole page
+ * a pass cost a heavy frame on the Styles page. Placed under the Styles page, which is opaque, in a 1dp clipped box.
  *
  * Once per launch, but not from the start each time: a player who opens a category, or leaves the page, before it's done
  * stops it, and the next time the Styles page is open it carries on from the pass it had reached ([categoryWarmUpDone]).
@@ -87,14 +88,14 @@ internal fun StyleCategoriesWarmUp(picks: SavedStyles?, width: Dp, modifier: Mod
     }
 }
 
-/** [StyleCategoriesWarmUp]'s passes, in order: every category's tiles a few at a time, then each category's whole page. */
+/** [StyleCategoriesWarmUp]'s passes, in order: every category's tiles a few at a time, then the first category's whole page. */
 internal fun categoryWarmUpPasses(picks: SavedStyles): List<CategoryPass> = buildList {
     for (category in StyleCategory.entries) {
         for (first in 0 until category.tileCount(picks.access) step WARM_UP_TILES_PER_PASS) {
             add(CategoryPass.Tiles(category, first until first + WARM_UP_TILES_PER_PASS))
         }
     }
-    for (category in StyleCategory.entries) add(CategoryPass.Page(category))
+    add(CategoryPass.Page(StyleCategory.entries.first()))
 }
 
 /** One step of [StyleCategoriesWarmUp]: some of a category's tiles, or a category's whole page. */

@@ -32,16 +32,15 @@ import net.zodac.dicefive.model.TurnTimer
  * - the New Game form's last choices, so returning to it pre-fills them: each player slot's name, type (Human/CPU),
  *   CPU difficulty and colour (1-4, slot 1 always Human), the player count, the game mode, the turn timer and every
  *   modifier;
- * - the Styles picks (as ids) and the Styles page's fitted size;
+ * - the Styles picks (as ids);
  * - the Achievements page's Locked only switch and the Styles page's Unlocked only switch;
  * - the Statistics screen's page (Combined or a game mode) and each page's sort;
  * - the Leaderboard's board (Combined or a game mode);
  * - sound, vibration, the Animations level and whether leaving a game in progress asks first;
  * - whether a game has ever been finished here, which unlocks the New Game form's game modes and modifiers.
  *
- * Every setting but the Animations level, the Orientation, the Styles page fit and the list filters goes in the cloud
- * save ([SYNCED_KEYS]): those are about this device - what it can draw, how it's held, its screen, and how this player likes
- * to browse. Each synced key is stamped with when its value last changed
+ * Every setting but the Animations level, the Orientation and the list filters goes in the cloud save ([SYNCED_KEYS]):
+ * those are about this device - what it can draw, how it's held, and how this player likes to browse. Each synced key is stamped with when its value last changed
  * ([stampKey]), and the cloud save keeps whichever device set it last. A key with no stamp, as an older version's
  * achievements reset left the Styles picks, is stamped 0: it loses to any later change, but beats a device that never set one.
  */
@@ -145,6 +144,14 @@ class SettingsRepository(
                 if (synced.write(prefs, theirs.value)) prefs[stampKey(synced.key)] = theirs.atEpochMillis
             }
         }
+    }
+
+    /**
+     * Removes the settings no version reads any more ([RETIRED_KEYS]), left behind by an older one. Nothing is written when
+     * none is there - DataStore skips an edit that changes nothing - so it's cheap to run on every launch.
+     */
+    suspend fun forgetRetired() {
+        dataStore.edit { prefs -> RETIRED_KEYS.forEach { prefs.remove(it) } }
     }
 
     /** Forgets every synced setting and its stamp, as on a device that never set one - for another account signing in. */
@@ -426,6 +433,12 @@ class SettingsRepository(
             if (page == ModePage.COMBINED_ID) STATISTICS_SORT_KEY else stringPreferencesKey("statistics_sort_$page")
         val LOCKED_ONLY_ACHIEVEMENTS_KEY = booleanPreferencesKey("locked_only_achievements")
         val UNLOCKED_ONLY_STYLES_KEY = booleanPreferencesKey("unlocked_only_styles")
+
+        /**
+         * Settings no version reads any more, removed at launch ([forgetRetired]): the Styles page's fitted size for its
+         * screen, from before the Styles page became one of category fields (2026-11-10). Never in the cloud save.
+         */
+        val RETIRED_KEYS: List<Preferences.Key<*>> = listOf(stringPreferencesKey("styles_page_fit"))
         val LEADERBOARD_CHOICE_KEY = stringPreferencesKey("leaderboard_choice")
         fun playerNameKey(slot: Int) = stringPreferencesKey("player_name_$slot")
         fun playerTypeKey(slot: Int) = stringPreferencesKey("player_type_$slot")

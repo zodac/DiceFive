@@ -92,6 +92,20 @@ Each of these fixed a reported stutter. New work must keep them.
     - Each tile's preview is drawn in its own offscreen layer.
     - `StylesWarmUp` pre-draws the Styles page on the menu's idle frames, and `StyleCategoriesWarmUp` the category pages
         on the Styles page's (`UI_SCREENS.md`).
+    - Opening frames (2026-11-10, Robolectric at 411x891dp, every style unlocked, warm openings; relative only):
+        compose and layout, then draw. The old single page: 40-60 then 60-64ms, then up to ~39ms a frame while its rows
+        built. The Styles page: 53-88 then 61-77ms. The Dice page: 47-70 then 92-106ms. The Mat page: 14-21 then 54-71ms.
+    - Building a category page's tiles a screenful first, then a line a frame, was tried and dropped: on a phone a
+        screenful and a line is nearly every die, and in one run with the two alternating, the Dice page's opening frame
+        was the same either way (56/141ms against 59/142ms). Its cost is drawing the tiles on screen.
+    - A category page's opening (2026-11-10, profiled): about half composing its tiles, a fifth measuring them. Each
+        tile's lookups of the words every tile shares - "Select", "Locked", the colour word, and the templates the tile
+        fills with its own names - are made once a page (`TileWords`, `fillTemplate`), leaving only its own name and
+        colour to look up: the Dice page's compose and layout went from about 62 to 55ms. Left: the Maths and Poker dice
+        lay their faces' text out afresh each opening (about 6%); caching it would touch the game's art too.
+    - The Styles page's heading fits (`HeadingFits`) are kept for the process, and its names are plain `Text` at 100%
+        (`ShrinkThenWrapText` measured them for nothing); profiled, those were its own largest costs, the rest being
+        Compose's.
 - **The Leaderboard and Statistics.** Neither page's frames grow with the scores behind them: every board reads
     1,000 rows a page, Statistics is a `LazyColumn` (only the cards on screen are built), and every Leaderboard board is
     one `LeaderboardTable`, read when first picked. What grew was elsewhere:

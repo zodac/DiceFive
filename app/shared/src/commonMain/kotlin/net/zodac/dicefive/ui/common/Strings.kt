@@ -33,8 +33,21 @@ private val PLACEHOLDER = Regex("""%(\d+)\$[sd]""")
 
 /** [template] with each "%N$s" or "%N$d" replaced by the Nth of [args], whole numbers in the strings' numerals. */
 @Composable
-private fun fill(template: String, args: Array<out Any>): String {
-    val languageTag = resourcesStringResource(Res.string.common_locale)
+private fun fill(template: String, args: Array<out Any>): String = fillTemplate(template, args, stringsLanguage())
+
+/**
+ * The strings' language tag, for [fillTemplate]: what [stringResource] fills each string with. Looked up once for many
+ * strings filled outside composition - one per tile of a long page - rather than once a string.
+ */
+@Composable
+fun stringsLanguage(): String = resourcesStringResource(Res.string.common_locale)
+
+/**
+ * [template] - a string fetched with [stringResource] and no arguments, its placeholders still in it - filled as
+ * [stringResource] would fill it, in [languageTag] ([stringsLanguage]): each "%N$s" or "%N$d" replaced by the Nth of
+ * [args], whole numbers in the strings' numerals.
+ */
+fun fillTemplate(template: String, args: Array<out Any>, languageTag: String): String {
     val rightToLeft = isRightToLeft(languageTag)
     return PLACEHOLDER.replace(template) { match ->
         when (val arg = args.getOrNull(match.groupValues[1].toInt() - 1)) {

@@ -42,6 +42,12 @@ interface PlatformServices {
     /** Turns the app with the device, or keeps it in one orientation - the player's "Orientation" setting. A platform that can't lock it ignores this. */
     fun lockOrientation(orientation: ScreenOrientation) {}
 
+    /**
+     * The device's own pixels to a dp, before the player's display size setting: a larger display size draws more pixels
+     * to a dp than this ([isDisplayZoomed]). Null on a platform that can't tell, taken as no larger display size.
+     */
+    val defaultDensity: Float? get() = null
+
     /** A short message that shows for a moment and needs no response - each platform's own (a toast, on Android). */
     fun showTransientMessage(message: String)
 
@@ -154,3 +160,9 @@ interface Accelerometer {
         const val DEFAULT_SAMPLES_PER_SECOND = 50
     }
 }
+
+/** Whether [density] - a screen's pixels to a dp - is the player's larger display size: more than [PlatformServices.defaultDensity]. */
+fun PlatformServices.isDisplayZoomed(density: Float): Boolean = defaultDensity?.let { density > it * DISPLAY_ZOOM_TOLERANCE } ?: false
+
+// A hair over the default, so a rounding of the device's own density isn't taken for a larger display size.
+private const val DISPLAY_ZOOM_TOLERANCE = 1.01f

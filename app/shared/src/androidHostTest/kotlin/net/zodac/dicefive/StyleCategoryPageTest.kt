@@ -1,6 +1,9 @@
 package net.zodac.dicefive
 
 import androidx.compose.runtime.CompositionLocalProvider
+import net.zodac.dicefive.platform.PlatformServices
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
@@ -51,10 +54,23 @@ class StyleCategoryPageTest : UiTest() {
     private fun picks(achievements: AchievementsState = everything, diceId: String = DiceStyles.default.id) =
         MutableStateFlow<SavedStyles?>(SavedStyles(diceId, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements))
 
-    /** [category]'s page on [viewModel]. */
-    private fun open(category: StyleCategory, viewModel: StylesViewModel = stylesViewModel(picks())) {
+    /** [category]'s page on [viewModel], on a device whose own density is [defaultDensity] (null: as the screen's), at [fontScale]. */
+    private fun open(
+        category: StyleCategory,
+        viewModel: StylesViewModel = stylesViewModel(picks()),
+        defaultDensity: Float? = null,
+        fontScale: Float = 1f,
+    ) {
+        val platform = object : PlatformServices by SilentPlatformServices {
+            override val defaultDensity: Float? = defaultDensity
+        }
         showcase.show {
-            DiceFiveTheme { CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { StyleCategoryScreen(viewModel = viewModel, category = category, onBack = {}) } }
+            DiceFiveTheme {
+                val density = LocalDensity.current
+                CompositionLocalProvider(LocalPlatformServices provides platform, LocalDensity provides Density(density.density, fontScale)) {
+                    StyleCategoryScreen(viewModel = viewModel, category = category, onBack = {})
+                }
+            }
         }
         compose.mainClock.advanceTimeBy(2_000)
         compose.waitForIdle()
@@ -80,6 +96,33 @@ class StyleCategoryPageTest : UiTest() {
             assertTrue(lines.values.flatten().all { it.positionInRoot.x >= 0f && it.positionInRoot.x + it.size.width <= width }, "$category")
             compose.mainClock.autoAdvance = true
         }
+    }
+
+    /** How far the page scrolls, in dp, and how many tiles are on its first line. */
+    private fun scrollAndFirstLine(): Pair<Float, Int> {
+        val scroll = compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)).fetchSemanticsNodes()
+            .single().config[SemanticsProperties.VerticalScrollAxisRange].maxValue() / compose.density.density
+        val firstLine = compose.onAllNodes(tiles).fetchSemanticsNodes().groupBy { it.positionInRoot.y }.minBy { it.key }.value.size
+        return scroll to firstLine
+    }
+
+    @Test
+    fun `at the device's own sizes a long category scrolls at full size - at a larger display size or font its tiles shrink to fit`() = uiTest(TestScreen(360, 768)) {
+        // The device's own density and font: the dice scroll, four to a line.
+        open(StyleCategory.DICE)
+        val (fullScroll, fullLine) = scrollAndFirstLine()
+        assertTrue(fullScroll > 100f, "scrolls $fullScroll")
+        assertEquals(4, fullLine)
+
+        // A larger display size (the screen's density above the device's own): smaller tiles, five to a line, no scrolling.
+        open(StyleCategory.DICE, defaultDensity = compose.density.density / 1.1f)
+        val (zoomedScroll, zoomedLine) = scrollAndFirstLine()
+        assertEquals(0f, zoomedScroll, "zoomed dice")
+        assertEquals(5, zoomedLine)
+
+        // A larger font: the cups shrink just enough to fit too.
+        open(StyleCategory.DICE_CUP, fontScale = 1.3f)
+        assertEquals(0f, scrollAndFirstLine().first, "cups at 130%")
     }
 
     @Test

@@ -254,8 +254,10 @@ of every tile (`StyleCategoryTiles`), the page scrolling. A pick is saved at onc
 - **The page scrollbar** (`VerticalScrollbar`) sits in the 20dp right margin, and the whole margin is its drag handle.
     It's silent to TalkBack.
 
-**A styles banner** (long-pressed) opens the category's page when its styles are all of one category, over the Styles
-page so Back returns there; the styles are brought into view and flashed gold. Styles of several categories open the
+**A styles banner** (long-pressed) opens the category's page when its styles are all of one category
+(`Screen.stylesBannerTarget`), over the Styles page so Back returns there; the styles are flashed gold, the page
+opening already scrolled to them (`LocalStyleTileJump`), or sliding there if it was open already
+(`StyleScrollRequest.animate`). Styles of several categories open the
 Styles page, those fields flashed; opening one hands the request on (`CategoryFocus`), so its styles flash there.
 
 **Unlock All** (the purchase, `PURCHASES.md`) is a tonal button at the Styles page's app bar end: the purchase's mark
@@ -283,8 +285,16 @@ Styles page, those fields flashed; opening one hands the request on (`CategoryFo
     tile; sides are `TILES_SIDE_PADDING` (8dp). On a 360dp phone this fits four dice, cups or backgrounds, and three
     mats, frames or boxes (`StyleCategoryPageTest`).
 - **Tile sizes.** Mats are 97x65dp (the tray's shape, cut 10% so three fit). Backgrounds are 72x80dp (the board's
-    shape). Boxes are 97x76dp like frames, a corner of a scorecard at 62% of compact boxes (`BoxPreview`). The cups
-    "Treasure Chest" and "Picnic Basket" were renamed "Treasure" and "Picnic" so their names fit.
+    shape). Boxes are 97x76dp like frames, a corner of a scorecard at 62% of compact boxes (`BoxPreview`). Cups are
+    72x88dp: at 96dp their five lines scrolled a 360x800dp phone under its status bar. The cups "Treasure Chest" and
+    "Picnic Basket" were renamed "Treasure" and "Picnic" so their names fit.
+- **Fitting the screen** (decided 2026-11-10): only at a larger font or display size (`isDisplayZoomed`: the screen's
+    density above `PlatformServices.defaultDensity`), a category page that would scroll draws its tiles smaller to fit
+    (`fittedTileScale`): smaller dp, the same sp, so the names keep their size, and a smaller tile can gain a column.
+    No smaller than a cup's 64dp from 88dp (`MIN_TILE_FIT_SCALE`), nor any tile under the 48dp touch target (a mat
+    stops at 48/65); where even that doesn't fit, full size and scrolling. At the device's own sizes a long category
+    (the dice) scrolls at full size, by the maintainer's choice. Worked out for every tile, shown or not, so the
+    Unlocked switch never resizes them.
 
 **The warm-ups**: a page's first open after launch is slow, because the drawing code runs for the first time. Two, by
 the maintainer's choice (2026-11-10): the menu warms only the Styles page, and the category pages are warmed only once
@@ -293,8 +303,10 @@ the Styles page has been opened.
 - `StylesWarmUp`, on the menu: 600ms after it settles, the Styles page's empty frame, then the whole page
     (`driftingDice = false`), once per process.
 - `StyleCategoriesWarmUp`, under the Styles page: 600ms after it opens, every tile three at a time, a category at a
-    time, then each category's page. Once per process, carrying on from the pass it had reached
-    (`categoryWarmUpDone`) when a category is opened, or the page left, before it's done (`StylesWarmUpTest`).
+    time, then one category's whole page (every page's own code is the same; a whole page a pass made heavy frames on
+    the Styles page). Once per process. It stops the moment a field is tapped, so the page cover's fade isn't fighting
+    it, and carries on from the pass it had reached (`categoryWarmUpDone`) the next time the page is open
+    (`StylesWarmUpTest`).
 - Each draws in a 1dp clipped box under its page's opaque backdrop. Compose doesn't cull clipped content.
 - The pages and the warm-ups share `StyleCategoryTiles`, `StyleCategoryScaffold` and `StylesScaffold`, so new
     categories are warmed automatically. Keep it that way.

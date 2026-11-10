@@ -115,8 +115,9 @@ app/
     `kotlinx-datetime` was ~180 classes.
 - **Time.** `game/Clock.kt`'s `nowEpochMillis()` (`kotlin.time.Clock`).
 - **Platform services.** `PlatformServices`: `SoundPlayer`, `HapticsPlayer`, `Accelerometer`, `showTransientMessage`,
-    `LicenceDocument`, `loadLicenceReports`, `reduceMotion`, `capFrameRate`, and `progressFiles` (null: only a build with
-    no online service has them; `DESIGN.md`, "Distribution").
+    `LicenceDocument`, `loadLicenceReports`, `reduceMotion`, `capFrameRate`, `defaultDensity` (the device's own pixels
+    to a dp, for `isDisplayZoomed`; null where a platform can't tell), and `progressFiles` (null: only a build with no
+    online service has them; `DESIGN.md`, "Distribution").
     - `SoundEffects` and `DiceHaptics` are shared wrappers.
     - `ShakeDetector` is pure logic (`ShakeDetectorTest`).
 - **Build info.** `BuildInfo` (version, debug flag). Superuser tests pass `isDebugBuild` explicitly, and a test pins

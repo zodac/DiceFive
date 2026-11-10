@@ -97,6 +97,8 @@ class AppContainer(
     val databaseFailure: StateFlow<String?> = mutableDatabaseFailure.asStateFlow()
 
     init {
+        // Tidies away settings an older version left behind.
+        scope.launch { settingsRepository.forgetRetired() }
         scope.launch {
             try {
                 scoreRepository.open()
