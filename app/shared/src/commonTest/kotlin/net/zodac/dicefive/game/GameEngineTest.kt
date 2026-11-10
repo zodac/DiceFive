@@ -110,6 +110,7 @@ class GameEngineTest {
         assertFalse(GameEngine.newGame(onePlayer, rollModifiers = RollModifiers(storedRolls = true)).countsOnLeaderboard)
         assertFalse(GameEngine.newGame(onePlayer, extendedScores = true).countsOnLeaderboard)
         assertFalse(GameEngine.newGame(onePlayer, unluckyDice = UnluckyDice()).countsOnLeaderboard)
+        assertFalse(GameEngine.newGame(onePlayer, firstRollBonus = true).countsOnLeaderboard)
         assertTrue(GameEngine.newGame(onePlayer).unluckyDice == null)
 
         // A roll modifier is set on every player.
@@ -571,6 +572,90 @@ class GameEngineTest {
         state = scoreNow(state.copy(phase = TurnPhase.ROLLED), state.categories.first { state.players.single().isOpen(it) })
         assertTrue(state.isGameOver)
         assertTrue(state.players.single().isScorecardComplete)
+    }
+
+    // ---- First Roll Bonus --------------------------------------------------------------------------
+
+    /** [state] on its turn's first roll ([firstRoll]) or its second, showing [faces]. */
+    private fun rolled(state: GameState, vararg faces: Int, firstRoll: Boolean = true) = state.copy(
+        phase = TurnPhase.ROLLED,
+        rollsRemaining = state.turnRolls - if (firstRoll) 1 else 2,
+        dice = faces.map { Die(value = it) },
+    )
+
+    private fun scoredWithFirstRollBonus(category: ScoreCategory, vararg faces: Int, firstRoll: Boolean = true, mode: GameMode = GameMode.STANDARD): Int =
+        GameEngine.commitScore(rolled(GameEngine.newGame(onePlayer, mode, firstRollBonus = true), *faces, firstRoll = firstRoll), category)
+            .players.single().scoresIn(category).single()
+
+    @Test
+    fun `First Roll Bonus - a lower box but 5x scored above zero on the first roll takes 5 more - in the box and the total`() {
+        assertEquals(5, ScoreCalculator.FIRST_ROLL_BONUS)
+        assertEquals(30, scoredWithFirstRollBonus(ScoreCategory.FULL_HOUSE, 3, 3, 3, 6, 6))
+        assertEquals(26, scoredWithFirstRollBonus(ScoreCategory.CHANCE, 3, 3, 3, 6, 6))
+        assertEquals(26, scoredWithFirstRollBonus(ScoreCategory.THREE_OF_A_KIND, 3, 3, 3, 6, 6))
+        assertEquals(22, scoredWithFirstRollBonus(ScoreCategory.FOUR_OF_A_KIND, 4, 4, 4, 4, 1))
+        assertEquals(35, scoredWithFirstRollBonus(ScoreCategory.SMALL_STRAIGHT, 1, 2, 3, 4, 6))
+        assertEquals(45, scoredWithFirstRollBonus(ScoreCategory.LARGE_STRAIGHT, 2, 3, 4, 5, 6))
+        val house = GameEngine.commitScore(rolled(GameEngine.newGame(onePlayer, firstRollBonus = true), 3, 3, 3, 6, 6), ScoreCategory.FULL_HOUSE)
+        assertEquals(30, house.players.single().totalScore)
+        // The slot that took it is marked - and only that one.
+        assertEquals(mapOf(ScoreCategory.FULL_HOUSE to setOf(0)), house.players.single().firstRollBonusSlots)
+        assertTrue(house.players.single().hasFirstRollBonus(ScoreCategory.FULL_HOUSE))
+        assertEquals(30, house.players.single().lowerSectionTotal)
+        // Stud's held hand, Third Wind's slots and Tricolour's card earn it the same way.
+        assertEquals(30, scoredWithFirstRollBonus(ScoreCategory.FULL_HOUSE, 3, 3, 3, 6, 6, mode = GameMode.TRICOLOUR))
+        assertEquals(30, scoredWithFirstRollBonus(ScoreCategory.FULL_HOUSE, 3, 3, 3, 6, 6, mode = GameMode.THIRD_WIND))
+    }
+
+    @Test
+    fun `First Roll Bonus - never for 5x - an upper box - a zero - a later roll - or with the modifier off`() {
+        assertEquals(50, scoredWithFirstRollBonus(ScoreCategory.FIVE_OF_A_KIND, 6, 6, 6, 6, 6))
+        assertEquals(9, scoredWithFirstRollBonus(ScoreCategory.THREES, 3, 3, 3, 6, 6))
+        assertEquals(0, scoredWithFirstRollBonus(ScoreCategory.LARGE_STRAIGHT, 3, 3, 3, 6, 6))
+        assertEquals(25, scoredWithFirstRollBonus(ScoreCategory.FULL_HOUSE, 3, 3, 3, 6, 6, firstRoll = false))
+        val off = GameEngine.commitScore(rolled(GameEngine.newGame(onePlayer), 3, 3, 3, 6, 6), ScoreCategory.FULL_HOUSE)
+        assertEquals(listOf(25), off.players.single().scoresIn(ScoreCategory.FULL_HOUSE))
+        assertEquals(emptyMap(), off.players.single().firstRollBonusSlots)
+        val later = GameEngine.commitScore(rolled(GameEngine.newGame(onePlayer, firstRollBonus = true), 3, 3, 3, 6, 6, firstRoll = false), ScoreCategory.FULL_HOUSE)
+        assertEquals(emptyMap(), later.players.single().firstRollBonusSlots)
+
+        // In Third Wind, each slot is marked by its own turn: the second Full House on a first roll, not the first.
+        val thirdWind = GameEngine.newGame(onePlayer, GameMode.THIRD_WIND, firstRollBonus = true)
+        val firstHouse = GameEngine.commitScore(rolled(thirdWind, 3, 3, 3, 6, 6, firstRoll = false), ScoreCategory.FULL_HOUSE)
+        val secondHouse = GameEngine.commitScore(rolled(firstHouse, 3, 3, 3, 6, 6), ScoreCategory.FULL_HOUSE).players.single()
+        assertEquals(listOf(25, 30), secondHouse.scoresIn(ScoreCategory.FULL_HOUSE))
+        assertEquals(mapOf(ScoreCategory.FULL_HOUSE to setOf(1)), secondHouse.firstRollBonusSlots)
+    }
+
+    @Test
+    fun `First Roll Bonus - counts from the turn's own rolls - so a real first roll earns it - stored rolls too - and the second doesn't`() {
+        val game = GameEngine.newGame(onePlayer, firstRollBonus = true)
+        val first = GameEngine.rollDice(game, Random(3))
+        assertTrue(first.isFirstRoll && first.rollEarnsFirstRollBonus)
+        val chance = first.dice.sumOf { it.value }
+        assertEquals(chance + 5, GameEngine.commitScore(first, ScoreCategory.CHANCE).players.single().scoresIn(ScoreCategory.CHANCE).single())
+        val second = GameEngine.rollDice(first, Random(4))
+        assertFalse(second.isFirstRoll || second.rollEarnsFirstRollBonus)
+        assertEquals(second.dice.sumOf { it.value }, GameEngine.commitScore(second, ScoreCategory.CHANCE).players.single().scoresIn(ScoreCategory.CHANCE).single())
+        // Not yet rolled: no first roll to speak of.
+        assertFalse(game.isFirstRoll)
+
+        // A turn started with stored rolls: the first of them still earns it, whatever the count.
+        val stored = GameEngine.newGame(onePlayer, rollModifiers = RollModifiers(storedRolls = true), firstRollBonus = true).copy(rollsRemaining = 7, turnRolls = 7)
+        assertTrue(GameEngine.rollDice(stored, Random(3)).rollEarnsFirstRollBonus)
+    }
+
+    @Test
+    fun `First Roll Bonus - off in a mode with no box to earn it - and on - in every other - takes the game off the Leaderboard`() {
+        assertFalse(GameEngine.newGame(onePlayer, GameMode.D20, firstRollBonus = true).firstRollBonus)
+        assertFalse(GameEngine.newGame(onePlayer, GameMode.HIT_LIST, firstRollBonus = true).firstRollBonus)
+        for (mode in GameMode.entries.filter { it.allowsFirstRollBonus }) {
+            val game = GameEngine.newGame(onePlayer, mode, firstRollBonus = true)
+            assertTrue(game.firstRollBonus, "$mode")
+            assertTrue(game.hasModifiers, "$mode")
+            assertFalse(game.countsOnLeaderboard, "$mode")
+        }
+        assertFalse(GameEngine.newGame(onePlayer).firstRollBonus)
     }
 
     // ---- Unlucky Dice -----------------------------------------------------------------------------

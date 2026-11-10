@@ -189,6 +189,14 @@ still recorded, for the cloud save. The New Game screen's note and each modifier
     - Locked (with a note, the pick kept) in D20 and Hit List.
     - Always read a card from `PlayerState.categories`/`GameState.categories` (`categoriesWith`), never
         `gameMode.categories`.
+- **First Roll Bonus.**
+    - A lower box other than 5x (`ScoreCategory.earnsFirstRollBonus`) scored above zero on a turn's first roll
+        (`GameState.rollEarnsFirstRollBonus`: rolled once, counted from `turnRolls`) takes `ScoreCalculator.FIRST_ROLL_BONUS`
+        (5) more, in the box's own score, so totals and the board's preview include it.
+    - The slots that took it (`PlayerState.firstRollBonusSlots`, saved with the game) are drawn gold (normal weight), like a joker's bonus,
+        and TalkBack adds "with first roll bonus" after them.
+    - Locked (with a note, the pick kept) in D20 and Hit List, which have no such box (`GameMode.allowsFirstRollBonus`).
+    - The CPUs take it when it comes but don't plan for it.
 - **Unlucky Dice.**
     - After each roll, each rolled die has an `oddsPercent` chance (10-50%) of landing locked in chains, at most
         `maxDice` (1-5) a roll.

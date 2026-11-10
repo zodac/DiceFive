@@ -55,7 +55,7 @@ class RulesTextTest : UiTest() {
         mapOf(
             "Gameplay" to listOf("How to Play", "Upper Section", "Lower Section", "5x & Joker", "Tie Breaks"),
             "Modes" to listOf("Overview", "Tricolour", "Third Wind", "7 Dice Stud", "Hit List", "Quickfire"),
-            "Modifiers" to listOf("Overview", "Turn Timer", "Number of Rolls", "Stored Rolls", "Extended Scores", "Unlucky Dice"),
+            "Modifiers" to listOf("Overview", "Turn Timer", "Number of Rolls", "Stored Rolls", "Extended Scores", "First Roll Bonus", "Unlucky Dice"),
         ).forEach { (group, pages) ->
             compose.onNodeWithText(group).performClick()
             compose.waitForIdle()
@@ -64,10 +64,16 @@ class RulesTextTest : UiTest() {
                 "Modes" -> compose.onNodeWithText("Game Modes").assertExists()
                 "Modifiers" -> {
                     compose.onNodeWithText("Modifiers are just for fun", substring = true).assertExists()
-                    compose.onNodeWithText("1 of 6").assertExists()
-                    compose.onNode(hasContentDescription("Modifiers, page 1 of 6")).assertExists()
+                    compose.onNodeWithText("1 of 7").assertExists()
+                    compose.onNode(hasContentDescription("Modifiers, page 1 of 7")).assertExists()
                 }
             }
         }
+
+        // First Roll Bonus's example: the Full House and the bonus, added.
+        compose.onNodeWithText("First Roll Bonus").performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNode(hasContentDescription("Example: 3, 3, 3, 6, 6. Scores 25 points plus 5 points.")).performScrollTo()
+        compose.onNodeWithText("= 25pts + 5pts", useUnmergedTree = true).assertExists()
     }
 }

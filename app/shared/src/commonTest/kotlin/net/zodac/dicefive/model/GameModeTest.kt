@@ -162,6 +162,7 @@ class GameModeTest {
         assertEquals(22, d20.turnsPerGame)
         assertEquals(1350, d20.maxPossibleScore)
         assertFalse(d20.allowsExtendedScores)
+        assertFalse(d20.allowsFirstRollBonus)
         assertFalse(d20.hasStandardCard)
         assertEquals(listOf(ScoreSection.FIRST_HALF to 150, ScoreSection.SECOND_HALF to 400), d20.sectionBonuses.map { it.section to it.threshold })
         assertEquals(listOf(75, 75), d20.sectionBonuses.map { it.amount })
@@ -379,5 +380,20 @@ class GameModeTest {
         assertTrue(GameMode.STANDARD.playsByPerfectPlayTable(extendedScores = false))
         assertFalse(GameMode.STANDARD.playsByPerfectPlayTable(extendedScores = true))
         assertFalse(GameMode.TRICOLOUR.playsByPerfectPlayTable(extendedScores = false))
+    }
+
+    @Test
+    fun `First Roll Bonus is allowed in exactly the modes with a lower box but 5x - every one but D20 and Hit List`() {
+        for (mode in GameMode.entries) {
+            assertEquals(mode.categories.any { it.earnsFirstRollBonus }, mode.allowsFirstRollBonus, mode.id)
+        }
+        assertEquals(setOf(GameMode.D20, GameMode.HIT_LIST), GameMode.entries.filterNot { it.allowsFirstRollBonus }.toSet())
+        assertEquals(
+            listOf(
+                ScoreCategory.THREE_OF_A_KIND, ScoreCategory.FOUR_OF_A_KIND, ScoreCategory.FULL_HOUSE, ScoreCategory.SMALL_STRAIGHT,
+                ScoreCategory.LARGE_STRAIGHT, ScoreCategory.CHANCE,
+            ),
+            ScoreCategory.entries.filter { it.earnsFirstRollBonus },
+        )
     }
 }

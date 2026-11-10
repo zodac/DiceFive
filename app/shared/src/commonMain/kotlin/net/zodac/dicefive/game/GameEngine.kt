@@ -34,6 +34,7 @@ object GameEngine {
         rollModifiers: RollModifiers = RollModifiers(),
         extendedScores: Boolean = false,
         unluckyDice: UnluckyDice? = null,
+        firstRollBonus: Boolean = false,
         random: Random = Random.Default,
         id: Uuid = Uuid.random(),
     ): GameState {
@@ -54,6 +55,8 @@ object GameEngine {
             rollModifiers = rollModifiers,
             extendedScores = extended,
             unluckyDice = unluckyDice,
+            // A mode with no box that earns it plays without it, whatever was asked for.
+            firstRollBonus = firstRollBonus && gameMode.allowsFirstRollBonus,
             disabledCategories = disabledCategories,
             hitList = hitList,
             players = players.map {
@@ -224,7 +227,9 @@ object GameEngine {
             "$category is not available for the current dice"
         }
 
-        val value = ScoreCalculator.scoreFor(player, category, hand)
+        val handScore = ScoreCalculator.scoreFor(player, category, hand)
+        val firstRollBonus = ScoreCalculator.firstRollBonusFor(state.rollEarnsFirstRollBonus, category, handScore)
+        val value = handScore + firstRollBonus
         val bonus = ScoreCalculator.awardsFiveOfAKindBonus(player, hand)
         // A 5x scored, in the box or as a chip - not where held dice alone score (Stud), where it's no feat.
         val scoresFiveOfAKind = !state.gameMode.scoresHeldDiceOnly &&
@@ -238,6 +243,11 @@ object GameEngine {
                 player.jokerBonusSlots + (category to player.jokerBonusSlots[category].orEmpty() + player.scoresIn(category).size)
             } else {
                 player.jokerBonusSlots
+            },
+            firstRollBonusSlots = if (firstRollBonus > 0) {
+                player.firstRollBonusSlots + (category to player.firstRollBonusSlots[category].orEmpty() + player.scoresIn(category).size)
+            } else {
+                player.firstRollBonusSlots
             },
             lastRoll = state.dice,
             lastScoredCategory = category,

@@ -71,6 +71,7 @@ import net.zodac.dicefive.resources.game_box_open_spoken
 import net.zodac.dicefive.resources.game_box_score_action
 import net.zodac.dicefive.resources.game_box_target_name_spoken
 import net.zodac.dicefive.resources.game_slots_bonus_spoken
+import net.zodac.dicefive.resources.game_slots_first_roll_bonus_spoken
 import net.zodac.dicefive.resources.game_slots_last_score_spoken
 import net.zodac.dicefive.resources.game_slots_more_open_spoken
 import net.zodac.dicefive.resources.game_slots_open_spoken
@@ -349,7 +350,12 @@ internal fun CategoryCell(
     val tutorialBox = tutorial?.scores(category) == true
     val isLegalChoice = player != null && canScore && category in available && (tutorial == null || tutorialBox)
     val canPreview = player != null && showPreview && category in available
-    val previewScore = if (canPreview) ScoreCalculator.scoreFor(player, category, dice) else null
+    val firstRollBonus = LocalFirstRollBonus.current
+    val previewScore = if (canPreview) {
+        ScoreCalculator.scoreFor(player, category, dice).let { it + ScoreCalculator.firstRollBonusFor(firstRollBonus, category, it) }
+    } else {
+        null
+    }
     val isGoodChoice = previewScore != null && previewScore > 0
     // A Hit List target: what it calls, and - while its dice are being previewed - how each place stands against them.
     val target = player?.hitList?.get(category)
@@ -364,6 +370,9 @@ internal fun CategoryCell(
     val chip = player?.gameMode?.fiveOfAKindBonusAmount ?: 0
     // Slots of this box that a joker scored.
     val bonusSlots = player?.jokerBonusSlots?.get(category).orEmpty()
+    // Slots of this box whose score includes the First Roll Bonus: drawn gold, and said so.
+    val firstRollSlots = player?.firstRollBonusSlots?.get(category).orEmpty()
+    val firstRollFilled = filled != null && 0 in firstRollSlots
     // Whether this roll would earn the chip in whichever box it's scored: a joker always pays it, and only restricts the
     // boxes it can go in, so every legal one previews it.
     val bonusPreview = canPreview && ScoreCalculator.awardsFiveOfAKindBonus(player, dice)
@@ -378,10 +387,11 @@ internal fun CategoryCell(
     val categoryName = category.spokenName(irish)
     val spokenState = when {
         switchedOff -> stringResource(Res.string.game_box_disabled_spoken)
-        slotCount > 1 -> stackedSpokenState(scores, slotCount, previewScore, bonusSlots, chip, bonusPreview, lastScored != null)
+        slotCount > 1 -> stackedSpokenState(scores, slotCount, previewScore, bonusSlots, chip, bonusPreview, lastScored != null, firstRollSlots)
         filled != null -> joinClauses(
             listOfNotNull(
                 stringResource(Res.string.game_slots_scored_spoken, filled.localised()),
+                stringResource(Res.string.game_slots_first_roll_bonus_spoken).takeIf { firstRollFilled },
                 stringResource(Res.string.game_slots_bonus_spoken, boxBonus).takeIf { boxBonus > 0 },
                 stringResource(Res.string.game_box_last_turn_spoken).takeIf { lastScored != null },
             ),
@@ -456,6 +466,7 @@ internal fun CategoryCell(
                 previewGold = isGoodChoice,
                 lastScoredColor = lastScored?.color,
                 bonusSlots = bonusSlots,
+                firstRollSlots = firstRollSlots,
                 previewBonus = bonusPreview,
                 chip = chip,
                 // No taller than the tile beside it - see StackedScores.
@@ -471,7 +482,7 @@ internal fun CategoryCell(
                 Text(
                     text = (filled ?: previewScore ?: 0).localised(),
                     color = when {
-                        isGoodChoice -> GoldAccent
+                        isGoodChoice || firstRollFilled -> GoldAccent
                         lastScored != null -> lastScored.color
                         else -> TileIconColor
                     },
@@ -492,7 +503,7 @@ internal fun CategoryCell(
             // which is visible. The number is laid out again only when it changes, as the dice
             // settle. Screen readers hear the cell's stateDescription, never these.
             val shown = (filled ?: previewScore)?.let {
-                ShownScore(it.localised(), gold = previewGold, scored = filled != null, accent = lastScored?.color, worthPicking = isGoodChoice)
+                ShownScore(it.localised(), gold = previewGold || firstRollFilled, scored = filled != null, accent = lastScored?.color, worthPicking = isGoodChoice)
             }
             val lastShown = remember { arrayOfNulls<ShownScore>(1) }
             if (shown != null) lastShown[0] = shown
@@ -505,7 +516,7 @@ internal fun CategoryCell(
                             number.accent != null -> number.accent
                             else -> TileIconColor.copy(alpha = if (number.scored || number.worthPicking) 1f else 0.55f)
                         },
-                        fontWeight = if (number.gold || number.accent != null || number.worthPicking) FontWeight.Bold else FontWeight.Normal,
+                        fontWeight = if (number.boldGold || number.accent != null || number.worthPicking) FontWeight.Bold else FontWeight.Normal,
                         style = style,
                         modifier = Modifier.alpha(if (shown != null) 1f else 0f),
                     )
@@ -583,7 +594,7 @@ internal fun targetProgress(target: HitTarget, matches: List<PlaceMatch>, previe
 
 /**
  * What a screen reader hears for a box with [slotCount] slots: what's in each filled one - with the joker's bonus said
- * after a slot that has one ([bonusSlots], [chip] each) - what the dice would score in the next ([previewBonus] if a
+ * after a slot that has one ([bonusSlots], [chip] each), and the First Roll Bonus after one that took it ([firstRollSlots]) - what the dice would score in the next ([previewBonus] if a
  * joker, on top), and how many are left open - "Scored 12, 9, would score 15", "Scored 12, 2 open" - then whether its
  * last score was the player's last turn.
  */
@@ -596,13 +607,22 @@ internal fun stackedSpokenState(
     chip: Int,
     previewBonus: Boolean,
     lastScored: Boolean,
+    firstRollSlots: Set<Int> = emptySet(),
 ): String {
     val stillOpen = slotCount - scores.size - if (previewScore != null) 1 else 0
     val parts = listOfNotNull(
         scores.takeIf { it.isNotEmpty() }?.let { filled ->
             stringResource(
                 Res.string.game_slots_scored_spoken,
-                joinClauses(filled.mapIndexed { slot, score -> if (slot in bonusSlots) "$score ${stringResource(Res.string.game_slots_bonus_spoken, chip)}" else score.toString() }),
+                joinClauses(
+                    filled.mapIndexed { slot, score ->
+                        listOfNotNull(
+                            score.toString(),
+                            stringResource(Res.string.game_slots_first_roll_bonus_spoken).takeIf { slot in firstRollSlots },
+                            stringResource(Res.string.game_slots_bonus_spoken, chip).takeIf { slot in bonusSlots },
+                        ).joinToString(" ")
+                    },
+                ),
             )
         },
         previewScore?.let { stringResource(Res.string.game_slots_would_score_spoken, it) },
@@ -643,6 +663,7 @@ private fun StackedScores(
     previewGold: Boolean,
     lastScoredColor: Color?,
     bonusSlots: Set<Int>,
+    firstRollSlots: Set<Int>,
     previewBonus: Boolean,
     chip: Int,
     maxHeight: Dp,
@@ -678,7 +699,7 @@ private fun StackedScores(
                 val filled = scores.getOrNull(slot)
                 val isPreviewSlot = slot == scores.size
                 val shown = when {
-                    filled != null -> ShownScore(filled.localised(), gold = false, scored = true, accent = lastScoredColor?.takeIf { slot == scores.lastIndex }, bonus = if (slot in bonusSlots) chip else 0)
+                    filled != null -> ShownScore(filled.localised(), gold = slot in firstRollSlots, scored = true, accent = lastScoredColor?.takeIf { slot == scores.lastIndex }, bonus = if (slot in bonusSlots) chip else 0)
                     isPreviewSlot && previewScore != null -> ShownScore(previewScore.localised(), gold = previewGold, scored = false, accent = null, bonus = if (previewBonus) chip else 0)
                     else -> null
                 }
@@ -749,7 +770,7 @@ private fun SlotScore(shown: ShownScore?, style: TextStyle) {
                         number.accent != null -> number.accent
                         else -> TileIconColor.copy(alpha = if (number.scored) 1f else 0.55f)
                     },
-                    fontWeight = if (number.gold || number.accent != null) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = if (number.boldGold || number.accent != null) FontWeight.Bold else FontWeight.Normal,
                     style = style,
                     modifier = Modifier,
                 )
@@ -769,7 +790,8 @@ private fun SlotScore(shown: ShownScore?, style: TextStyle) {
 /**
  * A cell's score or preview as it was last shown: its text, whether it was gold, whether it's scored, the player's
  * colour if it's their last turn's score (see [LastScoredHighlight]), and whether it's a preview worth picking (bold,
- * and white when it isn't gold - a Hit List hit short of exact, see [isGoldPreview]).
+ * and white when it isn't gold - a Hit List hit short of exact, see [isGoldPreview]). A scored gold one (the First Roll
+ * Bonus's) keeps the normal weight; a gold preview is bold.
  * Compared by value, so a [SlotScore] handed the same score again - every filled slot, every time the
  * board recomposes - is skipped rather than recomposed.
  */
@@ -780,7 +802,11 @@ private data class ShownScore(
     val accent: Color?,
     val bonus: Int = 0,
     val worthPicking: Boolean = gold,
-)
+) {
+    /** Gold and bold: a preview's gold, not a score's. */
+    val boldGold: Boolean
+        get() = gold && !scored
+}
 
 /** A number (or "-") beside a category tile. */
 @Composable

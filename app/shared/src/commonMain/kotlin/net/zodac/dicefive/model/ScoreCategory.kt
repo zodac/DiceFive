@@ -236,6 +236,10 @@ enum class ScoreCategory(
     val isTarget: Boolean
         get() = rule is ScoreRule.Target
 
+    /** Whether a score above zero here, on a turn's first roll, earns the First Roll Bonus: a lower box other than 5x. */
+    val earnsFirstRollBonus: Boolean
+        get() = section == ScoreSection.LOWER && this != FIVE_OF_A_KIND
+
     companion object {
         /** The upper section's boxes, ONES..SIXES, in order: the one for each face is at `face - 1`. */
         val UPPER: List<ScoreCategory> = entries.filter { it.section == ScoreSection.UPPER }

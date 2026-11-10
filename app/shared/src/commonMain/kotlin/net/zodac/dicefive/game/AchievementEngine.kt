@@ -645,13 +645,14 @@ object AchievementEngine {
         // Front-Runner: a win never behind at the end of any round (GameEngine.noteBehind) - first or tied for it every time.
         award(Achievement.FRONT_RUNNER, multiplayer && humanWon && !humans.first().wasBehindAfterARound)
         award(Achievement.SLOW_START, multiplayer && humanWon && noTimeouts && humans.first().firstTurnScore == 0)
-        // Every modifier at once, in a mode of its own: the timer, both roll modifiers, Extended Scores and Unlucky Dice -
-        // Extended Scores only where the mode offers it (not D20 or Hit List).
+        // Every modifier at once, in a mode of its own: the timer, both roll modifiers, Extended Scores, Unlucky Dice, and
+        // First Roll Bonus - Extended Scores and First Roll Bonus only where the mode offers them (not D20 or Hit List).
         award(
             Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE,
             multiplayer && humanWon && !state.gameMode.isOfficialRules && state.turnTimer != TurnTimer.NONE &&
                 state.rollModifiers.rollsPerTurn != null && state.rollModifiers.storedRolls &&
-                (state.extendedScores || !state.gameMode.allowsExtendedScores) && state.unluckyDice != null,
+                (state.extendedScores || !state.gameMode.allowsExtendedScores) && state.unluckyDice != null &&
+                (state.firstRollBonus || !state.gameMode.allowsFirstRollBonus),
         )
 
         // Exactly 69/100 - thresholds the running total can overshoot, so they can only be judged

@@ -123,6 +123,17 @@ class BoardSemanticsTest : UiTest() {
         compose.onNodeWithContentDescription("Odds").assert(hasStateDescription("Would score 11"))
         assertEquals(ScoreCategory.TWO_PAIR, scored.last())
 
+        // With First Roll Bonus, a lower box but 5x says its bonus on the first roll - and not on the second.
+        val firstRoll = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Tester")), firstRollBonus = true)
+            .copy(phase = TurnPhase.ROLLED, rollsRemaining = 2, dice = listOf(3, 3, 3, 6, 6).map { Die(it) })
+        showBoard(firstRoll) {}
+        compose.onNodeWithContentDescription("Full House").assert(hasStateDescription("Would score 30"))
+        compose.onNodeWithContentDescription("Chance").assert(hasStateDescription("Would score 26"))
+        compose.onNodeWithContentDescription("Threes").assert(hasStateDescription("Would score 9"))
+        compose.onNodeWithContentDescription("Large Straight").assert(hasStateDescription("Would score 0"))
+        showBoard(firstRoll.copy(rollsRemaining = 1)) {}
+        compose.onNodeWithContentDescription("Full House").assert(hasStateDescription("Would score 25"))
+
         // A disabled box says it is disabled and offers no score - unlike an open or a scored one.
         val quickfire = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Tester")), GameMode.QUICKFIRE)
         val off = setOf(ScoreCategory.FIVE_OF_A_KIND, ScoreCategory.THREES)
@@ -212,6 +223,29 @@ class BoardSemanticsTest : UiTest() {
             },
         )
         compose.onNodeWithContentDescription("Sixes").assert(hasStateDescription("Scored 30 plus 100 bonus, 24, 30 plus 100 bonus"))
+
+        // A score that took the First Roll Bonus says so - one slot, or each of several, a joker's bonus after it.
+        showReadOnly(
+            PlayerState(name = "Robo", type = PlayerType.AI).let {
+                it.copy(
+                    scorecard = it.scorecard + (ScoreCategory.FULL_HOUSE to listOf(30)) + (ScoreCategory.CHANCE to listOf(22)),
+                    firstRollBonusSlots = mapOf(ScoreCategory.FULL_HOUSE to setOf(0)),
+                )
+            },
+        )
+        compose.onNodeWithContentDescription("Full House").assert(hasStateDescription("Scored 30, with first roll bonus"))
+        compose.onNodeWithContentDescription("Chance").assert(hasStateDescription("Scored 22"))
+        showReadOnly(
+            PlayerState(name = "Robo", type = PlayerType.AI, gameMode = GameMode.THIRD_WIND).let {
+                it.copy(
+                    scorecard = it.scorecard + (ScoreCategory.FIVE_OF_A_KIND to listOf(50, 0, 0)) + (ScoreCategory.FULL_HOUSE to listOf(25, 30)),
+                    fiveOfAKindBonusCount = 1,
+                    jokerBonusSlots = mapOf(ScoreCategory.FULL_HOUSE to setOf(1)),
+                    firstRollBonusSlots = mapOf(ScoreCategory.FULL_HOUSE to setOf(1)),
+                )
+            },
+        )
+        compose.onNodeWithContentDescription("Full House").assert(hasStateDescription("Scored 25, 30 with first roll bonus plus 100 bonus, 1 open"))
         compose.onNodeWithContentDescription("5x").assert(hasStateDescription("Scored 50, 0, 0"))
         showReadOnly(
             PlayerState(name = "Robo", type = PlayerType.AI).let {

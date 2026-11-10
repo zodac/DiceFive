@@ -176,6 +176,8 @@ enum class GameMode(
     val hitListShapes: List<TargetShape> = emptyList(),
     /** Whether the Extended Scores modifier can be switched on for this mode - its boxes need a card they mean something on. */
     val allowsExtendedScores: Boolean = true,
+    /** Whether the First Roll Bonus modifier can be switched on for this mode: false where no box earns it ([ScoreCategory.earnsFirstRollBonus]). */
+    val allowsFirstRollBonus: Boolean = true,
     /** The bonuses this mode's sections earn besides Standard's upper one, each added to the total once its section reaches its threshold. */
     val sectionBonuses: List<SectionBonus> = emptyList(),
     /**
@@ -360,6 +362,7 @@ enum class GameMode(
         maxRollsPerGame = 110,
         countsOnLeaderboard = false,
         allowsExtendedScores = false,
+        allowsFirstRollBonus = false,
         sectionBonuses = listOf(
             SectionBonus(ScoreSection.FIRST_HALF, threshold = 150, amount = 75),
             SectionBonus(ScoreSection.SECOND_HALF, threshold = 400, amount = 75),
@@ -403,6 +406,7 @@ enum class GameMode(
         countsOnLeaderboard = false,
         hitListShapes = HIT_LIST_SHAPES,
         allowsExtendedScores = false,
+        allowsFirstRollBonus = false,
     ),
     /**
      * Beyond the official rules: Standard's dice, three rolls and scorecard, but every game starts with

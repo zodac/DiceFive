@@ -37,6 +37,11 @@ data class PlayerState(
      * [scorecard]'s list for that box.
      */
     val jokerBonusSlots: Map<ScoreCategory, Set<Int>> = emptyMap(),
+    /**
+     * The slots of each box whose score includes the First Roll Bonus (see `ScoreCalculator.firstRollBonusFor`), numbered
+     * as [jokerBonusSlots]'s are.
+     */
+    val firstRollBonusSlots: Map<ScoreCategory, Set<Int>> = emptyMap(),
     /** The dice this player's last completed turn was scored with - value and held/unheld state
      * both, as they stood the moment they tapped a category. Null before this player's first turn
      * ends, and after a turn the timer ran out on before it was rolled. [GameState.dice] itself is reset for the next player the instant a turn advances, so
@@ -208,6 +213,9 @@ data class PlayerState(
 
     /** Whether the score in [category]'s [slot] was a joker's, carrying a bonus chip. */
     fun hasJokerBonus(category: ScoreCategory, slot: Int = 0): Boolean = slot in jokerBonusSlots[category].orEmpty()
+
+    /** Whether the score in [category]'s [slot] includes the First Roll Bonus. */
+    fun hasFirstRollBonus(category: ScoreCategory, slot: Int = 0): Boolean = slot in firstRollBonusSlots[category].orEmpty()
 
     /** The bonus chips on [category]'s slots. */
     fun jokerBonusIn(category: ScoreCategory): Int = jokerBonusSlots[category].orEmpty().size * gameMode.fiveOfAKindBonusAmount

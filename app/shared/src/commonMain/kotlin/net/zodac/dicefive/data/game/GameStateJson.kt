@@ -63,6 +63,7 @@ object GameStateJson {
         if (state.rollModifiers.storedRolls) put("storedRolls", true)
         state.rollModifiers.storedRollsMax?.let { put("storedRollsMax", it) }
         if (state.extendedScores) put("extendedScores", true)
+        if (state.firstRollBonus) put("firstRollBonus", true)
         state.unluckyDice?.let {
             put("unluckyOdds", it.oddsPercent)
             put("unluckyMaxDice", it.maxDice)
@@ -100,6 +101,7 @@ object GameStateJson {
                 rollModifiers = rollModifiers,
                 extendedScores = extendedScores,
                 unluckyDice = decodeUnluckyDice(obj),
+                firstRollBonus = obj.flag("firstRollBonus"),
                 disabledCategories = disabledCategories,
                 hitList = hitList,
                 currentPlayerIndex = obj.int("currentPlayerIndex"),
@@ -222,6 +224,14 @@ object GameStateJson {
                 },
             )
         }
+        if (player.firstRollBonusSlots.isNotEmpty()) {
+            put(
+                "firstRollBonusSlots",
+                buildJsonObject {
+                    for ((category, slots) in player.firstRollBonusSlots) put(category.id, jsonInts(slots.sorted()))
+                },
+            )
+        }
         put("rollCount", player.rollCount)
         put("diceRolled", player.diceRolled)
         if (player.storedRolls > 0) put("storedRolls", player.storedRolls)
@@ -267,7 +277,9 @@ object GameStateJson {
             scorecard = scorecard,
             fiveOfAKindBonusCount = obj.int("fiveOfAKindBonusCount"),
             // Left out by encode until a joker has scored.
-            jokerBonusSlots = decodeJokerBonusSlots(obj.objOrNull("jokerBonusSlots"), categories),
+            jokerBonusSlots = decodeBonusSlots(obj.objOrNull("jokerBonusSlots"), categories),
+            // Left out by encode until a score takes the First Roll Bonus.
+            firstRollBonusSlots = decodeBonusSlots(obj.objOrNull("firstRollBonusSlots"), categories),
             // Left out by encode for a player with no finished turn yet - no last roll to show.
             lastRoll = if ("lastRoll" in obj) obj.objectList("lastRoll").map(::decodeDie) else null,
             // Left out by encode before the player's first turn ends: nothing is highlighted yet.
@@ -292,7 +304,7 @@ object GameStateJson {
         )
     }
 
-    private fun decodeJokerBonusSlots(obj: JsonObject?, categories: List<ScoreCategory>): Map<ScoreCategory, Set<Int>> {
+    private fun decodeBonusSlots(obj: JsonObject?, categories: List<ScoreCategory>): Map<ScoreCategory, Set<Int>> {
         if (obj == null) return emptyMap()
         return categories.mapNotNull { category ->
             val slots = (obj[category.id] as? JsonArray)?.items?.mapNotNull { (it as? JsonNumber)?.toInt() }?.toSet()

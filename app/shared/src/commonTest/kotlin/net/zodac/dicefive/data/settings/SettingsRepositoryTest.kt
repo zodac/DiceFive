@@ -71,6 +71,7 @@ class SettingsRepositoryTest {
         repository.setTurnTimer(TurnTimer.SECONDS_60)
         repository.setRollModifiers(RollModifiers(rollsPerTurn = RollModifiers.ROLLS.last, storedRolls = true), rollsPerTurnLength = RollModifiers.ROLLS.last)
         repository.setExtendedScores(true)
+        repository.setFirstRollBonus(true)
         repository.setUnluckyDice(true, UnluckyDice(UnluckyDice.ODDS_PERCENT.last, UnluckyDice.MAX_DICE.last))
         repository.setGameMode(GameMode.TRICOLOUR)
 
@@ -85,6 +86,8 @@ class SettingsRepositoryTest {
         assertEquals(repository.rollModifiers.first(), saved.rollModifiers)
         assertEquals(repository.rollsPerTurnLength.first(), saved.rollsPerTurnLength)
         assertEquals(repository.extendedScores.first(), saved.extendedScores)
+        assertEquals(repository.firstRollBonus.first(), saved.firstRollBonus)
+        assertTrue(saved.firstRollBonus)
         assertEquals(repository.unluckyDiceEnabled.first(), saved.unluckyDiceEnabled)
         assertEquals(repository.unluckyDice.first(), saved.unluckyDice)
         assertEquals(repository.gameMode.first(), saved.gameMode)

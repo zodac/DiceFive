@@ -18,6 +18,8 @@ data class GameState(
     val extendedScores: Boolean = false,
     /** The Unlucky Dice modifier's settings, or null while it's off. */
     val unluckyDice: UnluckyDice? = null,
+    /** Whether the First Roll Bonus modifier is on: a lower box other than 5x scored on a turn's first roll earns extra points. */
+    val firstRollBonus: Boolean = false,
     /** The boxes switched off for this game, the same on every player's card - see [PlayerState.disabledCategories]. */
     val disabledCategories: Set<ScoreCategory> = emptySet(),
     /** The targets drawn for this game, the same on every player's card - see [PlayerState.hitList]. */
@@ -98,12 +100,20 @@ data class GameState(
     val turnSeconds: Int?
         get() = turnTimer.seconds
 
-    /** Whether any modifier - the [turnTimer], [rollModifiers], [extendedScores] or [unluckyDice] - is on. */
+    /** Whether the dice have been rolled once this turn, and only once. */
+    val isFirstRoll: Boolean
+        get() = phase == TurnPhase.ROLLED && turnRolls - rollsRemaining == 1
+
+    /** Whether a score now can earn the First Roll Bonus: the modifier is on and this is the turn's first roll. */
+    val rollEarnsFirstRollBonus: Boolean
+        get() = firstRollBonus && isFirstRoll
+
+    /** Whether any modifier - the [turnTimer], [rollModifiers], [extendedScores], [unluckyDice] or [firstRollBonus] - is on. */
     val hasModifiers: Boolean
-        get() = turnTimer != TurnTimer.NONE || rollModifiers.isActive || extendedScores || unluckyDice != null
+        get() = turnTimer != TurnTimer.NONE || rollModifiers.isActive || extendedScores || unluckyDice != null || firstRollBonus
 
     /** Whether this game's scores go on the Leaderboard: its mode must allow it ([GameMode.countsOnLeaderboard])
-     * and no modifier, like the [turnTimer], [rollModifiers], [extendedScores] or [unluckyDice], may be on - modifiers are for fun, not for the records. */
+     * and no modifier, like the [turnTimer], [rollModifiers], [extendedScores], [unluckyDice] or [firstRollBonus], may be on - modifiers are for fun, not for the records. */
     val countsOnLeaderboard: Boolean
         get() = gameMode.countsOnLeaderboard && !hasModifiers
 

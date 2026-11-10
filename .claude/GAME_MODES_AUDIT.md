@@ -89,7 +89,7 @@ Scores).
 ## Modifier achievements
 
 - **Everything Everywhere All At Once** needs every modifier the mode offers: D20 and Hit List have no Extended
-    Scores, so the rest are all of them there.
+    Scores or First Roll Bonus, so the rest are all of them there.
 - **Rainy Day Fund** (a turn started with 100+ rolls under Stored Rolls) needs about 8+ rolls a turn in a 13-turn
     mode (9 a turn with one roll used each turn reaches 105 on the last turn). Third Wind's 39 turns make it easier;
     Quickfire's six turns make it impossible.

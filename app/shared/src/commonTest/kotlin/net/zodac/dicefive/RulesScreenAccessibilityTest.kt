@@ -44,7 +44,7 @@ import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /**
  * The Rules page row scrolls, and nothing on screen says how far - so it's the semantics that tell a
- * TalkBack user there are more tabs than the ones in view, as "Tab, 1 of 6" rather than just "Tab".
+ * TalkBack user there are more tabs than the ones in view, as "Tab, 1 of 7" rather than just "Tab".
  * The group row above it says the same of its own three.
  */
 class RulesScreenAccessibilityTest : UiTest() {
@@ -132,7 +132,7 @@ class RulesScreenAccessibilityTest : UiTest() {
         val rows = tabRows()
         assertEquals(2, rows.size)
         rows.forEach { (row, rowTabs) -> assertEquals(rowTabs.size, row.config[SemanticsProperties.CollectionInfo].columnCount) }
-        assertEquals(listOf(3, 6), rows.values.map { it.size })
+        assertEquals(listOf(3, 7), rows.values.map { it.size })
 
         // Tapping the end chevron scrolls the tabs. It has no semantics node of its own, so it's tapped where it sits: over
         // the page row's end.

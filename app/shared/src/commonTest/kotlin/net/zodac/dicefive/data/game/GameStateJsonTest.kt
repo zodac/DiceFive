@@ -98,6 +98,11 @@ class GameStateJsonTest {
         assertEquals(jokers, roundTripped(GameState(players = listOf(human.copy(fiveOfAKindBonusCount = 3, jokerBonusSlots = jokers)))).players.single().jokerBonusSlots)
         assertEquals(emptyMap(), roundTripped(GameState(players = listOf(human))).players.single().jokerBonusSlots)
 
+        // The boxes that took the First Roll Bonus - and none, before one has.
+        val firstRolls = mapOf(ScoreCategory.FULL_HOUSE to setOf(0), ScoreCategory.CHANCE to setOf(0))
+        assertEquals(firstRolls, roundTripped(GameState(firstRollBonus = true, players = listOf(human.copy(firstRollBonusSlots = firstRolls)))).players.single().firstRollBonusSlots)
+        assertEquals(emptyMap(), roundTripped(GameState(players = listOf(human))).players.single().firstRollBonusSlots)
+
         // Each player's last roll (held state included), last scored box, roll count, colour and first-5x flash.
         val lastRoll = List(5) { Die(value = it % 6 + 1, isHeld = it % 2 == 0) }
         assertEquals(lastRoll, roundTripped(GameState(players = listOf(human.copy(lastRoll = lastRoll)))).players.single().lastRoll)
@@ -224,6 +229,9 @@ class GameStateJsonTest {
         )
         assertTrue(unlucky.dice[3].isUnlucky)
 
+        // First Roll Bonus.
+        assertTrue(roundTripped(GameState(firstRollBonus = true, players = listOf(human))).firstRollBonus)
+
         // A golden egg.
         val golden = roundTripped(GameState(dice = List(5) { Die(value = it + 1, isGolden = it == 1) }, players = listOf(human)))
         assertEquals(listOf(false, true, false, false, false), golden.dice.map { it.isGolden })
@@ -258,11 +266,12 @@ class GameStateJsonTest {
 
         // A plain game writes no Extended Scores, Unlucky Dice, switched-off boxes or Hit List - and loads with none.
         val written = GameStateJson.encode(plain)
-        for (field in listOf("extendedScores", "unluckyOdds", "isUnlucky", "isGolden", "disabledCategories", "hitList", "undoneCategory", "undoSnapshot")) {
+        for (field in listOf("extendedScores", "firstRollBonus", "unluckyOdds", "isUnlucky", "isGolden", "disabledCategories", "hitList", "undoneCategory", "undoSnapshot")) {
             assertFalse(field in written, "$field written")
         }
         val loaded = GameStateJson.decode(written)
         assertFalse(loaded.extendedScores)
+        assertFalse(loaded.firstRollBonus)
         assertEquals(13, loaded.players.single().scorecard.size)
         assertEquals(null, loaded.unluckyDice)
         assertTrue(loaded.dice.none { it.isUnlucky })

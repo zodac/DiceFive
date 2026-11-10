@@ -106,6 +106,10 @@ class SettingsRepository(
             prefs[EXTENDED_SCORES_KEY] = enabled
         }
 
+        fun setFirstRollBonus(enabled: Boolean) {
+            prefs[FIRST_ROLL_BONUS_KEY] = enabled
+        }
+
         fun setUnluckyDice(enabled: Boolean, settings: UnluckyDice) {
             prefs[UNLUCKY_DICE_KEY] = enabled
             prefs[UNLUCKY_ODDS_KEY] = settings.oddsPercent
@@ -220,6 +224,8 @@ class SettingsRepository(
 
         val unluckyDiceEnabled: Boolean get() = prefs[UNLUCKY_DICE_KEY] ?: false
 
+        val firstRollBonus: Boolean get() = prefs[FIRST_ROLL_BONUS_KEY] ?: false
+
         val unluckyDice: UnluckyDice
             get() = UnluckyDice(
                 oddsPercent = prefs[UNLUCKY_ODDS_KEY]
@@ -292,6 +298,11 @@ class SettingsRepository(
     val unluckyDice: Flow<UnluckyDice> = readSnapshot { it.unluckyDice }
 
     suspend fun setUnluckyDice(enabled: Boolean, settings: UnluckyDice) = batch { setUnluckyDice(enabled, settings) }
+
+    /** Whether the First Roll Bonus modifier was on the last time the setup form started a game. */
+    val firstRollBonus: Flow<Boolean> = readSnapshot { it.firstRollBonus }
+
+    suspend fun setFirstRollBonus(enabled: Boolean) = batch { setFirstRollBonus(enabled) }
 
     /** The mode the setup form last started a game in - read back by id, falling back to the default
      * for one nothing recognises (see [GameMode.id]). */
@@ -413,6 +424,7 @@ class SettingsRepository(
         val UNLUCKY_DICE_KEY = booleanPreferencesKey("unlucky_dice_modifier")
         val UNLUCKY_ODDS_KEY = intPreferencesKey("unlucky_dice_odds")
         val UNLUCKY_MAX_DICE_KEY = intPreferencesKey("unlucky_dice_max")
+        val FIRST_ROLL_BONUS_KEY = booleanPreferencesKey("first_roll_bonus_modifier")
         val GAME_MODE_KEY = stringPreferencesKey("game_mode")
         val FIRST_GAME_COMPLETED_KEY = booleanPreferencesKey("first_game_completed")
         val DICE_STYLE_ID_KEY = stringPreferencesKey("dice_style_id")
@@ -465,7 +477,7 @@ class SettingsRepository(
             listOf(PLAYER_COUNT_KEY, ROLLS_PER_TURN_KEY, ROLLS_PER_TURN_LENGTH_KEY, STORED_ROLLS_MAX_KEY, UNLUCKY_ODDS_KEY, UNLUCKY_MAX_DICE_KEY)
                 .mapTo(this) { SyncedKey.Number(it) }
             listOf(
-                STORED_ROLLS_KEY, EXTENDED_SCORES_KEY, UNLUCKY_DICE_KEY, SOUND_ENABLED_KEY, VIBRATION_ENABLED_KEY, TRICOLOUR_MARKS_KEY, CONFIRM_BEFORE_LEAVING_GAME_KEY,
+                STORED_ROLLS_KEY, EXTENDED_SCORES_KEY, UNLUCKY_DICE_KEY, FIRST_ROLL_BONUS_KEY, SOUND_ENABLED_KEY, VIBRATION_ENABLED_KEY, TRICOLOUR_MARKS_KEY, CONFIRM_BEFORE_LEAVING_GAME_KEY,
                 FIRST_GAME_COMPLETED_KEY,
             ).mapTo(this) { SyncedKey.Flag(it) }
         }

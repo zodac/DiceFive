@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
@@ -63,6 +64,9 @@ import net.zodac.dicefive.resources.setup_difficulty_medium
 import net.zodac.dicefive.resources.setup_extended_description
 import net.zodac.dicefive.resources.setup_extended_locked
 import net.zodac.dicefive.resources.setup_extended_title
+import net.zodac.dicefive.resources.setup_first_roll_bonus_description
+import net.zodac.dicefive.resources.setup_first_roll_bonus_locked
+import net.zodac.dicefive.resources.setup_first_roll_bonus_title
 import net.zodac.dicefive.resources.setup_game_mode
 import net.zodac.dicefive.resources.setup_modes_locked
 import net.zodac.dicefive.resources.setup_modifiers
@@ -303,6 +307,7 @@ private fun GameCards(setup: GameSetupState, form: GameSetupForm) {
             onStoredRolls = form::setStoredRolls,
             onStoredRollsMax = form::setStoredRollsMax,
             onExtendedScores = form::setExtendedScores,
+            onFirstRollBonus = form::setFirstRollBonus,
             onUnluckyDiceEnabled = form::setUnluckyDiceEnabled,
             onUnluckyOdds = form::setUnluckyOdds,
             onUnluckyMaxDice = form::setUnluckyMaxDice,
@@ -615,6 +620,8 @@ private fun GameModeSelector(selected: GameMode, onSelect: (GameMode) -> Unit) {
  *
  * Extended Scores is a plain switch with nothing to set, and applies in every mode that allows it
  * ([GameMode.allowsExtendedScores]) - locked off, with the player's pick kept, in one that doesn't. Unlucky Dice
+ * First Roll Bonus is a plain switch too, locked the same way where the mode doesn't allow it
+ * ([GameMode.allowsFirstRollBonus]). Unlucky Dice
  * ([UnluckyDice]) is a switch with two steppers, the odds and the most dice locked a roll, and applies in every mode too;
  * both are kept while it's off.
  */
@@ -626,6 +633,7 @@ private fun SetupModifierPicker(
     onStoredRolls: (Boolean) -> Unit,
     onStoredRollsMax: (Int?) -> Unit,
     onExtendedScores: (Boolean) -> Unit,
+    onFirstRollBonus: (Boolean) -> Unit,
     onUnluckyDiceEnabled: (Boolean) -> Unit,
     onUnluckyOdds: (Int) -> Unit,
     onUnluckyMaxDice: (Int) -> Unit,
@@ -645,6 +653,18 @@ private fun SetupModifierPicker(
                 enabled = setup.extendedScores && setup.gameMode.allowsExtendedScores,
                 onEnabledChange = onExtendedScores,
                 lockedNote = if (setup.gameMode.allowsExtendedScores) null else stringResource(Res.string.setup_extended_locked, stringResource(setup.gameMode.displayName)),
+            ),
+            ModifierSetting(
+                title = stringResource(Res.string.setup_first_roll_bonus_title),
+                description = stringResource(Res.string.setup_first_roll_bonus_description, ScoreCalculator.FIRST_ROLL_BONUS),
+                // Locked off in a mode with no box that earns it - the player's own pick is kept for the next mode.
+                enabled = setup.firstRollBonus && setup.gameMode.allowsFirstRollBonus,
+                onEnabledChange = onFirstRollBonus,
+                lockedNote = if (setup.gameMode.allowsFirstRollBonus) {
+                    null
+                } else {
+                    stringResource(Res.string.setup_first_roll_bonus_locked, stringResource(setup.gameMode.displayName))
+                },
             ),
             ModifierSetting(
                 title = stringResource(Res.string.setup_rolls_title),

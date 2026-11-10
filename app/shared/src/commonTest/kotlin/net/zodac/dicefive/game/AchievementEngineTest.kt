@@ -996,10 +996,12 @@ class AchievementEngineTest {
             rolls: RollModifiers = RollModifiers(rollsPerTurn = 2, storedRolls = true),
             extended: Boolean = true,
             unlucky: UnluckyDice? = UnluckyDice(),
+            firstRollBonus: Boolean = true,
             withBot: Boolean = true,
         ): GameState {
             val players = listOfNotNull(player(total = humanTotal, gameMode = mode), if (withBot) bot(total = 200, gameMode = mode) else null)
-            return finishedGame(*players.toTypedArray()).copy(turnTimer = timer, rollModifiers = rolls, extendedScores = extended, unluckyDice = unlucky)
+            return finishedGame(*players.toTypedArray())
+                .copy(turnTimer = timer, rollModifiers = rolls, extendedScores = extended, unluckyDice = unlucky, firstRollBonus = firstRollBonus)
         }
 
         fun earned(state: GameState) = Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE in unlocked(state)
@@ -1011,7 +1013,8 @@ class AchievementEngineTest {
         assertFalse(earned(table(rolls = RollModifiers(storedRolls = true))), "no Number of Rolls")
         assertFalse(earned(table(rolls = RollModifiers(rollsPerTurn = 2))), "no Stored Rolls")
         assertFalse(earned(table(extended = false)), "no Extended Scores")
-        // Where the mode has no Extended Scores to turn on, the rest are every modifier.
+        assertFalse(earned(table(firstRollBonus = false)), "no First Roll Bonus")
+        // Where the mode has no Extended Scores or First Roll Bonus to turn on, the rest are every modifier.
         fun everyOtherModifier(vararg players: PlayerState) =
             finishedGame(*players).copy(turnTimer = TurnTimer.SECONDS_30, rollModifiers = RollModifiers(rollsPerTurn = 2, storedRolls = true), unluckyDice = UnluckyDice())
         assertTrue(earned(everyOtherModifier(d20Player(), d20Player(name = "Bot", type = PlayerType.AI, firstHalf = 50, secondHalf = 100))), "D20")
@@ -1193,6 +1196,7 @@ class AchievementEngineTest {
             "Stored Rolls" to won.copy(rollModifiers = RollModifiers(storedRolls = true)),
             "Extended Scores" to won.copy(extendedScores = true),
             "Unlucky Dice" to won.copy(unluckyDice = UnluckyDice()),
+            "First Roll Bonus" to won.copy(firstRollBonus = true),
         )
         val before = LeaderboardTotals(totalPoints = 1_000, modesPlayed = setOf(GameMode.STANDARD))
         for ((name, game) in modifiers) {
@@ -1209,6 +1213,7 @@ class AchievementEngineTest {
         // The modifiers' own still unlock, and only they: Everything Everywhere All At Once here.
         val everything = finishedGame(player(total = 300, gameMode = GameMode.TRICOLOUR), bot(total = 100, gameMode = GameMode.TRICOLOUR)).copy(
             turnTimer = TurnTimer.SECONDS_30, rollModifiers = RollModifiers(rollsPerTurn = 2, storedRolls = true), extendedScores = true, unluckyDice = UnluckyDice(),
+            firstRollBonus = true,
         )
         assertEquals(listOf(Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE), unlocked(everything))
         assertEquals(

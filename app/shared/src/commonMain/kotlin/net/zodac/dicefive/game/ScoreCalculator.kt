@@ -70,6 +70,17 @@ object ScoreCalculator {
     fun fiveOfAKindBonusFor(player: PlayerState, dice: List<Die>): Int =
         if (awardsFiveOfAKindBonus(player, dice)) player.gameMode.fiveOfAKindBonusAmount else 0
 
+    /**
+     * What the First Roll Bonus modifier adds to [value], the score [category] would take: [FIRST_ROLL_BONUS] when the
+     * roll earns it ([rollEarnsBonus], [GameState.rollEarnsFirstRollBonus]), the box does
+     * ([ScoreCategory.earnsFirstRollBonus]), and [value] is above zero. Zero otherwise.
+     */
+    fun firstRollBonusFor(rollEarnsBonus: Boolean, category: ScoreCategory, value: Int): Int =
+        if (rollEarnsBonus && category.earnsFirstRollBonus && value > 0) FIRST_ROLL_BONUS else 0
+
+    /** The points the First Roll Bonus modifier adds to a box's score - see [firstRollBonusFor]. */
+    const val FIRST_ROLL_BONUS = 5
+
     private fun isJokerSituation(player: PlayerState, dice: List<Die>): Boolean =
         DiceScoring.isFiveOfAKind(dice) && player.fiveOfAKindJokerActive
 }

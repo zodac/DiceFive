@@ -374,7 +374,11 @@ fun GameBoard(
         }
     }
 
-    CompositionLocalProvider(LocalFiveOfAKindFlash provides flashFiveOfAKind, LocalProjectedHands provides projected) {
+    CompositionLocalProvider(
+        LocalFiveOfAKindFlash provides flashFiveOfAKind,
+        LocalProjectedHands provides projected,
+        LocalFirstRollBonus provides state.rollEarnsFirstRollBonus,
+    ) {
         ScoreBoardRow(
             categories = state.categories,
             player = player,
@@ -395,6 +399,9 @@ private const val FIVE_OF_A_KIND_FLASH_HOLD_MILLIS = 900L
 
 /** Whether the 5x tile is flashing gold for a player's first 5x - provided by [GameBoard] for [CategoryCell] to find. */
 internal val LocalFiveOfAKindFlash = compositionLocalOf { false }
+
+/** Whether a score now earns the First Roll Bonus ([GameState.rollEarnsFirstRollBonus]) - provided by [GameBoard], so [CategoryCell]'s preview adds it. */
+internal val LocalFirstRollBonus = compositionLocalOf { false }
 
 /** The cup's part of [state]'s turn, the same whether it's drawn in the board or beside it ([GameCup]). */
 private fun cupPanelState(

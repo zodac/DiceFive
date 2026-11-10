@@ -41,6 +41,7 @@
         <item quantity="other">%1$d libres</item>
     </plurals>
     <string name="game_slots_bonus_spoken">más %1$d de bonificación</string>
+    <string name="game_slots_first_roll_bonus_spoken">con bonificación de primera tirada</string>
     <string name="game_slots_last_score_spoken">puntuación del último turno: %1$d</string>
     <string name="game_standing_tied">=%1$s</string>
     <string name="game_standing_spoken">%1$s puesto</string>
@@ -619,6 +620,9 @@
     <string name="setup_extended_title">Puntuaciones ampliadas</string>
     <string name="setup_extended_description">Añade Doble pareja, Pares e Impares a la tarjeta</string>
     <string name="setup_extended_locked">No se usa en el modo %1$s</string>
+    <string name="setup_first_roll_bonus_title">Bonificación de primera tirada</string>
+    <string name="setup_first_roll_bonus_description">+%1$d a las inferiores en la primera tirada</string>
+    <string name="setup_first_roll_bonus_locked">No se usa en el modo %1$s</string>
     <string name="setup_unlucky_title">Dados malditos</string>
     <string name="setup_unlucky_description">Los dados tirados pueden quedar encadenados: no se pueden conservar ni anotar</string>
     <string name="setup_unlucky_odds">Probabilidad de que un dado quede encadenado</string>
@@ -1205,7 +1209,7 @@
     <string name="rules_d20_8">Los puntos de un comodín cuentan para su mitad, y por tanto para la bonificación de esa mitad.</string>
     <string name="rules_d20_3">Los números se reparten en dos mitades, del `1` al `10` y del `11` al `20`. Suma **150 puntos** en la *1.ª mitad* para una bonificación de **75 puntos**, y **400 puntos** en la *2.ª mitad* para otra de **75 puntos**. Se pueden conseguir las dos en la misma partida. Es algo más de dos dados y medio de cada número.</string>
     <string name="rules_d20_4">Sin la categoría `5x` no hay regla del comodín ni bonificación por 5x repetidos. El botón de *totales* muestra cada mitad y las bonificaciones.</string>
-    <string name="rules_d20_5">El modificador *Puntuaciones ampliadas* no se puede usar en este modo. El modificador *Número de tiradas* cambia las **5** tiradas.</string>
+    <string name="rules_d20_5">Los modificadores *Puntuaciones ampliadas* y *Bonificación de primera tirada* no se pueden usar en este modo. El modificador *Número de tiradas* cambia las **5** tiradas.</string>
     <string name="rules_d20_6">Los totales aquí no se comparan con los de otros modos, así que los logros por una puntuación alta o baja, una tarjeta sin ceros, o por ganar yendo por detrás tras anotar tres ceros, no se pueden conseguir en él. Las puntuaciones de este modo no van a la *clasificación*, pero sí cuentan para tus *estadísticas*.</string>
     <string name="rules_hit_list_title">Lista de objetivos</string>
     <string name="rules_hit_list_tab">Lista de objetivos</string>
@@ -1223,7 +1227,7 @@
     <string name="rules_hit_list_13">Un 3 cae en su sitio. Es un acierto por **20 pts**, pero el 2 está en la posición libre, no en la cuarta. Conserva también el 3.</string>
     <string name="rules_hit_list_14">Tira el cuarto dado solo. Un 2 ahí es un acierto exacto, y si falla, el acierto está a salvo: el último dado sigue siendo un 2.</string>
     <string name="rules_hit_list_15">¡Es un 2! Anota el acierto exacto por **40 pts**. Si hubiera fallado, podrías quedarte con el acierto de **20 pts**, o anotarlo en el `Alibi` y guardar este objetivo para otro intento.</string>
-    <string name="rules_hit_list_16">El modificador *Puntuaciones ampliadas* no se puede usar en este modo. Con *Dados malditos*, un dado encadenado no cuenta para un objetivo, y una tirada con uno encadenado no puede ser un acierto exacto.</string>
+    <string name="rules_hit_list_16">Los modificadores *Puntuaciones ampliadas* y *Bonificación de primera tirada* no se pueden usar en este modo. Con *Dados malditos*, un dado encadenado no cuenta para un objetivo, y una tirada con uno encadenado no puede ser un acierto exacto.</string>
     <string name="rules_hit_list_17">Los totales aquí no se comparan con los de otros modos, así que los logros por una puntuación alta o baja, una tarjeta sin ceros, o por ganar yendo por detrás tras anotar tres ceros, no se pueden conseguir en él. Las puntuaciones de este modo no van a la *clasificación*, porque cada partida tiene una lista distinta, pero sí cuentan para tus *estadísticas*.</string>
     <string name="rules_modifiers_title">Modificadores</string>
     <string name="rules_modifiers_tab">Resumen</string>
@@ -1250,6 +1254,12 @@
     <string name="rules_extended_scores_3">Suma de los dados que muestran 2, 4 o 6</string>
     <string name="rules_extended_scores_4">Suma de los dados que muestran 1, 3 o 5</string>
     <string name="rules_extended_scores_5">Las categorías adicionales tienen su propia sección, así que no cuentan para la bonificación superior ni para el total de la sección inferior. Como con cualquier modificador, con *Puntuaciones ampliadas* activadas no se puede conseguir ningún logro, salvo los propios de los modificadores.</string>
+    <string name="rules_first_roll_bonus_title">Bonificación de primera tirada</string>
+    <string name="rules_first_roll_bonus_tab">Primera tirada</string>
+    <string name="rules_first_roll_bonus_1">Con la *bonificación de primera tirada*, una categoría de la *sección inferior* anotada en la primera tirada de un turno gana **5 pts** más. Funciona en todos los modos de juego con *sección inferior*, así que no en *D20* ni en *Lista de objetivos*.</string>
+    <string name="rules_first_roll_bonus_2">Aquí salió un `Full` en la primera tirada y se anotó en el acto, así que vale **30 pts**: sus **25 pts** de siempre, más los **5 pts** de bonificación. La bonificación forma parte de la puntuación de la categoría en la tarjeta.</string>
+    <string name="rules_first_roll_bonus_3">`5x` nunca gana la bonificación, ni tampoco una categoría anotada con **0**. En cuanto se tiran los dados por segunda vez, la bonificación se pierde para ese turno.</string>
+    <string name="rules_first_roll_bonus_4">Como con cualquier modificador, con la *bonificación de primera tirada* activada no se puede conseguir ningún logro, salvo los propios de los modificadores.</string>
     <string name="rules_unlucky_dice_title">Dados malditos</string>
     <string name="rules_unlucky_dice_tab">Dados malditos</string>
     <string name="rules_unlucky_dice_1">Con los *dados malditos*, cada vez que se tiran los dados, cada dado tirado tiene una probabilidad de quedar encadenado en una cruz roja de cadenas. Un dado encadenado no se puede conservar y no puntúa, y una categoría que necesita los cinco dados, como *5x* o la *escalera grande*, no se puede anotar. Los dados que conservas nunca se encadenan, y un dado encadenado se puede volver a tirar.</string>

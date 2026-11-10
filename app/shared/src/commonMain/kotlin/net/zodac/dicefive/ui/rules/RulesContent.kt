@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.rules
 
 import androidx.compose.foundation.layout.size
+import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.HitTarget
 import net.zodac.dicefive.model.ScoreCategory
@@ -30,6 +31,12 @@ import net.zodac.dicefive.resources.rules_extended_scores_4
 import net.zodac.dicefive.resources.rules_extended_scores_5
 import net.zodac.dicefive.resources.rules_extended_scores_tab
 import net.zodac.dicefive.resources.rules_extended_scores_title
+import net.zodac.dicefive.resources.rules_first_roll_bonus_1
+import net.zodac.dicefive.resources.rules_first_roll_bonus_2
+import net.zodac.dicefive.resources.rules_first_roll_bonus_3
+import net.zodac.dicefive.resources.rules_first_roll_bonus_4
+import net.zodac.dicefive.resources.rules_first_roll_bonus_tab
+import net.zodac.dicefive.resources.rules_first_roll_bonus_title
 import net.zodac.dicefive.resources.rules_group_gameplay
 import net.zodac.dicefive.resources.rules_group_modes
 import net.zodac.dicefive.resources.rules_group_modifiers
@@ -560,6 +567,17 @@ internal val RULES_GROUPS = listOf(
                     RulesCategory(boxName(ScoreCategory.EVENS), Res.string.rules_extended_scores_3, dice(6, 4, 2, 3, 1, counting = 3, score = points(12))),
                     RulesCategory(boxName(ScoreCategory.ODDS), Res.string.rules_extended_scores_4, dice(5, 3, 3, 6, 2, counting = 3, score = points(11))),
                     text(Res.string.rules_extended_scores_5),
+                ),
+            ),
+            RulesPage(
+                title = Res.string.rules_first_roll_bonus_title,
+                tabLabel = Res.string.rules_first_roll_bonus_tab,
+                blocks = listOf(
+                    text(Res.string.rules_first_roll_bonus_1),
+                    dice(3, 3, 3, 6, 6, score = points(25, ScoreCalculator.FIRST_ROLL_BONUS)),
+                    text(Res.string.rules_first_roll_bonus_2),
+                    text(Res.string.rules_first_roll_bonus_3),
+                    text(Res.string.rules_first_roll_bonus_4),
                 ),
             ),
             RulesPage(

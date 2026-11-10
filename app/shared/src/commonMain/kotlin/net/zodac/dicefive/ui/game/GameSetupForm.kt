@@ -51,6 +51,8 @@ data class GameSetupState(
     val unluckyDiceEnabled: Boolean = false,
     /** The Unlucky Dice odds and cap the modifier returns to when switched back on. */
     val unluckyDice: UnluckyDice = UnluckyDice(),
+    /** The First Roll Bonus modifier: a lower box other than 5x scored on a turn's first roll earns extra points. */
+    val firstRollBonus: Boolean = false,
     /**
      * Whether the game mode and modifiers can be changed: only once a game has been finished
      * ([SettingsRepository.firstGameCompleted]). Until then the form plays Standard with no modifiers, and the saved
@@ -86,6 +88,7 @@ data class GameSetupState(
                 setRollModifiers(setup.rollModifiers, setup.rollsPerTurnLength)
                 setExtendedScores(setup.extendedScores)
                 setUnluckyDice(setup.unluckyDiceEnabled, setup.unluckyDice)
+                setFirstRollBonus(setup.firstRollBonus)
                 setGameMode(setup.gameMode)
             }
             // All four, not just the shown ones: they're kept distinct together (see setPlayerColour).
@@ -161,6 +164,7 @@ class GameSetupForm {
             extendedScores = saved.extendedScores,
             unluckyDiceEnabled = saved.unluckyDiceEnabled,
             unluckyDice = saved.unluckyDice,
+            firstRollBonus = saved.firstRollBonus,
             gameMode = saved.gameMode,
         )
         _setup.value = restored
@@ -255,6 +259,11 @@ class GameSetupForm {
     /** Switches the Extended Scores modifier on or off. */
     fun setExtendedScores(enabled: Boolean) {
         _setup.update { it.copy(extendedScores = enabled) }
+    }
+
+    /** Switches the First Roll Bonus modifier on or off. */
+    fun setFirstRollBonus(enabled: Boolean) {
+        _setup.update { it.copy(firstRollBonus = enabled) }
     }
 
     /** Switches the Unlucky Dice modifier on or off. Its odds and cap are kept while it's off. */

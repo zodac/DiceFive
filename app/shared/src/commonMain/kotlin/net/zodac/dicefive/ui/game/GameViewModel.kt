@@ -379,10 +379,18 @@ class GameViewModel(
         if (setupState.duplicateNameSlots(defaultName).isNotEmpty()) return false
         val playerConfigs = setupForm.playerConfigs(defaultName)
         viewModelScope.launch { setupState.saveTo(settingsRepository) }
-        // GameEngine.newGame leaves Extended Scores off in a mode that doesn't allow it, whatever the switch says - the
-        // switch keeps the player's pick for the next mode.
+        // GameEngine.newGame leaves Extended Scores and First Roll Bonus off in a mode that doesn't allow them, whatever the
+        // switch says - the switch keeps the player's pick for the next mode.
         beginGame(
-            GameEngine.newGame(playerConfigs, setupState.gameMode, setupState.turnTimer, setupState.rollModifiers, setupState.extendedScores, setupState.activeUnluckyDice),
+            GameEngine.newGame(
+                playerConfigs,
+                setupState.gameMode,
+                setupState.turnTimer,
+                setupState.rollModifiers,
+                setupState.extendedScores,
+                setupState.activeUnluckyDice,
+                setupState.firstRollBonus,
+            ),
             startedAtLocalHour = localHour(),
             previousGame = previousGame,
         )
@@ -403,6 +411,7 @@ class GameViewModel(
             setupState.rollModifiers,
             setupState.extendedScores,
             setupState.activeUnluckyDice,
+            setupState.firstRollBonus,
         )
     }
 
