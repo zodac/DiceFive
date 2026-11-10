@@ -281,6 +281,8 @@ Styles page, those fields flashed; opening one hands the request on (`CategoryFo
 - One tile per family. A long press opens a row of previews, one per colour. Colour names are spoken, not shown.
 - Picking a cup shakes and tips it (`CupPickShake`); picking a die rolls it through six faces (`DicePickRoll`). These
     are only visual.
+- The pick's tile is ringed in gold (a 3dp `primary` border, against 1dp `outline` on the others), and nothing else:
+    no badge over the art, which it hid.
 - Tiles are radio buttons: style and colour name, selected state, and position in the set.
 - **Spacing** (`TileSpacing`, from the card's width): each tile takes its preview's width (a longer name spills into
     the gaps); the gap is `TILE_SPACING` (12dp), closing to `GALLERY_MIN_TILE_SPACING` (4dp) when that fits one more

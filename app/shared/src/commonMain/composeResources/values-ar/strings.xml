@@ -1082,7 +1082,6 @@
     <string name="styles_family_colour_cd">%1$s، %2$s</string>
     <string name="styles_locked_spoken">مقفل</string>
     <string name="styles_show_unlock_action">عرض كيفية فتح %1$s</string>
-    <string name="styles_selected_cd">محدد</string>
     <string name="common_ok">حسنًا</string>
     <string name="common_combined">الكل معًا</string>
     <string name="scores_title">لوحة المتصدرين</string>

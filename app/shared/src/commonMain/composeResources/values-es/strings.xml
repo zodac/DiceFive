@@ -981,7 +981,6 @@
     <string name="styles_family_colour_cd">%1$s, %2$s</string>
     <string name="styles_locked_spoken">Bloqueado</string>
     <string name="styles_show_unlock_action">Mostrar cómo desbloquear %1$s</string>
-    <string name="styles_selected_cd">Seleccionado</string>
     <string name="common_ok">Aceptar</string>
     <string name="common_combined">Combinada</string>
     <string name="scores_title">Clasificación</string>

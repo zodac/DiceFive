@@ -1265,8 +1265,6 @@
     <string name="styles_locked_spoken">Locked</string>
     <!-- %1$s is the style's name. -->
     <string name="styles_show_unlock_action">Show how to unlock %1$s</string>
-    <!-- The check badge on the style in use. -->
-    <string name="styles_selected_cd">Selected</string>
     <string name="common_ok">OK</string>
     <!-- The Leaderboard's and Statistics' entry for every game mode's games together, last in their drop-downs. -->
     <string name="common_combined">Combined</string>

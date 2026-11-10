@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
@@ -122,7 +121,6 @@ import net.zodac.dicefive.resources.styles_requirement_count
 import net.zodac.dicefive.resources.styles_requirement_free
 import net.zodac.dicefive.resources.styles_requirement_specific
 import net.zodac.dicefive.resources.styles_select_action
-import net.zodac.dicefive.resources.styles_selected_cd
 import net.zodac.dicefive.resources.styles_show_unlock_action
 import net.zodac.dicefive.resources.styles_unlock_any
 import net.zodac.dicefive.resources.styles_unlock_count
@@ -939,7 +937,7 @@ private fun TileSlot(tile: @Composable () -> Unit) {
 }
 
 /**
- * One style: a rendered preview plus its name, with a check badge when one of its colours is the
+ * One style: a rendered preview plus its name, ringed in gold when one of its colours is the
  * current pick. Tapping it picks the colour it's showing; long-pressing it, when it has more than
  * one colour, pops up a scrollable row of that style's colours, each as its own preview, to pick
  * one. [previewSize] is the preview's own size, which differs by category (a die's is square, a
@@ -1018,8 +1016,8 @@ private fun <T : TableArt> StyleFamilyTile(
                 flashOverArt = flashOverArt,
                 modifier = Modifier
                     // One radio button in a set of them: the style (and the colour showing, if it has
-                    // several), whether it's the pick, and the colour chooser as an action, so neither
-                    // the check badge nor the colour dots is a stop of its own.
+                    // several), whether it's the pick, and the colour chooser as an action, so the
+                    // colour dots aren't a stop of their own.
                     .accessibleCombinedClickable(
                         onClick = { select(shown.style.id) },
                         onClickLabel = selectLabel,
@@ -1241,8 +1239,8 @@ private fun unlockRequirement(family: StyleFamily<*>, access: StyleAccess): Stri
     }
 
 /**
- * [style] drawn by [preview] on its [backgroundBrush] at [size], outlined in the app's gold with a
- * check badge when [selected]. [modifier] carries the click handling; [overlay] draws on top.
+ * [style] drawn by [preview] on its [backgroundBrush] at [size], outlined in the app's gold when
+ * [selected], with nothing drawn over the art. [modifier] carries the click handling; [overlay] draws on top.
  */
 @Composable
 private fun <T : TableArt> StylePreview(
@@ -1282,7 +1280,7 @@ private fun <T : TableArt> StylePreview(
                 if (flashOverArt) drawRect(GoldAccent, alpha = flash * FLASH_OVER_ART_ALPHA)
             }
             .border(
-                width = if (selected) 2.dp else 1.dp,
+                width = if (selected) 3.dp else 1.dp,
                 // outline, not outlineVariant: the border is the tile's edge, which needs 3:1 against the page.
                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                 shape = shape,
@@ -1290,28 +1288,7 @@ private fun <T : TableArt> StylePreview(
         contentAlignment = Alignment.Center,
     ) {
         preview(style)
-        if (selected) {
-            SelectedBadge(modifier = Modifier.align(Alignment.TopEnd).padding(6.dp))
-        }
         overlay()
-    }
-}
-
-@Composable
-private fun SelectedBadge(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(20.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surface),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = Symbols.CheckCircle,
-            contentDescription = stringResource(Res.string.styles_selected_cd),
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(18.dp),
-        )
     }
 }
 
