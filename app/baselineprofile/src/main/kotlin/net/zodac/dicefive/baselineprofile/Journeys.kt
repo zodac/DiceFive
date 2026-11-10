@@ -414,8 +414,9 @@ private fun MacrobenchmarkScope.cancelLeaving() {
 }
 
 /**
- * Settings, flipping one switch (and flipping it back), then its Graphics page, picking an animation level (and back),
- * and back to Settings to open the Licences and About dialogs.
+ * Settings, flipping one switch (and flipping it back), then its Graphics page, opening the Gameplay card and picking
+ * the dice's In place roll, then an animation level (and back to High, which resets the roll), and back to Settings to
+ * open the Licences and About dialogs.
  */
 internal fun MacrobenchmarkScope.visitSettings() {
     openFromMenu("Settings")
@@ -424,6 +425,9 @@ internal fun MacrobenchmarkScope.visitSettings() {
     setChecked(sound, "Sound effects", !soundOn)
     setChecked(sound, "Sound effects", soundOn)
     tapTextUntil("Graphics") { device.hasObject(By.text("Advanced settings")) }
+    // An Advanced settings card opened and one of its rows changed, which leaves no level picked until High below.
+    tapTextUntil("Gameplay") { device.hasObject(By.text("In place")) }
+    setChecked(By.text("In place"), "In place", true)
     // Back to High: the journeys after this one are profiling the full animations.
     setChecked(By.text("Low"), "Low", true)
     setChecked(By.text("High"), "High", true)
