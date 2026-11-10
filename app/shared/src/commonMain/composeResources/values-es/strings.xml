@@ -621,7 +621,7 @@
     <string name="setup_extended_description">Añade Doble pareja, Pares e Impares a la tarjeta</string>
     <string name="setup_extended_locked">No se usa en el modo %1$s</string>
     <string name="setup_first_roll_bonus_title">Bonificación de primera tirada</string>
-    <string name="setup_first_roll_bonus_description">+%1$d a las inferiores en la primera tirada</string>
+    <string name="setup_first_roll_bonus_description">Sección inferior +%1$d en la primera tirada</string>
     <string name="setup_first_roll_bonus_locked">No se usa en el modo %1$s</string>
     <string name="setup_unlucky_title">Dados malditos</string>
     <string name="setup_unlucky_description">Los dados tirados pueden quedar encadenados: no se pueden conservar ni anotar</string>

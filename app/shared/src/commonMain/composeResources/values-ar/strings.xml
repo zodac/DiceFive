@@ -706,7 +706,7 @@
     <string name="setup_extended_description">يضيف «زوجان» و«الزوجية» و«الفردية» إلى بطاقة النتائج</string>
     <string name="setup_extended_locked">غير مستخدمة في نمط %1$s</string>
     <string name="setup_first_roll_bonus_title">مكافأة الرمية الأولى</string>
-    <string name="setup_first_roll_bonus_description">+%1$d للفئات السفلية في الرمية الأولى</string>
+    <string name="setup_first_roll_bonus_description">القسم السفلي +%1$d في الرمية الأولى</string>
     <string name="setup_first_roll_bonus_locked">غير مستخدمة في نمط %1$s</string>
     <string name="setup_unlucky_title">نرد سيئ الحظ</string>
     <string name="setup_unlucky_description">قد يُقيَّد النرد المرمي بالسلاسل: فلا يمكن تثبيته ولا تسجيله</string>

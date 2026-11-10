@@ -825,7 +825,7 @@
     <string name="setup_extended_locked">Not used in %1$s mode</string>
     <string name="setup_first_roll_bonus_title">First Roll Bonus</string>
     <!-- %1$d is the points added, 5. -->
-    <string name="setup_first_roll_bonus_description">+%1$d to lower scores on a first roll</string>
+    <string name="setup_first_roll_bonus_description">+%1$d to Lower Section on a first roll</string>
     <!-- Shown instead of the description when the chosen game mode can't use First Roll Bonus. %1$s is the mode's name. -->
     <string name="setup_first_roll_bonus_locked">Not used in %1$s mode</string>
     <string name="setup_unlucky_title">Unlucky Dice</string>
