@@ -245,12 +245,12 @@ class StoreScreensGeneratorTest {
         leaveGame()
         StoreState.applyStyles(container, StylePicks())
 
-        // Styles: the Styles page, then the Dice page opened from it, picking a few.
+        // Styles: the Styles page, then the Dice page opened from it, picking a few and scrolled through to its end.
         openFromMenu("Styles")
         compose.waitUntil(5_000) { exists(hasContentDescription(DICE_FIELD)) }
         settle()
         FrameRecorder(compose, File(root, "4-styles")).apply {
-            hold(900)
+            hold(1_400)
             // Tapped as the recording runs, so the page change is in the video.
             tap(compose.onNode(hasContentDescription(DICE_FIELD)))
             hold(1_200)
@@ -258,9 +258,15 @@ class StoreScreensGeneratorTest {
                 tap(compose.onAllNodes(hasContentDescription("$style,", substring = true))[0])
                 hold(900)
             }
-            // Then down the page, to the dice still to unlock.
-            scrollDown(pageScroller(), fraction = 1f, millis = 1_600)
-            hold(800)
+            // Then down the whole list, to the dice still to unlock - when it's longer than the screen. On the store's
+            // phone every family fits, and the page is held instead.
+            val scroller = pageScroller()
+            if (scroller != null) {
+                scrollDown(scroller, fraction = 1f, millis = 2_400)
+                hold(800)
+            } else {
+                hold(1_000)
+            }
             finish()
         }
         back()
@@ -384,13 +390,13 @@ class StoreScreensGeneratorTest {
         menu()
     }
 
-    /** The page's own vertical scroller - the one with the most to scroll. */
-    private fun pageScroller(): SemanticsNodeInteraction {
+    /** The page's own vertical scroller - the one with the most to scroll - or null when nothing on screen can scroll down. */
+    private fun pageScroller(): SemanticsNodeInteraction? {
         val scrollers = compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
-        val longest = scrollers.fetchSemanticsNodes().withIndex().maxBy { (_, node) ->
-            node.config[SemanticsProperties.VerticalScrollAxisRange].let { it.maxValue() - it.value() }
-        }.index
-        return scrollers[longest]
+        val (longest, room) = scrollers.fetchSemanticsNodes().mapIndexed { index, node ->
+            index to node.config[SemanticsProperties.VerticalScrollAxisRange].let { it.maxValue() - it.value() }
+        }.maxByOrNull { it.second } ?: return null
+        return if (room > 0f) scrollers[longest] else null
     }
 
     private fun cup(): SemanticsNodeInteraction = compose.onNode(hasContentDescription("Dice cup", substring = true))
@@ -414,7 +420,7 @@ internal object Scenes {
     /** The game-over scene's table: the default look with the Pixel frame, so the listing shows three frames in all. */
     val PIXEL_TABLE = StylePicks(frame = "pixel_retro")
 
-    /** The dice the video picks on the Styles screen, by family - the start of a tile's spoken name, "Gems, Ivory". */
+    /** The dice the video picks on the Dice page, by family - the start of a tile's spoken name, "Gems, Ivory". */
     val VIDEO_DICE_PICKS = listOf("Metal", "Obsidian", "Retro", "Cake")
 
     private fun table(): List<PlayerConfig> = listOf(
