@@ -38,6 +38,8 @@ import net.zodac.dicefive.navigation.DiceFiveNavHost
 import net.zodac.dicefive.navigation.Screen
 import net.zodac.dicefive.navigation.StyleScrollRequest
 import net.zodac.dicefive.navigation.StyleScrollRequests
+import net.zodac.dicefive.game.style.StyleCategory
+import net.zodac.dicefive.ui.style.catalog
 import net.zodac.dicefive.online.GameServices
 import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalCloudSave
@@ -233,11 +235,19 @@ fun DiceFiveApp(
                             }
                         },
                         onStylesSelected = { styles ->
-                            val alreadyOnStyles = navController.currentDestination?.route == Screen.STYLES
+                            // The one category's page the styles are all in, over the Styles page so Back returns there; or,
+                            // styles of several categories, the Styles page, their fields flashed.
+                            val categories = styles.mapNotNull { style -> StyleCategory.entries.firstOrNull { it.catalog.noun.key == style.categoryNoun.key } }.distinct()
+                            val target = categories.singleOrNull()?.let(Screen::styleCategory) ?: Screen.STYLES
+                            val alreadyThere = navController.currentDestination?.route == target
                             // Before navigating, for the same reason as the achievement request above.
-                            StyleScrollRequests.request(StyleScrollRequest(styles, animate = alreadyOnStyles))
-                            if (!alreadyOnStyles) {
-                                pageCover.change(reduceMotion) { navController.navigate(Screen.STYLES) }
+                            StyleScrollRequests.request(StyleScrollRequest(styles, animate = alreadyThere))
+                            if (!alreadyThere) {
+                                pageCover.change(reduceMotion) {
+                                    // Back to the Styles page if it's open under this page; otherwise a fresh one.
+                                    if (!navController.popBackStack(Screen.STYLES, inclusive = false)) navController.navigate(Screen.STYLES)
+                                    if (target != Screen.STYLES) navController.navigate(target)
+                                }
                             }
                         },
                     ) {

@@ -98,7 +98,6 @@ app/
     - A platform call a test needs goes behind a test `expect` too (`setTimeZone`).
 - **`androidHostTest`** is for a shared test that holds only on Android. Each says why, or shows it in its code:
     - another language (`@Config(qualifiers = "es")`), or an Android API (`ShadowLooper`, `Bitmap`, `android.icu`);
-    - sizes chosen against the room Android's system bars leave (`StylesPageFitTest`);
     - what a desktop target's test harness couldn't do, kept here so one can be added back: a wait on the test clock
         inside a composition (`delayWhileResumed` in an effect or a gesture), which waits in real time there; seconds of
         the clock over a busy page (the Styles tests), which it draws frame by frame in software.

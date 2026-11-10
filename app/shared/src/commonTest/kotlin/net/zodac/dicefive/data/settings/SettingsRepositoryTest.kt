@@ -87,7 +87,6 @@ class SettingsRepositoryTest {
 
         repository.setPlayerName(1, "Alice")
         repository.setVibrationEnabled(false)
-        repository.setStylesPageFit("fit")
         runCurrent()
         assertEquals(listOf(true), sound)
         assertEquals(listOf("classic_ivory"), diceStyle)

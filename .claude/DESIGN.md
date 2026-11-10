@@ -267,7 +267,7 @@ will map to Play Games.
     `ResilientDataStore`: a write that fails (a full disk) is skipped and a read that fails is empty, never thrown into
     the coroutine that asked. A failed read is retried three times, after 1s, 3s and 5s, and a retry that reads the file
     gives it to the collector; after the third, it stops.
-    - `settings`. Every key but the Animations level, the Orientation, the Styles page fit, and the two list filters is synced
+    - `settings`. Every key but the Animations level, the Orientation, and the two list filters is synced
         (`SettingsRepository.SYNCED_KEYS`) and stamped `synced_at:<key>` when it changes.
     - `achievements`: unlock times and counters, plus the cloud save's counter shares (this file's own share id and the
         others' counts) and the streak's stamp.
@@ -276,8 +276,8 @@ will map to Play Games.
         No reset clears it.
     - `purchases`: `owns_all_styles`, what the store last said (`PURCHASES.md`). No reset clears it, and it isn't in
         the cloud save.
-- **Cloud save** (signed in only): one gzipped JSON snapshot of all of the above but the Animations level and the
-    Styles page fit, merged, never picked. `PLAY_GAMES.md`, "Cloud save", is the source.
+- **Cloud save** (signed in only): one gzipped JSON snapshot of all of the above but the Animations level, the
+    Orientation, and the two list filters, merged, never picked. `PLAY_GAMES.md`, "Cloud save", is the source.
 - **Progress files** (the github app only): the same snapshot, sealed, in a file the player keeps. "Distribution",
     below.
 - **The in-progress game.** `InProgressGameRepository` holds at most one, saved as JSON (`GameStateJson`).

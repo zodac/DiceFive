@@ -1,5 +1,7 @@
 package net.zodac.dicefive.navigation
 
+import net.zodac.dicefive.game.style.StyleCategory
+
 /** Route constants for [DiceFiveNavHost]. */
 object Screen {
     const val MENU = "menu"
@@ -13,6 +15,10 @@ object Screen {
     const val ACHIEVEMENTS = "achievements"
     const val SETTINGS = "settings"
     const val STYLES = "styles"
+
+    /** A Styles category's own page, opened from its field on the Styles page: "styles/dice_cup". */
+    fun styleCategory(category: StyleCategory): String = "$STYLES/${category.name.lowercase()}"
+
     const val RULES = "rules"
     const val TUTORIAL = "tutorial"
 }

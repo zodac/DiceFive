@@ -26,7 +26,8 @@ import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.game.TurnTimerBadge
 import net.zodac.dicefive.ui.game.UndoButton
 import net.zodac.dicefive.ui.statistics.PlayerStatsCard
-import net.zodac.dicefive.ui.styles.StylesScreen
+import net.zodac.dicefive.game.style.StyleCategory
+import net.zodac.dicefive.ui.styles.StyleCategoryScreen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /**
@@ -64,9 +65,11 @@ class ScreenReaderSemanticsTest : UiTest() {
     private val showcase = Showcase { compose }
 
     @Test
-    fun `a style tile is a radio button saying its place in the row - the picked one selected - a locked one saying how to unlock it`() = uiTest {
+    fun `a style tile is a radio button saying its place in the set - the picked one selected - a locked one saying how to unlock it`() = uiTest {
         val viewModel = stylesViewModel()
-        compose.setContent { DiceFiveTheme { CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { StylesScreen(viewModel = viewModel, onBack = {}) } } }
+        compose.setContent {
+            DiceFiveTheme { CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { StyleCategoryScreen(viewModel = viewModel, category = StyleCategory.DICE, onBack = {}) } }
+        }
 
         val radios = compose.onAllNodes(hasRole(Role.RadioButton)).fetchSemanticsNodes()
         assertTrue(radios.isNotEmpty())

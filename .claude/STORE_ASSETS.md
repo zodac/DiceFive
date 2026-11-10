@@ -24,9 +24,9 @@ the `store-assets` skill. The rest of the Play submission is in `PUBLISHING.md`.
 1080px or more**, and most people see only the first two or three.
 
 - **Phone, 8** (Play's most): game, Tricolour at a dressed table, D20 with the green faceted cup (under the same
-    caption as Tricolour), the Styles dice, results, the Leaderboard on Standard's board, Statistics on its Combined page,
+    caption as Tricolour), the Styles page's Dice page, results, the Leaderboard on Standard's board, Statistics on its Combined page,
     and achievements.
-- **10-inch, 8**: the same eight, with the Dice and Dice Cup galleries open side by side on the styles shot, in
+- **10-inch, 8**: the same eight, the styles shot the Dice page as on the phone, in
     landscape (`w1280dp-h800dp-land-xhdpi`), where the game screen lays its board out wide.
 - **7-inch: none**, by the maintainer's choice.
 - **The phone is 9:16** (`w412dp-h732dp`), about the game screen's own height: a taller phone leaves empty space

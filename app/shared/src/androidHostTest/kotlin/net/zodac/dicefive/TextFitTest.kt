@@ -51,6 +51,8 @@ import net.zodac.dicefive.ui.style.DiceMats
 import net.zodac.dicefive.ui.style.DiceStyles
 import net.zodac.dicefive.ui.style.TableBackgrounds
 import net.zodac.dicefive.ui.styles.StylesScreen
+import net.zodac.dicefive.game.style.StyleCategory
+import net.zodac.dicefive.ui.styles.StyleCategoryScreen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.robolectric.annotation.Config
 
@@ -160,9 +162,14 @@ open class TextFitTest : UiTest() {
             SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, AchievementsState()),
         )
         val styles = stylesViewModel(saved)
-        content { StylesScreen(viewModel = styles, onBack = {}) }
+        content { StylesScreen(viewModel = styles, onBack = {}, onOpenCategory = {}) }
         compose.mainClock.advanceTimeBy(5_000)
         check("Styles")
+        for (category in StyleCategory.entries) {
+            content { StyleCategoryScreen(viewModel = styles, category = category, onBack = {}) }
+            compose.mainClock.advanceTimeBy(5_000)
+            check("Styles: $category")
+        }
 
         val game = gameViewModel()
         game.setupForm.setPlayerCount(2)

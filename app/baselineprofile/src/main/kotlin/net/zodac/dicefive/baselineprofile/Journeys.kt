@@ -324,15 +324,6 @@ private fun findNode(node: AccessibilityNodeInfo?, match: (AccessibilityNodeInfo
     return null
 }
 
-/** Swipes along the screen at [heightFraction] of its height, right to left, [times] times. */
-internal fun MacrobenchmarkScope.scrollRow(heightFraction: Float, times: Int) {
-    val y = (device.displayHeight * heightFraction).toInt()
-    repeat(times) {
-        device.swipe(device.displayWidth * 9 / 10, y, device.displayWidth / 10, y, 20)
-        device.waitForIdle()
-    }
-}
-
 /** From the menu: Play (or New Game, when a game is saved) -> Start Game, then back to the menu. */
 internal fun MacrobenchmarkScope.playATurn() {
     openGameSetup()
@@ -988,30 +979,27 @@ private val CATEGORIES = listOf(
 private val CATEGORY_HEADER = By.desc(Pattern.compile("(${CATEGORIES.joinToString("|")}), \\d+ of \\d+ earned"))
 
 /**
- * The Styles page: the costliest to open the first time (BENCHMARKS.md, "The Styles page"), so
- * every row is swiped along and the page scrolled down, which composes each tile once.
+ * The Styles pages: the costliest to open the first time (BENCHMARKS.md, "The Styles page"), so every category's page is
+ * opened from its field and scrolled down through, which composes each tile once.
  */
 internal fun MacrobenchmarkScope.visitStyles() {
     openFromMenu("Styles")
-    // Dice gallery on (every tile at once), down the page and back, then off for the rows below.
-    tapDesc("Dice gallery")
-    scrollDown(2)
-    closeMisreadLockDialog()
-    scrollPageToTop()
-    closeMisreadLockDialog()
-    tapDesc("Dice gallery")
-    for (fraction in listOf(0.25f, 0.45f, 0.65f, 0.85f)) {
-        scrollRow(fraction, 2)
+    for (category in STYLE_CATEGORIES) {
+        // Each field is a button named for its category; its page has the category as its title instead.
+        tapDesc(category)
+        await(By.text(category), category)
+        scrollDown(2)
         closeMisreadLockDialog()
-    }
-    scrollDown(1)
-    closeMisreadLockDialog()
-    for (fraction in listOf(0.25f, 0.45f, 0.65f, 0.85f)) {
-        scrollRow(fraction, 2)
+        scrollPageToTop()
         closeMisreadLockDialog()
+        back()
+        await(By.desc(STYLE_CATEGORIES.last()), "the Styles page")
     }
     backToMenu()
 }
+
+/** The Styles page's fields, by their spoken names. */
+private val STYLE_CATEGORIES = listOf("Dice", "Dice Cup", "Mat", "Background", "Frame", "Boxes")
 
 /**
  * Closes a locked style's dialog if a swipe opened it: on a starved emulator a swipe's moves can arrive after the

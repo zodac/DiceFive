@@ -37,7 +37,8 @@ import net.zodac.dicefive.ui.common.WholeWordsText
 import net.zodac.dicefive.ui.game.PlayerHeaderBar
 import net.zodac.dicefive.ui.menu.PlayButton
 import net.zodac.dicefive.ui.rules.RulesScreen
-import net.zodac.dicefive.ui.styles.StylesScreen
+import net.zodac.dicefive.game.style.StyleCategory
+import net.zodac.dicefive.ui.styles.StyleCategoryScreen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /** The screen this class's tests are drawn on: the maintainer's phone. */
@@ -179,7 +180,7 @@ class LargeFontFitTest : UiTest() {
 
     @Test
     fun `no style's name runs past its tile at the largest font`() = uiTest(SCREEN) {
-        show(2f) { StylesScreen(viewModel = stylesViewModel(), onBack = {}) }
+        show(2f) { StyleCategoryScreen(viewModel = stylesViewModel(), category = StyleCategory.DICE, onBack = {}) }
         compose.mainClock.advanceTimeBy(2_000)
         compose.waitForIdle()
         // Dice tiles (64dp) hold a name of up to their own width, at the 100% size if it needs to go that far.

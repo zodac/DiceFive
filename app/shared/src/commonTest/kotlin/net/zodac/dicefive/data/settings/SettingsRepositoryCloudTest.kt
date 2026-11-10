@@ -32,7 +32,6 @@ class SettingsRepositoryCloudTest {
         repository.setAnimationLevel(AnimationLevel.OFF)
         repository.setScreenOrientation(ScreenOrientation.LANDSCAPE)
         repository.setConfirmBeforeLeavingGame(false)
-        repository.setStylesPageFit("fit")
         repository.setLockedOnlyAchievements(true)
         repository.setUnlockedOnlyStyles(true)
         assertEquals(
@@ -95,7 +94,6 @@ class SettingsRepositoryCloudTest {
                 "player_count" to Stamped(SettingValue.Number(2), 50L),
                 "extended_scores_modifier" to Stamped(SettingValue.Number(1), 150L),
                 "vibration_enabled" to Stamped(SettingValue.Flag(false), 150L),
-                "styles_page_fit" to Stamped(SettingValue.Text("another screen's"), 150L),
                 "animation_level" to Stamped(SettingValue.Text(AnimationLevel.OFF.id), 150L),
                 "future_setting" to Stamped(SettingValue.Flag(true), 150L),
             ),
@@ -104,7 +102,6 @@ class SettingsRepositoryCloudTest {
         assertEquals(3, repository.playerCount.first())
         assertEquals(false, repository.extendedScores.first())
         assertEquals(false, repository.vibrationEnabled.first())
-        assertEquals(null, repository.stylesPageFit.first())
         assertEquals(AnimationLevel.default, repository.animationLevel.first())
         assertEquals(
             mapOf(
@@ -117,12 +114,11 @@ class SettingsRepositoryCloudTest {
     }
 
     @Test
-    fun `wiping forgets every synced setting - and keeps the Animations level - Orientation and page fit`() = runTest {
+    fun `wiping forgets every synced setting - and keeps the Animations level - Orientation and list filters`() = runTest {
         repository.setDiceStyleId("ocean")
         repository.setSoundEnabled(false)
         repository.setAnimationLevel(AnimationLevel.OFF)
         repository.setScreenOrientation(ScreenOrientation.PORTRAIT)
-        repository.setStylesPageFit("fit")
         repository.setLockedOnlyAchievements(true)
         repository.setUnlockedOnlyStyles(true)
         repository.setLeaderboardChoice("tricolour")
@@ -130,7 +126,6 @@ class SettingsRepositoryCloudTest {
         assertEquals(emptyMap(), repository.cloudSettings())
         assertEquals(DefaultStyleIds.DICE, repository.diceStyleId.first())
         assertEquals(true, repository.soundEnabled.first())
-        assertEquals("fit", repository.stylesPageFit.first())
         assertEquals(AnimationLevel.OFF, repository.animationLevel.first())
         assertEquals(ScreenOrientation.PORTRAIT, repository.screenOrientation.first())
         assertEquals(true, repository.lockedOnlyAchievements.first())
@@ -166,11 +161,10 @@ class SettingsRepositoryCloudTest {
     }
 
     @Test
-    fun `a change to a synced setting is announced - the Animations level's - Orientation's - page fit's and list filters' aren't`() = runTest {
+    fun `a change to a synced setting is announced - the Animations level's - Orientation's and list filters' aren't`() = runTest {
         var changes = 0
         backgroundScope.launch { repository.syncedChanges.collect { changes++ } }
         runCurrent()
-        repository.setStylesPageFit("fit")
         repository.setAnimationLevel(AnimationLevel.OFF)
         repository.setScreenOrientation(ScreenOrientation.LANDSCAPE)
         repository.setLockedOnlyAchievements(true)

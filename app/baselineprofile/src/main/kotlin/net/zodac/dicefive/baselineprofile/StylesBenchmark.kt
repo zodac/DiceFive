@@ -10,8 +10,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Frame times while the Styles page opens and its rows are swiped for the first time - the cold
- * path the page's warm-up and prefetching are there to hide - with no ahead-of-time compilation
+ * Frame times while the Styles page and each category's page open and are scrolled for the first time - the cold
+ * path the pages' warm-up is there to hide - with no ahead-of-time compilation
  * against the generated Baseline Profile. Run on a device with
  * `./gradlew :app:baselineprofile:connectedBenchmarkReleaseAndroidTest`; the number to compare is
  * `frameDurationCpuMs` P90/P99 (and `frameOverrunMs`, where negative means frames on time).

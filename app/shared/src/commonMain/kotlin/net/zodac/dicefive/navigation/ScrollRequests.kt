@@ -44,7 +44,8 @@ open class ScrollRequests<T : Any> {
 data class AchievementScrollRequest(val achievementId: String, val animate: Boolean)
 
 /**
- * The styles a long-pressed styles banner names, for the Styles screen to scroll its rows to and flash.
+ * The styles a long-pressed styles banner names, for the Styles page to flash their categories' fields, or a category's
+ * page (when they're all of one category) to bring them into view and flash them.
  * [animate] is false when the screen wasn't already open - see [AchievementScrollRequest]. Not a data class: two
  * requests for the same styles are still two requests, each to be scrolled to again.
  */
@@ -53,5 +54,5 @@ class StyleScrollRequest(val styles: List<UnlockedStyle>, val animate: Boolean)
 /** The Achievements screen's: scroll to one row and flash it. */
 object AchievementScrollRequests : ScrollRequests<AchievementScrollRequest>()
 
-/** The Styles screen's: scroll each category's row to its newly unlocked style and flash it. */
+/** The Styles pages': flash the newly unlocked styles - see [StyleScrollRequest]. */
 object StyleScrollRequests : ScrollRequests<StyleScrollRequest>()

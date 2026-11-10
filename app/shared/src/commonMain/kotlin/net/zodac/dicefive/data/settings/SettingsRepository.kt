@@ -357,12 +357,6 @@ class SettingsRepository(
 
     suspend fun setScoreBoxId(id: String) = set(SCORE_BOX_ID_KEY, id)
 
-    // The Styles page's fitted size for the screen it was measured on, as the Styles screen writes it -
-    // opaque here. Null until it's first measured.
-    val stylesPageFit: Flow<String?> = read { prefs -> prefs[STYLES_PAGE_FIT_KEY] }
-
-    suspend fun setStylesPageFit(fit: String) = set(STYLES_PAGE_FIT_KEY, fit)
-
     /** Whether the Achievements page shows only the achievements not yet unlocked - its Locked only switch. Off until switched on. */
     val lockedOnlyAchievements: Flow<Boolean> = read(LOCKED_ONLY_ACHIEVEMENTS_KEY, default = false)
 
@@ -420,7 +414,6 @@ class SettingsRepository(
         val DICE_MAT_ID_KEY = stringPreferencesKey("dice_mat_id")
         val SCORE_FRAME_ID_KEY = stringPreferencesKey("score_frame_id")
         val SCORE_BOX_ID_KEY = stringPreferencesKey("score_box_id")
-        val STYLES_PAGE_FIT_KEY = stringPreferencesKey("styles_page_fit")
         /** The Combined Statistics page's sort - the only page there was until 1.5.0, when it held every mode's games. */
         val STATISTICS_SORT_KEY = stringPreferencesKey("statistics_sort")
         val STATISTICS_CHOICE_KEY = stringPreferencesKey("statistics_choice")
@@ -446,9 +439,8 @@ class SettingsRepository(
 
         /**
          * What the cloud save carries: everything but the Animations level ([ANIMATION_LEVEL_KEY]), chosen for what this
-         * device can draw, the Orientation ([SCREEN_ORIENTATION_KEY]), chosen for how it's held, and the Styles page fit
-         * ([STYLES_PAGE_FIT_KEY]), a measurement of its screen, and the two list filters ([LOCKED_ONLY_ACHIEVEMENTS_KEY],
-         * [UNLOCKED_ONLY_STYLES_KEY]) a way of browsing.
+         * device can draw, the Orientation ([SCREEN_ORIENTATION_KEY]), chosen for how it's held, and the two list filters
+         * ([LOCKED_ONLY_ACHIEVEMENTS_KEY], [UNLOCKED_ONLY_STYLES_KEY]), a way of browsing.
          */
         private val SYNCED: List<SyncedKey<*>> = buildList {
             (STYLE_KEYS + listOf(TURN_TIMER_KEY, TURN_TIMER_LENGTH_KEY, GAME_MODE_KEY, LEADERBOARD_CHOICE_KEY, STATISTICS_CHOICE_KEY))

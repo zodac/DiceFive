@@ -208,31 +208,58 @@ available. `StyleRegistryTest` keeps the counts within what can be earned.
 
 ## The Styles screen
 
+Two levels (decided 2026-11-10, replacing one page of every category's rows, which was cluttered and slow to open): the
+**Styles page**, a field per category showing its pick, and each **category's page**, every style of that category at
+once. Routes `styles` and `styles/<category>` (`Screen.styleCategory`), one composable per category.
+
 **Counts.** Every colour of a style counts as one (`StyleRegistry.unlockCount`). A secret colour isn't counted until
 it's earned, so the total doesn't hint at it.
 
-- The unlocked/total count is drawn like the Achievements page's: a full-width card over the cards, or compact after
-    the back arrow in landscape.
-- Each category's title carries its own `46/96` before the gallery toggle, both in `categoryHeaderStyle` as on the
-    Achievements page. Title and count turn brand gold (`primary`)
-    once every one is unlocked. TalkBack reads "Dice, 46 of 96 unlocked" as the heading; the drawn count is hidden.
+- The Styles page's unlocked/total count is drawn like the Achievements page's: a full-width card over the fields, or
+    compact after the back arrow in landscape. A category's page has its own count there.
+- Each field's heading carries its own `46/96` at its end. Title and count turn brand gold (`primary`) once every one is
+    unlocked.
 
-**The Unlocked switch** (labelled "All" while off, "Unlocked" while on) sits beside the count, drawn and placed as the
-Achievements page's switch (labelled "All" / "Unearned"): after the count in portrait, at the app bar's end in
-landscape. On, it hides every locked style. The rows are kept, not rebuilt (no blink): locked tiles sit after the
-unlocked ones, so hiding them only shortens each row and the unlocked tiles keep their place and scroll. Hidden locked
-tiles stay composed in the row itself, collapsed to no size and clipped, out of sight and out of TalkBack's reach
-(`Modifier.collapsed`), so turning it off again only gives them their room back: no rebuild and no move to another
-parent (which cost ~55ms a toggle, against ~9ms). The gap after a tile is its own padding, so a collapsed tile leaves
-the rest as they were. In the gallery they sit in `HiddenTiles`. Only tiles not built yet (the page just opened with it
-on) fill in a few at a time. The switch itself answers the tap at once. Each row's scrollbar keeps its room even when
-the row fits (`reserveSpace`), so a card never changes height; it follows the tiles on the same frame (no hide or fade),
-so the tiles and the bar never come back at different times. It's kept across restarts on this device
-(`SettingsRepository.unlockedOnlyStyles`), as the Unearned switch is (`lockedOnlyAchievements`); neither goes in the
-cloud save.
+**The Styles page** (`StylesScreen`): three rows of two fields (two rows of three in landscape), filling the page.
 
-**Unlock All** (the purchase, `PURCHASES.md`) is a tonal button at the app bar's end, before the Unlocked switch in
-landscape: the purchase's mark (`UnlockAllStylesIcon`) and "Unlock All". No price: Play's sheet shows it.
+- Each field is one grey `Card`, the whole of it the button: the category's name in New Game's small grey heading
+    (`titleSmall`, `onSurfaceVariant`), the count at the heading's end; the pick's preview (`StylePickPreview`); and the
+    pick's name in Sora bold with its colour under it (a blank line for a one-colour style, so a row's previews match),
+    from the start, with the gold chevron at the end, mirrored right to left.
+- Portrait: the names along the bottom, under the preview. Landscape, where a card is wide and short: beside it, so
+    the preview has the card's height.
+- The preview is the pick's tile, still: no badge or dots, scaled to fill its room (`MIN_PREVIEW_SCALE`..
+    `MAX_PREVIEW_SCALE`), from the room's start, so every preview lines up with its heading whatever its shape. A
+    frame's tab and a box's corner are centred in it (they sit high in a gallery tile, clear of its dots). Its words (a
+    frame's "You 24") scale with it, not with the font.
+- Rejected on review: a blue field inside the card as New Game's pickers (wasted space; then the previews too small),
+    no cards (the art bare on the backdrop), a tight card round the art alone, the chevron on the art's edge, the names
+    under the preview in landscape (the previews tiny), and centred previews (the narrow cup stood apart).
+- TalkBack: each field is one button - "Dice, button, Ocean, Deep. 60 of 99 unlocked", action "Choose Dice"
+    (`common_picker_state_spoken`, `common_picker_choose_action`); the heading is cleared.
+- Large fonts (only above 100%): a row's headings put their counts on a second line if any one doesn't fit; titles and
+    names shrink to their 100% size before ellipsising; and where the fields would be shorter than their words and a
+    96dp preview (`MIN_PREVIEW_HEIGHT`), they keep that height and the page scrolls.
+
+**A category's page** (`StyleCategoryScreen`): titled with the category, its count and the Unlocked switch over a card
+of every tile (`StyleCategoryTiles`), the page scrolling. A pick is saved at once and the page stays open.
+
+- **The Unlocked switch** (labelled "All" while off, "Unlocked" while on) sits beside the count, drawn and placed as
+    the Achievements page's switch (labelled "All" / "Unearned"): after the count in portrait, at the app bar's end in
+    landscape. On, it hides every locked style; it's one setting for every category's page, kept across restarts on
+    this device (`SettingsRepository.unlockedOnlyStyles`), as the Unearned switch is (`lockedOnlyAchievements`); neither
+    goes in the cloud save. It's left off a page once every style of it is unlocked.
+- Hidden locked tiles stay composed out of sight (`HiddenTiles`), so turning it off moves them back rather than
+    building them. Locked tiles come after the unlocked ones, so hiding them only shortens the run.
+- **The page scrollbar** (`VerticalScrollbar`) sits in the 20dp right margin, and the whole margin is its drag handle.
+    It's silent to TalkBack.
+
+**A styles banner** (long-pressed) opens the category's page when its styles are all of one category, over the Styles
+page so Back returns there; the styles are brought into view and flashed gold. Styles of several categories open the
+Styles page, those fields flashed; opening one hands the request on (`CategoryFocus`), so its styles flash there.
+
+**Unlock All** (the purchase, `PURCHASES.md`) is a tonal button at the Styles page's app bar end: the purchase's mark
+(`UnlockAllStylesIcon`) and "Unlock All". No price: Play's sheet shows it.
 
 - For sale: enabled. A tap opens a dialog first (the mark, "Unlock All", what it unlocks, and that every style
     can be earned for free, so paying is a shortcut and a way to support DiceFive); its Continue opens Play's sheet,
@@ -242,62 +269,35 @@ landscape: the purchase's mark (`UnlockAllStylesIcon`) and "Unlock All". No pric
     lines (`onTitleCrowded`); the button then drops its words for that screen size, font scale and label, leaving the
     mark (a 320dp phone at 1.3x font; "Payment pending" until about 411dp).
 - TalkBack: "Unlock all styles, button", with "Payment pending" as its state; the drawn words are cleared. It comes
-    before the first card. A purchase completing on the page toasts "All styles unlocked" (`UnlockAllStylesButtonTest`).
-- Debug builds: 5 taps on the unlocked count pretend every style is owned (`DESIGN.md`, "Superuser modes").
+    before the first field. A purchase completing on the page toasts "All styles unlocked" (`UnlockAllStylesButtonTest`).
+- Debug builds: 5 taps on the Styles page's unlocked count pretend every style is owned (`DESIGN.md`, "Superuser modes").
 
-**Tiles and rows.**
+**Tiles.**
 
 - One tile per family. A long press opens a row of previews, one per colour. Colour names are spoken, not shown.
 - Picking a cup shakes and tips it (`CupPickShake`); picking a die rolls it through six faces (`DicePickRoll`). These
     are only visual.
-- Tiles are radio buttons: style and colour name, selected state, and position in the row.
-
-**Rows build gradually.** Each row is a plain scrolling `Row`. The tiles on screen at open (the pick, centred, and its
-neighbours) build first, then the rest over the following frames, nearest the pick first.
-
-- Unbuilt tiles are same-sized silent placeholders.
-- A `LazyRow` built nothing ahead on a device; see `BENCHMARKS.md`.
-- Rows fade in with the page.
-- The picks come from `AppContainer.savedStyles`, loaded at launch and shared with the menu logo.
-
-**Fit-to-screen scaling** is worked out in the warm-up, never on opening.
-
-- `StylesWarmUp` lays the page out off screen at full size and, if that scrolls, at `MIN_PAGE_FIT_SCALE` (70%).
-    This is its first step, laid out but not drawn, so the fit is saved within moments of the menu settling.
-- The cards get smaller dp but the same sp, and `fittedPageScale` finds the scale that just fits.
-- The resulting `PageFit` is keyed on window size, density and font scale, and saved with the picks
-    (`styles_page_fit`). Opening just reads it.
-- A page that fits, or would need less than 70%, stays full size. A page with no measure yet is full size until the
-    next warm-up.
-- Tests: `PageFitTest`, `StylesPageFitTest`.
-
-**Gallery.** A grid icon on each card's title (`GalleryToggle`, a switch to TalkBack: "Dice gallery, off") shows every
-tile at once (`GalleryGrid`).
-
-- **Row and gallery space tiles identically** (`TileSpacing`, from the card's width).
-    - Each tile takes its preview's width; a longer name spills into the gaps.
-    - The gap is `TILE_SPACING` (12dp), closing to `GALLERY_MIN_TILE_SPACING` (4dp) when that fits one more tile.
-    - Sides are `TILES_SIDE_PADDING` (8dp).
-    - On a 360dp phone this fits four dice or cups, three mats or four backgrounds (`StylesGalleryTest`).
+- Tiles are radio buttons: style and colour name, selected state, and position in the set.
+- **Spacing** (`TileSpacing`, from the card's width): each tile takes its preview's width (a longer name spills into
+    the gaps); the gap is `TILE_SPACING` (12dp), closing to `GALLERY_MIN_TILE_SPACING` (4dp) when that fits one more
+    tile; sides are `TILES_SIDE_PADDING` (8dp). On a 360dp phone this fits four dice, cups or backgrounds, and three
+    mats, frames or boxes (`StyleCategoryPageTest`).
 - **Tile sizes.** Mats are 97x65dp (the tray's shape, cut 10% so three fit). Backgrounds are 72x80dp (the board's
     shape). Boxes are 97x76dp like frames, a corner of a scorecard at 62% of compact boxes (`BoxPreview`). The cups
     "Treasure Chest" and "Picnic Basket" were renamed "Treasure" and "Picnic" so their names fit.
-- **Rejected on review**: shrunk tiles, an even grid, and a `FlowRow` (which left an empty column).
-- **Behaviour.**
-    - The toggle is no taller than the title line.
-    - It's off on every open (`rememberSaveable`, per card).
-    - Tiles are `movableContentOf`, so a shaking cup carries on when switching.
-- **The page scrollbar** (`VerticalScrollbar`) sits in the 20dp right margin, and the whole margin is its drag handle.
-    It's silent to TalkBack.
 
-**The warm-up** (`StylesWarmUp`): the first open after launch is slow, because the drawing code runs for the first
-time.
+**The warm-ups**: a page's first open after launch is slow, because the drawing code runs for the first time. Two, by
+the maintainer's choice (2026-11-10): the menu warms only the Styles page, and the category pages are warmed only once
+the Styles page has been opened.
 
-- 600ms after the menu settles, it measures the page's fit (above), then draws every tile a few at a time, then each
-    card, then the empty frame, then the whole screen (`ScreenScaffold(driftingDice = false)`).
-- It draws in a 1dp clipped box under the menu backdrop, once per process. Compose doesn't cull clipped content.
-- The screen and the warm-up share `StyleCategorySection`, so new categories are warmed automatically. Keep it that
-    way.
+- `StylesWarmUp`, on the menu: 600ms after it settles, the Styles page's empty frame, then the whole page
+    (`driftingDice = false`), once per process.
+- `StyleCategoriesWarmUp`, under the Styles page: 600ms after it opens, every tile three at a time, a category at a
+    time, then each category's page. Once per process, carrying on from the pass it had reached
+    (`categoryWarmUpDone`) when a category is opened, or the page left, before it's done (`StylesWarmUpTest`).
+- Each draws in a 1dp clipped box under its page's opaque backdrop. Compose doesn't cull clipped content.
+- The pages and the warm-ups share `StyleCategoryTiles`, `StyleCategoryScaffold` and `StylesScaffold`, so new
+    categories are warmed automatically. Keep it that way.
 
 ## The Leaderboard's boards
 

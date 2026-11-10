@@ -144,8 +144,8 @@ purchase" and paying is "an optional shortcut and a way to support DiceFive". Ca
     - `Pending`: disabled, "Payment pending".
     - `Owned`: the button is removed.
     - `Unavailable`: not shown.
-- **In the top bar**, beside the title, so no card moves and `StylesWarmUp`'s `PageFit` is unaffected. A row above
-    the cards was rejected: it would move every card and change the measured page height. Render it (the `render`
+- **In the top bar**, beside the title, so no field moves. A row above the fields was rejected: it would move every
+    field. Render it (the `render`
     skill) at 320dp, 2x font and in Arabic before building: the title and a priced button must share the bar.
 - A successful purchase: a short confirmation ("All styles unlocked"), padlocks fade off. Spoken through a
     `liveRegion` or announcement, asserted word for word.

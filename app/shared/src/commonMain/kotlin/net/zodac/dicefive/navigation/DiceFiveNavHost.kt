@@ -11,7 +11,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
@@ -23,11 +22,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.ResumeAttempt
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.game.TutorialScript
+import net.zodac.dicefive.game.style.StyleCategory
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_default_player_name
 import net.zodac.dicefive.ui.achievements.AchievementsScreen
@@ -54,6 +53,7 @@ import net.zodac.dicefive.ui.settings.SettingsViewModel
 import net.zodac.dicefive.ui.setup.GameSetupScreen
 import net.zodac.dicefive.ui.statistics.StatisticsScreen
 import net.zodac.dicefive.ui.statistics.StatisticsViewModel
+import net.zodac.dicefive.ui.styles.StyleCategoryScreen
 import net.zodac.dicefive.ui.styles.StylesScreen
 import net.zodac.dicefive.ui.styles.StylesWarmUp
 import net.zodac.dicefive.ui.styles.StylesViewModel
@@ -107,14 +107,9 @@ private fun NavGraphBuilder.pages(navController: NavHostController, container: A
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             // Under the menu, which is opaque: runs the Styles page's drawing code once while the
             // menu idles, so opening Styles isn't the first time it runs - see StylesWarmUp.
-            val warmUpScope = rememberCoroutineScope()
             // The warm-ups' copies of a page are never what the cover waits on.
             CompositionLocalProvider(LocalPageCover provides null) {
-                StylesWarmUp(
-                    picks = savedStyles,
-                    width = maxWidth,
-                    onPageFit = { fit -> warmUpScope.launch { container.settingsRepository.setStylesPageFit(fit) } },
-                )
+                StylesWarmUp(picks = savedStyles, width = maxWidth)
                 // Likewise for the Leaderboard,
                 ScoresWarmUp(width = maxWidth)
                 // and for the game Continue resumes, which has no setup form to warm it up under.
@@ -208,7 +203,17 @@ private fun NavGraphBuilder.pages(navController: NavHostController, container: A
         StylesScreen(
             viewModel = viewModel(factory = StylesViewModel.factory(container)),
             onBack = navigateUp,
+            onOpenCategory = { category -> navigate(Screen.styleCategory(category)) },
         )
+    }
+    for (category in StyleCategory.entries) {
+        composable(Screen.styleCategory(category)) {
+            StyleCategoryScreen(
+                viewModel = viewModel(factory = StylesViewModel.factory(container)),
+                category = category,
+                onBack = navigateUp,
+            )
+        }
     }
     composable(Screen.RULES) {
         RulesScreen(onBack = navigateUp, onStartTutorial = { navigate(Screen.TUTORIAL) })

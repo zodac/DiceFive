@@ -50,10 +50,10 @@ shows up late. Leave out `runOnIdle` and it can be missed.
     (`onNodeWithTag(...).captureToImage()`). Run 80 frames at rest and 120 tumbling (`style.TossedDie`, `roll` stepped
     0 to 3.9 and round), against a `_blank` style whose `Die` is an empty `Box`. A whole-screen capture adds a 9-12ms
     floor that buries the differences.
-- **Styles page.** Use `StylesScreen(StylesViewModel(savedStyles = flow))` with
+- **Styles pages.** Use `StylesScreen(StylesViewModel(savedStyles = flow), onBack = {}, onOpenCategory = {})`, or a
+    category's `StyleCategoryScreen(viewModel, category, onBack = {})` (the dice have the most tiles), with
     `AchievementsState(unlockedAt = Achievement.entries.associateWith { 1L })`, so every style is shown, under
-    `@Config(qualifiers = "w411dp-h891dp-xxhdpi")`. Scroll a row with `SemanticsActions.ScrollToIndex`; `ScrollBy`
-    does nothing on these rows.
+    `@Config(qualifiers = "w411dp-h891dp-xxhdpi")`.
 - **Opening a page, frame by frame.** Use `setContent { key(generation) { if (generation % 2 == 1) StylesScreen(...) } }`
     and bump `generation` to open or close the page. Time the next ~40 `advanceTimeByFrame()` + `waitForIdle()` pairs.
     Advance a few seconds between openings. The first opening is cold (~400ms), so compare the later ones.

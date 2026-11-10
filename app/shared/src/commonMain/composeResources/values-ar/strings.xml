@@ -1059,7 +1059,6 @@
     <string name="styles_category_frame">الإطار</string>
     <string name="styles_category_box">الخانات</string>
     <string name="styles_frame_preview_name">أنت</string>
-    <string name="styles_gallery_cd">معرض %1$s</string>
     <string name="styles_unlocked_count">%1$d من %2$d مفتوحة</string>
     <string name="styles_unlocked_count_short">%1$d من %2$d</string>
     <string name="styles_unlocked_percent">%1$d%</string>
@@ -1074,8 +1073,6 @@
     <string name="styles_unlock_all_dialog_message">افتح كل الأنماط فورًا، دون الحاجة إلى كسب الإنجازات. يشمل ذلك كل أنماط النرد وكؤوس النرد والحصائر والخلفيات والإطارات، وحتى الألوان السرية.\n\nيمكن أيضًا كسب كل الأنماط مجانًا من خلال اللعب، ولن يحجب هذا التطبيق أي شيء خلف عملية شراء أبدًا. هذا مجرد اختصار اختياري ووسيلة لدعم %1$s!</string>
     <string name="styles_unlock_all_continue">متابعة</string>
     <string name="styles_unlock_all_failed">تعذّر فتح المتجر. يُرجى المحاولة مرة أخرى لاحقًا.</string>
-    <string name="styles_gallery_row_action">عرض %1$s في صف</string>
-    <string name="styles_gallery_all_action">عرض كل %1$s</string>
     <string name="styles_select_action">اختيار</string>
     <string name="styles_choose_variant_action">اختيار %1$s %2$s</string>
     <string name="styles_family_colour_cd">%1$s، %2$s</string>

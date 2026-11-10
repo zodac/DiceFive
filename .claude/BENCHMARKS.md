@@ -86,12 +86,12 @@ Each of these fixed a reported stutter. New work must keep them.
     - Continue used to make two navigations, the board arriving part-way through two overlapping cross-fades. It now
         opens the game under one cover.
     - Going back isn't covered. Back to a game is 18-25 then 9-16 over two frames, back to the menu 8-11 then 4-10.
-- **The Styles page.**
+- **The Styles pages.**
+    - The Styles page draws six previews (one per category's pick); each category's page builds only its own tiles,
+        all at once (40 or so at most, the dice), in place of every category's rows on one page (about 150 tiles).
     - Each tile's preview is drawn in its own offscreen layer.
-    - Rows are plain `Row`s built deterministically: the tiles on screen at open, then one every `TILE_BUILD_FRAMES`
-        frames, nearest the pick first, with unbuilt runs as one `PlaceholderRun` `Canvas`. A `LazyLayoutCacheWindow` built
-        nothing ahead on a device.
-    - `StylesWarmUp` pre-draws on the menu's idle frames (`UI_SCREENS.md`).
+    - `StylesWarmUp` pre-draws the Styles page on the menu's idle frames, and `StyleCategoriesWarmUp` the category pages
+        on the Styles page's (`UI_SCREENS.md`).
 - **The Leaderboard and Statistics.** Neither page's frames grow with the scores behind them: every board reads
     1,000 rows a page, Statistics is a `LazyColumn` (only the cards on screen are built), and every Leaderboard board is
     one `LeaderboardTable`, read when first picked. What grew was elsewhere:

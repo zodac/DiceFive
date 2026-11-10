@@ -94,7 +94,7 @@ class UnlockAllStylesButtonTest : UiTest() {
                     LocalStore provides store,
                     LocalDensity provides Density(density.density, fontScale),
                 ) {
-                    StylesScreen(viewModel = viewModel, onBack = {})
+                    StylesScreen(viewModel = viewModel, onBack = {}, onOpenCategory = {})
                 }
             }
         }

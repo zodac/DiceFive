@@ -8,11 +8,9 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasStateDescription
-import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onFirst
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -37,13 +35,17 @@ import net.zodac.dicefive.ui.style.ScoreBoxes
 import net.zodac.dicefive.ui.style.ScoreFrames
 import net.zodac.dicefive.ui.style.TableBackgrounds
 import net.zodac.dicefive.ui.styles.StylesScreen
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.SemanticsMatcher
+import net.zodac.dicefive.game.style.StyleCategory
+import net.zodac.dicefive.ui.styles.StyleCategoryScreen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /**
- * The Styles screen's words: its title and categories, and how a style - locked, or in several colours - is named and what a tap is called.
+ * The Styles pages' words: the Styles page's title, its fields and what TalkBack says of each; a category page's title,
+ * and how a style - locked, or in several colours - is named and what a tap is called.
  *
- * Android only: it steps the clock through seconds of the whole Styles page, which the desktop test harness draws
- * frame by frame (about 25s a test there, against well under one here).
+ * Android only: it steps the clock through seconds of whole pages, which the desktop test harness draws frame by frame.
  */
 class StylesTextTest : UiTest() {
 
@@ -52,28 +54,84 @@ class StylesTextTest : UiTest() {
     // Unlocked only is stored by the settings, so each test starts from a new repository with it off.
     private val settings = SettingsRepository(InMemoryPreferences())
 
-    private fun show(achievements: AchievementsState) {
-        val saved = MutableStateFlow<SavedStyles?>(
-            SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements),
-        )
-        val viewModel = stylesViewModel(saved, settings)
-        showcase.show { DiceFiveTheme { CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { StylesScreen(viewModel = viewModel, onBack = {}) } } }
-        compose.mainClock.advanceTimeBy(10_000)
+    private fun viewModel(achievements: AchievementsState) = stylesViewModel(
+        MutableStateFlow<SavedStyles?>(SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements)),
+        settings,
+    )
+
+    /** The Styles page, reporting each field opened to [opened]. */
+    private fun showStyles(achievements: AchievementsState, opened: MutableList<StyleCategory> = mutableListOf()) {
+        val viewModel = viewModel(achievements)
+        showcase.show {
+            DiceFiveTheme {
+                CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { StylesScreen(viewModel = viewModel, onBack = {}, onOpenCategory = { opened += it }) }
+            }
+        }
+        compose.mainClock.advanceTimeBy(2_000)
+        compose.waitForIdle()
+    }
+
+    /** [category]'s page. */
+    private fun showCategory(achievements: AchievementsState, category: StyleCategory = StyleCategory.DICE) {
+        val viewModel = viewModel(achievements)
+        showcase.show {
+            DiceFiveTheme { CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { StyleCategoryScreen(viewModel = viewModel, category = category, onBack = {}) } }
+        }
+        compose.mainClock.advanceTimeBy(2_000)
         compose.waitForIdle()
     }
 
     @Test
-    fun `the page is titled Styles with a card and gallery switch a category - a locked style and one in several colours named and their taps`() = uiTest {
-        show(AchievementsState())
+    fun `the Styles page is titled Styles - each category one button saying its pick and count - and a tap opens its page`() = uiTest {
+        val achievements = AchievementsState(unlockedAt = mapOf(Achievement.NAT_20 to 0L))
+        val opened = mutableListOf<StyleCategory>()
+        showStyles(achievements, opened)
         compose.onNodeWithText("Styles").assertExists()
-        listOf("Dice", "Dice Cup", "Mat", "Background", "Frame", "Boxes").forEach { compose.onNodeWithContentDescription("$it gallery").assertExists() }
+        val count = { catalog: net.zodac.dicefive.ui.style.StyleCatalog<*> -> catalog.unlockCount(StyleAccess(achievements)).let { "${it.unlocked} of ${it.total} unlocked" } }
+        val expected = listOf(
+            Triple("Dice", "Classic, Ivory. ${count(DiceStyles)}", StyleCategory.DICE),
+            Triple("Dice Cup", "Classic, Gold. ${count(DiceCupStyles)}", StyleCategory.DICE_CUP),
+            Triple("Mat", "Classic, Blue. ${count(DiceMats)}", StyleCategory.MAT),
+            Triple("Background", "Classic, Navy. ${count(TableBackgrounds)}", StyleCategory.BACKGROUND),
+            Triple("Frame", "Classic. ${count(ScoreFrames)}", StyleCategory.FRAME),
+            Triple("Boxes", "Classic. ${count(ScoreBoxes)}", StyleCategory.BOX),
+        )
+        val buttons = compose.onAllNodes(hasRole(Role.Button) and hasClickLabelStartingChoose()).fetchSemanticsNodes()
+            .associate { it.config[SemanticsProperties.ContentDescription].single() to it.config }
+        for ((title, state, category) in expected) {
+            val button = buttons.getValue(title)
+            assertEquals(state, button[SemanticsProperties.StateDescription], title)
+            assertEquals("Choose $title", button[SemanticsActions.OnClick].label)
+            compose.onNode(hasRole(Role.Button) and hasContentDescription(title)).performClick()
+            assertEquals(category, opened.last())
+        }
+        // The heading over each field is the button's to say, not a stop of its own.
+        compose.onNodeWithText("Dice Cup").assertDoesNotExist()
+        assertEquals(expected.map { it.third }, opened)
+    }
+
+    @Test
+    fun `the Styles page counts every colour unlocked - each field's count drawn as a fraction`() = uiTest {
+        val achievements = AchievementsState(unlockedAt = mapOf(Achievement.NAT_20 to 0L))
+        showStyles(achievements)
+        val counts = listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds, ScoreFrames, ScoreBoxes).map { it.unlockCount(StyleAccess(achievements)) }
+        val total = counts.reduce(UnlockCount::plus)
+        compose.onNodeWithText("${total.unlocked} of ${total.total} unlocked").assertExists()
+        for (count in counts) compose.onAllNodesWithText("${count.unlocked}/${count.total}", useUnmergedTree = true).onFirst().assertExists()
+    }
+
+    @Test
+    fun `a category page is titled with its category - a locked style and one in several colours named and their taps`() = uiTest {
+        showCategory(AchievementsState())
+        compose.onNodeWithText("Dice").assertExists()
+        compose.onNodeWithText("${DiceStyles.unlockCount(StyleAccess(AchievementsState())).let { "${it.unlocked} of ${it.total}" }} unlocked").assertExists()
         // A locked style says Locked - and its tap is called Show how to unlock.
         val frosted = compose.onAllNodesWithContentDescription("Frosted").onFirst().fetchSemanticsNode().config
         assertEquals("Locked", frosted[SemanticsProperties.StateDescription])
         assertEquals("Show how to unlock Frosted", frosted[SemanticsActions.OnClick].label)
 
         // A style in several colours names the colour showing - and a long press is called Choose colour.
-        show(AchievementsState(unlockedAt = Achievement.entries.associateWith { 0L }))
+        showCategory(AchievementsState(unlockedAt = Achievement.entries.associateWith { 0L }))
         val metal = compose.onNode(hasContentDescription("Metal, Gold")).fetchSemanticsNode().config
         assertEquals("Select", metal[SemanticsActions.OnClick].label)
         assertEquals("Choose Metal colour", metal[SemanticsActions.OnLongClick].label)
@@ -81,7 +139,7 @@ class StylesTextTest : UiTest() {
 
     @Test
     fun `a locked style tile shows the unlock requirement dialog with resolved style name`() = uiTest {
-        show(AchievementsState())
+        showCategory(AchievementsState())
         val metal = compose.onAllNodesWithContentDescription("Metal").onFirst()
         metal.performScrollTo()
         metal.performTouchInput { longClick() }
@@ -90,25 +148,8 @@ class StylesTextTest : UiTest() {
     }
 
     @Test
-    fun `the page counts every colour unlocked - and each category's heading says its own count - drawn as a fraction TalkBack doesn't read`() = uiTest {
-        val achievements = AchievementsState(unlockedAt = mapOf(Achievement.NAT_20 to 0L))
-        show(achievements)
-        val counts = listOf(
-            "Dice" to DiceStyles, "Dice Cup" to DiceCupStyles, "Mat" to DiceMats, "Background" to TableBackgrounds, "Frame" to ScoreFrames, "Boxes" to ScoreBoxes,
-        ).map { (title, catalog) -> title to catalog.unlockCount(StyleAccess(achievements)) }
-        val total = counts.map { it.second }.reduce(UnlockCount::plus)
-        compose.onNodeWithText("${total.unlocked} of ${total.total} unlocked").assertExists()
-
-        val headings = compose.onAllNodes(isHeading()).fetchSemanticsNodes().mapNotNull { it.config.getOrNull(SemanticsProperties.ContentDescription)?.single() }
-        for ((title, count) in counts) {
-            assertTrue("$title, ${count.unlocked} of ${count.total} unlocked" in headings, "$title: $headings")
-            compose.onNodeWithText("${count.unlocked}/${count.total}").assertDoesNotExist()
-        }
-    }
-
-    @Test
     fun `The Unlocked switch is one switch - on it hides every locked style but keeps the unlocked ones - and stays on when the page is opened again`() = uiTest {
-        show(AchievementsState())
+        showCategory(AchievementsState())
         // The label is "All" while it's off and "Unlocked" while it's on.
         val switch = compose.onNodeWithText("All").fetchSemanticsNode().config
         assertEquals(Role.Switch, switch[SemanticsProperties.Role])
@@ -117,7 +158,7 @@ class StylesTextTest : UiTest() {
 
         val widthOff = compose.onNodeWithText("All").fetchSemanticsNode().size.width
         compose.onNodeWithText("All").performClick()
-        compose.mainClock.advanceTimeBy(10_000)
+        compose.mainClock.advanceTimeBy(2_000)
         compose.waitForIdle()
         assertEquals(ToggleableState.On, compose.onNodeWithText("Unlocked").fetchSemanticsNode().config[SemanticsProperties.ToggleableState])
         // The label holds the longer word's width either way, so nothing beside it moves.
@@ -126,8 +167,14 @@ class StylesTextTest : UiTest() {
         assertEquals(0, compose.onAllNodes(hasStateDescription("Locked")).fetchSemanticsNodes().size)
         compose.onAllNodesWithContentDescription("Classic", substring = true).onFirst().assertExists()
 
-        show(AchievementsState())
+        // Another category's page too, as the switch is one setting for every page.
+        showCategory(AchievementsState(), StyleCategory.MAT)
         assertEquals(ToggleableState.On, compose.onNodeWithText("Unlocked").fetchSemanticsNode().config[SemanticsProperties.ToggleableState])
-        assertEquals(0, compose.onAllNodesWithContentDescription("Frosted").fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodes(hasStateDescription("Locked")).fetchSemanticsNodes().size)
     }
+
+    private fun hasRole(role: Role) = SemanticsMatcher.expectValue(SemanticsProperties.Role, role)
+
+    // A field's button: its tap is called "Choose ...".
+    private fun hasClickLabelStartingChoose() = SemanticsMatcher("tap called Choose") { it.config.getOrNull(SemanticsActions.OnClick)?.label?.startsWith("Choose ") == true }
 }

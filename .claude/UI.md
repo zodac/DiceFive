@@ -402,7 +402,7 @@ Examples:
 - scores appear rather than count up, and there are no fireworks;
 - **game pacing**: scoring doesn't wait for a toss, and neither does the CPU (`GamePacing.diceAnimated`), which also
     drops `RELEASE_GAP_MS`;
-- **loading**: the Styles page builds every on-screen tile in its first frame, and a page that's slow to load shows the
+- **loading**: a Styles category's page builds every tile in its first frame, and a page that's slow to load shows the
     still page cover (a spinner after `PageCover.SPINNER_DELAY_MILLIS`).
 
 **Audio and haptics are not motion, and stay.** The shake sound (~400ms), the shake buzz (336ms) and the landing sound
@@ -439,7 +439,9 @@ Examples:
         and the Unearned switch at the app bar's end. Positions count rows of two (`flatIndexOf`, `indexOfKey`), and the
         scroll position is remembered by key.
     - Leaderboard: the drop-down and the board's page controls share a row over a 640dp table, whichever board is picked.
-    - Statistics and Styles: two cards to a row. Styles' count and the Unlocked switch sit in the app bar as Achievements' do.
+    - Statistics: two cards to a row.
+    - Styles: two rows of three fields, the count after the back arrow. A category's page puts its count there too, and
+        its Unlocked switch at the app bar's end, as Achievements' Unearned switch.
     - Rules: the group and page tabs share a row, text at most 640dp wide.
     - Game Over: the results beside the buttons.
 

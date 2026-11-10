@@ -52,9 +52,8 @@ class StoreScreensGeneratorTest {
         /** The same screens on both devices, numbered alike (the order is [screenshots]'): eight, Play's most. */
         val SHOTS = setOf(GAME, MODES, D20, STYLES, GAME_OVER, LEADERBOARD, STATISTICS, ACHIEVEMENTS)
 
-        /** The Styles categories opened as galleries for the styles shot - side by side in landscape. */
-        val PHONE_GALLERIES = listOf("Dice")
-        val TABLET_GALLERIES = listOf("Dice", "Dice Cup")
+        /** The Styles page's Dice field, as TalkBack names it. */
+        const val DICE_FIELD = "Dice"
 
         init {
             // The test's own clock has to drive the app - see MainActivity.useCappedFrameClock.
@@ -80,20 +79,28 @@ class StoreScreensGeneratorTest {
     @StorePart(StoreAssets.PHONE)
     // 9:16, about as tall as the game screen: a taller phone leaves empty space under the dice.
     @Config(qualifiers = "w412dp-h732dp-xxhdpi")
-    fun `phone screenshots`() = screenshots("phone", SHOTS, PHONE_GALLERIES)
+    fun `phone screenshots`() = screenshots("phone", SHOTS)
 
     @Test
     @StorePart(StoreAssets.TABLET)
     // Landscape, where a tablet's game screen lays the board out wide.
     @Config(qualifiers = "w1280dp-h800dp-land-xhdpi")
-    fun `10-inch tablet screenshots`() = screenshots("tablet-10", SHOTS, TABLET_GALLERIES)
+    fun `10-inch tablet screenshots`() = screenshots("tablet-10", SHOTS)
+
+    /** On the Styles page: opens the Dice page from its field, and waits for its tiles. */
+    private fun openDicePage() {
+        compose.waitUntil(5_000) { exists(hasContentDescription(DICE_FIELD)) }
+        compose.onNode(hasContentDescription(DICE_FIELD)).performClick()
+        compose.waitUntil(5_000) { exists(hasContentDescription("Classic,", substring = true)) }
+        settle()
+    }
 
     /**
      * Play takes 2 to 8 screenshots per device type, and only considers a listing for featuring with at least 4 at
      * 1080px or more; most people see only the first two or three, so the strongest come first. The same 8 on the phone
      * and the 10-inch tablet. Names are listing order, and the script captions each.
      */
-    private fun screenshots(device: String, shots: Set<String>, galleries: List<String>) {
+    private fun screenshots(device: String, shots: Set<String>) {
         val dir = File(StoreAssets.outDir, device).apply { deleteRecursively(); mkdirs() }
         var number = 0
         fun shoot(name: String) {
@@ -127,10 +134,11 @@ class StoreScreensGeneratorTest {
         }
 
         if (STYLES in shots) {
+            // The Dice page, every die at once, opened from its field on the Styles page.
             openFromMenu("Styles")
-            compose.waitUntil(5_000) { exists(hasContentDescription("Dice gallery")) }
-            for (category in galleries) compose.onNode(hasContentDescription("$category gallery")).performClick()
+            openDicePage()
             shoot(STYLES)
+            back()
             back()
         }
 
@@ -237,23 +245,25 @@ class StoreScreensGeneratorTest {
         leaveGame()
         StoreState.applyStyles(container, StylePicks())
 
-        // Styles: the dice gallery, picking a few.
+        // Styles: the Styles page, then the Dice page opened from it, picking a few.
         openFromMenu("Styles")
-        compose.waitUntil(5_000) { exists(hasContentDescription("Dice gallery")) }
-        compose.onNode(hasContentDescription("Dice gallery")).performClick()
+        compose.waitUntil(5_000) { exists(hasContentDescription(DICE_FIELD)) }
         settle()
         FrameRecorder(compose, File(root, "4-styles")).apply {
-            hold(600)
+            hold(900)
+            // Tapped as the recording runs, so the page change is in the video.
+            tap(compose.onNode(hasContentDescription(DICE_FIELD)))
+            hold(1_200)
             for (style in Scenes.VIDEO_DICE_PICKS) {
-                // The first tile of that family - the dice gallery comes first on the page.
                 tap(compose.onAllNodes(hasContentDescription("$style,", substring = true))[0])
                 hold(900)
             }
-            // Then down the page, to a glimpse of the other styles below the dice.
+            // Then down the page, to the dice still to unlock.
             scrollDown(pageScroller(), fraction = 1f, millis = 1_600)
             hold(800)
             finish()
         }
+        back()
         back()
 
         // The last box of a game Sam wins.

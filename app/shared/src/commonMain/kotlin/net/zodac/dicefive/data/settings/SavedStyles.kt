@@ -21,8 +21,6 @@ data class SavedStyles(
     val scoreFrameId: String = DefaultStyleIds.SCORE_FRAME,
     // After the frame, with the default box style's id, as it came after the other five.
     val scoreBoxId: String = DefaultStyleIds.SCORE_BOX,
-    /** The size the Styles page's cards fit its screen at, as the Styles screen saved it - null until it's measured. */
-    val stylesPageFit: String? = null,
     /** Whether the "Unlock all styles" purchase unlocks every style ([net.zodac.dicefive.app.AppContainer.ownsAllStyles]). */
     val ownsAllStyles: Boolean = false,
 )
@@ -43,5 +41,4 @@ fun savedStylesFlow(settings: SettingsRepository, achievements: AchievementStore
         SavedStyles(diceId, cupId, backgroundId, matId, achievementsState)
     }.combine(settings.scoreFrameId) { styles, frameId -> styles.copy(scoreFrameId = frameId) }
         .combine(settings.scoreBoxId) { styles, boxId -> styles.copy(scoreBoxId = boxId) }
-        .combine(settings.stylesPageFit) { styles, fit -> styles.copy(stylesPageFit = fit) }
         .combine(ownsAllStyles) { styles, owns -> styles.copy(ownsAllStyles = owns) }
