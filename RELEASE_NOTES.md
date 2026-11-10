@@ -1,5 +1,0 @@
-- Added a new style option for the scoring boxes
-- Added number of dice rolled to the Statistics page
-- Reworked Styles page to add sub-pages for each style
-- Added the First Roll Bonus modifier: score in the Lower Section (other than 5x) on your first roll for +5 points
-- Added a Graphics page to Settings, with Orientation, Animations, and Advanced settings to set each animation's frame rate or turn it off
