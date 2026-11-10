@@ -84,6 +84,54 @@ class GameModeTest {
         assertEquals(4725, GameMode.HIGHEST_POSSIBLE_SCORE)
     }
 
+    /** Every hand of [count] dice from [values], lowest first: each one's numbers in non-decreasing order. */
+    private fun hands(values: IntRange, count: Int): Sequence<List<Int>> =
+        if (count == 0) sequenceOf(emptyList()) else values.asSequence().flatMap { first -> hands(first..values.last, count - 1).map { listOf(first) + it } }
+
+    /**
+     * Plays [mode]'s lowest game through the real engine, its card with [switchedOff] off: every turn scores the least its
+     * box can, found by trying every hand (lowest first, stopping at a 0), with Chance's slots last so no box is left that
+     * a 5x of its number must go in. Dice take the mode's colours in turn, so no hand is all one colour or a coloured house.
+     */
+    private fun lowestGame(mode: GameMode, switchedOff: Set<ScoreCategory>? = null): PlayerState {
+        var state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Lowest")), mode)
+        if (switchedOff != null) state = state.copy(disabledCategories = switchedOff, players = state.players.map { it.copy(disabledCategories = switchedOff) })
+        val player = state.players.single()
+        val turnOrder = mode.categories.filter { player.isOpen(it) }.sortedBy { it == ScoreCategory.CHANCE }.flatMap { category -> List(mode.scoresPerCategory) { category } }
+        for (category in turnOrder) {
+            val current = requireNotNull(state.currentPlayer)
+            val dice = hands(mode.dieValues, mode.scoringDiceCount)
+                .map { values -> (values + List(mode.diceCount - values.size) { values.first() }).mapIndexed { index, value -> Die(value = value, colour = mode.dieColours.getOrNull(index % 3)) } }
+                .filter { category in ScoreCalculator.availableCategories(current, it.take(mode.scoringDiceCount)) }
+                .map { it to ScoreCalculator.scoreFor(current, category, it.take(mode.scoringDiceCount)) + ScoreCalculator.fiveOfAKindBonusFor(current, it.take(mode.scoringDiceCount)) }
+                .let { scored -> scored.firstOrNull { it.second == 0 } ?: scored.minBy { it.second } }
+                .first
+            state = GameEngine.commitScore(GameEngine.fillHand(state.copy(dice = dice, phase = TurnPhase.ROLLED)), category)
+        }
+        assertTrue(state.isGameOver)
+        return state.players.single()
+    }
+
+    @Test
+    fun `every mode's floor is exactly what its lowest game through the engine totals`() {
+        for (mode in GameMode.entries - GameMode.QUICKFIRE) {
+            assertEquals(mode.minPossibleScore, lowestGame(mode).totalScore, "$mode")
+        }
+        // Quickfire's card changes every game: one with Chance switched off is its lowest, and one with Chance on can't end under 5.
+        val upper = setOf(ScoreCategory.ONES, ScoreCategory.TWOS, ScoreCategory.THREES)
+        val lowerOff = setOf(ScoreCategory.FIVE_OF_A_KIND, ScoreCategory.FULL_HOUSE, ScoreCategory.SMALL_STRAIGHT)
+        assertEquals(GameMode.QUICKFIRE.minPossibleScore, lowestGame(GameMode.QUICKFIRE, upper + lowerOff + ScoreCategory.CHANCE).totalScore)
+        assertEquals(5, lowestGame(GameMode.QUICKFIRE, upper + lowerOff + ScoreCategory.LARGE_STRAIGHT).totalScore)
+
+        assertEquals(5, GameMode.STANDARD.minPossibleScore)
+        assertEquals(5, GameMode.TRICOLOUR.minPossibleScore)
+        assertEquals(5, GameMode.STUD.minPossibleScore)
+        assertEquals(3 * GameMode.STANDARD.minPossibleScore, GameMode.THIRD_WIND.minPossibleScore)
+        assertEquals(0, GameMode.D20.minPossibleScore)
+        assertEquals(0, GameMode.HIT_LIST.minPossibleScore)
+        assertEquals(0, GameMode.QUICKFIRE.minPossibleScore)
+    }
+
     @Test
     fun `every mode's max rolls is exactly what a game using every roll through the engine counts`() {
         for (mode in GameMode.entries) {

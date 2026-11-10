@@ -111,17 +111,20 @@ All numbers here are Standard's. Each comes from the game's `GameMode`.
     screen shows the ranking with tie-break captions.
 - `DiceScoring`, `ScoreCalculator` and `GameEngine` are pure, with no platform dependencies.
 
-**Maximum scores.** These are `GameMode.maxPossibleScore`, each with its derivation as a doc comment.
-`GameModeTest` locks each one by playing the perfect game through the engine.
+**Maximum and minimum scores.** These are `GameMode.maxPossibleScore` and `minPossibleScore`, each with its derivation
+as a doc comment. `GameModeTest` locks each one by playing that game through the engine: the perfect game, and the
+lowest. Chance is the only box that can't score 0, so a mode's minimum is its Chance slots at five 1s each. Quickfire's
+is 0, because some of its cards have Chance switched off. The game screen marks a running total as a new Leaderboard
+score only from the minimum up (`newLeaderboardScoreSeats`).
 
-| Mode           | Maximum |
-|----------------|---------|
-| Standard, Stud | 1575    |
-| Tricolour      | 2120    |
-| Third Wind     | 4725    |
-| D20            | 1350    |
-| Hit List       | 785     |
-| Quickfire      | 210     |
+| Mode           | Maximum | Minimum |
+|----------------|---------|---------|
+| Standard, Stud | 1575    | 5       |
+| Tricolour      | 2120    | 5       |
+| Third Wind     | 4725    | 15      |
+| D20            | 1350    | 0       |
+| Hit List       | 785     | 0       |
+| Quickfire      | 210     | 0       |
 
 The Leaderboard pads scores to the digit width of `HIGHEST_POSSIBLE_SCORE` (4 digits).
 

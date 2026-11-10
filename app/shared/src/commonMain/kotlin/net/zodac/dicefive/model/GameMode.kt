@@ -126,6 +126,13 @@ enum class GameMode(
      */
     val maxPossibleScore: Int,
     /**
+     * The lowest total a finished game of these rules can have, across every card the mode deals: every box at its least.
+     * Chance is the one box that can't score 0, since its dice add up to at least [scoringDiceCount] of the lowest face.
+     * Declared rather than computed, with the derivation on each entry, and `GameModeTest` plays that game through the
+     * real engine to prove it. A running total under it is no game's final score, so it's never marked as a new one.
+     */
+    val minPossibleScore: Int,
+    /**
      * The most rolls one player can make in a whole game: every roll of every turn, one turn per box.
      * Declared rather than computed, with the derivation on each entry, and `GameModeTest` plays a
      * game using every roll through the real engine to prove it. What the Flowerpot's plant grows
@@ -187,6 +194,8 @@ enum class GameMode(
      * `+30+30+25+30+40+30` the other six lower boxes maxed = 185, `+12*100` every one of the other 12
      * turns also being a 5x = 1200. `105+35+50+185+1200 = 1575`.
      *
+     * Min score: every box 0 but Chance, which five 1s score least. `5`.
+     *
      * Max rolls: 13 boxes, 3 rolls each. `13*3 = 39`.
      */
     STANDARD(
@@ -204,6 +213,7 @@ enum class GameMode(
         upperBonusAmount = 35,
         fiveOfAKindBonusAmount = 100,
         maxPossibleScore = 1575,
+        minPossibleScore = 5,
         maxRollsPerGame = 39,
         hasPerfectPlayTable = true,
         isOfficialRules = true,
@@ -218,6 +228,8 @@ enum class GameMode(
      * the three single-colour boxes (five 6s all one colour - a 5x and a colour set at once) `+25` the
      * coloured house, `+16*100` every one of the other 16 turns also being a 5x = 1600.
      * `105+35+50+185+120+25+1600 = 2120`.
+     *
+     * Min score: Standard's - every box 0 but Chance, five 1s, the colour boxes included. `5`.
      *
      * Max rolls: Standard's 13 boxes plus the 4 colour boxes, 3 rolls each. `17*3 = 51`.
      */
@@ -236,6 +248,7 @@ enum class GameMode(
         upperBonusAmount = 35,
         fiveOfAKindBonusAmount = 100,
         maxPossibleScore = 2120,
+        minPossibleScore = 5,
         maxRollsPerGame = 51,
     ),
 
@@ -249,6 +262,8 @@ enum class GameMode(
      * Max score: three of Standard's card - every box filled three times at its maximum. `3*105 = 315`
      * upper, `+105` bonus, `+3*50 = 150` the 5x box, `+3*185 = 555` the other six lower boxes, `+36*100`
      * every one of the other 36 turns also being a 5x = 3600. `315+105+150+555+3600 = 4725`.
+     *
+     * Min score: every box 0 but Chance's three slots, five 1s each. `3*5 = 15`.
      *
      * Max rolls: Standard's 13 boxes three times over, 3 rolls each. `13*3*3 = 117`.
      */
@@ -267,6 +282,7 @@ enum class GameMode(
         upperBonusAmount = 105,
         fiveOfAKindBonusAmount = 100,
         maxPossibleScore = 4725,
+        minPossibleScore = 15,
         maxRollsPerGame = 117,
         scoresPerCategory = 3,
         countsOnLeaderboard = false,
@@ -283,6 +299,8 @@ enum class GameMode(
      *
      * Max score: only five dice ever score, against Standard's card and bonuses, so the same perfect
      * game. `1575`.
+     *
+     * Min score: Standard's, Chance's five held 1s. `5`.
      *
      * Max rolls: Standard's 13 boxes, 3 rolls each. `13*3 = 39`.
      */
@@ -301,6 +319,7 @@ enum class GameMode(
         upperBonusAmount = 35,
         fiveOfAKindBonusAmount = 100,
         maxPossibleScore = 1575,
+        minPossibleScore = 5,
         maxRollsPerGame = 39,
         countsOnLeaderboard = false,
     ),
@@ -316,6 +335,9 @@ enum class GameMode(
      *
      * Max score: five dice of every number, `5*(1+2+...+20) = 1050`, `+5*10 = 50` and `+5*20 = 100` the wildcards, `+75+75` the
      * two half bonuses. `1050+150+150 = 1350`.
+     *
+     * Min score: no Chance, and every box can score 0 - a number none of the dice show, or a wildcard whose half none of
+     * them land in. `0`.
      *
      * Max rolls: twenty-two boxes, 5 rolls each. `22*5 = 110`.
      */
@@ -334,6 +356,7 @@ enum class GameMode(
         upperBonusAmount = 0,
         fiveOfAKindBonusAmount = 0,
         maxPossibleScore = 1350,
+        minPossibleScore = 0,
         maxRollsPerGame = 110,
         countsOnLeaderboard = false,
         allowsExtendedScores = false,
@@ -356,6 +379,8 @@ enum class GameMode(
      * Max score: every target an exact hit, `2*(10+10+15+15+20+20+25+30+40+40+55+75) = 710`, `+75` the Alibi taking
      * the 75-point target before its exact hit. `710+75 = 785`.
      *
+     * Min score: no Chance, and every target and the Alibi can score 0 - dice that hit nothing. `0`.
+     *
      * Max rolls: twelve targets and the Alibi, 3 rolls each. `13*3 = 39`.
      */
     HIT_LIST(
@@ -373,6 +398,7 @@ enum class GameMode(
         upperBonusAmount = 35,
         fiveOfAKindBonusAmount = 100,
         maxPossibleScore = 785,
+        minPossibleScore = 0,
         maxRollsPerGame = 39,
         countsOnLeaderboard = false,
         hitListShapes = HIT_LIST_SHAPES,
@@ -389,6 +415,9 @@ enum class GameMode(
      * Max score: the best three upper and three lower boxes, with no 5x and so no joker or chips - Sixes 30,
      * Fives 25 and Fours 20 (`75`), Large Straight 40, 3x 30 and 4x 30 (`100`), `+35` the upper bonus, which
      * three of each enabled number earn. `75+100+35 = 210`.
+     *
+     * Min score: a game whose card has Chance switched off can score 0 in every box. `0`. (One with Chance on can't end
+     * under 5, but the mode's floor is its lowest card's.)
      *
      * Max rolls: six boxes, 3 rolls each. `6*3 = 18`.
      */
@@ -407,6 +436,7 @@ enum class GameMode(
         upperBonusAmount = 35,
         fiveOfAKindBonusAmount = 100,
         maxPossibleScore = 210,
+        minPossibleScore = 0,
         maxRollsPerGame = 18,
         countsOnLeaderboard = false,
         disabledCategories = setOf(ScoreCategory.FIVE_OF_A_KIND),
