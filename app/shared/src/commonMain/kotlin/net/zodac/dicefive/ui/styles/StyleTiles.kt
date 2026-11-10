@@ -244,10 +244,16 @@ private fun <T : TableArt> StyleCatalog<T>.shownFamilies(access: StyleAccess): P
 }
 
 /**
- * Scrolls the category page at once so the tile laid out at the given coordinates is centred on it - for a banner's style
- * on a page just opened ([StyleCategoryScaffold]). Null outside that page: the tile is slid into view instead.
+ * Scrolls the category page at once so a tile is centred on it ([StyleCategoryScaffold]): a banner's style on a page just
+ * opened, or the pick on any page just opened. Null outside that page: a banner's tile is slid into view instead.
  */
-internal val LocalStyleTileJump = compositionLocalOf<((LayoutCoordinates) -> Unit)?> { null }
+internal fun interface StyleTileJump {
+    /** Centres the tile laid out at [tile]; with [onlyIfOutOfView], only when it isn't wholly in the page's viewport. */
+    fun jump(tile: LayoutCoordinates, onlyIfOutOfView: Boolean)
+}
+
+/** The category page's [StyleTileJump], or null outside it. */
+internal val LocalStyleTileJump = compositionLocalOf<StyleTileJump?> { null }
 
 /** The page's measurer for tiles' names - see [TileLabel] - or null to lay each one out afresh as a plain [Text]. */
 internal val LocalTileLabelMeasurer = compositionLocalOf<TextMeasurer?> { null }
@@ -693,6 +699,9 @@ private fun <T : TableArt> StyleFamilyTiles(
     val focusNames = remember(focus, catalog) { focus?.styles.orEmpty().filter { it.categoryNoun.key == catalog.noun.key }.map { it.name.key }.toSet() }
     val shownSelectedId = catalog.unlockedById(selectedId, access).id
     val (unlocked, allLocked) = catalog.shownFamilies(access)
+    // The pick, put in view at once as the page opens if it's out of view - once, and not when a banner's style of this
+    // page is being brought there instead.
+    var revealPick by remember { mutableStateOf(warmUp == null && unlocked.none { it.name.key in focusNames }) }
     // Every tile, locked ones last: hiding them only shortens what's shown (the end of the run), so the unlocked tiles
     // keep their index and their composition.
     val allFamilies = remember(unlocked, allLocked) { unlocked + allLocked }
@@ -717,6 +726,8 @@ private fun <T : TableArt> StyleFamilyTiles(
                 unlocked[index], access, shownSelectedId, onSelect, previewSize, backgroundBrush, preview, index,
                 flashing = flashing && unlocked[index].name.key in focusNames, jumpToFlash = focus?.animate == false,
                 flashOverArt = flashOverArt,
+                revealIfPicked = revealPick,
+                onRevealed = { revealPick = false },
             )
         } else {
             LockedStyleFamilyTile(allLocked[index - unlocked.size], access, previewSize, backgroundBrush, preview, index, words)
@@ -948,6 +959,8 @@ private fun <T : TableArt> StyleFamilyTile(
     flashing: Boolean = false,
     jumpToFlash: Boolean = false,
     flashOverArt: Boolean = false,
+    revealIfPicked: Boolean = false,
+    onRevealed: () -> Unit = {},
 ) {
     val colours = family.colours
     val familyName = stringResource(family.name)
@@ -976,7 +989,16 @@ private fun <T : TableArt> StyleFamilyTile(
         // A frame on, so the tile has been laid out where it is.
         withFrameNanos { }
         val coordinates = placed[0]
-        if (jumpToFlash && jump != null && coordinates != null) jump(coordinates) else bringIntoView.bringIntoView()
+        if (jumpToFlash && jump != null && coordinates != null) jump.jump(coordinates, onlyIfOutOfView = false) else bringIntoView.bringIntoView()
+    }
+    // The pick, on a page just opened: put in view at once if it's out of view ([LocalStyleTileJump]).
+    val revealing = revealIfPicked && picked != null
+    LaunchedEffect(revealing) {
+        if (!revealing) return@LaunchedEffect
+        // A frame on, so the tile has been laid out where it is.
+        withFrameNanos { }
+        placed[0]?.let { jump?.jump(it, onlyIfOutOfView = true) }
+        onRevealed()
     }
     Column(
         modifier = Modifier.bringIntoViewRequester(bringIntoView).onGloballyPositioned { placed[0] = it },

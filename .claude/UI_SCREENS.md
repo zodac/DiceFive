@@ -242,7 +242,9 @@ it's earned, so the total doesn't hint at it.
     96dp preview (`MIN_PREVIEW_HEIGHT`), they keep that height and the page scrolls.
 
 **A category's page** (`StyleCategoryScreen`): titled with the category, its count and the Unlocked switch over a card
-of every tile (`StyleCategoryTiles`), the page scrolling. A pick is saved at once and the page stays open.
+of every tile (`StyleCategoryTiles`), the page scrolling. A pick is saved at once and the page stays open. The page
+opens with the pick in view: when it isn't wholly on screen, already scrolled to centre it (`LocalStyleTileJump`, once
+per opening); otherwise at its top. A banner's styles take its place.
 
 - **The Unlocked switch** (labelled "All" while off, "Unlocked" while on) sits beside the count, drawn and placed as
     the Achievements page's switch (labelled "All" / "Unearned"): after the count in portrait, at the app bar's end in

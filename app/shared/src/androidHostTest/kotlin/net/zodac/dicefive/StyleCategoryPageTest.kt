@@ -125,6 +125,36 @@ class StyleCategoryPageTest : UiTest() {
         assertEquals(0f, scrollAndFirstLine().first, "cups at 130%")
     }
 
+    /** How far down the page is scrolled, in px. */
+    private fun scrolled(): Float = compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)).fetchSemanticsNodes()
+        .single().config[SemanticsProperties.VerticalScrollAxisRange].value()
+
+    @Test
+    fun `a page opens with its pick in view - centred at once if it's off screen, not scrolled if it's already there`() = uiTest(TestScreen(360, 560)) {
+        val unlockedDice = DiceStyles.families.filter { it.unlock.isMet(StyleAccess(everything)) }
+        val farDown = unlockedDice[unlockedDice.size * 3 / 5]
+
+        // Three fifths down a page this short: off screen at the top, so put in the middle within two frames.
+        showcase.show {
+            DiceFiveTheme {
+                CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {
+                    StyleCategoryScreen(stylesViewModel(picks(diceId = farDown.colours.first().style.id)), StyleCategory.DICE, onBack = {})
+                }
+            }
+        }
+        compose.mainClock.autoAdvance = false
+        repeat(2) { compose.mainClock.advanceTimeByFrame() }
+        val screen = compose.onRoot().fetchSemanticsNode().boundsInRoot
+        val name = getString(farDown.name)
+        val tile = compose.onNode(tiles and hasContentDescription(name, substring = true)).fetchSemanticsNode().boundsInRoot
+        assertTrue(tile.center.y in screen.height * 0.45f..screen.height * 0.8f, "$name at $tile on $screen")
+        compose.mainClock.autoAdvance = true
+
+        // On the second line, wholly in view already: the page opens at its top.
+        open(StyleCategory.DICE, stylesViewModel(picks(diceId = unlockedDice[5].colours.first().style.id)))
+        assertEquals(0f, scrolled(), "scrolled to a pick already in view")
+    }
+
     @Test
     fun `the page's right-hand margin drags it as a scrollbar - further than the finger`() = uiTest(TestScreen(411, 891)) {
         open(StyleCategory.DICE)

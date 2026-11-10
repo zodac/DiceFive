@@ -528,8 +528,8 @@ internal val StyleCategory.title: StringResource
 /**
  * One category's page, opened from its field on the Styles page: its unlocked count and the Unlocked switch, then every
  * one of its styles at once ([StyleCategoryTiles]), the pick outlined in gold, the page scrolling down through them.
- * Picking one saves it there and then, and the page stays open. A banner's styles of this category are brought into
- * view and flashed gold.
+ * Picking one saves it there and then, and the page stays open. The page opens with the pick in view, centred if it would
+ * otherwise be off screen. A banner's styles of this category are brought into view and flashed gold instead.
  */
 @Composable
 fun StyleCategoryScreen(viewModel: StylesViewModel, category: StyleCategory, onBack: () -> Unit, modifier: Modifier = Modifier) {
@@ -611,14 +611,15 @@ internal fun StyleCategoryScaffold(
         // One text measurer for every tile's name, kept across openings - see rememberTileLabelMeasurer.
         val labelMeasurer = rememberTileLabelMeasurer()
         val pageScroll = rememberScrollState()
-        // The page's viewport, for a banner's style to be put in the middle of at once (LocalStyleTileJump).
+        // The page's viewport, for a banner's style or the pick to be put in the middle of at once (LocalStyleTileJump).
         val viewport = remember { arrayOfNulls<LayoutCoordinates>(1) }
         val jump = remember(pageScroll) {
-            { tile: LayoutCoordinates ->
+            StyleTileJump { tile, onlyIfOutOfView ->
                 val page = viewport[0]
                 if (page != null && page.isAttached && tile.isAttached) {
                     val bounds = page.localBoundingBoxOf(tile, clipBounds = false)
-                    pageScroll.dispatchRawDelta(bounds.center.y - page.size.height / 2f)
+                    val inView = bounds.top >= 0f && bounds.bottom <= page.size.height
+                    if (!onlyIfOutOfView || !inView) pageScroll.dispatchRawDelta(bounds.center.y - page.size.height / 2f)
                 }
             }
         }
