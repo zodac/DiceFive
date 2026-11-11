@@ -395,7 +395,7 @@ private const val PULL_SMOOTHING = 0.82f
  * is resumed, as ShakeDetectorEffect does, so a backgrounded app's sensor isn't left running.
  */
 @Composable
-private fun DevicePullEffect(onPull: (Offset) -> Unit) {
+internal fun DevicePullEffect(onPull: (Offset) -> Unit) {
     val platform = LocalPlatformServices.current
     val currentOnPull = rememberUpdatedState(onPull)
     val accelerometer = remember { platform.createAccelerometer() } ?: return

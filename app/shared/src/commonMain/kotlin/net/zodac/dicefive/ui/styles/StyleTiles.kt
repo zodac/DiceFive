@@ -132,6 +132,7 @@ import androidx.compose.ui.unit.sp
 import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.ColourDisc
+import net.zodac.dicefive.ui.common.DevicePullEffect
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.HorizontalScrollbar
 import net.zodac.dicefive.ui.common.LocalFramePaces
@@ -599,10 +600,11 @@ private fun Modifier.rolling(roll: DicePickRoll?): Modifier =
  * A dice tile's die - rolling, while it's the one just picked ([roll], see [DicePickRoll]). One with something loose on its faces (googly eyes - see
  * [DiceStyle.pupilTravel]) is moved by the page, as the tray moves it in a game: wherever its tile
  * goes on screen - the page scrolled up or down - the die goes with it, and
- * its pupils are thrown about and settle. Not under reduced motion, where they sit where they settled.
+ * its pupils are thrown about and settle. Not under reduced motion, where they sit where they settled. With [followDevice]
+ * they also follow the phone's tilt and movement, as the menu logo's do.
  */
 @Composable
-private fun DicePreview(style: DiceStyle, roll: DicePickRoll? = null) {
+private fun DicePreview(style: DiceStyle, roll: DicePickRoll? = null, followDevice: Boolean = false) {
     // Recomposed only as the face changes; the turning and lifting are drawn (Modifier.rolling).
     val face by remember(roll) { derivedStateOf { roll?.face() ?: DICE_TILE_FACE } }
     val travel = style.pupilTravel?.takeIf { ambientMotion(MotionGroup.DICE) }
@@ -615,6 +617,8 @@ private fun DicePreview(style: DiceStyle, roll: DicePickRoll? = null) {
     // Acts on the value it was keyed on - see AppLogo's googly dice for why.
     val awake = motion.awake
     val pace = LocalFramePaces.current.of(MotionGroup.DICE)
+    // The pupils also follow the phone's tilt and movement where asked, only while the dice move (travel is null otherwise).
+    if (followDevice) DevicePullEffect { gees -> motion.feel(gees) }
     LaunchedEffect(motion, awake) {
         if (awake) pace.run { motion.follow() }
     }
@@ -1352,7 +1356,7 @@ internal fun StylePickPreview(category: StyleCategory, picks: SavedStyles) {
     Box(modifier = Modifier.clearAndSetSemantics {}) {
         when (category) {
             StyleCategory.DICE ->
-                StylePreview(DiceStyles.unlockedById(picks.diceStyleId, access), size, selected = false, { SolidColor(surface) }, { DicePreview(it) })
+                StylePreview(DiceStyles.unlockedById(picks.diceStyleId, access), size, selected = false, { SolidColor(surface) }, { DicePreview(it, followDevice = true) })
 
             StyleCategory.DICE_CUP -> {
                 val cupDice = CupDice(picks.visualTheme.diceStyle, GameMode.STANDARD.diceCount)
