@@ -257,9 +257,9 @@ Profile).
     build's 0.1ms. Measure a release build first.
 - **Dice switching mode** rebuilds each die's nodes twice a roll. Drawing the pick-up with the resting composable and
     switching to `Moving` once off the mat would hide the first rebuild in the shake.
-- **Always-on animations' battery cost.** All of them stop after 60s without a touch (`ScreenIdle`). The menu drift skips a
-    120Hz screen's every other refresh and sleeps between its frames. Starry,
-    steam, cauldron, and the tile glow run at the display rate at High. Measure on a real 120Hz phone (Macrobenchmark
+- **Always-on animations' battery cost.** All of them stop after 60s without a touch at High and Medium, 30s at Low
+    (`ScreenIdle`; the Pause when idle setting). The menu drift skips a 120Hz screen's every other refresh and sleeps between its frames.
+    Starry, steam, cauldron, and the tile glow run at the display rate at High. Measure on a real 120Hz phone (Macrobenchmark
     `PowerMetric`, or Android Studio's Power Profiler) before capping. Not by frame-rate votes (see "Tried and
     dropped").
 - **Baseline Profile benchmarks on a phone.**

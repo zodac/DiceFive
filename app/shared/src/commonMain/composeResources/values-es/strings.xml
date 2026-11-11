@@ -677,7 +677,7 @@
     <string name="settings_orientation_portrait">Vertical</string>
     <string name="settings_orientation_landscape">Horizontal</string>
     <string name="settings_graphics">Gráficos</string>
-    <string name="settings_advanced">Ajustes avanzados</string>
+    <string name="settings_advanced">Ajustes gráficos avanzados</string>
     <string name="settings_advanced_gameplay">Juego</string>
     <string name="settings_advanced_misc">Varios</string>
     <string name="settings_motion_menus">Menús y páginas</string>
@@ -688,6 +688,12 @@
     <string name="settings_motion_dice_roll">Tirada de dados</string>
     <string name="settings_motion_cup_shake">Agitar el cubilete</string>
     <string name="settings_motion_dice_roll_rate">Fotogramas de la tirada</string>
+    <string name="settings_idle_pause">Pausar en reposo</string>
+    <string name="settings_idle_seconds">%1$d s</string>
+    <plurals name="settings_idle_seconds_spoken">
+        <item quantity="one">%1$d segundo</item>
+        <item quantity="other">%1$d segundos</item>
+    </plurals>
     <string name="settings_roll_tossed">Lanzados</string>
     <string name="settings_roll_in_place">En su sitio</string>
     <string name="settings_frame_rate">%1$d fps</string>

@@ -903,8 +903,8 @@
     <!-- The Graphics page (ui/settings/GraphicsScreen.kt), opened from its row in Settings: its title, and that row's name. -->
     <string name="settings_graphics">Graphics</string>
     <!-- The card under Animations giving each part of the app's motion a frame rate of its own, and the parts' names (the styles' own decoration is named by styles_category_*). -->
-    <string name="settings_advanced">Advanced settings</string>
-    <!-- The Advanced settings' cards: Gameplay, what moves on the game screen, first; the styles' (styles_title); then Miscellaneous, the rest (menus and pages, banners, celebrations). -->
+    <string name="settings_advanced">Advanced graphics settings</string>
+    <!-- The Advanced graphics settings' cards: Gameplay, what moves on the game screen, first; the styles' (styles_title); then Miscellaneous, the rest (menus and pages, banners, celebrations). -->
     <string name="settings_advanced_gameplay">Gameplay</string>
     <string name="settings_advanced_misc">Miscellaneous</string>
     <!-- Everything that moves without a setting of its own: pages fading in, lists gliding, pickers opening, the turn timer's flash. -->
@@ -923,6 +923,15 @@
     <string name="settings_motion_cup_shake">Cup shake</string>
     <!-- How fast the dice's roll is drawn, under the Dice roll setting (settings_motion_dice_roll) itself. -->
     <string name="settings_motion_dice_roll_rate">Dice roll frame rate</string>
+    <!-- In the Gameplay card: how long after the last touch everything that moves on its own (a style's decoration, the score glow) pauses where it is, until the next touch - or never (Off, settings_animations_off). -->
+    <string name="settings_idle_pause">Pause when idle</string>
+    <!-- A Pause when idle wait: "30s", "60s", "90s". Seconds, abbreviated as the language does ("30 s", "30 с", "30秒"). -->
+    <string name="settings_idle_seconds">%1$ds</string>
+    <!-- What a screen reader says for a Pause when idle wait: %1$d seconds. -->
+    <plurals name="settings_idle_seconds_spoken">
+        <item quantity="one">%1$d second</item>
+        <item quantity="other">%1$d seconds</item>
+    </plurals>
     <string name="settings_roll_tossed">Tossed</string>
     <string name="settings_roll_in_place">In place</string>
     <!-- A frame rate's label: %1$d frames a second. The unit is the translation's. -->

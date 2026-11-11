@@ -65,6 +65,7 @@ class MotionSettingsTest {
         AnimationLevel.entries.forEach { assertEquals(it, AnimationLevel.matching(it.motion)) }
         assertNull(AnimationLevel.matching(AnimationLevel.HIGH.motion.with(MotionGroup.BANNERS, FrameRate.FPS_60)))
         assertNull(AnimationLevel.matching(AnimationLevel.HIGH.motion.copy(rollStyle = DiceRollStyle.IN_PLACE)))
+        assertNull(AnimationLevel.matching(AnimationLevel.HIGH.motion.copy(idleTimeout = IdleTimeout.SECONDS_90)))
         assertEquals(AnimationLevel.OFF, AnimationLevel.matching(AnimationLevel.OFF.motion.with(MotionGroup.DICE_ROLL, FrameRate.MAX)))
     }
 
@@ -81,9 +82,10 @@ class MotionSettingsTest {
     @Test
     fun `settings read back from their ids - and anything else is null`() {
         val custom = AnimationLevel.LOW.motion.with(MotionGroup.SCORE_GLOW, FrameRate.MAX).with(MotionGroup.MAT, FrameRate.FPS_60)
-        assertEquals(listOf("OFF", "OFF", "60", "OFF", "OFF", "30", "30", "30", "30", "MAX", "30", "30", "IN_PLACE"), custom.ids())
+        assertEquals(listOf("OFF", "OFF", "60", "OFF", "OFF", "30", "30", "30", "30", "MAX", "30", "30", "IN_PLACE", "30"), custom.ids())
         assertEquals(custom, MotionSettings.fromIds(custom.ids()))
         assertNull(MotionSettings.fromIds(custom.ids().drop(1)))
-        assertNull(MotionSettings.fromIds(custom.ids().dropLast(1) + "BOUNCED"))
+        assertNull(MotionSettings.fromIds(custom.ids().dropLast(1) + "45"))
+        assertNull(MotionSettings.fromIds(custom.ids().dropLast(2) + "BOUNCED" + "30"))
     }
 }

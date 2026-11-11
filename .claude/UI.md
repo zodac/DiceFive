@@ -321,12 +321,12 @@ file read three times (after 1s, 3s and 5s) and then stops, which nothing a play
 
 - It runs Off to High from the start edge, so it's mirrored in Arabic. It uses `FittedSegmentedChoiceRow`, with Off as
     a crossed-out motion icon.
-- It has no description, by the maintainer's choice. While the Advanced settings match none of its levels
+- It has no description, by the maintainer's choice. While the Advanced graphics settings match none of its levels
     (`AnimationLevel.matching`), no level is picked, and nothing says "Custom" (the maintainer's choice).
 - It isn't inside a `ListItem`, whose intrinsic measuring throws on `BoxWithConstraints`.
 
-**The Advanced settings** (`MotionSettings`, `SettingsRepository.motionSettings`) are below it: their own heading
-("Advanced settings", in the page's text colour, not gold), then three cards (`CollapsibleCard`), each closed each time
+**The Advanced graphics settings** (`MotionSettings`, `SettingsRepository.motionSettings`) are below it: their own heading
+("Advanced graphics settings", in the page's text colour, not gold), then three cards (`CollapsibleCard`), each closed each time
 the page opens. A card's title row (also in the text colour), an arrow at its end, is its full width and runs to its top edge, so the press ripple
 fills it; it opens and closes the card over 220ms (at once under reduced motion), and TalkBack hears "Gameplay,
 Collapsed, heading", a button. Off, 30fps, 60fps or Max (spoken "Off", "30 frames a second", "60 frames a second",
@@ -337,7 +337,8 @@ roll frame rate stays under the Dice roll), Styles' in the Styles page's:
 - **Gameplay**, what moves on the game screen: Cup shake (the cup's shake and pour; Off, it stands still, then is
     simply tipped); the Dice roll (Off, In place, or Tossed; Off, the dice snap to their results), and under it the
     Dice roll frame rate, which has no Off (the roll's own is its off) and is locked, its pick kept, while the roll is
-    off; Score glow; and Scores;
+    off; Pause when idle (30s, 60s, 90s, or Off, spoken "30 seconds" and so on; least motion to most, so Off is last
+    and a word, not the crossed-out glyph; "The idle screen" below, not a `MotionGroup`); Score glow; and Scores;
 - **Styles**: each style's own decoration (`MotionGroup.decoration`), named as the Styles page names them: Dice, Dice
     Cup, Mat, Background (the menu's drift too), and Boxes. Score frames have no moving art, so no row;
 - **Miscellaneous**: Achievement banners (the unlock, style, and progress banners, on every screen), Celebrations (the
@@ -357,12 +358,12 @@ roll frame rate stays under the Dice roll), Styles' in the Styles page's:
     outline pulse, and the sync progress bar. The totals' bonus pop is Score glow's (Low has always dropped it while
     counting scores up), and the locked chains' slam the dice's.
 
-| Level              | Each style's decoration | The game's own            | Score glow   | Cup shake | Dice roll                                            | Window frames     |
-|--------------------|-------------------------|---------------------------|--------------|-----------|------------------------------------------------------|-------------------|
-| **High** (default) | Max (moves)             | Max                       | Max (pulses) | Max       | Max, tossed                                          | the screen's rate |
-| **Medium**         | Off (still)             | 60                        | 60           | 60        | 60, tossed                                           | ≤60               |
-| **Low**            | Off (still)             | 30                        | Off (steady) | 30        | 30, in place (flick through faces, `simpleDiceRoll`) | ≤30               |
-| **Off**            | Off (still)             | Off (`LocalReduceMotion`) | Off (steady) | Off       | Off (snap to the result)                             | ≤30               |
+| Level              | Each style's decoration | The game's own            | Score glow   | Cup shake | Dice roll                                            | Pause when idle | Window frames     |
+|--------------------|-------------------------|---------------------------|--------------|-----------|------------------------------------------------------|-----------------|-------------------|
+| **High** (default) | Max (moves)             | Max                       | Max (pulses) | Max       | Max, tossed                                          | 60s             | the screen's rate |
+| **Medium**         | Off (still)             | 60                        | 60           | 60        | 60, tossed                                           | 60s             | ≤60               |
+| **Low**            | Off (still)             | 30                        | Off (steady) | 30        | 30, in place (flick through faces, `simpleDiceRoll`) | 30s             | ≤30               |
+| **Off**            | Off (still)             | Off (`LocalReduceMotion`) | Off (steady) | Off       | Off (snap to the result)                             | 30s             | ≤30               |
 
 **Ambient decoration** is anything that keeps an idle screen redrawing:
 
@@ -379,15 +380,19 @@ roll frame rate stays under the Dice roll), Styles' in the Styles page's:
     its own), and under a `LocalReduceMotion` provided further down while Menus & pages moves (a test's). Menus &
     pages' own Off doesn't touch them.
 
-**The idle screen.** After 60s without a touch, every infinite animation freezes mid-motion, at any level, so an untouched
-screen asks for no frames for it (`ScreenIdle`, `ScreenIdleTest`, `ScreenIdleUiTest`).
+**The idle screen.** After **Pause when idle** (`MotionSettings.idleTimeout`, `IdleTimeout`: 30s, 60s, 90s, or Off)
+without a touch, every infinite animation freezes mid-motion, so an untouched screen asks for no frames for it
+(`ScreenIdle`, `ScreenIdleTest`, `ScreenIdleUiTest`). Off, nothing ever freezes.
+
+- Each level presets it (High and Medium 60s, Low and Off 30s), and it's a row in the Advanced graphics settings'
+    Gameplay card like the rest: changing it leaves no level picked (`IdleTimeoutSettingTest`).
 
 - `ScreenIdle` is the `InfiniteAnimationPolicy` on the window's recomposer (`MainActivity`): an `InfiniteTransition` or a
     `withInfiniteAnimationFrameNanos` loop waits there before its next frame. So a new one freezes with no code of its own.
     A plain `withFrameNanos` loop doesn't ask it, so one that never ends must use the infinite frame.
 - It doesn't touch `ambientMotion` or `scorePulse`: art stays as it was drawn, not in its still pose. On waking, a clock
     that runs on frame time resumes at the time it has reached, so a cycle can jump to a new phase; the drift caps its step.
-- Any touch in the main window restarts the 60s and sets them off (`wakesScreen`, on the root, taking nothing from
+- Any touch in the main window restarts the wait and sets them off (`wakesScreen`, on the root, taking nothing from
     what's touched), as do a page opening and the app coming back. Time in the background doesn't count.
 - A touch in a dialog's own window isn't seen, and TalkBack's gestures send no touches, so its users wake it by opening a
     page. Nothing is lost: the art is decoration, and a good pick's tile stays gold.

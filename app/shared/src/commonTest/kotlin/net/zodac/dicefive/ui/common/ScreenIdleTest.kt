@@ -16,8 +16,9 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import net.zodac.dicefive.data.settings.IdleTimeout
 
-/** The screen goes idle a minute after the last touch, counting only the time the app is in front. */
+/** The screen goes idle the player's Pause when idle (a minute by default) after the last touch, counting only the time the app is in front. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ScreenIdleTest {
 
@@ -82,6 +83,62 @@ class ScreenIdleTest {
         wait(59_999)
         assertFalse(screen.idle)
         wait(1)
+        assertTrue(screen.idle)
+    }
+
+    @Test
+    fun `each wait goes idle after its own time - and a new one starts the wait over`() = runTest {
+        val screen = ScreenIdle()
+        backgroundScope.launch { screen.runTimer { delay(it) } }
+        screen.setTimeout(IdleTimeout.SECONDS_30)
+        runCurrent()
+        wait(29_999)
+        assertFalse(screen.idle)
+        wait(1)
+        assertTrue(screen.idle)
+
+        screen.setTimeout(IdleTimeout.SECONDS_90)
+        screen.wake()
+        runCurrent()
+        wait(89_999)
+        assertFalse(screen.idle)
+        wait(1)
+        assertTrue(screen.idle)
+
+        // Changed partway through a wait, the new wait counts from the change.
+        screen.wake()
+        runCurrent()
+        wait(20_000)
+        screen.setTimeout(IdleTimeout.SECONDS_30)
+        runCurrent()
+        wait(29_999)
+        assertFalse(screen.idle)
+        wait(1)
+        assertTrue(screen.idle)
+    }
+
+    @Test
+    fun `off - it never goes idle - and turned off on an idle screen it wakes`() = runTest {
+        val screen = ScreenIdle()
+        backgroundScope.launch { screen.runTimer { delay(it) } }
+        val frames = loopUnder(screen)
+        runCurrent()
+        wait(60_016)
+        assertTrue(screen.idle)
+
+        screen.setTimeout(IdleTimeout.OFF)
+        runCurrent()
+        assertFalse(screen.idle)
+        wait(16)
+        val woken = frames()
+        wait(600_000)
+        assertFalse(screen.idle)
+        assertTrue(frames() > woken, "Never frozen")
+
+        // Back on, the wait starts from then.
+        screen.setTimeout(IdleTimeout.SECONDS_30)
+        runCurrent()
+        wait(30_000)
         assertTrue(screen.idle)
     }
 

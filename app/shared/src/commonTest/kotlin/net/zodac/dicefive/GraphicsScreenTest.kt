@@ -26,6 +26,7 @@ import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.data.settings.DiceRollStyle
 import net.zodac.dicefive.data.settings.FrameRate
+import net.zodac.dicefive.data.settings.IdleTimeout
 import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.data.settings.ScreenOrientation
 import net.zodac.dicefive.data.settings.SettingsRepository
@@ -35,25 +36,29 @@ import net.zodac.dicefive.ui.settings.GraphicsScreen
 import net.zodac.dicefive.ui.settings.GraphicsViewModel
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
+/** Pause when idle's row, among [MotionGroup] rows. */
+private const val IDLE = "idle"
+
 /** The screen this class's tests are drawn on. */
 private val SCREEN = TestScreen(360, 800)
 
 /** The Styles card's groups, in its rows' order: the Styles page's. */
 private val STYLE_ROWS = listOf(MotionGroup.DICE, MotionGroup.DICE_CUP, MotionGroup.MAT, MotionGroup.BACKGROUND, MotionGroup.SCORE_BOX)
 
-/** The Advanced settings' row titles, top to bottom: Gameplay's and Miscellaneous' alphabetical, Styles' as the Styles page has them. */
+/** The Advanced graphics settings' row titles, top to bottom: Gameplay's and Miscellaneous' alphabetical, Styles' as the Styles page has them. */
 private val ROWS = listOf(
-    "Cup shake", "Dice roll", "Dice roll frame rate", "Score glow", "Scores",
+    "Cup shake", "Dice roll", "Dice roll frame rate", "Pause when idle", "Score glow", "Scores",
     "Dice", "Dice Cup", "Mat", "Background", "Boxes",
     "Achievement banners", "Celebrations", "Menus & pages",
 )
 
 /**
- * The Graphics page: the Orientation, then the Animations level, each under a visible title, then the Advanced settings
- * under a heading of their own, in three cards (Gameplay, Styles, Miscellaneous), each closed until its title is
+ * The Graphics page: the Orientation, then the Animations level, each under a visible title, then the Advanced graphics
+ * settings under a heading of their own, in three cards (Gameplay, Styles, Miscellaneous), each closed until its title is
  * tapped: a frame rate for each group (spoken "Off", "30 frames a second", "60 frames a second", "Maximum"; the dice's
  * roll's without Off) and the dice's roll itself (Off, In place, or Tossed) - which start as the level's preset, leave
- * no level picked once changed, and go back to a level's preset when one is picked.
+ * no level picked once changed, and go back to a level's preset when one is picked - as does Pause when idle (30s, 60s,
+ * 90s, or Off).
  */
 class GraphicsScreenTest : UiTest() {
 
@@ -74,13 +79,13 @@ class GraphicsScreenTest : UiTest() {
 
     private val isButton = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
 
-    /** Opens the Advanced settings' card titled [title]: its heading is one button, saying whether it's open. */
+    /** Opens the Advanced graphics settings' card titled [title]: its heading is one button, saying whether it's open. */
     private fun openCard(title: String) {
         compose.onNode(isHeading and hasText(title) and isButton and hasState("Collapsed")).performScrollTo().performClick()
         compose.onNode(isHeading and hasText(title) and hasState("Expanded")).assertExists()
     }
 
-    /** Opens every Advanced settings card. */
+    /** Opens every Advanced graphics settings card. */
     private fun openAdvanced() = listOf("Gameplay", "Styles", "Miscellaneous").forEach(::openCard)
 
     /** The groups' rate rows, top to bottom: Gameplay's (the dice's rate under their roll's style), Styles', then Miscellaneous'. */
@@ -88,17 +93,20 @@ class GraphicsScreenTest : UiTest() {
         listOf(MotionGroup.BANNERS, MotionGroup.CELEBRATIONS, MotionGroup.MENUS)
 
     /**
-     * The rows with an Off, top to bottom, after the level's: every rate row but the dice's, which has none - and the
-     * dice's roll's style (null) in its place.
+     * The rows with an Off, top to bottom, after the level's: every rate row but the dice's, which has none - the
+     * dice's roll's style (null) in its place - and Pause when idle ([IDLE]) under it.
      */
-    private val offRows = listOf(MotionGroup.CUP_SHAKE, null, MotionGroup.SCORE_GLOW, MotionGroup.SCORES) + STYLE_ROWS +
+    private val offRows = listOf(MotionGroup.CUP_SHAKE, null, IDLE, MotionGroup.SCORE_GLOW, MotionGroup.SCORES) + STYLE_ROWS +
         listOf(MotionGroup.BANNERS, MotionGroup.CELEBRATIONS, MotionGroup.MENUS)
 
-    /** [group]'s option spoken [spoken] - or, for a null [group], the dice's roll's Off. */
-    private fun rate(group: MotionGroup?, spoken: String): SemanticsNodeInteraction {
+    /** [group]'s option spoken [spoken] - or, for a null [group], the dice's roll's Off, and for [IDLE], Pause when idle's. */
+    private fun rate(group: Any?, spoken: String): SemanticsNodeInteraction {
         val all = compose.onAllNodes(hasContentDescription(spoken) and isSelectable())
         return if (spoken == "Off") all[offRows.indexOf(group) + 1] else all[groupRows.indexOf(group)]
     }
+
+    /** Pause when idle's option spoken [spoken]: "Off", or "30 seconds" and so on. */
+    private fun idle(spoken: String) = if (spoken == "Off") rate(IDLE, "Off") else compose.onNode(hasContentDescription(spoken) and isSelectable())
 
     private fun rollStyle(name: String) = if (name == "Off") rate(null, "Off") else compose.onNode(hasText(name) and isSelectable())
 
@@ -115,7 +123,7 @@ class GraphicsScreenTest : UiTest() {
         level("High").assertIsSelected()
         listOf("Off", "Low", "Medium").forEach { level(it).assertIsNotSelected() }
         // A heading of their own, not a button, over three cards, each closed until opened: only their headings show.
-        compose.onNode(isHeading and hasText("Advanced settings") and !hasClickAction()).assertExists()
+        compose.onNode(isHeading and hasText("Advanced graphics settings") and !hasClickAction()).assertExists()
         ROWS.forEach { compose.onNodeWithText(it).assertDoesNotExist() }
         // Each opens on its own.
         openCard("Styles")
@@ -192,6 +200,38 @@ class GraphicsScreenTest : UiTest() {
         rate(MotionGroup.CUP_SHAKE, "Off").performScrollTo().performClick()
         compose.waitForIdle()
         assertEquals(false, repository.motionSettings.first().cupShakeMotion)
+    }
+
+    @Test
+    fun `pause when idle - 30s to 90s then off - at the level's preset - leaves no level picked once changed - and a level puts it back`() = uiTest(SCREEN) {
+        show()
+        openCard("Gameplay")
+        // Drawn short, spoken in full, least motion to most: Off, which never pauses, last.
+        listOf("30s" to "30 seconds", "60s" to "60 seconds", "90s" to "90 seconds").forEach { (drawn, spoken) ->
+            compose.onNode(hasText(drawn) and hasContentDescription(spoken) and isSelectable()).assertExists()
+        }
+        idle("Off").performScrollTo()
+        val left = { spoken: String -> idle(spoken).fetchSemanticsNode().boundsInRoot.left }
+        assertTrue(left("30 seconds") < left("60 seconds") && left("60 seconds") < left("90 seconds") && left("90 seconds") < left("Off"), "30s, 60s, 90s, Off")
+        // High's 60s.
+        idle("60 seconds").assertIsSelected()
+        listOf("Off", "30 seconds", "90 seconds").forEach { idle(it).assertIsNotSelected() }
+
+        idle("90 seconds").performClick()
+        compose.waitForIdle()
+        assertEquals(AnimationLevel.HIGH.motion.copy(idleTimeout = IdleTimeout.SECONDS_90), repository.motionSettings.first())
+        idle("90 seconds").assertIsSelected()
+        listOf("Off", "Low", "Medium", "High").forEach { level(it).assertIsNotSelected() }
+
+        idle("Off").performClick()
+        compose.waitForIdle()
+        assertEquals(IdleTimeout.OFF, repository.motionSettings.first().idleTimeout)
+        // Low's 30s.
+        level("Low").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertEquals(AnimationLevel.LOW.motion, repository.motionSettings.first())
+        level("Low").assertIsSelected()
+        idle("30 seconds").assertIsSelected()
     }
 
     @Test

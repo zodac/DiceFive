@@ -68,14 +68,14 @@ class SettingsRowsTest : UiTest() {
         vibration.performClick()
         vibration.assertIsOff()
 
-        // Graphics - the Orientation, Animations and Advanced settings - is one button row, the 48dp touch target's height,
+        // Graphics - the Orientation, Animations and Advanced graphics settings - is one button row, the 48dp touch target's height,
         // opening its page; none of those settings is on this one.
         val isButton = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
         val graphics = compose.onNode(hasText("Graphics") and hasClickAction() and isButton)
         graphics.performScrollTo().assertHeightIsEqualTo(48.dp)
         graphics.performClick()
         assertEquals(1, graphicsOpened)
-        listOf("Animations", "Orientation", "Advanced settings").forEach { compose.onNodeWithText(it).assertDoesNotExist() }
+        listOf("Animations", "Orientation", "Advanced graphics settings").forEach { compose.onNodeWithText(it).assertDoesNotExist() }
 
         // The reset is one button row - one node carrying the name and what it does, a single TalkBack stop - below the
         // fold on the test's small screen.

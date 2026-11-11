@@ -84,14 +84,16 @@ enum class MotionGroup(val key: String) {
 }
 
 /**
- * How the app moves: a [FrameRate] for each [MotionGroup] ([rates]), and the [rollStyle]. Each [AnimationLevel] is one of
- * these; the player's own come from the Graphics page's Advanced settings.
+ * How the app moves: a [FrameRate] for each [MotionGroup] ([rates]), the [rollStyle], and how long an untouched screen
+ * waits before its infinite animations freeze ([idleTimeout]). Each [AnimationLevel] is one of these; the player's own
+ * come from the Graphics page's Advanced graphics settings.
  *
  * Each group runs at its own rate, and the window at the fastest of those that move ([maxFramesPerSecond]).
  */
 data class MotionSettings(
     val rates: Map<MotionGroup, FrameRate>,
     val rollStyle: DiceRollStyle,
+    val idleTimeout: IdleTimeout,
 ) {
     init {
         require(rates.keys == MotionGroup.entries.toSet()) { "a rate for every group" }
@@ -145,8 +147,8 @@ data class MotionSettings(
     private fun normalised(): MotionSettings =
         if (rollMotion) this else copy(rates = rates + (MotionGroup.DICE_ROLL to FrameRate.FPS_30), rollStyle = DiceRollStyle.OFF)
 
-    /** Each group's rate's id, then the roll style's: what [fromIds] reads back. */
-    fun ids(): List<String> = MotionGroup.entries.map { rate(it).id } + rollStyle.id
+    /** Each group's rate's id, then the roll style's, then the idle timeout's: what [fromIds] reads back. */
+    fun ids(): List<String> = MotionGroup.entries.map { rate(it).id } + rollStyle.id + idleTimeout.id
 
     companion object {
         /** The window's frame rate with every group off. */
@@ -160,6 +162,7 @@ data class MotionSettings(
             cupShake: FrameRate,
             diceRoll: FrameRate,
             rollStyle: DiceRollStyle,
+            idleTimeout: IdleTimeout,
         ): MotionSettings = MotionSettings(
             MotionGroup.decoration.associateWith { decoration } + MotionGroup.gameplay.associateWith { gameplay } + mapOf(
                 MotionGroup.SCORE_GLOW to scoreGlow,
@@ -167,13 +170,18 @@ data class MotionSettings(
                 MotionGroup.DICE_ROLL to diceRoll,
             ),
             rollStyle,
+            idleTimeout,
         )
 
         /** The settings [ids] gave, or null for anything else. */
         fun fromIds(ids: List<String>): MotionSettings? {
-            if (ids.size != MotionGroup.entries.size + 1) return null
+            if (ids.size != MotionGroup.entries.size + 2) return null
             val rates = MotionGroup.entries.zip(ids).associate { (group, id) -> group to (storedIdOf<FrameRate>(id) ?: return null) }
-            return MotionSettings(rates, storedIdOf<DiceRollStyle>(ids.last()) ?: return null)
+            return MotionSettings(
+                rates,
+                storedIdOf<DiceRollStyle>(ids[ids.size - 2]) ?: return null,
+                storedIdOf<IdleTimeout>(ids.last()) ?: return null,
+            )
         }
     }
 }

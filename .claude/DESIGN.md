@@ -637,9 +637,10 @@ Each category is two lists in the same order:
     - Scoring and the next roll both wait for the dice to land.
     - Each die casts one shadow from a fixed light.
 - **Animations setting** (`AnimationLevel`): High (uncapped), Medium (60fps, ambient decoration still), Low (30fps,
-    simple roll) or Off, each a preset of the Graphics page's **Advanced settings** (`MotionSettings`): Off, 30fps, 60fps
+    simple roll) or Off, each a preset of the Graphics page's **Advanced graphics settings** (`MotionSettings`): Off, 30fps, 60fps
     or Max for each style's decoration (Dice, Dice Cup, Mat, Background, and Boxes), Menus & pages, Banners, Scores, Celebrations, Score glow, the cup's
-    shake, and the dice's roll (no Off), and the dice's roll itself (Off, In place, or Tossed). The system's
+    shake, and the dice's roll (no Off), the dice's roll itself (Off, In place, or Tossed), and Pause when idle (High
+    and Medium 60s, Low and Off 30s). The system's
     remove-animations setting counts as Off. Details are in `UI.md`, "Reduced motion".
 
 ## Settings
@@ -649,9 +650,11 @@ Each category is two lists in the same order:
     reset behind a confirmation.
 - **Graphics** (`GraphicsScreen`, `GraphicsViewModel`, route `settings/graphics`): a page of its own, opened by a button
     row with an onward arrow. The Orientation, then the Animations level, each under its title, in one card; then the
-    Advanced settings, under their own heading in three cards, each collapsed until opened (`UI.md`, "Reduced motion").
-    Neither is synced: they're about this device. Tests:
-    `GraphicsScreenTest`, `AnimationLevelSettingTest`, `MotionSettingsTest`.
+    Advanced graphics settings, under their own heading in three cards, each collapsed until opened (`UI.md`, "Reduced
+    motion"). The Gameplay card also holds **Pause when idle** (`IdleTimeout`, `motion_idle_timeout`: 30s, 60s, 90s, or
+    Off), how long an untouched screen waits before its infinite animations freeze, preset by the level like the rest.
+    None is synced: they're about this device. Tests: `GraphicsScreenTest`, `AnimationLevelSettingTest`,
+    `MotionSettingsTest`, `IdleTimeoutSettingTest`, `ScreenIdleTest`.
 - **Tricolour shapes** (`tricolour_marks`, synced, off by default): a triangle, circle, or square for red, yellow, or
     blue, on a Tricolour die's corner (`DieColourMark`), in the game and the Rules page's examples, and in its
     colour's box (`BoxColourMark`), for telling the dice apart without their colours. Not while a die is tossed, and

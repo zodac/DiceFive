@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.data.settings.DiceRollStyle
 import net.zodac.dicefive.data.settings.FrameRate
+import net.zodac.dicefive.data.settings.IdleTimeout
 import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.data.settings.MotionSettings
 import net.zodac.dicefive.data.settings.ScreenOrientation
@@ -56,6 +57,9 @@ import net.zodac.dicefive.resources.settings_frame_rate_max
 import net.zodac.dicefive.resources.settings_frame_rate_max_spoken
 import net.zodac.dicefive.resources.settings_frame_rate_spoken
 import net.zodac.dicefive.resources.settings_graphics
+import net.zodac.dicefive.resources.settings_idle_pause
+import net.zodac.dicefive.resources.settings_idle_seconds
+import net.zodac.dicefive.resources.settings_idle_seconds_spoken
 import net.zodac.dicefive.resources.settings_motion_banners
 import net.zodac.dicefive.resources.settings_motion_celebrations
 import net.zodac.dicefive.resources.settings_motion_cup_shake
@@ -187,6 +191,20 @@ private fun frameRateSpoken(rate: FrameRate): String = when (rate) {
     FrameRate.OFF -> frameRateLabel(rate)
 }
 
+/** A Pause when idle wait as drawn: "30s", "60s", "90s", "Off". */
+@Composable
+private fun idleTimeoutLabel(timeout: IdleTimeout): String =
+    timeout.seconds?.let { stringResource(Res.string.settings_idle_seconds, it) } ?: stringResource(Res.string.settings_animations_off)
+
+/** A Pause when idle wait for a narrow screen: the number alone, Off as its word. */
+@Composable
+private fun idleTimeoutShortLabel(timeout: IdleTimeout): String = timeout.seconds?.localised() ?: idleTimeoutLabel(timeout)
+
+/** A Pause when idle wait as a screen reader says it: "30 seconds". */
+@Composable
+private fun idleTimeoutSpoken(timeout: IdleTimeout): String =
+    timeout.seconds?.let { pluralStringResource(Res.plurals.settings_idle_seconds_spoken, it, it) } ?: idleTimeoutLabel(timeout)
+
 @Composable
 private fun rollStyleLabel(style: DiceRollStyle): String = stringResource(
     when (style) {
@@ -196,7 +214,7 @@ private fun rollStyleLabel(style: DiceRollStyle): String = stringResource(
     },
 )
 
-/** Each [MotionGroup]'s row in the Advanced settings: its icon and name - a style's as the Styles page names it. */
+/** Each [MotionGroup]'s row in the Advanced graphics settings: its icon and name - a style's as the Styles page names it. */
 private val MotionGroup.icon: ImageVector
     get() = when (this) {
         MotionGroup.DICE -> Symbols.Casino
@@ -233,9 +251,9 @@ private fun MotionGroup.title(): String = stringResource(
 
 /**
  * The Graphics page, opened from Settings: the Orientation and the Animations level, each under its title, then the
- * Advanced settings, closed until opened - a frame rate for each [MotionGroup] (Off, 30fps, 60fps or Max; the dice's
- * roll's without Off) and the dice's roll (Off, In place or Tossed). The Advanced settings start as the level's preset; changing one leaves no level picked, and picking a level
- * puts them all back to its preset.
+ * Advanced graphics settings, closed until opened - a frame rate for each [MotionGroup] (Off, 30fps, 60fps or Max; the dice's
+ * roll's without Off), the dice's roll (Off, In place or Tossed), and Pause when idle (30s, 60s, 90s or Off). They start
+ * as the level's preset; changing one leaves no level picked, and picking a level puts them all back to its preset.
  */
 @Composable
 fun GraphicsScreen(viewModel: GraphicsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
@@ -268,7 +286,7 @@ fun GraphicsScreen(viewModel: GraphicsViewModel, onBack: () -> Unit, modifier: M
                         title = stringResource(Res.string.settings_animations),
                         // Least to most, Off first: from the start edge, so left to right here and mirrored in a right-to-left language.
                         options = AnimationLevel.entries.reversed(),
-                        // None picked while the Advanced settings match no level: no word for it, by the maintainer's choice.
+                        // None picked while the Advanced graphics settings match no level: no word for it, by the maintainer's choice.
                         selected = level,
                         onSelect = { it?.let(viewModel::setAnimationLevel) },
                         optionLabel = { animationLevelLabel(it) },
@@ -279,19 +297,19 @@ fun GraphicsScreen(viewModel: GraphicsViewModel, onBack: () -> Unit, modifier: M
                 }
             }
         }
-        // Side by side in landscape: the titled choices, then the Advanced settings.
+        // Side by side in landscape: the titled choices, then the Advanced graphics settings.
         TwoPanes(start = { choicesCard() }, end = { AdvancedSettings(motion, viewModel) })
     }
 }
 
-/** How long an Advanced settings card takes to open or close, as a modifier's settings do (none under reduced motion). */
+/** How long an Advanced graphics settings card takes to open or close, as a modifier's settings do (none under reduced motion). */
 private const val ADVANCED_OPEN_MILLIS = 220
 
 /**
- * The Advanced settings: their title (a heading, in the page's text colour), then three cards, each closed each time
+ * The Advanced graphics settings: their title (a heading, in the page's text colour), then three cards, each closed each time
  * the page opens (kept open across a rotation). Gameplay, what moves on the game screen: Cup shake, the Dice roll
  * (Off, In place, or Tossed) and, under it, its frame rate, which has no Off (the roll's own is its off) and is locked,
- * its pick kept, while the roll is off, then Score glow and Scores. Styles: each style's own decoration
+ * its pick kept, while the roll is off, then Pause when idle (30s, 60s, 90s, or Off: least motion to most, so Off is last), Score glow, and Scores. Styles: each style's own decoration
  * ([MotionGroup.decoration]), in the Styles page's order. Miscellaneous: Achievement banners (on every screen),
  * Celebrations (the results), and Menus & pages. Gameplay's and Miscellaneous' rows are in their names' English
  * alphabetical order.
@@ -318,6 +336,18 @@ private fun AdvancedSettings(motion: MotionSettings, viewModel: GraphicsViewMode
                 compactGlyph = { if (it == DiceRollStyle.OFF) Symbols.MotionPhotosOff else null },
             )
             FrameRateChoice(MotionGroup.DICE_ROLL, FrameRate.entries - FrameRate.OFF, motion, viewModel, enabled = motion.rollStyle != DiceRollStyle.OFF)
+            // Least motion to most, as every row runs: Off, which never pauses, last. Its Off is a word, not the crossed-out
+            // motion glyph, as it means more motion here, not none.
+            TitledChoice(
+                icon = Symbols.HourglassEmpty,
+                title = stringResource(Res.string.settings_idle_pause),
+                options = IdleTimeout.entries,
+                selected = motion.idleTimeout,
+                onSelect = viewModel::setIdleTimeout,
+                optionLabel = { idleTimeoutLabel(it) },
+                compactLabel = { idleTimeoutShortLabel(it) },
+                spokenLabel = { idleTimeoutSpoken(it) },
+            )
             for (group in listOf(MotionGroup.SCORE_GLOW, MotionGroup.SCORES)) {
                 FrameRateChoice(group, FrameRate.entries, motion, viewModel)
             }
@@ -357,7 +387,7 @@ private fun CollapsibleCard(title: String, rows: @Composable () -> Unit) {
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // In the page's text colour, as the Advanced settings heading is: not gold.
+            // In the page's text colour, as the Advanced graphics settings heading is: not gold.
             Text(text = title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
             Icon(
                 imageVector = if (expanded) Symbols.KeyboardArrowUp else Symbols.KeyboardArrowDown,

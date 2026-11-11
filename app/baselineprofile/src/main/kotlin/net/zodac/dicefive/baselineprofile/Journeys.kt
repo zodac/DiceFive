@@ -424,8 +424,8 @@ internal fun MacrobenchmarkScope.visitSettings() {
     val soundOn = isChecked("Sound effects")
     setChecked(sound, "Sound effects", !soundOn)
     setChecked(sound, "Sound effects", soundOn)
-    tapTextUntil("Graphics") { device.hasObject(By.text("Advanced settings")) }
-    // An Advanced settings card opened and one of its rows changed, which leaves no level picked until High below.
+    tapTextUntil("Graphics") { device.hasObject(By.text("Advanced graphics settings")) }
+    // An Advanced graphics settings card opened and one of its rows changed, which leaves no level picked until High below.
     tapTextUntil("Gameplay") { device.hasObject(By.text("In place")) }
     setChecked(By.text("In place"), "In place", true)
     // Back to High: the journeys after this one are profiling the full animations.

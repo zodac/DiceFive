@@ -162,9 +162,11 @@ fun DiceFiveApp(
     LifecycleEventEffect(Lifecycle.Event.ON_START) {
         appSwitches.launch { if (orNullOnFailure { onlineSync.needsSyncOnReturning() } != false) OnlineSyncRequests.request() }
     }
-    // Infinite animations freeze after a minute with nobody there, and move on again at the next touch or on coming back.
+    // Infinite animations freeze after the motion's Pause when idle with nobody there (never, where it's off), and move on
+    // again at the next touch or on coming back.
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(screenIdle, lifecycle) { screenIdle.runTimer(lifecycle::delayWhileResumed) }
+    LaunchedEffect(screenIdle, motion.idleTimeout) { screenIdle.setTimeout(motion.idleTimeout) }
     LifecycleResumeEffect(screenIdle) {
         screenIdle.wake()
         onPauseOrDispose { }

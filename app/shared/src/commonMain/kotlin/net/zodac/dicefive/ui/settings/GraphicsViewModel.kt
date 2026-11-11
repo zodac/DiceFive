@@ -14,6 +14,7 @@ import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.data.settings.DiceRollStyle
 import net.zodac.dicefive.data.settings.FrameRate
+import net.zodac.dicefive.data.settings.IdleTimeout
 import net.zodac.dicefive.data.settings.MotionGroup
 import net.zodac.dicefive.data.settings.MotionSettings
 import net.zodac.dicefive.data.settings.ScreenOrientation
@@ -27,7 +28,7 @@ data class GraphicsSettings(
     val level: AnimationLevel? get() = AnimationLevel.matching(motion)
 }
 
-/** The Graphics page, opened from Settings: the Orientation, the Animations level and its Advanced settings. */
+/** The Graphics page, opened from Settings: the Orientation, the Animations level, and the Advanced graphics settings. */
 class GraphicsViewModel(private val settingsRepository: SettingsRepository) : ViewModel() {
 
     /** Null until both have loaded, so the page never draws a default before the player's own. */
@@ -38,7 +39,7 @@ class GraphicsViewModel(private val settingsRepository: SettingsRepository) : Vi
         viewModelScope.launch { settingsRepository.setScreenOrientation(orientation) }
     }
 
-    /** Picks [level], putting every group of the Advanced settings back to its preset. */
+    /** Picks [level], putting every group of the Advanced graphics settings back to its preset. */
     fun setAnimationLevel(level: AnimationLevel) {
         viewModelScope.launch { settingsRepository.setAnimationLevel(level) }
     }
@@ -47,6 +48,8 @@ class GraphicsViewModel(private val settingsRepository: SettingsRepository) : Vi
     fun setFrameRate(group: MotionGroup, rate: FrameRate) = setMotion { it.with(group, rate) }
 
     fun setRollStyle(style: DiceRollStyle) = setMotion { it.copy(rollStyle = style) }
+
+    fun setIdleTimeout(timeout: IdleTimeout) = setMotion { it.copy(idleTimeout = timeout) }
 
     private fun setMotion(change: (MotionSettings) -> MotionSettings) {
         val current = settings.value?.motion ?: return
